@@ -9,6 +9,14 @@ export const LIST_INTEGRATIONS_TOOL_NAME = 'list_integrations'
 export const DESCRIBE_INTEGRATION_TOOL_TOOL_NAME = 'describe_integration_tool'
 export const CALL_INTEGRATION_TOOL_TOOL_NAME = 'call_integration_tool'
 
+// Claude's own web search, which filters what it fetches before it reaches the context, at most five
+// searches a request: the first tool of every list the agent sends, a conversation's and a subagent's
+export const WEB_SEARCH_TOOL: NonNullable<BetaMessageStreamParams['tools']>[number] = {
+  type: 'web_search_20260209',
+  name: 'web_search',
+  max_uses: 5,
+}
+
 /*
   The tools every conversation's requests send, the same list in the same order for all of them,
   since a change to it, like one to the system prompt, makes existing conversations lose their
@@ -21,7 +29,7 @@ export const CALL_INTEGRATION_TOOL_TOOL_NAME = 'call_integration_tool'
   follow them in a run's requests (`buildConversationTools`)
 */
 const CONVERSATION_TOOLS: NonNullable<BetaMessageStreamParams['tools']> = [
-  { type: 'web_search_20260209', name: 'web_search', max_uses: 5 },
+  WEB_SEARCH_TOOL,
   {
     name: ASK_USER_TOOL_NAME,
     description:

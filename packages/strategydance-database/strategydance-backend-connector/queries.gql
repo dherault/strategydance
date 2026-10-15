@@ -82,6 +82,9 @@ query GetUserStaffStatus($userId: String!) @auth(level: NO_ACCESS) {
 #   one past the 1000 (`MAX_CONVERSATIONS`) is refused as such. `StartConversation` counts them again
 #   under its lock
 #
+# Subagents are left out of both counts, and a subagent's `parentId` refuses the send: no member
+# writes in one
+#
 # `$userId` is the uid the backend verified, never one a client sent
 query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!, $messageId: UUID!)
 @auth(level: NO_ACCESS) {
@@ -97,6 +100,9 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
     nextRunNumber
     messageCount
     isFull
+
+    # A subagent's parent, null on every other conversation
+    parentId
   }
   conversationTranscriptEntries(
     where: { conversationId: { eq: $conversationId } }
@@ -138,7 +144,7 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
   conversationRuns(
     where: {
       status: { in: [QUEUED, RUNNING] }
-      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
     }
     limit: 3
   ) {
@@ -150,7 +156,12 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
     }
   }
   keptConversations: conversations(
-    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      parentId: { isNull: true }
+    }
   ) {
     _count
   }
@@ -200,6 +211,9 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
     nextMessagePosition
     messageCount
     historyRevision
+
+    # A subagent's parent, null on every other conversation
+    parentId
   }
   latestRuns: conversationRuns(
     where: {
@@ -219,7 +233,7 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
   conversationRuns(
     where: {
       status: { in: [QUEUED, RUNNING] }
-      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
     }
     limit: 3
   ) {
@@ -370,13 +384,13 @@ query GetConversationRetryContext(
 # - the run, matched with the conversation, its author and its organization it was queued for, so a
 #   worker told of a run elsewhere finds nothing
 # - the conversation: whether it is deleted, the run it names, its counter and how many messages it
-#   holds
+#   holds, and whether it is a subagent, whose run sends its own prompt and tools and writes a report
 # - the author's membership, whose `createdAt` has to be the one the run records, and whether they
 #   are still staff
 # - the transcript's last entry, with how many of its blocks the thread has drawn, which is where a
 #   worker taking over after a crash carries on
 # - the messages the run has drawn, which it may draw 100 of (`MAX_CONVERSATION_RUN_ENTRIES` in
-#   strategydance-core): the member's message that started it is not one
+#   strategydance-core): the member's message that started it is not one, nor a subagent's brief
 # - the run's context, once built, and its usage, with each request it reserved and settled
 # - the run's latest replies in the transcript, which the worker stores once each
 #
@@ -412,6 +426,9 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     messageCount
     previewMessageId
     aspectsSetBy
+
+    # A subagent's parent, null on every other conversation
+    parentId
   }
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     createdAt
@@ -448,7 +465,7 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     drawnPieces
   }
   # A note's kind is selected at the top level here, which has the generated SDK declare its enum
-  conversationMessages(where: { runId: { eq: $runId }, kind: { ne: MEMBER_TEXT } }, limit: 100) {
+  conversationMessages(where: { runId: { eq: $runId }, kind: { nin: [MEMBER_TEXT, BRIEF] } }, limit: 100) {
     id
     kind
     noteKind
@@ -535,6 +552,9 @@ query GetConversationTurnContext($organizationId: UUID!, $userId: String!, $conv
     isAwaitingAnswer
     previewMessageId
     nextRunNumber
+
+    # A subagent's parent, null on every other conversation
+    parentId
   }
   latestRuns: conversationRuns(
     where: {
@@ -555,7 +575,7 @@ query GetConversationTurnContext($organizationId: UUID!, $userId: String!, $conv
   conversationRuns(
     where: {
       status: { in: [QUEUED, RUNNING] }
-      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
     }
     limit: 3
   ) {
@@ -712,12 +732,14 @@ query GetConversationTranscript($organizationId: UUID!, $userId: String!, $conve
 # - the member, their membership and the organization, which the context message tells Claude of:
 #   the member's name, time zone, language, bio, role and job title, and the organization's name,
 #   brief and explored aspects
-# - the conversation's aspects
+# - the conversation's aspects, or a subagent's parent's, which its context message names
 # - its 20 latest runs' usage, whose latest request with its reply still in the transcript the
 #   measurement starts from, so a conversation about to pass Claude's context is marked full
 # - its sent files' ids in the Files API with their tokens, counted once when each was stored, which
 #   the measurement adds in place of the file blocks the count endpoint refuses. At most 100
 #   (`MAX_CONVERSATION_ATTACHMENTS` in strategydance-core)
+# - a subagent's parent's sent files the same way, whose brief hands some of them over: the files
+#   sent by a message of the conversation that launched this one, never one waiting in a draft
 #
 # `$userId` is the uid the backend verified, never one a client sent
 query GetConversationRequestContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
@@ -742,6 +764,9 @@ query GetConversationRequestContext($organizationId: UUID!, $userId: String!, $c
     limit: 1
   ) {
     aspects
+    parent {
+      aspects
+    }
   }
   conversationRuns(
     where: {
@@ -764,6 +789,103 @@ query GetConversationRequestContext($organizationId: UUID!, $userId: String!, $c
   ) {
     claudeFileId
     tokenCount
+  }
+  parentAttachments: conversationAttachments(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      message: { conversation: { conversations_on_parent: { exist: { id: { eq: $conversationId } } } } }
+    }
+    limit: 100
+  ) {
+    claudeFileId
+    tokenCount
+  }
+}
+
+# What a launch reads before it launches a subagent of one of the caller's conversations, in one
+# read:
+#
+# - the caller's membership, whose `createdAt` the subagent's runs record
+# - the parent: whose it is, whether it is deleted or a subagent itself, which launches none, and
+#   how many subagents it holds, at most 100 (`MAX_CONVERSATION_SUBAGENTS` in strategydance-core)
+# - its latest run's anchor, which a launch made from no run is made on
+# - its live subagents' anchors, at most 100, which the 10 on one anchor are counted from
+#   (`MAX_SUBAGENTS_PER_ACTION`), those a retry deleted left out
+# - the files the launch hands over, among the parent's: whether each is stored and sent, and what
+#   its brief's block and the measurement of its first request read of it. At most 10
+# - the subagent at the id the launch derives, with its first run, when a launch sent again made it
+#   already
+#
+# `$userId` is the uid the backend verified, never one a client sent
+query GetSubagentLaunchContext(
+  $organizationId: UUID!
+  $userId: String!
+  $parentId: UUID!
+  $subagentId: UUID!
+  $attachmentIds: [UUID!]!
+) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    createdAt
+  }
+  parent: conversation(id: $parentId) {
+    userId
+    organizationId
+    deletedAt
+    parentId
+    subagentCount
+  }
+  latestRuns: conversationRuns(
+    where: { conversation: { id: { eq: $parentId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } } }
+    orderBy: [{ number: DESC }]
+    limit: 1
+  ) {
+    anchorPosition
+  }
+  subagents: conversations(
+    where: {
+      parentId: { eq: $parentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
+    limit: 100
+  ) {
+    launchAnchorPosition
+  }
+  files: conversationAttachments(
+    where: {
+      id: { in: $attachmentIds }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $parentId }
+    }
+    limit: 10
+  ) {
+    id
+    status
+    messageId
+    name
+    contentType
+    tokenCount
+    claudeFileId
+    createdAt
+  }
+  subagent: conversation(id: $subagentId) {
+    userId
+    organizationId
+    parentId
+  }
+  subagentRuns: conversationRuns(
+    where: {
+      number: { eq: 0 }
+      conversation: { id: { eq: $subagentId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 1
+  ) {
+    id
+    status
+    leaseExpiresAt
   }
 }
 
@@ -801,6 +923,7 @@ query SearchConversationTitles($organizationId: UUID!, $userId: String!, $query:
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
     }
     limit: 1000
@@ -829,6 +952,7 @@ query SearchConversationMessages($organizationId: UUID!, $userId: String!, $quer
         userId: { eq: $userId }
         organizationId: { eq: $organizationId }
         deletedAt: { isNull: true }
+        parentId: { isNull: true }
         organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
       }
     }
@@ -847,6 +971,7 @@ query GetConversationSearchCorpus($organizationId: UUID!, $userId: String!) @aut
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      parentId: { isNull: true }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
     }
     # `id` breaks the tie between two conversations active in the same instant
@@ -891,6 +1016,7 @@ query SearchConversationsBySubstring(
           userId: { eq: $userId }
           organizationId: { eq: $organizationId }
           deletedAt: { isNull: true }
+          parentId: { isNull: true }
           organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
         }
         {
@@ -951,6 +1077,8 @@ query GetConversationAttachmentUploadContext(
     userId
     organizationId
     deletedAt
+    # A subagent's parent, null on every other conversation
+    parentId
   }
   # The status is selected at the top level of the operation, which is what has the generated SDK
   # declare its enum

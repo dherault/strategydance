@@ -2,19 +2,17 @@ import type { BetaContentBlockParam, BetaMessageParam } from '@anthropic-ai/sdk/
 
 import type { ClaudeClient, ConversationContentBlock } from '~types'
 
-import { buildConversationMessages } from '~domain/agent/buildConversationRequest'
-import type { ConversationRequestTools } from '~domain/agent/buildConversationTools'
+import { type ConversationRequestConfig, buildConversationMessages } from '~domain/agent/buildConversationRequest'
 import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
 import { countConfigTokens, findStartingRequest, sumRequest } from '~domain/agent/measureConversationRequest'
 import replaceConversationFiles, { type ConversationFileTokens } from '~domain/agent/replaceConversationFiles'
-import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import type { ConversationRunUsage } from '~domain/conversations/conversationRunUsage'
 import type { ConversationTranscriptRecord } from '~domain/conversations/readConversationTranscript'
 
 type MeasureConversationSendInput = {
   client: ClaudeClient
-  // The tools the run's requests will send, the agent's own and its modules'
-  tools: ConversationRequestTools
+  // The system prompt and the tools the run's requests will send, the agent's own and its modules'
+  config: ConversationRequestConfig
   // The stored transcript, in order
   entries: ConversationTranscriptRecord[]
   // The entry the send appends, as it will be stored
@@ -43,14 +41,14 @@ type MeasureConversationSendInput = {
 */
 async function measureConversationSend({
   client,
-  tools,
+  config: requestConfig,
   entries,
   entry,
   context,
   runs,
   fileTokens,
 }: MeasureConversationSendInput) {
-  const config = await countConfigTokens(client, tools)
+  const config = await countConfigTokens(client, requestConfig)
   const appended: BetaMessageParam[] = [
     { role: 'user', content: entry as BetaContentBlockParam[] },
     { role: 'system', content: context as BetaContentBlockParam[] },
@@ -64,8 +62,8 @@ async function measureConversationSend({
     )
     const inputTokens = await client.countTokens({
       model: CONVERSATION_MODEL,
-      system: CONVERSATION_SYSTEM_PROMPT,
-      tools,
+      system: requestConfig.system,
+      tools: requestConfig.tools,
       messages: counted.messages,
     })
 

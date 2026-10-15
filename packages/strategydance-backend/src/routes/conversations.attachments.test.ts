@@ -419,6 +419,34 @@ describe('PUT /:conversationId/attachments/:attachmentId', () => {
     expect(fake.attachments.size).toBe(0)
   })
 
+  // A subagent is the member's, and nothing the member sends reaches it
+  test('refuses an upload under a subagent’s id', async () => {
+    const conversationId = newId()
+
+    fake.conversations.set(conversationId, {
+      id: conversationId,
+      userId: MEMBER,
+      organizationId: ORGANIZATION_ID,
+      title: 'Research the competitors',
+      activeRunId: null,
+      preview: null,
+      previewMessageId: null,
+      unreadCount: 0,
+      nextRunNumber: 1,
+      nextMessagePosition: 1,
+      messageCount: 1,
+      isFull: false,
+      deletedAt: null,
+      pruneClaimedAt: null,
+      updatedAt: new Date().toISOString(),
+      parentId: CONVERSATION_ID,
+    })
+
+    expect((await upload({ conversationId, bytes: png(), contentType: 'image/png' })).status).toBe(404)
+    expect(fake.attachments.size).toBe(0)
+    expect(storage.objects.size).toBe(0)
+  })
+
   test('refuses what Claude would not take, and gives its place back at once', async () => {
     const cases: [Upload, number][] = [
       [{ bytes: png(), contentType: 'image/jpeg' }, 415],

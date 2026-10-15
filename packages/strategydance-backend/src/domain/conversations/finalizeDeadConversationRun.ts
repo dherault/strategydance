@@ -48,6 +48,7 @@ type Options = {
   task is there. Its task gone, the run is queued again while it is young (see
   `CONVERSATION_RUN_REQUEUE_WINDOW_MS`), and finalized once it is older. A claimed run past its
   lease is dead whatever the queue holds, and so is a queued one in development, which has no queue.
+  A subagent's run is answered `missing`, since its endings write its report, which this does not.
 
   Once the run has ended, a call to a module's write it left started is answered by what the module
   stored under its key, when it stored anything (`settleConversationModuleWrites`): the write
@@ -66,7 +67,8 @@ async function finalizeDeadConversationRun(
     const { data } = await getConversationRunContext(dataConnect, reference)
     const [run] = data.conversationRuns
 
-    if (!run) return 'missing'
+    // A subagent's run ends through its own endings, which write its report, and never here
+    if (!run || data.conversation?.parentId) return 'missing'
 
     if (run.status !== ConversationRunStatus.QUEUED && run.status !== ConversationRunStatus.RUNNING) return 'ended'
 

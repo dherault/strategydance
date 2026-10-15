@@ -8,7 +8,9 @@ import {
   MAX_CONVERSATION_MESSAGES,
   MAX_CONVERSATION_SEARCHES,
   MAX_CONVERSATIONS,
+  MAX_CONVERSATION_SUBAGENTS,
   MAX_PENDING_CONVERSATION_ATTACHMENTS,
+  MAX_SUBAGENTS_PER_ACTION,
 } from 'strategydance-core'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
@@ -58,6 +60,7 @@ export const ConversationMessageKind = {
   ASPECTS: 'ASPECTS',
   NOTE: 'NOTE',
   APPROVAL: 'APPROVAL',
+  BRIEF: 'BRIEF',
 } as const
 
 export const ConversationApprovalState = {
@@ -91,6 +94,7 @@ export const ConversationRunTrigger = {
   ANSWER: 'ANSWER',
   RESUME: 'RESUME',
   RETRY: 'RETRY',
+  LAUNCH: 'LAUNCH',
 } as const
 
 export const ConversationToolStatus = {
@@ -130,6 +134,17 @@ export type FakeConversation = {
   historyRevision?: number
   // Whether a question waits for the member, false until a run ends on one
   isAwaitingAnswer?: boolean
+  // A subagent's: the conversation that launched it, the run and the call that did, the parent's
+  // anchor it was launched on, and its report once written. Absent on every other conversation,
+  // so a check reads them with `== null`
+  parentId?: string | null
+  launchRunId?: string | null
+  launchToolUseId?: string | null
+  launchAnchorPosition?: number | null
+  report?: string | null
+  reportedAt?: string | null
+  // A parent's: the subagents it launched and are not pruned, 0 until a launch
+  subagentCount?: number
 }
 
 export type FakeRun = {
@@ -191,6 +206,8 @@ export type FakeMessage = {
   approvalToolHash?: string | null
   approvalCredentialGeneration?: string | null
   argumentsPreview?: string | null
+  // A brief's: the files of its parent's it hands over
+  attachmentIds?: string[] | null
 }
 
 export type FakeEntry = {
@@ -358,6 +375,11 @@ function createConversationDatabaseFake() {
   function deleteConversation(conversationId: string) {
     conversations.delete(conversationId)
 
+    // A subagent's parent is an optional reference, set to null on delete
+    for (const conversation of conversations.values()) {
+      if (conversation.parentId === conversationId) conversation.parentId = null
+    }
+
     // A file's message is an optional reference, set to null on delete
     for (const attachment of attachments.values()) {
       if (attachment.messageId && messages.get(attachment.messageId)?.conversationId === conversationId) {
@@ -388,6 +410,7 @@ function createConversationDatabaseFake() {
       || conversation.deletedAt === null
       || isPastUndo(conversation)
       || conversation.pruneClaimedAt !== null
+      || conversation.parentId != null
     ) {
       refuse('The conversation is gone for good')
     }
@@ -405,6 +428,7 @@ function createConversationDatabaseFake() {
       && conversation.deletedAt === null
       && conversation.previewMessageId === id(previewMessageId)
       && conversation.unreadCount > 0
+      && conversation.parentId == null
     ) {
       conversation.unreadCount = 0
     }
@@ -431,17 +455,19 @@ function createConversationDatabaseFake() {
         && conversation !== undefined
         && conversation.userId === userId
         && conversation.organizationId === id(organizationId)
+        && conversation.parentId == null
       )
     })
   }
 
-  // The caller's conversations in the organization, deleted ones aside
+  // The caller's conversations in the organization, deleted ones and subagents aside
   function keptConversations(variables: AnyVariables) {
     return [...conversations.values()].filter(
       conversation =>
         conversation.userId === variables.userId
         && conversation.organizationId === id(variables.organizationId)
-        && conversation.deletedAt === null,
+        && conversation.deletedAt === null
+        && conversation.parentId == null,
     )
   }
 
@@ -726,6 +752,34 @@ function createConversationDatabaseFake() {
     return findFencedRun(variables) ?? refuse("The run is no longer this worker's")
   }
 
+  // The fence of a subagent's own draws and endings, which a conversation's run never passes
+  function requireSubagentRun(variables: AnyVariables) {
+    const run = requireFencedRun(variables)
+
+    if (conversations.get(run.conversationId)?.parentId == null) refuse("The run is no longer this worker's")
+
+    return run
+  }
+
+  // The report a subagent's ending writes, at most 8000 characters, checked before anything changes
+  function checkReport(variables: AnyVariables) {
+    if ([...String(variables.report)].length > 8000) refuse("A subagent's report holds at most 8000 characters")
+  }
+
+  function writeReport(conversation: FakeConversation, variables: AnyVariables) {
+    Object.assign(conversation, { report: variables.report, reportedAt: now() })
+  }
+
+  // The fence of a conversation's own endings, which a subagent's run never passes: its endings
+  // write its report
+  function requireParentRun(variables: AnyVariables) {
+    const run = requireFencedRun(variables)
+
+    if (conversations.get(run.conversationId)?.parentId != null) refuse("The run is no longer this worker's")
+
+    return run
+  }
+
   // The conversation a note goes into, at the counter, naming the run or none, as the connector's
   // note steps hold it
   function requireNoteConversation(variables: AnyVariables) {
@@ -804,6 +858,7 @@ function createConversationDatabaseFake() {
       || conversation.userId !== variables.userId
       || conversation.organizationId !== id(variables.organizationId)
       || conversation.deletedAt !== null
+      || conversation.parentId != null
       || conversation.activeRunId !== null
       || conversation.isFull
       || conversation.messageCount >= MAX_CONVERSATION_MESSAGES
@@ -931,6 +986,56 @@ function createConversationDatabaseFake() {
     return { ...attachment }
   }
 
+  // A text the agent wrote drawn at the counter, its cursor moved on: a conversation's reply adds to
+  // its unread count, a subagent's never does
+  function drawAgentText(variables: AnyVariables, run: FakeRun, { isUnread }: { isUnread: boolean }) {
+    const isFirstPiece = variables.toPiece === 1 && variables.toBlock >= variables.fromBlock
+    const isWhole = variables.toBlock > variables.fromBlock && (variables.toPiece ?? 0) === 0
+
+    if (variables.text.length > 20000 || (!isFirstPiece && !isWhole)) {
+      refuse(
+        'A message is drawn from one block or more, or is the first piece of a longer text, and holds at most 20000 characters',
+      )
+    }
+
+    const conversation = requireDrawConversation(variables)
+    const entry = entries.get(id(variables.entryId))
+
+    if (
+      !entry
+      || entry.conversationId !== run.conversationId
+      || entry.drawnBlocks !== variables.fromBlock
+      || (entry.drawnPieces ?? 0) !== 0
+    ) {
+      refuse('Those blocks were drawn already')
+    }
+
+    insertMessage({
+      id: id(variables.messageId),
+      conversationId: conversation.id,
+      runId: run.id,
+      kind: 'AGENT_TEXT',
+      text: variables.text,
+      noteKind: null,
+      toolStatus: null,
+      position: variables.position,
+      citations: variables.citations ?? null,
+    })
+    run.leaseExpiresAt = inSeconds(60)
+    entry.drawnBlocks = variables.toBlock
+    assignGiven(entry, { drawnPieces: variables.toPiece })
+    Object.assign(conversation, {
+      preview: variables.preview,
+      previewMessageId: id(variables.messageId),
+      nextMessagePosition: conversation.nextMessagePosition + 1,
+      messageCount: conversation.messageCount + 1,
+      unreadCount: conversation.unreadCount + (isUnread ? 1 : 0),
+      updatedAt: now(),
+    })
+
+    return { conversationMessage_insert: { id: id(variables.messageId) } }
+  }
+
   const operations: Record<string, (variables: AnyVariables) => unknown> = {
     GetUserStaffStatus: ({ userId }) => ({ user: users.get(userId) ?? null }),
 
@@ -1012,7 +1117,7 @@ function createConversationDatabaseFake() {
             drawnPieces: drawnPieces ?? 0,
           })),
         conversationMessages: [...messages.values()]
-          .filter(message => message.runId === id(variables.runId) && message.kind !== 'MEMBER_TEXT')
+          .filter(message => message.runId === id(variables.runId) && !['MEMBER_TEXT', 'BRIEF'].includes(message.kind))
           .slice(0, 100)
           .map(({ id: messageId, kind, noteKind, toolStatus }) => ({ id: messageId, kind, noteKind, toolStatus })),
       }
@@ -1352,7 +1457,17 @@ function createConversationDatabaseFake() {
           : null,
         userOrganization: membership ? { role: membership.role, jobTitle: membership.jobTitle } : null,
         organization: organization ? { ...organization } : null,
-        conversations: isTheirs ? [{ aspects: conversation.aspects ?? [] }] : [],
+        conversations: isTheirs
+          ? [
+              {
+                aspects: conversation.aspects ?? [],
+                parent:
+                  conversation.parentId != null
+                    ? { aspects: conversations.get(conversation.parentId)?.aspects ?? [] }
+                    : null,
+              },
+            ]
+          : [],
         conversationRuns: isTheirs
           ? [...runs.values()]
               .filter(run => run.conversationId === conversation.id)
@@ -1362,6 +1477,20 @@ function createConversationDatabaseFake() {
           : [],
         conversationAttachments: [...attachments.values()]
           .filter(attachment => isAttachmentOf(attachment, variables) && attachment.messageId !== null)
+          .slice(0, 100)
+          .map(({ claudeFileId, tokenCount }) => ({ claudeFileId, tokenCount })),
+        parentAttachments: [...attachments.values()]
+          .filter(attachment => {
+            const sentBy = attachment.messageId ? messages.get(attachment.messageId) : undefined
+
+            return (
+              attachment.userId === variables.userId
+              && attachment.organizationId === id(variables.organizationId)
+              && sentBy !== undefined
+              && conversations.get(sentBy.conversationId)?.id === conversation?.parentId
+              && conversation?.parentId != null
+            )
+          })
           .slice(0, 100)
           .map(({ claudeFileId, tokenCount }) => ({ claudeFileId, tokenCount })),
       }
@@ -1533,6 +1662,7 @@ function createConversationDatabaseFake() {
         || conversation.userId !== variables.userId
         || conversation.organizationId !== id(variables.organizationId)
         || conversation.deletedAt !== null
+        || conversation.parentId != null
         || !conversation.isAwaitingAnswer
         || conversation.previewMessageId !== id(variables.previewMessageId)
       ) {
@@ -1615,6 +1745,7 @@ function createConversationDatabaseFake() {
 
       if (
         conversation.deletedAt !== null
+        || conversation.parentId != null
         || conversation.activeRunId !== null
         || conversation.nextRunNumber !== variables.runNumber
       ) {
@@ -1658,6 +1789,7 @@ function createConversationDatabaseFake() {
         || conversation.userId !== variables.userId
         || conversation.organizationId !== id(variables.organizationId)
         || conversation.deletedAt !== null
+        || conversation.parentId != null
         || !conversation.isAwaitingAnswer
         || conversation.previewMessageId !== id(variables.previewMessageId)
       ) {
@@ -1737,6 +1869,7 @@ function createConversationDatabaseFake() {
 
       if (
         conversation.deletedAt !== null
+        || conversation.parentId != null
         || conversation.activeRunId !== null
         || conversation.nextRunNumber !== variables.runNumber
       ) {
@@ -1790,6 +1923,7 @@ function createConversationDatabaseFake() {
         || conversation.id !== id(variables.conversationId)
         || conversation.userId !== variables.userId
         || conversation.organizationId !== id(variables.organizationId)
+        || conversation.parentId != null
       ) {
         refuse('The run is not dead')
       }
@@ -1828,7 +1962,9 @@ function createConversationDatabaseFake() {
     RequestConversationRunStop: variables => {
       const run = findOwnedRun(variables, 'RUNNING')
 
-      if (!run || run.stopRequestedAt) return { conversationRun_updateMany: 0 }
+      if (!run || run.stopRequestedAt || conversations.get(run.conversationId)?.parentId != null) {
+        return { conversationRun_updateMany: 0 }
+      }
 
       run.stopRequestedAt = now()
 
@@ -1838,7 +1974,7 @@ function createConversationDatabaseFake() {
     StopQueuedConversationRun: variables => {
       const run = findQueuedRun(variables)
 
-      if (!run) refuse('The run is no longer queued')
+      if (!run || conversations.get(run.conversationId)?.parentId != null) refuse('The run is no longer queued')
 
       const conversation = requireNoteConversation(variables)
 
@@ -1892,6 +2028,7 @@ function createConversationDatabaseFake() {
 
       if (
         conversation.deletedAt !== null
+        || conversation.parentId != null
         || conversation.activeRunId !== null
         || conversation.nextRunNumber !== variables.runNumber
         || conversation.nextMessagePosition !== variables.nextMessagePosition
@@ -1981,6 +2118,7 @@ function createConversationDatabaseFake() {
 
       if (
         conversation.deletedAt !== null
+        || conversation.parentId != null
         || conversation.activeRunId !== null
         || conversation.nextRunNumber !== variables.runNumber
         || (conversation.historyRevision ?? 0) !== variables.historyRevision
@@ -2122,54 +2260,9 @@ function createConversationDatabaseFake() {
       return { system: { id: system.id }, assistant: { id: assistant.id } }
     },
 
-    DrawConversationAgentText: variables => {
-      const run = requireFencedRun(variables)
-      const isFirstPiece = variables.toPiece === 1 && variables.toBlock >= variables.fromBlock
-      const isWhole = variables.toBlock > variables.fromBlock && (variables.toPiece ?? 0) === 0
+    DrawConversationAgentText: variables => drawAgentText(variables, requireFencedRun(variables), { isUnread: true }),
 
-      if (variables.text.length > 20000 || (!isFirstPiece && !isWhole)) {
-        refuse(
-          'A message is drawn from one block or more, or is the first piece of a longer text, and holds at most 20000 characters',
-        )
-      }
-
-      const conversation = requireDrawConversation(variables)
-      const entry = entries.get(id(variables.entryId))
-
-      if (
-        !entry
-        || entry.conversationId !== run.conversationId
-        || entry.drawnBlocks !== variables.fromBlock
-        || (entry.drawnPieces ?? 0) !== 0
-      ) {
-        refuse('Those blocks were drawn already')
-      }
-
-      insertMessage({
-        id: id(variables.messageId),
-        conversationId: conversation.id,
-        runId: run.id,
-        kind: 'AGENT_TEXT',
-        text: variables.text,
-        noteKind: null,
-        toolStatus: null,
-        position: variables.position,
-        citations: variables.citations ?? null,
-      })
-      run.leaseExpiresAt = inSeconds(60)
-      entry.drawnBlocks = variables.toBlock
-      assignGiven(entry, { drawnPieces: variables.toPiece })
-      Object.assign(conversation, {
-        preview: variables.preview,
-        previewMessageId: id(variables.messageId),
-        nextMessagePosition: conversation.nextMessagePosition + 1,
-        messageCount: conversation.messageCount + 1,
-        unreadCount: conversation.unreadCount + 1,
-        updatedAt: now(),
-      })
-
-      return { conversationMessage_insert: { id: id(variables.messageId) } }
-    },
+    DrawSubagentAgentText: variables => drawAgentText(variables, requireSubagentRun(variables), { isUnread: false }),
 
     DrawConversationAgentTextPiece: variables => {
       const run = requireFencedRun(variables)
@@ -2625,7 +2718,7 @@ function createConversationDatabaseFake() {
     },
 
     FinishConversationRunWaiting: variables => {
-      const run = requireFencedRun(variables)
+      const run = requireParentRun(variables)
 
       end(run, 'WAITING')
       assignGiven(run, { usage: variables.usage })
@@ -2642,7 +2735,7 @@ function createConversationDatabaseFake() {
     },
 
     FinishConversationRun: variables => {
-      const run = requireFencedRun(variables)
+      const run = requireParentRun(variables)
 
       if (variables.status !== 'COMPLETED' && variables.status !== 'STOPPED') {
         refuse('A run ends this way completed or stopped')
@@ -2660,7 +2753,7 @@ function createConversationDatabaseFake() {
     },
 
     FinishConversationRunWithNote: variables => {
-      const run = requireFencedRun(variables)
+      const run = requireParentRun(variables)
 
       const notes: Record<string, string[]> = { FAILED: ['FAILED', 'FULL'], STOPPED: ['STOPPED'], REFUSED: ['REFUSED'] }
 
@@ -2727,6 +2820,7 @@ function createConversationDatabaseFake() {
         || conversation.id !== id(variables.conversationId)
         || conversation.userId !== variables.userId
         || conversation.organizationId !== id(variables.organizationId)
+        || conversation.parentId != null
       ) {
         refuse("The run is no longer this worker's")
       }
@@ -2740,6 +2834,261 @@ function createConversationDatabaseFake() {
       writeNote(noteConversation, variables, 'INTERRUPTED')
 
       return { conversationRun_updateMany: 1 }
+    },
+
+    FinishSubagentRun: variables => {
+      const run = requireSubagentRun(variables)
+
+      if (variables.status !== 'COMPLETED' && variables.status !== 'STOPPED') {
+        refuse('A run ends this way completed or stopped')
+      }
+
+      checkReport(variables)
+
+      const conversation = conversations.get(id(variables.conversationId))
+
+      if (!conversation || (conversation.activeRunId !== null && conversation.activeRunId !== run.id)) {
+        refuse('The subagent could not take its report')
+      }
+
+      end(run, variables.status)
+      assignGiven(run, { usage: variables.usage })
+      cancelRunningCalls(run.conversationId)
+      conversation.activeRunId = null
+      writeReport(conversation, variables)
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    FinishSubagentRunWithNote: variables => {
+      const run = requireSubagentRun(variables)
+      const notes: Record<string, string[]> = { FAILED: ['FAILED', 'FULL'], STOPPED: ['STOPPED'], REFUSED: ['REFUSED'] }
+
+      if (!notes[variables.status]?.includes(variables.noteKind)) {
+        refuse('A run ends with its own note: failed or full, stopped, or refused')
+      }
+
+      checkReport(variables)
+
+      const conversation = requireNoteConversation(variables)
+
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      end(run, variables.status)
+      assignGiven(run, { usage: variables.usage, failure: variables.failure })
+      writeNote(conversation, variables, variables.noteKind)
+      assignGiven(conversation, { isFull: variables.isFull })
+      writeReport(conversation, variables)
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    InterruptSubagentRun: variables => {
+      const run = runs.get(id(variables.runId))
+      const conversation = run && conversations.get(run.conversationId)
+
+      if (
+        !run
+        || !conversation
+        || !RUN_IN_FLIGHT.includes(run.status)
+        || run.attempts !== variables.attempts
+        || conversation.id !== id(variables.conversationId)
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.parentId == null
+      ) {
+        refuse("The run is no longer this worker's")
+      }
+
+      checkReport(variables)
+
+      const noteConversation = requireNoteConversation(variables)
+
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      end(run, 'INTERRUPTED')
+      assignGiven(run, { failure: variables.failure })
+      writeNote(noteConversation, variables, 'INTERRUPTED')
+      writeReport(noteConversation, variables)
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    GetSubagentLaunchContext: variables => {
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+      const parent = conversations.get(id(variables.parentId))
+      const subagent = conversations.get(id(variables.subagentId))
+      const isTheirs = (conversation: FakeConversation | undefined): conversation is FakeConversation =>
+        conversation !== undefined
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+      const attachmentIds = (variables.attachmentIds as string[]).map(id)
+
+      return {
+        userOrganization: membership ? { createdAt: membership.createdAt } : null,
+        parent: parent
+          ? {
+              userId: parent.userId,
+              organizationId: parent.organizationId,
+              deletedAt: parent.deletedAt,
+              parentId: parent.parentId ?? null,
+              subagentCount: parent.subagentCount ?? 0,
+            }
+          : null,
+        latestRuns: isTheirs(parent)
+          ? latestRuns(parent.id)
+              .slice(0, 1)
+              .map(({ anchorPosition }) => ({ anchorPosition }))
+          : [],
+        subagents: [...conversations.values()]
+          .filter(
+            conversation =>
+              conversation.parentId === id(variables.parentId)
+              && isTheirs(conversation)
+              && conversation.deletedAt === null,
+          )
+          .slice(0, 100)
+          .map(({ launchAnchorPosition }) => ({ launchAnchorPosition: launchAnchorPosition ?? null })),
+        files: [...attachments.values()]
+          .filter(
+            attachment =>
+              attachmentIds.includes(attachment.id)
+              && isAttachmentOf(attachment, { ...variables, conversationId: variables.parentId }),
+          )
+          .slice(0, 10)
+          .map(({ id: attachmentId, status, messageId, name, contentType, tokenCount, claudeFileId, createdAt }) => ({
+            id: attachmentId,
+            status,
+            messageId,
+            name,
+            contentType,
+            tokenCount,
+            claudeFileId,
+            createdAt,
+          })),
+        subagent: subagent
+          ? { userId: subagent.userId, organizationId: subagent.organizationId, parentId: subagent.parentId ?? null }
+          : null,
+        subagentRuns: isTheirs(subagent)
+          ? [...runs.values()]
+              .filter(run => run.conversationId === subagent.id && run.number === 0)
+              .map(({ id: runId, status, leaseExpiresAt }) => ({ id: runId, status, leaseExpiresAt }))
+          : [],
+      }
+    },
+
+    LaunchSubagent: variables => {
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can launch subagents in it')
+      }
+
+      const attachmentIds = (variables.attachmentIds as string[]).map(id)
+
+      if ([...variables.title].length > 120 || [...variables.text].length > 20000 || attachmentIds.length > 10) {
+        refuse("A subagent's title holds at most 120 characters, its brief 20000, and its files 10")
+      }
+
+      const parentId = id(variables.parentId)
+      const parent = conversations.get(parentId)
+
+      if (
+        !parent
+        || parent.userId !== variables.userId
+        || parent.organizationId !== id(variables.organizationId)
+        || parent.deletedAt !== null
+        || parent.parentId != null
+        || (parent.subagentCount ?? 0) >= MAX_CONVERSATION_SUBAGENTS
+      ) {
+        refuse('The parent launches no more subagents: it is gone, a subagent, or holds 100')
+      }
+
+      if (
+        memberships.get(membershipKey(variables.userId, variables.organizationId))?.createdAt
+        !== variables.membershipCreatedAt
+      ) {
+        refuse('The membership changed since the launch read it')
+      }
+
+      const subagentId = id(variables.conversationId)
+
+      if (conversations.has(subagentId)) refuse('The subagent exists already')
+
+      const onAnchor = [...conversations.values()].filter(
+        conversation =>
+          conversation.parentId === parentId
+          && conversation.launchAnchorPosition === variables.anchorPosition
+          && conversation.deletedAt === null,
+      )
+
+      if (onAnchor.length >= MAX_SUBAGENTS_PER_ACTION) refuse('A parent launches at most 10 subagents on one anchor')
+
+      const files = [...attachments.values()].filter(
+        attachment =>
+          attachmentIds.includes(attachment.id)
+          && isAttachmentOf(attachment, { ...variables, conversationId: parentId })
+          && attachment.status === 'READY'
+          && attachment.messageId !== null,
+      )
+
+      if (files.length !== attachmentIds.length) refuse('A subagent is handed only files its parent sent')
+
+      const runId = id(variables.runId)
+
+      if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+      if (messages.has(id(variables.messageId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      parent.subagentCount = (parent.subagentCount ?? 0) + 1
+      conversations.set(subagentId, {
+        id: subagentId,
+        userId: variables.userId,
+        organizationId: id(variables.organizationId),
+        title: variables.title,
+        activeRunId: runId,
+        preview: null,
+        previewMessageId: null,
+        unreadCount: 0,
+        nextRunNumber: 1,
+        nextMessagePosition: 1,
+        messageCount: 1,
+        isFull: false,
+        deletedAt: null,
+        pruneClaimedAt: null,
+        updatedAt: now(),
+        aspects: [],
+        aspectsSetBy: null,
+        parentId,
+        launchRunId: variables.launchRunId ? id(variables.launchRunId) : null,
+        launchToolUseId: variables.launchToolUseId ?? null,
+        launchAnchorPosition: variables.anchorPosition,
+        report: null,
+        reportedAt: null,
+        subagentCount: 0,
+      })
+      runs.set(runId, {
+        ...queuedRun(runId, subagentId, { ...variables, runNumber: 0 }, 'LAUNCH', 0),
+      })
+      insertMessage({
+        id: id(variables.messageId),
+        conversationId: subagentId,
+        runId,
+        kind: 'BRIEF',
+        text: variables.text,
+        noteKind: null,
+        toolStatus: null,
+        position: 0,
+        attachmentIds,
+      })
+      insertEntry({
+        id: crypto.randomUUID().replaceAll('-', ''),
+        conversationId: subagentId,
+        runId,
+        position: 0,
+        role: 'USER',
+        content: variables.content,
+        drawnBlocks: 0,
+      })
+
+      return { conversation_updateMany: 1 }
     },
 
     RecordConversationSearch: variables => {
@@ -2848,6 +3197,7 @@ function createConversationDatabaseFake() {
               userId: conversation.userId,
               organizationId: conversation.organizationId,
               deletedAt: conversation.deletedAt,
+              parentId: conversation.parentId ?? null,
             }
           : null,
         conversationAttachment: attachment ? pickAttachment(attachment) : null,
@@ -2880,9 +3230,10 @@ function createConversationDatabaseFake() {
         conversation
         && (conversation.userId !== variables.userId
           || conversation.organizationId !== id(variables.organizationId)
-          || conversation.deletedAt !== null)
+          || conversation.deletedAt !== null
+          || conversation.parentId != null)
       ) {
-        refuse("The conversation is somebody else's, or deleted")
+        refuse("The conversation is somebody else's, deleted or a subagent")
       }
 
       if (

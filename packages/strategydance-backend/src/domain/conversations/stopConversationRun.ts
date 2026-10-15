@@ -27,7 +27,8 @@ type Options = {
 
 /*
   Stops a run as its member asked, and answers `stopped` once it is stopped or asked to stop, or
-  `missing` for a run that is not in the caller's conversation, or whose conversation was deleted:
+  `missing` for a run that is not in the caller's conversation, whose conversation was deleted, or
+  a subagent's, which only its parent stops:
 
   - a run that has ended is left as it is, so a stop sent twice stops once
   - a run past its lease died with its worker, and ends interrupted, as every route finalizes it
@@ -47,7 +48,9 @@ async function stopConversationRun(
     const { data } = await getConversationRunContext(dataConnect, reference)
     const [run] = data.conversationRuns
 
-    if (!run || !data.conversation || data.conversation.deletedAt) return { outcome: 'missing' }
+    if (!run || !data.conversation || data.conversation.deletedAt || data.conversation.parentId) {
+      return { outcome: 'missing' }
+    }
 
     if (run.status !== ConversationRunStatus.QUEUED && run.status !== ConversationRunStatus.RUNNING) {
       return { outcome: 'stopped' }

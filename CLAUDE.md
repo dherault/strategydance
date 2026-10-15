@@ -136,6 +136,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. Each `--file`, an image, a PDF or a text file, a relative path read from the repository's root, is uploaded first and sent with it, the text then optional. `--organization <id or slug>` names the organization when the account is in several |
+| `bun run launch:subagent <email> --conversation <id> [--file <attachment id>]… <brief>` | Launches a subagent of one of that account's conversations, as Strategy Dance's agent will once the Subagents module does, handing it each file named, one the conversation sent, runs it in its own process, and prints its transcript and its report once it reports. It answers with the stand-in reply under `CONVERSATION_AGENT=placeholder`, and asks Claude otherwise, which costs money. It refuses to run anywhere but against the emulators |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
@@ -689,6 +690,22 @@ A conversation is kept twice, once for Claude and once for the page, and
   words, matches by substring instead (`isSubstringSearchQuery`), over every title and the
   messages of the most recently active conversations to 20000. Only member and agent messages
   are searched, never a question, a tool call or a note
+- A subagent is a conversation with a `parent`, the conversation whose agent launched it with a
+  brief (`launchSubagent` in `domain/subagents/`), its member's and run as theirs, and hidden from
+  them. Every read or count of a member's conversations leaves subagents out with `parentId: {
+  isNull: true }`: the list, the badge's and the dock's reads, the searches, the counts
+  `MAX_CONVERSATIONS` and `MAX_ACTIVE_RUNS_PER_MEMBER` hold and the runs in flight a route reads
+  first. Every way a member acts on a conversation refuses one, the send, answer, approval, Resume,
+  Retry, Stop, reconcile and upload routes, `missing` in the domain and the same filter in the
+  mutation, and the web's delete, restore, read and aspects mutations, while a read of one
+  conversation by its id reads one as any other. A new read, count or action of a member's does the
+  same. A subagent's run sends `SUBAGENT_SYSTEM_PROMPT` and `buildSubagentTools`, both pinned by
+  their bytes, asks nothing, tags nothing, draws its text with no unread count
+  (`DrawSubagentAgentText`), and ends only through `FinishSubagentRun`, `FinishSubagentRunWithNote`
+  and `InterruptSubagentRun`, which write its `report` in the write that ends it, however it ends:
+  every other ending's fence matches a conversation that is no subagent, and
+  `finalizeDeadConversationRun` answers `missing` for a subagent's run. `bun run
+  check:subagent-runs`, in the backend's package, checks the operations against the emulators
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under an organization's `conversations/` sits behind the bouncer its layout route

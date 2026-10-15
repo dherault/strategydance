@@ -1845,7 +1845,8 @@ authorization server from M18 and a consent page from M19:
   member's connections go with it; never by `lastUsedAt`: each with its client, organization, module
   and access, when it connected and when it was last used, and Disconnect, which deletes it with its
   tokens.
-- **Use with your agents**, a button on the Knowledge page, opens a dialog with the module's
+- **Use with your agents**, an icon button after the Knowledge page's own action, its tooltip saying
+  what an agent may do there, opens a dialog with the module's
   address, a copy button, and how to add it to claude.ai (Settings, Connectors, Add custom
   connector), ChatGPT, Claude Code (`claude mcp add --transport http strategydance-knowledge
   https://api.strategydance.com/mcp/knowledge`) and Cursor. The Tasks page has the same button for

@@ -697,7 +697,7 @@ A conversation is kept twice, once for Claude and once for the page, and
   (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
   token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
   two as `useCanUseConversations`, before it reads a consent request or offers the Connected agents
-  tab or a module's "Use with your agents" button
+  tab or a module's agents button
 - The dock's windows are each member's in each organization, kept by `_ConversationDockProvider`
   under one persisted key, each set under `${userId}:${organizationId}`, since the key a persisted
   state reads is read once. A minimized window reads nothing but `GetDockConversations`, the
@@ -1174,9 +1174,9 @@ and why.
   than copy them
 - A module is worded for members in the web's `module` catalogue, by its name, through
   `getModuleMessages`, typed over every `ModuleName`: a module added to `MODULES` fails the
-  typecheck until its name and what its read and write access let an agent do are worded there, for
-  the consent page, the Connected agents tab and the dialog its page's "Use with your agents" opens. `MODULES`' `title` is the server's own,
-  in English, for what MCP clients show
+  typecheck until its name, what its read and write access let an agent do, and the tooltip of its
+  page's agents button are worded there, for the consent page, the Connected agents tab and that
+  button. `MODULES`' `title` is the server's own, in English, for what MCP clients show
 - The caller, `ModuleCaller`, is verified before a server is built and reaches it in the `extra` of
   the SDK's `AuthInfo`, which `toModuleAuthInfo` writes and `readModuleCaller` reads back, refusing a
   request that carries none. Nothing in it comes from a tool's arguments. Every operation a tool runs
@@ -1255,8 +1255,9 @@ and why.
   (`toTooManySearchesSentence`) and which read still works
 - A module joins the external agents with its name in `SERVED_MODULES`, which mounts its endpoint and
   its metadata and lets the metadata answer any origin; `requireModuleWriteScope` on every write
-  tool; its searches on the member's allowance; the "Use with your agents" button on its page,
-  `ModuleAgentsButton`, which takes its name and opens the dialog worded from the `module` catalogue;
+  tool; its searches on the member's allowance; the agents button on its page, `ModuleAgentsButton`,
+  an icon after the page's own action, which takes its name and opens the dialog worded from the
+  `module` catalogue;
   and its endpoint in `check:oauth`. Knowledge joined in M20 and Tasks in M21
 - `bun run mcp:knowledge <email>` and `bun run mcp:tasks <email>` serve a module over stdio for a
   client on this machine, against the emulators only, through one script, `serveModule.ts`, which

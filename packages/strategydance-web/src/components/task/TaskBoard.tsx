@@ -164,13 +164,13 @@ function TaskBoard() {
         <PageToolbar
           actions={
             <>
-              <ModuleAgentsButton module="tasks" />
               <Button
                 icon={<PlusIcon />}
                 onClick={() => setDraftStatus(TaskStatus.TODO)}
               >
                 {formatMessage(taskMessages.newTask)}
               </Button>
+              <ModuleAgentsButton module="tasks" />
             </>
           }
         >

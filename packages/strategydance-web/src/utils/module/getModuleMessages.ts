@@ -7,6 +7,8 @@ type ModuleMessages = {
   name: MessageDescriptor
   readAccess: MessageDescriptor
   writeAccess: MessageDescriptor
+  // The tooltip of the button on the module's page that tells how to connect an agent to it
+  agentsButton: MessageDescriptor
 }
 
 /*
@@ -18,16 +20,18 @@ const MODULE_MESSAGES: Record<ModuleName, ModuleMessages> = {
     name: moduleMessages.knowledgeName,
     readAccess: moduleMessages.knowledgeReadAccess,
     writeAccess: moduleMessages.knowledgeWriteAccess,
+    agentsButton: moduleMessages.knowledgeAgentsButton,
   },
   tasks: {
     name: moduleMessages.tasksName,
     readAccess: moduleMessages.tasksReadAccess,
     writeAccess: moduleMessages.tasksWriteAccess,
+    agentsButton: moduleMessages.tasksAgentsButton,
   },
 }
 
-// What a module is called in the member's words, and what its read access, and its write access
-// beside it, let an agent do there
+// What a module is called in the member's words, what its read access, and its write access beside
+// it, let an agent do there, and what its page's agents button offers
 function getModuleMessages(module: ModuleName) {
   return MODULE_MESSAGES[module]
 }

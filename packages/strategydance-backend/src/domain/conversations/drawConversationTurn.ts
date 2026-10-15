@@ -8,6 +8,7 @@ import {
   drawConversationClientToolCall,
   drawConversationQuestion,
   drawConversationToolCall,
+  drawSubagentAgentText,
 } from 'strategydance-database/backend'
 
 import type { ConversationContentBlock, ConversationRunFence } from '~types'
@@ -48,6 +49,9 @@ type DrawConversationTurnInput = {
   plans: Map<string, ConversationToolCallPlan>
   // The conversation's counter, where the message goes
   position: number
+  // Whether the conversation is a subagent, whose replies nobody reads as they come, so none adds to
+  // its unread count
+  isSubagent: boolean
 }
 
 // What a part draws next from its cursor
@@ -155,7 +159,7 @@ type Drawing =
   Each message's id derives from its part, its first block and its piece, so a worker taking over
   after a crash, which draws from the same cursor, derives the same one
 */
-async function drawConversationTurn({ fence, lease, entries, plans, position }: DrawConversationTurnInput) {
+async function drawConversationTurn({ fence, lease, entries, plans, position, isSubagent }: DrawConversationTurnInput) {
   for (const [index, entry] of entries.entries()) {
     const drawing = findNextDrawing(entry, entries.slice(index + 1), plans)
 
@@ -164,7 +168,7 @@ async function drawConversationTurn({ fence, lease, entries, plans, position }: 
 
     const decided = drawing.kind === 'integrationCall' ? await decideIntegrationDrawing(fence, drawing) : drawing
 
-    await lease.write(() => write(fence, entry.id, position, decided))
+    await lease.write(() => write(fence, entry.id, position, decided, isSubagent))
 
     return 'drawn'
   }
@@ -371,9 +375,17 @@ function describeResult(result: ConversationContentBlock) {
   return { toolStatus: ConversationToolStatus.SUCCEEDED, toolOutput: JSON.stringify({ results }) }
 }
 
-async function write(fence: ConversationRunFence, entryId: string, position: number, drawing: Drawing) {
+async function write(
+  fence: ConversationRunFence,
+  entryId: string,
+  position: number,
+  drawing: Drawing,
+  isSubagent: boolean,
+) {
   if (drawing.kind === 'text') {
-    await drawConversationAgentText(dataConnect, {
+    const drawText = isSubagent ? drawSubagentAgentText : drawConversationAgentText
+
+    await drawText(dataConnect, {
       ...fence,
       entryId,
       fromBlock: drawing.fromBlock,

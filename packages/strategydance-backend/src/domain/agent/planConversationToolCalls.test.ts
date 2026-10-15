@@ -23,6 +23,21 @@ describe('planConversationToolCalls', () => {
     expect(plans[2]).toMatchObject({ isDrawn: true, reason: 'Not run: there is no tool called delete_everything.' })
   })
 
+  // A subagent is sent no `ask_user`, and nobody would answer it
+  test('refuses a question nobody answers as a tool nobody runs, drawn as failed', () => {
+    const [plan] = planConversationToolCalls([call('ask_user', 0, QUESTION)], {
+      callsBefore: 0,
+      runnerNames: ['read_log'],
+      asksQuestions: false,
+    })
+
+    expect(plan).toMatchObject({
+      kind: 'refused',
+      isDrawn: true,
+      reason: 'Not run: there is no tool called ask_user.',
+    })
+  })
+
   test('draws nothing of a question past its bounds', () => {
     const [plan] = planConversationToolCalls([call('ask_user', 0, { ...QUESTION, options: ['X'] })], {
       callsBefore: 0,

@@ -752,6 +752,24 @@ function createConversationDatabaseFake() {
     return findFencedRun(variables) ?? refuse("The run is no longer this worker's")
   }
 
+  // The fence of a subagent's own draws and endings, which a conversation's run never passes
+  function requireSubagentRun(variables: AnyVariables) {
+    const run = requireFencedRun(variables)
+
+    if (conversations.get(run.conversationId)?.parentId == null) refuse("The run is no longer this worker's")
+
+    return run
+  }
+
+  // The report a subagent's ending writes, at most 8000 characters, checked before anything changes
+  function checkReport(variables: AnyVariables) {
+    if ([...String(variables.report)].length > 8000) refuse("A subagent's report holds at most 8000 characters")
+  }
+
+  function writeReport(conversation: FakeConversation, variables: AnyVariables) {
+    Object.assign(conversation, { report: variables.report, reportedAt: now() })
+  }
+
   // The fence of a conversation's own endings, which a subagent's run never passes: its endings
   // write its report
   function requireParentRun(variables: AnyVariables) {
@@ -968,6 +986,56 @@ function createConversationDatabaseFake() {
     return { ...attachment }
   }
 
+  // A text the agent wrote drawn at the counter, its cursor moved on: a conversation's reply adds to
+  // its unread count, a subagent's never does
+  function drawAgentText(variables: AnyVariables, run: FakeRun, { isUnread }: { isUnread: boolean }) {
+    const isFirstPiece = variables.toPiece === 1 && variables.toBlock >= variables.fromBlock
+    const isWhole = variables.toBlock > variables.fromBlock && (variables.toPiece ?? 0) === 0
+
+    if (variables.text.length > 20000 || (!isFirstPiece && !isWhole)) {
+      refuse(
+        'A message is drawn from one block or more, or is the first piece of a longer text, and holds at most 20000 characters',
+      )
+    }
+
+    const conversation = requireDrawConversation(variables)
+    const entry = entries.get(id(variables.entryId))
+
+    if (
+      !entry
+      || entry.conversationId !== run.conversationId
+      || entry.drawnBlocks !== variables.fromBlock
+      || (entry.drawnPieces ?? 0) !== 0
+    ) {
+      refuse('Those blocks were drawn already')
+    }
+
+    insertMessage({
+      id: id(variables.messageId),
+      conversationId: conversation.id,
+      runId: run.id,
+      kind: 'AGENT_TEXT',
+      text: variables.text,
+      noteKind: null,
+      toolStatus: null,
+      position: variables.position,
+      citations: variables.citations ?? null,
+    })
+    run.leaseExpiresAt = inSeconds(60)
+    entry.drawnBlocks = variables.toBlock
+    assignGiven(entry, { drawnPieces: variables.toPiece })
+    Object.assign(conversation, {
+      preview: variables.preview,
+      previewMessageId: id(variables.messageId),
+      nextMessagePosition: conversation.nextMessagePosition + 1,
+      messageCount: conversation.messageCount + 1,
+      unreadCount: conversation.unreadCount + (isUnread ? 1 : 0),
+      updatedAt: now(),
+    })
+
+    return { conversationMessage_insert: { id: id(variables.messageId) } }
+  }
+
   const operations: Record<string, (variables: AnyVariables) => unknown> = {
     GetUserStaffStatus: ({ userId }) => ({ user: users.get(userId) ?? null }),
 
@@ -1049,7 +1117,7 @@ function createConversationDatabaseFake() {
             drawnPieces: drawnPieces ?? 0,
           })),
         conversationMessages: [...messages.values()]
-          .filter(message => message.runId === id(variables.runId) && message.kind !== 'MEMBER_TEXT')
+          .filter(message => message.runId === id(variables.runId) && !['MEMBER_TEXT', 'BRIEF'].includes(message.kind))
           .slice(0, 100)
           .map(({ id: messageId, kind, noteKind, toolStatus }) => ({ id: messageId, kind, noteKind, toolStatus })),
       }
@@ -1389,7 +1457,17 @@ function createConversationDatabaseFake() {
           : null,
         userOrganization: membership ? { role: membership.role, jobTitle: membership.jobTitle } : null,
         organization: organization ? { ...organization } : null,
-        conversations: isTheirs ? [{ aspects: conversation.aspects ?? [] }] : [],
+        conversations: isTheirs
+          ? [
+              {
+                aspects: conversation.aspects ?? [],
+                parent:
+                  conversation.parentId != null
+                    ? { aspects: conversations.get(conversation.parentId)?.aspects ?? [] }
+                    : null,
+              },
+            ]
+          : [],
         conversationRuns: isTheirs
           ? [...runs.values()]
               .filter(run => run.conversationId === conversation.id)
@@ -1399,6 +1477,20 @@ function createConversationDatabaseFake() {
           : [],
         conversationAttachments: [...attachments.values()]
           .filter(attachment => isAttachmentOf(attachment, variables) && attachment.messageId !== null)
+          .slice(0, 100)
+          .map(({ claudeFileId, tokenCount }) => ({ claudeFileId, tokenCount })),
+        parentAttachments: [...attachments.values()]
+          .filter(attachment => {
+            const sentBy = attachment.messageId ? messages.get(attachment.messageId) : undefined
+
+            return (
+              attachment.userId === variables.userId
+              && attachment.organizationId === id(variables.organizationId)
+              && sentBy !== undefined
+              && conversations.get(sentBy.conversationId)?.id === conversation?.parentId
+              && conversation?.parentId != null
+            )
+          })
           .slice(0, 100)
           .map(({ claudeFileId, tokenCount }) => ({ claudeFileId, tokenCount })),
       }
@@ -2168,54 +2260,9 @@ function createConversationDatabaseFake() {
       return { system: { id: system.id }, assistant: { id: assistant.id } }
     },
 
-    DrawConversationAgentText: variables => {
-      const run = requireFencedRun(variables)
-      const isFirstPiece = variables.toPiece === 1 && variables.toBlock >= variables.fromBlock
-      const isWhole = variables.toBlock > variables.fromBlock && (variables.toPiece ?? 0) === 0
+    DrawConversationAgentText: variables => drawAgentText(variables, requireFencedRun(variables), { isUnread: true }),
 
-      if (variables.text.length > 20000 || (!isFirstPiece && !isWhole)) {
-        refuse(
-          'A message is drawn from one block or more, or is the first piece of a longer text, and holds at most 20000 characters',
-        )
-      }
-
-      const conversation = requireDrawConversation(variables)
-      const entry = entries.get(id(variables.entryId))
-
-      if (
-        !entry
-        || entry.conversationId !== run.conversationId
-        || entry.drawnBlocks !== variables.fromBlock
-        || (entry.drawnPieces ?? 0) !== 0
-      ) {
-        refuse('Those blocks were drawn already')
-      }
-
-      insertMessage({
-        id: id(variables.messageId),
-        conversationId: conversation.id,
-        runId: run.id,
-        kind: 'AGENT_TEXT',
-        text: variables.text,
-        noteKind: null,
-        toolStatus: null,
-        position: variables.position,
-        citations: variables.citations ?? null,
-      })
-      run.leaseExpiresAt = inSeconds(60)
-      entry.drawnBlocks = variables.toBlock
-      assignGiven(entry, { drawnPieces: variables.toPiece })
-      Object.assign(conversation, {
-        preview: variables.preview,
-        previewMessageId: id(variables.messageId),
-        nextMessagePosition: conversation.nextMessagePosition + 1,
-        messageCount: conversation.messageCount + 1,
-        unreadCount: conversation.unreadCount + 1,
-        updatedAt: now(),
-      })
-
-      return { conversationMessage_insert: { id: id(variables.messageId) } }
-    },
+    DrawSubagentAgentText: variables => drawAgentText(variables, requireSubagentRun(variables), { isUnread: false }),
 
     DrawConversationAgentTextPiece: variables => {
       const run = requireFencedRun(variables)
@@ -2785,6 +2832,84 @@ function createConversationDatabaseFake() {
       end(run, 'INTERRUPTED')
       assignGiven(run, { failure: variables.failure })
       writeNote(noteConversation, variables, 'INTERRUPTED')
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    FinishSubagentRun: variables => {
+      const run = requireSubagentRun(variables)
+
+      if (variables.status !== 'COMPLETED' && variables.status !== 'STOPPED') {
+        refuse('A run ends this way completed or stopped')
+      }
+
+      checkReport(variables)
+
+      const conversation = conversations.get(id(variables.conversationId))
+
+      if (!conversation || (conversation.activeRunId !== null && conversation.activeRunId !== run.id)) {
+        refuse('The subagent could not take its report')
+      }
+
+      end(run, variables.status)
+      assignGiven(run, { usage: variables.usage })
+      cancelRunningCalls(run.conversationId)
+      conversation.activeRunId = null
+      writeReport(conversation, variables)
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    FinishSubagentRunWithNote: variables => {
+      const run = requireSubagentRun(variables)
+      const notes: Record<string, string[]> = { FAILED: ['FAILED', 'FULL'], STOPPED: ['STOPPED'], REFUSED: ['REFUSED'] }
+
+      if (!notes[variables.status]?.includes(variables.noteKind)) {
+        refuse('A run ends with its own note: failed or full, stopped, or refused')
+      }
+
+      checkReport(variables)
+
+      const conversation = requireNoteConversation(variables)
+
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      end(run, variables.status)
+      assignGiven(run, { usage: variables.usage, failure: variables.failure })
+      writeNote(conversation, variables, variables.noteKind)
+      assignGiven(conversation, { isFull: variables.isFull })
+      writeReport(conversation, variables)
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    InterruptSubagentRun: variables => {
+      const run = runs.get(id(variables.runId))
+      const conversation = run && conversations.get(run.conversationId)
+
+      if (
+        !run
+        || !conversation
+        || !RUN_IN_FLIGHT.includes(run.status)
+        || run.attempts !== variables.attempts
+        || conversation.id !== id(variables.conversationId)
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.parentId == null
+      ) {
+        refuse("The run is no longer this worker's")
+      }
+
+      checkReport(variables)
+
+      const noteConversation = requireNoteConversation(variables)
+
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      end(run, 'INTERRUPTED')
+      assignGiven(run, { failure: variables.failure })
+      writeNote(noteConversation, variables, 'INTERRUPTED')
+      writeReport(noteConversation, variables)
 
       return { conversationRun_updateMany: 1 }
     },

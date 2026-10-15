@@ -167,10 +167,12 @@ async function requestConversationTurn({
             entries.findLast(({ role }) => role === ConversationTranscriptRole.SYSTEM)?.contextHash ?? null,
         }))
   // What each file the conversation sent takes, as its upload counted it, which the measurement adds
-  // in place of the file blocks the count endpoint refuses
+  // in place of the file blocks the count endpoint refuses, and for a subagent each its parent sent,
+  // whose brief hands some over
   const fileTokens = new Map(
-    requestContext.conversationAttachments.flatMap(({ claudeFileId, tokenCount }) =>
-      claudeFileId && typeof tokenCount === 'number' ? [[claudeFileId, tokenCount] as const] : [],
+    [...requestContext.conversationAttachments, ...requestContext.parentAttachments].flatMap(
+      ({ claudeFileId, tokenCount }) =>
+        claudeFileId && typeof tokenCount === 'number' ? [[claudeFileId, tokenCount] as const] : [],
     ),
   )
   const otherRuns = requestContext.conversationRuns
@@ -190,10 +192,10 @@ async function requestConversationTurn({
   for (;;) {
     // A run at a limit sends no further request, which drops the parts of a turn held in memory
     if (usage.requests.length >= limits.maxRequests) {
-      return { kind: 'ending', ending: fail(`The run sent its ${limits.maxRequests} requests`, usage) }
+      return { kind: 'ending', ending: fail(`The run sent its ${limits.maxRequests} requests`, usage, true) }
     }
 
-    if (isPastDuration()) return { kind: 'ending', ending: fail(durationFailure, usage) }
+    if (isPastDuration()) return { kind: 'ending', ending: fail(durationFailure, usage, true) }
 
     const messages = buildConversationMessages({
       entries,
@@ -232,7 +234,7 @@ async function requestConversationTurn({
     }
 
     // Again once measured, since counting takes time of its own
-    if (isPastDuration()) return { kind: 'ending', ending: fail(durationFailure, usage) }
+    if (isPastDuration()) return { kind: 'ending', ending: fail(durationFailure, usage, true) }
 
     const reserved = reserveConversationRequest(usage, {
       estimatedInputTokens: measured.inputTokens,
@@ -309,7 +311,7 @@ async function requestConversationTurn({
 
         logger.warn(`Conversation run ${fence.runId}: ${failure}`)
 
-        return { kind: 'ending', ending: fail(failure, settled) }
+        return { kind: 'ending', ending: fail(failure, settled, true) }
       }
 
       if (signal.aborted || !(error instanceof Anthropic.APIError)) throw error
@@ -386,8 +388,16 @@ async function requestConversationTurn({
   }
 }
 
-function fail(failure: string, usage: ConversationRunUsage): ConversationRunEnding {
-  return { kind: 'noted', status: ConversationRunStatus.FAILED, noteKind: ConversationNoteKind.FAILED, failure, usage }
+// A run that failed, at one of its limits or not, which a subagent's report says
+function fail(failure: string, usage: ConversationRunUsage, isAtLimit = false): ConversationRunEnding {
+  return {
+    kind: 'noted',
+    status: ConversationRunStatus.FAILED,
+    noteKind: ConversationNoteKind.FAILED,
+    failure,
+    usage,
+    ...(isAtLimit ? { isAtLimit } : {}),
+  }
 }
 
 // Why Claude's API failed a request, once the SDK's own retries were spent on what failed before

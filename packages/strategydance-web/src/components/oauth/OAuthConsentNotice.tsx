@@ -12,7 +12,7 @@ function OAuthConsentNotice({ title, description, children }: Props) {
   return (
     <>
       <h1 className="m-0 text-4xl leading-[1.05] text-balance sm:text-5xl">{title}</h1>
-      <p className="m-0 max-w-xl text-base leading-[1.6] text-pretty text-muted-foreground">{description}</p>
+      <p className="m-0 text-base leading-[1.6] text-pretty text-muted-foreground">{description}</p>
       {children}
     </>
   )

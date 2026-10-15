@@ -58,9 +58,13 @@ function TaskDialogLayout({
         ref={contentRef}
         onOpenAutoFocus={isContentFocusedOnOpen ? focusContent : undefined}
       >
+        {/*
+          Clear of the close button, 32px wide and 16px from the edge, by the same 16px, past the
+          8px the name's field reaches out of the header
+        */}
         <DialogHeader
           inert={isInert}
-          className="gap-1 px-6 pt-6 pr-14"
+          className="gap-1 px-6 pt-6 pr-18"
         >
           {header}
         </DialogHeader>

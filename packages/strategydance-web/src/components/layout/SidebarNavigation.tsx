@@ -68,6 +68,13 @@ function SidebarNavigation() {
             link={{ to: '/$organizationSlug/tasks', params: { organizationSlug } }}
           />
           <NavigationLink
+            path={`/${organizationSlug}/knowledge`}
+            isNested
+            label={formatMessage(navigationMessages.knowledge)}
+            icon={<FileTextIcon />}
+            link={{ to: '/$organizationSlug/knowledge', params: { organizationSlug } }}
+          />
+          <NavigationLink
             path={`/${organizationSlug}/build-in-public`}
             label={formatMessage(navigationMessages.buildInPublic)}
             icon={<LighthouseIcon />}
@@ -97,19 +104,15 @@ function SidebarNavigation() {
           ) : null}
         </SidebarMenu>
       </SidebarGroup>
-      <SidebarGroup>
-        <SidebarGroupLabel>{formatMessage(navigationMessages.reflection)}</SidebarGroupLabel>
-        <SidebarMenu>
-          {canUseConversations ? <ConversationsNavigationLink /> : null}
-          <NavigationLink
-            path={`/${organizationSlug}/knowledge`}
-            isNested
-            label={formatMessage(navigationMessages.knowledge)}
-            icon={<FileTextIcon />}
-            link={{ to: '/$organizationSlug/knowledge', params: { organizationSlug } }}
-          />
-        </SidebarMenu>
-      </SidebarGroup>
+      {/* Conversations are all it holds, so a reader who may not have them is not shown its heading */}
+      {canUseConversations ? (
+        <SidebarGroup>
+          <SidebarGroupLabel>{formatMessage(navigationMessages.reflection)}</SidebarGroupLabel>
+          <SidebarMenu>
+            <ConversationsNavigationLink />
+          </SidebarMenu>
+        </SidebarGroup>
+      ) : null}
       <SidebarGroup>
         <SidebarGroupLabel>{formatMessage(navigationMessages.company)}</SidebarGroupLabel>
         <SidebarMenu>

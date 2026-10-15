@@ -68,7 +68,7 @@ describe('normalizeRichText', () => {
     )
   })
 
-  it('keeps four styles, and only those that are on', () => {
+  it('keeps five styles, and only those that are on', () => {
     expect(
       normalizeRichText([
         editorBlock('paragraph', [
@@ -77,10 +77,11 @@ describe('normalizeRichText', () => {
             underline: true,
             bold: false,
             textColor: 'red',
-            code: true,
+            code: false,
             backgroundColor: 'blue',
           }),
           text('b', { code: true }),
+          text('c', { code: 'yes' }),
         ]),
       ]),
     ).toEqual([
@@ -88,9 +89,33 @@ describe('normalizeRichText', () => {
         type: 'paragraph',
         content: [
           { type: 'text', text: 'a', styles: { underline: true, strike: true } },
-          { type: 'text', text: 'b' },
+          { type: 'text', text: 'b', styles: { code: true } },
+          { type: 'text', text: 'c' },
         ],
       },
+    ])
+  })
+
+  it("keeps inline code alone and out of a link, as the editor's code mark excludes every other mark", () => {
+    const [block] = normalizeRichText([
+      editorBlock('paragraph', [
+        text('a', { code: true, bold: true, italic: true, underline: true, strike: true }),
+        { type: 'link', href: 'https://example.com', content: [text('b', { code: true, bold: true }), text('c')] },
+        { type: 'link', href: 'javascript:alert(1)', content: [text('d', { code: true })] },
+      ]),
+    ])
+
+    expect((block as RichTextTextBlock | undefined)?.content).toEqual([
+      { type: 'text', text: 'a', styles: { code: true } },
+      {
+        type: 'link',
+        href: 'https://example.com/',
+        content: [
+          { type: 'text', text: 'b' },
+          { type: 'text', text: 'c' },
+        ],
+      },
+      { type: 'text', text: 'd', styles: { code: true } },
     ])
   })
 

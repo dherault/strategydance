@@ -13,7 +13,8 @@ import {
   getRichTextMentionWords,
 } from 'strategydance-design-system/lib/richText'
 
-type Style = keyof RichTextStyles
+// The styles written around text, inline code being a code span of its own, which holds no other
+type Style = Exclude<keyof RichTextStyles, 'code'>
 
 // The order styles nest in when two cover the same text, underline innermost, its tags against the words
 const STYLE_ORDER: readonly Style[] = ['bold', 'italic', 'strike', 'underline']
@@ -43,8 +44,8 @@ type Piece = { styles: Style[]; nodes: PhrasingContent[] }
   their widths and its header column, and a line break in a cell is a space. A picture, a video
   and a link preview are a link, with the picture's caption or the page's title. A mention is the
   link Strategy Dance's agent writes, `[title](doc:<id>)` for a document and `[name](task:<id>)` for
-  a task, with the words it was made with. Underline is `<u>…</u>`, and a line break inside a block
-  a hard one
+  a task, with the words it was made with. Underline is `<u>…</u>`, inline code a code span, and a
+  line break inside a block a hard one, after a code span in inline code
 */
 function richTextToMarkdown(blocks: readonly RichTextBlock[]): string {
   const children = writeBlocks(normalizeRichText(blocks))
@@ -186,6 +187,16 @@ function writeText(text: string): PhrasingContent[] {
     ])
 }
 
+// Inline code as code spans, each of its line breaks a hard one after them, since a code span reads one as a space
+function writeCode(text: string): PhrasingContent[] {
+  return text
+    .split('\n')
+    .flatMap((line, index): PhrasingContent[] => [
+      ...(index ? [{ type: 'break' as const }] : []),
+      ...(line ? [{ type: 'inlineCode' as const, value: line }] : []),
+    ])
+}
+
 function readStyles(run: RichTextRun): Style[] {
   return STYLE_ORDER.filter(style => run.styles?.[style])
 }
@@ -193,6 +204,7 @@ function readStyles(run: RichTextRun): Style[] {
 function writeInline(content: RichTextInline[]): PhrasingContent[] {
   return wrapPieces(
     content.map((item): Piece => {
+      if (item.type === 'text' && item.styles?.code) return { styles: [], nodes: writeCode(item.text) }
       if (item.type === 'text') return { styles: readStyles(item), nodes: writeText(item.text) }
       if (item.type === 'link') {
         return { styles: [], nodes: [{ type: 'link', url: item.href, children: writeInline(item.content) }] }

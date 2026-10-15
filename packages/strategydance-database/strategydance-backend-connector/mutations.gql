@@ -2931,6 +2931,439 @@ mutation InterruptConversationRun(
   )
 }
 
+# --- Subagents ---
+
+# Launches a subagent of one of the caller's conversations, its parent: a conversation of its own,
+# the caller's, with the brief its launcher wrote as its first message and its first transcript
+# entry, and its first run, queued on that brief, in one mutation, so a subagent exists only once it
+# is launched, and whole. Its id derives from the parent's and the launch's key, so a launch sent
+# again finds its id taken, and the backend answers with the subagent it made.
+#
+# The first step writes the caller's membership, the lock every run start takes, and the second the
+# parent's row, the lock a launch and every cascade on a parent share, in that order. The parent has
+# to be the caller's, not deleted, no subagent itself, and hold fewer than 100 subagents
+# (`MAX_CONVERSATION_SUBAGENTS` in strategydance-core), which its `subagentCount`, moved on here,
+# counts. Then, read after both locks: the membership the backend read, the subagent's id free,
+# fewer than 10 live subagents launched on `$anchorPosition` (`MAX_SUBAGENTS_PER_ACTION`), those a
+# retry deleted left out, and every file it hands over the parent's, stored and sent by one of its
+# messages, never one waiting in a draft, whose prune would delete it under the subagent.
+#
+# The brief holds at most 20000 characters (`MAX_SUBAGENT_BRIEF_LENGTH`), its title one line of at
+# most 120, and its files at most 10. `$text` is the brief as the thread draws it, without U+0000,
+# and `$content` its transcript entry, the files before the brief, as the JSON text it is sent as.
+# `$launchRunId` and `$launchToolUseId` name the run and the call that launched it, null for a
+# launch a script made. `$attachmentIds` are required, empty for a brief without files, so a call
+# that left them out never drops their filter.
+#
+# `$userId` is the uid the backend verified. `$conversationId` is the subagent's, which its live
+# queries refresh on, and `$parentId` its parent's
+mutation LaunchSubagent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $parentId: UUID!
+  $anchorPosition: Int!
+  $launchRunId: UUID
+  $launchToolUseId: String
+  $conversationId: UUID!
+  $title: String!
+  $runId: UUID!
+  $messageId: UUID!
+  $text: String!
+  $content: String!
+  $attachmentIds: [UUID!]!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can launch subagents in it")
+    @check(
+      expr: "size(vars.title) <= 120 && size(vars.text) <= 20000 && size(vars.attachmentIds) <= 10"
+      message: "A subagent's title holds at most 120 characters, its brief 20000, and its files 10"
+    )
+  conversation_updateMany(
+    where: {
+      id: { eq: $parentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      parentId: { isNull: true }
+      subagentCount: { lt: 100 }
+    }
+    data: { subagentCount_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "The parent launches no more subagents: it is gone, a subagent, or holds 100")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the launch read it") {
+      userId
+    }
+    existing: conversations(where: { id: { eq: $conversationId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The subagent exists already") {
+      id
+    }
+    onAnchor: conversations(
+      where: { parentId: { eq: $parentId }, launchAnchorPosition: { eq: $anchorPosition }, deletedAt: { isNull: true } }
+      limit: 10
+    ) @check(expr: "size(this) < 10", message: "A parent launches at most 10 subagents on one anchor") {
+      id
+    }
+    files: conversationAttachments(
+      where: {
+        id: { in: $attachmentIds }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        conversationId: { eq: $parentId }
+        status: { eq: READY }
+        messageId: { isNull: false }
+      }
+      limit: 10
+    )
+      @check(
+        expr: "size(this) == size(vars.attachmentIds)"
+        message: "A subagent is handed only files its parent sent"
+      ) {
+      id
+    }
+  }
+  conversation_insert(
+    data: {
+      id: $conversationId
+      userId: $userId
+      organizationId: $organizationId
+      parentId: $parentId
+      title: $title
+      activeRunId: $runId
+      nextRunNumber: 1
+      nextMessagePosition: 1
+      messageCount: 1
+      launchRunId: $launchRunId
+      launchToolUseId: $launchToolUseId
+      launchAnchorPosition: $anchorPosition
+    }
+  )
+  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: 0
+      trigger: LAUNCH
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: 0
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: BRIEF
+      text: $text
+      attachmentIds: $attachmentIds
+      position: 0
+    }
+  )
+  conversationTranscriptEntry_insert(
+    data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: $content }
+  )
+}
+
+# Draws text a subagent wrote, as `DrawConversationAgentText` draws a conversation's, but for the
+# unread count, which nobody reads of a subagent: its thread is never read as it comes. Fenced as
+# `RenewConversationRunLease` is, on a subagent's run
+mutation DrawSubagentAgentText(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $entryId: UUID!
+  $fromBlock: Int!
+  $toBlock: Int!
+  $messageId: UUID!
+  $position: Int!
+  $text: String!
+  $citations: Any
+  $preview: Any!
+  $toPiece: Int
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "size(vars.text) <= 20000 && ((vars.toBlock > vars.fromBlock && (!has(vars.toPiece) || vars.toPiece == 0)) || (has(vars.toPiece) && vars.toPiece == 1 && vars.toBlock >= vars.fromBlock))"
+      message: "A message is drawn from one block or more, or is the first piece of a longer text, and holds at most 20000 characters"
+    )
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, deletedAt: { isNull: true }, nextMessagePosition: { eq: $position } }
+    data: {
+      preview: $preview
+      previewMessageId: $messageId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the message at that position")
+  conversationTranscriptEntry_updateMany(
+    where: {
+      id: { eq: $entryId }
+      conversationId: { eq: $conversationId }
+      drawnBlocks: { eq: $fromBlock }
+      drawnPieces: { eq: 0 }
+    }
+    data: { drawnBlocks: $toBlock, drawnPieces: $toPiece }
+  ) @check(expr: "this == 1", message: "Those blocks were drawn already")
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: AGENT_TEXT
+      text: $text
+      citations: $citations
+      position: $position
+    }
+  )
+}
+
+# Ends a subagent's run its worker brought to an end, as `FinishConversationRun` ends a
+# conversation's, `COMPLETED`, or `STOPPED` once the subagent was deleted, and writes its report,
+# its last reply cut to 8000 characters (`MAX_SUBAGENT_REPORT_LENGTH` in strategydance-core), in the
+# write that lets go of the run, so a subagent never ends without one. Fenced as
+# `RenewConversationRunLease` is, on a subagent's run
+mutation FinishSubagentRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $status: ConversationRunStatus!
+  $usage: Any
+  $report: String!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { status: $status, usage: $usage, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "vars.status == 'COMPLETED' || vars.status == 'STOPPED'"
+      message: "A run ends this way completed or stopped"
+    )
+    @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
+  conversationMessage_updateMany(
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: { activeRunId: null, report: $report, reportedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The subagent could not take its report")
+}
+
+# Ends a subagent's run with a note, as `FinishConversationRunWithNote` ends a conversation's, and
+# writes its report, led by how the run ended, in the write that takes the note. Fenced as
+# `RenewConversationRunLease` is, on a subagent's run
+mutation FinishSubagentRunWithNote(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $status: ConversationRunStatus!
+  $noteKind: ConversationNoteKind!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+  $usage: Any
+  $isFull: Boolean
+  $failure: String
+  $report: String!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { status: $status, usage: $usage, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "(vars.status == 'FAILED' && (vars.noteKind == 'FAILED' || vars.noteKind == 'FULL')) || (vars.status == 'STOPPED' && vars.noteKind == 'STOPPED') || (vars.status == 'REFUSED' && vars.noteKind == 'REFUSED')"
+      message: "A run ends with its own note: failed or full, stopped, or refused"
+    )
+    @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
+  conversationMessage_updateMany(
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      isFull: $isFull
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+      report: $report
+      reportedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: $noteKind
+      position: $position
+    }
+  )
+}
+
+# Ends a subagent's run whose author is no longer the member it was queued under, as
+# `InterruptConversationRun` ends a conversation's, and writes its report, saying it was
+# interrupted, in the write that takes the note. Fenced on the run alone, at the attempt the worker
+# read or claimed, on a subagent's run
+mutation InterruptSubagentRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+  $failure: String
+  $report: String!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { in: [QUEUED, RUNNING] }
+      attempts: { eq: $attempts }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+      }
+    }
+    data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
+  conversationMessage_updateMany(
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+      report: $report
+      reportedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: INTERRUPTED
+      position: $position
+    }
+  )
+}
+
 # The daily sweep's for the board: deletes every task deleted over a day ago, past its Undo, in
 # every organization, its links cascading with it. `DeleteTask` prunes its organization's on the way
 # through, which stays as the fast path, but leaves the last one deleted in a quiet organization,

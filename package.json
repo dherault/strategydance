@@ -28,6 +28,7 @@
     "check:directories": "cd packages/strategydance-backend && bun run check:directories",
     "probe:claude": "cd packages/strategydance-backend && bun run probe:claude",
     "send:conversation": "cd packages/strategydance-backend && bun run send:conversation",
+    "launch:subagent": "cd packages/strategydance-backend && bun run launch:subagent",
     "mcp:knowledge": "cd packages/strategydance-backend && bun run --silent mcp:knowledge",
     "mcp:tasks": "cd packages/strategydance-backend && bun run --silent mcp:tasks",
     "generate:database": "cd packages/strategydance-database && bun run generate",

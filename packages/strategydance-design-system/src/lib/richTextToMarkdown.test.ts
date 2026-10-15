@@ -21,11 +21,15 @@ function paragraph(...content: (string | RichTextInline)[]): RichTextBlock {
   return { type: 'paragraph', content: content.map(item => (typeof item === 'string' ? run(item) : item)) }
 }
 
-// Every combination of the four styles, each on or off, at least one on
+// Every combination of the four styles that go together, inline code going alone, each on or off, at least one on
 function combineStyles(): RichTextStyles[] {
   return Array.from({ length: 15 }, (_, index) =>
     Object.fromEntries(STYLES.filter((_, bit) => (index + 1) & (1 << bit)).map(style => [style, true])),
   )
+}
+
+function code(text: string): RichTextRun {
+  return run(text, { code: true })
 }
 
 function roundTrip(blocks: RichTextBlock[]) {
@@ -42,6 +46,22 @@ describe('richTextToMarkdown', () => {
     expect(richTextToMarkdown([paragraph('a ', run('b', { underline: true }), ' <u>c</u>')])).toBe(
       'a <u>b</u> \\<u>c\\</u>',
     )
+  })
+
+  it('writes inline code as a code span, fenced past the backticks it holds', () => {
+    expect(richTextToMarkdown([paragraph('run ', code('bun test'), ', ', code('a`b'), ' and ', code('`'))])).toBe(
+      'run `bun test`, ``a`b`` and `` ` ``',
+    )
+  })
+
+  it('writes a line break in inline code after a code span', () => {
+    expect(richTextToMarkdown([paragraph(code('a\nb'))])).toBe('`a`\\\n`b`')
+  })
+
+  it('reads a line break opening inline code, which BlockNote never writes, as it would: with the text before it', () => {
+    expect(roundTrip([paragraph('a', code('\nb'), 'c', code('\n'), 'd')])).toEqual([
+      paragraph('a\n', code('b'), 'c\nd'),
+    ])
   })
 
   it("writes a mention as the agent's link to a document or a task, its words escaped", () => {
@@ -137,6 +157,56 @@ describe('richTextToMarkdown', () => {
 
           expect(roundTrip(blocks)).toEqual(blocks)
         })
+      }
+    })
+
+    describe('inline code', () => {
+      const cases: [string, RichTextBlock[]][] = [
+        ['inside a sentence', [paragraph('a ', code('b'), ' c')]],
+        ['against the words around it', [paragraph('a', code('b'), 'c')]],
+        ['as a whole paragraph', [paragraph(code('a b'))]],
+        ['holding backticks', [paragraph(code('a`b``c'), ' and ', code('`'), ' and ', code('``'))]],
+        ['starting and ending with a space', [paragraph('a', code(' b '), 'c')]],
+        ['of spaces alone', [paragraph('a', code('  '), 'b')]],
+        ['holding Markdown, tags and escapes', [paragraph(code('**a** <u>b</u> \\ [c](d) &amp; # e'))]],
+        ['between bold words', [paragraph(run('a', { bold: true }), code('b'), run('c', { bold: true }))]],
+        [
+          'beside underline and a link',
+          [
+            paragraph(run('a', { underline: true }), code('b'), {
+              type: 'link',
+              href: 'https://example.com/',
+              content: [run('c')],
+            }),
+          ],
+        ],
+        ['holding line breaks', [paragraph(code('a\nb\n\nc'), ' d')]],
+        [
+          'ending on line breaks, as Shift+Enter after it writes',
+          [paragraph(code('a\n'), 'b', code('c\n\n'), run('d', { bold: true }))],
+        ],
+        ['after text ending on a line break', [paragraph('a\n', code('b'))]],
+        [
+          'in a heading, a quote and a list item',
+          [
+            { type: 'heading', content: [code('A')] },
+            { type: 'quote', content: [run('b '), code('c')] },
+            { type: 'checkListItem', props: { checked: true }, content: [code('d')] },
+          ],
+        ],
+        [
+          'in a table, holding a pipe',
+          [
+            {
+              type: 'table',
+              content: { type: 'tableContent', headerRows: 1, rows: [{ cells: [[code('a | b')], [run('c')]] }] },
+            },
+          ],
+        ],
+      ]
+
+      for (const [name, blocks] of cases) {
+        it(name, () => expect(roundTrip(blocks)).toEqual(blocks))
       }
     })
 
@@ -309,7 +379,15 @@ describe('richTextToMarkdown', () => {
     it(`a document as long as a document's content may be, ${MAX_DOCUMENT_CONTENT_LENGTH} characters`, () => {
       const section: RichTextBlock[] = [
         { type: 'heading', content: [run('A section')] },
-        paragraph('Some ', run('bold', { bold: true }), ', some ', run('underlined', { underline: true }), ' words.'),
+        paragraph(
+          'Some ',
+          run('bold', { bold: true }),
+          ', some ',
+          run('underlined', { underline: true }),
+          ' and some ',
+          code('code'),
+          ' words.',
+        ),
         {
           type: 'bulletListItem',
           content: [run('An item')],

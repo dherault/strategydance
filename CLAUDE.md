@@ -76,7 +76,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   drawn by `RichText` without it. A post's editor writes text and lists (`RICH_TEXT_POST_BLOCKS`),
   a task's description's also mentions of documents and tasks (`RICH_TEXT_TASK_BLOCKS`), and a
   knowledge document's also code, tables, pictures, YouTube, Vimeo and Loom videos, link preview
-  cards and mentions (`RICH_TEXT_EDITOR_BLOCKS`, the default). `RichText` draws a post's blocks
+  cards and mentions (`RICH_TEXT_EDITOR_BLOCKS`, the default). Each writes text in five styles,
+  inline code BlockNote's own, which text typed between backticks writes, and which goes alone and
+  out of links, as its mark excludes every other. `RichText` draws a post's blocks
   unless told more, since a feed and a public page draw posts. The editor's own blocks, the video
   and the card, are the core's `createBlockSpec`, and its mentions the core's
   `createInlineContentSpec`, with plain DOM, never React's, so the headless editor the Yjs helpers
@@ -95,7 +97,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   `[Title](doc:<id>)` as the composer sends them, alone drawn as links (`parseConversationMemberText`). An
   agent reads and writes a document's text in Markdown through the pair in its `lib/`,
   `richTextToMarkdown` and `markdownToRichText`: the stored model's subset, underline as `<u>…</u>`,
-  the one tag read as what it says, a single newline breaking the line, as `Markdown` draws it, a
+  the one tag read as what it says, inline code as a code span, a line break in it a hard one
+  after a code span, a single newline breaking the line, as `Markdown` draws it, a
   table without a header row under an empty one, and a mention as the agent's own link to what it
   names, `[title](doc:<id>)` or `[name](task:<id>)`, which reads back as the mention. `markdownToRichText` parses with markdown-it,
   never micromark, which `react-markdown` runs on: micromark takes minutes on lists or brackets by
@@ -133,6 +136,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. Each `--file`, an image, a PDF or a text file, a relative path read from the repository's root, is uploaded first and sent with it, the text then optional. `--organization <id or slug>` names the organization when the account is in several |
+| `bun run launch:subagent <email> --conversation <id> [--file <attachment id>]… <brief>` | Launches a subagent of one of that account's conversations, as Strategy Dance's agent will once the Subagents module does, handing it each file named, one the conversation sent, runs it in its own process, and prints its transcript and its report once it reports. It answers with the stand-in reply under `CONVERSATION_AGENT=placeholder`, and asks Claude otherwise, which costs money. It refuses to run anywhere but against the emulators |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
@@ -566,7 +570,9 @@ faces.
 - The text reaches the editor without `parseRichText`, so the editor's schema is what keeps it to
   the blocks it knows, and a tab on an older bundle deletes a block its schema lacks from the shared
   text. A new block type reaches every tab before anybody can write one, and so does a new inline
-  type, unless David chooses to ship it with the release that writes it, as mentions shipped. A
+  type, unless David chooses to ship it with the release that writes it, as mentions shipped. So
+  does a new style: y-prosemirror throws on a mark its schema lacks, and then deletes the whole text
+  of the block holding it. Inline code shipped with the release that writes it, by David's choice. A
   node's props are append-only: y-prosemirror writes every attribute, and a shared text holding
   one its schema does not declare can no longer be read by the backend. The Yjs helpers read with
   a schema too, `RICH_TEXT_EDITOR_BLOCKS` unless told another, and their read deletes a block it
@@ -684,6 +690,22 @@ A conversation is kept twice, once for Claude and once for the page, and
   words, matches by substring instead (`isSubstringSearchQuery`), over every title and the
   messages of the most recently active conversations to 20000. Only member and agent messages
   are searched, never a question, a tool call or a note
+- A subagent is a conversation with a `parent`, the conversation whose agent launched it with a
+  brief (`launchSubagent` in `domain/subagents/`), its member's and run as theirs, and hidden from
+  them. Every read or count of a member's conversations leaves subagents out with `parentId: {
+  isNull: true }`: the list, the badge's and the dock's reads, the searches, the counts
+  `MAX_CONVERSATIONS` and `MAX_ACTIVE_RUNS_PER_MEMBER` hold and the runs in flight a route reads
+  first. Every way a member acts on a conversation refuses one, the send, answer, approval, Resume,
+  Retry, Stop, reconcile and upload routes, `missing` in the domain and the same filter in the
+  mutation, and the web's delete, restore, read and aspects mutations, while a read of one
+  conversation by its id reads one as any other. A new read, count or action of a member's does the
+  same. A subagent's run sends `SUBAGENT_SYSTEM_PROMPT` and `buildSubagentTools`, both pinned by
+  their bytes, asks nothing, tags nothing, draws its text with no unread count
+  (`DrawSubagentAgentText`), and ends only through `FinishSubagentRun`, `FinishSubagentRunWithNote`
+  and `InterruptSubagentRun`, which write its `report` in the write that ends it, however it ends:
+  every other ending's fence matches a conversation that is no subagent, and
+  `finalizeDeadConversationRun` answers `missing` for a subagent's run. `bun run
+  check:subagent-runs`, in the backend's package, checks the operations against the emulators
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under an organization's `conversations/` sits behind the bouncer its layout route
@@ -697,7 +719,7 @@ A conversation is kept twice, once for Claude and once for the page, and
   (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
   token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
   two as `useCanUseConversations`, before it reads a consent request or offers the Connected agents
-  tab or a module's "Use with your agents" button
+  tab or a module's agents button
 - The dock's windows are each member's in each organization, kept by `_ConversationDockProvider`
   under one persisted key, each set under `${userId}:${organizationId}`, since the key a persisted
   state reads is read once. A minimized window reads nothing but `GetDockConversations`, the
@@ -1174,9 +1196,9 @@ and why.
   than copy them
 - A module is worded for members in the web's `module` catalogue, by its name, through
   `getModuleMessages`, typed over every `ModuleName`: a module added to `MODULES` fails the
-  typecheck until its name and what its read and write access let an agent do are worded there, for
-  the consent page, the Connected agents tab and the dialog its page's "Use with your agents" opens. `MODULES`' `title` is the server's own,
-  in English, for what MCP clients show
+  typecheck until its name, what its read and write access let an agent do, and the tooltip of its
+  page's agents button are worded there, for the consent page, the Connected agents tab and that
+  button. `MODULES`' `title` is the server's own, in English, for what MCP clients show
 - The caller, `ModuleCaller`, is verified before a server is built and reaches it in the `extra` of
   the SDK's `AuthInfo`, which `toModuleAuthInfo` writes and `readModuleCaller` reads back, refusing a
   request that carries none. Nothing in it comes from a tool's arguments. Every operation a tool runs
@@ -1255,8 +1277,9 @@ and why.
   (`toTooManySearchesSentence`) and which read still works
 - A module joins the external agents with its name in `SERVED_MODULES`, which mounts its endpoint and
   its metadata and lets the metadata answer any origin; `requireModuleWriteScope` on every write
-  tool; its searches on the member's allowance; the "Use with your agents" button on its page,
-  `ModuleAgentsButton`, which takes its name and opens the dialog worded from the `module` catalogue;
+  tool; its searches on the member's allowance; the agents button on its page, `ModuleAgentsButton`,
+  an icon after the page's own action, which takes its name and opens the dialog worded from the
+  `module` catalogue;
   and its endpoint in `check:oauth`. Knowledge joined in M20 and Tasks in M21
 - `bun run mcp:knowledge <email>` and `bun run mcp:tasks <email>` serve a module over stdio for a
   client on this machine, against the emulators only, through one script, `serveModule.ts`, which
@@ -1298,6 +1321,33 @@ on the backend's side.
 - `bun run dev:emails` opens the preview server through `scripts/devEmails.sh`, which runs the
   CLI from a scratch directory outside the tree. Read its header before changing how it is
   invoked. The preview is indicative: check a real client before trusting a layout change
+
+## Tackling a task
+
+"Tackle task 123", or anything worded like it, names a task of the team's own board in Strategy
+Dance: read it through the Strategy Dance MCP, the `strategydance-tasks` server, which is the
+production Tasks module at `https://api.strategydance.com/mcp/tasks` acting as the person, never
+the `-local` ones of [Module conventions](#module-conventions), which serve the emulators' board.
+Then do what it asks as any other task, [Workflow](#workflow) included.
+
+- What follows "task" is whatever the person copied: the task's id, which `read_task` takes
+  hyphenated or not, or else a piece of its name, which `list_tasks` finds with `query`. A piece
+  that matches several tasks is a question for the person, never a pick. Several tasks named at
+  once are each tackled the same way
+- Its description, which `read_task` answers in Markdown, is the brief. A `task:<id>` link in it
+  is another task, which `read_task` opens too, and a `doc:<id>` link a knowledge document, which
+  the Knowledge module's `read_document` opens where the session has it. A task it waits on that
+  is not done yet blocks it, which is worth saying before the work starts
+- When the session has no `strategydance-tasks` tools, or they ask to sign in, say so and stop
+  rather than guess the task: the person adds the server with `claude mcp add --transport http
+  strategydance-tasks https://api.strategydance.com/mcp/tasks` and signs in with `/mcp`
+- Once the work starts, the task is under way: `update_task` moves it to `ONGOING`, from whatever
+  column it is in, before the first edit, so the team sees it taken up. One already in `ONGOING`
+  stays where it is
+- Once its pull request merges, the task is done: `update_task` moves it to `DONE` as soon as the
+  session learns of the merge, from `bun run review open` reporting `MERGED` or from the person,
+  and the person is told of the tasks its answer says can start now (`canStartNow`). Nothing else
+  on the board changes unless the person asks, since the server writes as them
 
 ## Workflow
 

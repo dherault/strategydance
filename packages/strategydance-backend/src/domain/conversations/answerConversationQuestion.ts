@@ -29,7 +29,7 @@ export type AnswerConversationQuestionResult =
   | { outcome: 'answered'; runId: string | null }
   // The caller is no member of the organization
   | { outcome: 'forbidden' }
-  // The conversation is somebody else's, or deleted, or holds no such question
+  // The conversation is somebody else's, deleted or a subagent, or holds no such question
   | { outcome: 'missing' }
   // The answer does not fit the question
   | { outcome: 'invalid'; reason: string }
@@ -79,6 +79,8 @@ async function answerConversationQuestion({
       || conversation.userId !== userId
       || conversation.organizationId !== organizationId
       || conversation.deletedAt
+      // A subagent is its parent's, never acted on by its member
+      || conversation.parentId
       || question?.kind !== ConversationMessageKind.QUESTION
     ) {
       return { outcome: 'missing' }

@@ -102,9 +102,10 @@ export, port the styles from `conversations.css` onto the design system's compon
 
 ### Navigation
 
-- The sidebar gains a "Reflection" group after "Aspects", holding **Conversations** and
-  **Knowledge**, which moves out of "Aspects". Conversations carries a badge counting the
-  conversations waiting for an answer.
+- The sidebar gains a "Guidance" group after "Aspects", holding **Conversations**, which carries a
+  badge counting the conversations waiting for an answer, and drawn only for a reader who may have
+  them. **Knowledge** sits in the top group, after Tasks. Both were a "Reflection" group until
+  David chose otherwise on 2026-10-15.
 - "Company" gains **Integrations**, in the MCP milestones.
 - The account gains a **Connected agents** tab, beside Profile and Security, listing the external
   agents the member connected to a module, with Disconnect, and the Knowledge page a **Use with
@@ -1845,7 +1846,8 @@ authorization server from M18 and a consent page from M19:
   member's connections go with it; never by `lastUsedAt`: each with its client, organization, module
   and access, when it connected and when it was last used, and Disconnect, which deletes it with its
   tokens.
-- **Use with your agents**, a button on the Knowledge page, opens a dialog with the module's
+- **Use with your agents**, an icon button after the Knowledge page's own action, its tooltip saying
+  what an agent may do there, opens a dialog with the module's
   address, a copy button, and how to add it to claude.ai (Settings, Connectors, Add custom
   connector), ChatGPT, Claude Code (`claude mcp add --transport http strategydance-knowledge
   https://api.strategydance.com/mcp/knowledge`) and Cursor. The Tasks page has the same button for
@@ -2188,8 +2190,8 @@ no milestones yet: its own plan comes later.
 ### Rich text and Markdown
 
 Documents and task descriptions are stored as BlockNote blocks (paragraphs, headings 1 to 3, quotes,
-bulleted, numbered and check list items, bold, italic, underline, strikethrough, web and mail links,
-and mentions of a document or a task), and documents also as code, tables, pictures, YouTube, Vimeo
+bulleted, numbered and check list items, bold, italic, underline, strikethrough, inline code, web and
+mail links, and mentions of a document or a task), and documents also as code, tables, pictures, YouTube, Vimeo
 and Loom videos and link preview cards; the agent reads and writes Markdown. The stored model lives
 in the design system's `lib/` (`richText.ts`'s types, `normalizeRichText`, `parseRichText`,
 `getRichTextText`), beside the conversions between blocks and a document's shared text
@@ -2210,8 +2212,14 @@ of closing brackets and 33 for list markers on every line, where markdown-it rea
 at that length in well under a second, as its tests hold it to. `richTextToMarkdown` writes through
 `mdast-util-to-markdown`, which escapes text that would read as Markdown, and puts an empty comment,
 `<!---->`, between two styles whose asterisks would touch, as bold then italic inside a word, which
-CommonMark would read as neither; `markdownToRichText` reads that comment as nothing. A document
-then keeps all four styles through an agent's edit. The document blocks map onto Markdown too: code
+CommonMark would read as neither; `markdownToRichText` reads that comment as nothing. Inline code
+is a code span, fenced past the backticks it holds, and goes alone: BlockNote's code mark excludes
+every other mark, a link's included, so `normalizeRichText` keeps a code run to that one style and
+drops it inside a link, and ``**`a`**`` reads back as code without the bold. A code span reads a line
+break as a space, so a line break in inline code is written as a hard one after a code span, and
+`markdownToRichText` reads a line break after a code span as inside the code, as BlockNote adds a
+hard break to the text before it. A document then keeps all five styles through
+an agent's edit. The document blocks map onto Markdown too: code
 to a fenced block with its language, a table to a GFM table with its header row, written under an
 empty header row when it has none, which reads back as none, by David's choice on 2026-10-09, and a
 picture, a video and a link preview to a link, read with its caption or title. A picture written in

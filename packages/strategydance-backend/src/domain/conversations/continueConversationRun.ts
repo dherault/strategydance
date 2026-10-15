@@ -69,6 +69,8 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
       || conversation.userId !== userId
       || conversation.organizationId !== organizationId
       || conversation.deletedAt
+      // A subagent is its parent's, never acted on by its member
+      || conversation.parentId
     ) {
       return { outcome: 'missing' }
     }

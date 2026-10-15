@@ -96,8 +96,10 @@ function createRichTextCodeBlockSpec() {
 
 /*
   The schema of an editor writing `blocks` besides paragraphs: the blocks `RichText` draws, with
-  text in four styles, links and the mentions `blocks` names. A pasted block it does not hold comes
-  in as a paragraph, and a pasted color or inline code mark is dropped
+  text in five styles, links and the mentions `blocks` names. A pasted block it does not hold comes
+  in as a paragraph, and a pasted color is dropped. Inline code is BlockNote's own, which text typed
+  between backticks writes, as do ⌘E and a pasted `<code>`, and which excludes every other style
+  and a link
 */
 function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
   const hasLists = blocks.includes('list')
@@ -132,6 +134,7 @@ function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
       italic: defaultStyleSpecs.italic,
       underline: defaultStyleSpecs.underline,
       strike: defaultStyleSpecs.strike,
+      code: defaultStyleSpecs.code,
     },
   })
 }

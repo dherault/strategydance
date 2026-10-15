@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { ConversationTranscriptRole } from 'strategydance-database/backend'
 
 import CONVERSATION_TOOLS from '~domain/agent/conversationTools'
+import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 
 import buildConversationRequest, { buildConversationMessages } from './buildConversationRequest'
 
@@ -13,6 +14,8 @@ const REPLY = JSON.stringify([
   { type: 'thinking', thinking: '', signature: 'sig' },
   { type: 'text', text: 'Flat 19 per month', citations: null },
 ])
+
+const CONFIG = { system: CONVERSATION_SYSTEM_PROMPT, tools: CONVERSATION_TOOLS }
 
 describe('buildConversationMessages', () => {
   test('replays the stored entries, then the unstored context, then the paused parts held in memory', () => {
@@ -45,7 +48,7 @@ describe('buildConversationMessages', () => {
 
 describe('buildConversationRequest', () => {
   test('asks Opus 5.5 as the probe settled, with web search, its questions, its integrations and the system prompt cached', () => {
-    const request = buildConversationRequest([{ role: 'user', content: 'Hello' }], CONVERSATION_TOOLS)
+    const request = buildConversationRequest([{ role: 'user', content: 'Hello' }], CONFIG)
 
     expect(request).toMatchObject({
       model: 'claude-opus-5-5',
@@ -67,7 +70,9 @@ describe('buildConversationRequest', () => {
         { name: 'call_integration_tool', eager_input_streaming: true },
       ],
     })
-    expect(request.system).toEqual([expect.objectContaining({ cache_control: { type: 'ephemeral' } })])
+    expect(request.system).toEqual([
+      { type: 'text', text: CONVERSATION_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+    ])
   })
 
   test('builds the next request as the last one’s bytes, then what follows', () => {
@@ -78,7 +83,7 @@ describe('buildConversationRequest', () => {
           context: CONTEXT,
           parts: [],
         }),
-        CONVERSATION_TOOLS,
+        CONFIG,
       ),
     )
     const next = JSON.stringify(
@@ -93,7 +98,7 @@ describe('buildConversationRequest', () => {
           context: CONTEXT,
           parts: [],
         }),
-        CONVERSATION_TOOLS,
+        CONFIG,
       ),
     )
 

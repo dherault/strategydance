@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { RichText } from 'strategydance-design-system/components/ui/RichText'
 import richTextSample from 'strategydance-design-system/components/ui/RichText.sample'
 import {
+  RICH_TEXT_CLASSES,
   RICH_TEXT_EDITOR_BLOCKS,
   RICH_TEXT_TASK_BLOCKS,
   type RichTextMentionSource,
@@ -72,7 +73,9 @@ describe('RichText', () => {
     const markup = renderToStaticMarkup(<RichText value={richTextSample} />)
 
     expect(markup).toContain('<p class="mb-2">Task feed p95')
-    expect(markup).toContain('<span class="font-semibold">task_assignments</span>')
+    expect(markup).toContain('<span class="font-semibold">410ms to 230ms</span>')
+    expect(markup).toContain('<code class="rounded-xs bg-neutral-100')
+    expect(markup).toContain('">task_assignments</code>')
     expect(markup).toContain('<h1 ')
     expect(markup).toContain('<h2 ')
     expect(markup).toContain('<h3 ')
@@ -125,13 +128,19 @@ describe('RichText', () => {
     )
   })
 
+  it('draws inline code alone, without the styles a value gives it beside', () => {
+    expect(
+      render([{ type: 'paragraph', content: [text('a(b)', { code: true, bold: true, italic: true })] }]),
+    ).toContain(`<p class="mb-2"><code class="${RICH_TEXT_CLASSES.text.code}">a(b)</code></p>`)
+  })
+
   it('never applies a color, an alignment or a style a value carries', () => {
     const markup = render([
       {
         type: 'paragraph',
         props: { textColor: 'red', backgroundColor: 'blue', textAlignment: 'center' },
         content: [
-          text('plain', { textColor: 'red', code: true }),
+          text('plain', { textColor: 'red', fontSize: '40px' }),
           { type: 'text', text: '!', style: 'position: fixed' },
         ],
       },

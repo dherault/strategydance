@@ -3,7 +3,7 @@ import type { GetConversationRequestContextData } from 'strategydance-database/b
 import type { ConversationProfile } from '~domain/agent/buildConversationContext'
 
 // What a run's context message tells Claude of its member and their organization, as the request
-// context reads them
+// context reads them. A subagent's names its parent's aspects, as its parent's next run would
 function toConversationProfile(data: GetConversationRequestContextData): ConversationProfile {
   return {
     memberName: data.user?.displayName ?? null,
@@ -15,7 +15,7 @@ function toConversationProfile(data: GetConversationRequestContextData): Convers
     organizationName: data.organization?.name ?? '',
     brief: data.organization?.brief ?? null,
     exploredAspects: data.organization?.exploredAspects ?? [],
-    aspects: data.conversations[0]?.aspects ?? [],
+    aspects: data.conversations[0]?.parent?.aspects ?? data.conversations[0]?.aspects ?? [],
   }
 }
 

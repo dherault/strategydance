@@ -46,8 +46,8 @@ type Props = {
   Draws what `RichTextEditor` wrote, without BlockNote.
 
   The value is somebody else's, since a feed shows everybody's posts, and it arrives as JSON a
-  client wrote. So it is read through `parseRichText`, which keeps the blocks `blocks` names, four
-  styles and links to web and mail addresses, and drops every other key, colors and alignment
+  client wrote. So it is read through `parseRichText`, which keeps the blocks `blocks` names, five
+  styles, inline code among them, and links to web and mail addresses, and drops every other key, colors and alignment
   above all. Those become elements here and nothing else does. Text is text: React escapes it.
   A post draws a post's blocks only, whatever its JSON holds, since a feed and a public page show
   it, and a document passes the blocks its editor writes.
@@ -418,8 +418,22 @@ function renderInline(item: RichTextInline, key: number): ReactNode {
 }
 
 function renderRun(run: RichTextRun, key: number): ReactNode {
-  const { bold, italic, underline, strike } = run.styles ?? {}
+  const { bold, italic, underline, strike, code } = run.styles ?? {}
   const { text: textClasses } = RICH_TEXT_CLASSES
+  const text = renderLines(run.text)
+
+  // Inline code carries no other style
+  if (code) {
+    return (
+      <code
+        key={key}
+        className={textClasses.code}
+      >
+        {text}
+      </code>
+    )
+  }
+
   const className = cn(
     bold && textClasses.bold,
     italic && textClasses.italic,
@@ -427,7 +441,6 @@ function renderRun(run: RichTextRun, key: number): ReactNode {
       ? textClasses.underlineStrikethrough
       : cn(underline && textClasses.underline, strike && textClasses.strikethrough),
   )
-  const text = renderLines(run.text)
 
   if (!className) return <Fragment key={key}>{text}</Fragment>
 

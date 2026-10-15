@@ -35,6 +35,23 @@ describe('createRichTextYUpdate', () => {
     expect(JSON.stringify(readUpdate(createRichTextYUpdate(value)))).toBe(value)
   })
 
+  it('lays inline code in, in a heading, a paragraph and a list item alike', () => {
+    const value = JSON.stringify([
+      { type: 'heading', content: [{ type: 'text', text: 'normalizeRichText', styles: { code: true } }] },
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Run ' },
+          { type: 'text', text: 'bun test', styles: { code: true } },
+          { type: 'text', text: ' now', styles: { bold: true } },
+        ],
+      },
+      { type: 'bulletListItem', content: [{ type: 'text', text: 'a\nb', styles: { code: true } }] },
+    ])
+
+    expect(JSON.stringify(readUpdate(createRichTextYUpdate(value)))).toBe(value)
+  })
+
   it('lays code in with its language and its line breaks', () => {
     const value = JSON.stringify([
       { type: 'codeBlock', props: { language: 'typescript' }, content: [{ type: 'text', text: 'const a = 1\n\tb()' }] },

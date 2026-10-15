@@ -170,23 +170,22 @@ function OAuthConsent({ requestId }: Props) {
           className="text-sm text-muted-foreground"
         />
       </div>
-      <p className="m-0 max-w-xl text-base leading-[1.6] text-pretty text-muted-foreground">
+      <p className="m-0 text-base leading-[1.6] text-pretty text-muted-foreground">
         {formatMessage(moduleMessages.consentLead)}
       </p>
       {request.isLoopbackRedirect ? (
         <Alert
           variant="warning"
           title={formatMessage(moduleMessages.loopbackTitle)}
-          className="max-w-xl"
         >
           {formatMessage(moduleMessages.loopbackWarning, { host: request.redirectHost, strong: host })}
         </Alert>
       ) : (
-        <p className="m-0 max-w-xl text-sm text-pretty text-muted-foreground">
+        <p className="m-0 text-sm text-pretty text-muted-foreground">
           {formatMessage(moduleMessages.redirectHost, { host: request.redirectHost, strong: host })}
         </p>
       )}
-      <div className="flex max-w-xl flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <OAuthConsentOrganization
           organization={organization}
           onChange={setChosenOrganizationId}
@@ -204,7 +203,6 @@ function OAuthConsent({ requestId }: Props) {
         <Alert
           variant="warning"
           title={formatMessage(moduleMessages.fullTitle)}
-          className="max-w-xl"
           actions={
             <Link
               to="/account/connected-agents"

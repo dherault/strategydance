@@ -34,7 +34,7 @@ export type RetryConversationRunResult =
   | { outcome: 'retried'; runId: string; removedRunIds: string[] }
   // The caller is no member of the organization
   | { outcome: 'forbidden' }
-  // The conversation is somebody else's, or deleted
+  // The conversation is somebody else's, deleted or a subagent
   | { outcome: 'missing' }
   // A run goes in the conversation, or the caller has 3 in flight
   | { outcome: 'busy' }
@@ -78,6 +78,8 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
       || conversation.userId !== userId
       || conversation.organizationId !== organizationId
       || conversation.deletedAt
+      // A subagent is its parent's, never acted on by its member
+      || conversation.parentId
     ) {
       return { outcome: 'missing' }
     }

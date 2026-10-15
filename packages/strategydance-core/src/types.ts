@@ -79,7 +79,7 @@ export type LinkPreviewData = {
   to typecheck wherever a row is passed
 */
 export type ConversationPreviewSource = {
-  kind: 'MEMBER_TEXT' | 'AGENT_TEXT' | 'TOOL_CALL' | 'QUESTION' | 'ASPECTS' | 'NOTE' | 'APPROVAL'
+  kind: 'MEMBER_TEXT' | 'AGENT_TEXT' | 'TOOL_CALL' | 'QUESTION' | 'ASPECTS' | 'NOTE' | 'APPROVAL' | 'BRIEF'
   text?: string | null
   toolName?: string | null
   toolStatus?: 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | null

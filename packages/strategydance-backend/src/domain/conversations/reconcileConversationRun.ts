@@ -10,7 +10,8 @@ import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConve
 
   The page asks too when it sees the run waiting on questions all answered: the conversation is
   carried on, as the last answer would have, had its backend not stopped first or its member had
-  fewer runs going. Answers `missing` for a run that is not in the caller's conversation
+  fewer runs going. Answers `missing` for a run that is not in the caller's conversation, and for a
+  subagent's, which no member action reaches
 */
 async function reconcileConversationRun(reference: ConversationRunReference) {
   const state = await finalizeDeadConversationRun(reference)

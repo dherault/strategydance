@@ -1574,8 +1574,8 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
 
 | Tool | What it does | Scope |
 | --- | --- | --- |
-| `list_subagents` | `{ cursor? }`: the subagents the calling conversation launched, newest first, 20 a page, with a `cursor` while more remain. Each has its id, its title, its status (queued, waiting for a slot, working, reported, stopped, failed or interrupted), when it started and ended, whether it reported and whether its report was delivered | read |
-| `read_subagent` | `{ id, cursor? }`: one of them, with its status and its step, how many runs it took, its report once written, and what it wrote: the documents and tasks its successful module writes named, each with its tool, oldest first, 50 a page, with `total` and a `cursor` while more remain, since a chain can make 200 calls. The cursor pages the writes alone, the rest coming with every page. Refused for a subagent of another conversation, as for one that does not exist | read |
+| `list_subagents` | `{ cursor? }`: the subagents the calling conversation launched and a Retry did not delete, newest first, 20 a page, with a `cursor` while more remain. Each has its id, its title, its status (queued, waiting for a slot, working, reported, stopped, failed or interrupted), when it started and ended, whether it reported and whether its report was delivered | read |
+| `read_subagent` | `{ id, cursor? }`: one of them, with its status and its step, how many runs it took, its report once written, and what it wrote: the documents and tasks its successful module writes named, each with its tool, oldest first, 50 a page, with `total` and a `cursor` while more remain, since a chain can make 200 calls. The cursor pages the writes alone, the rest coming with every page. Refused for a subagent of another conversation, or one a Retry deleted, whose launch the transcript no longer holds, as for one that does not exist | read |
 | `launch_subagent` | `{ title, brief, attachments? }`: a new subagent of the calling conversation. The title is one line of at most 120 characters, the brief at most 20000 (`MAX_SUBAGENT_BRIEF_LENGTH`), and `attachments` the ids of at most ten files the conversation has sent, as the member's entries name them. Answers its id and whether it is queued or waiting for a slot. Refused from a subagent, from a parent's reaction (a `REPORTS` run), from a run that has ended or was asked to stop, past ten on the launching run's anchor (`MAX_SUBAGENTS_PER_ACTION`), those a Retry deleted left out, past 100 in the conversation (`MAX_CONVERSATION_SUBAGENTS`), for a file the conversation has not sent, and for a first request, measured whole when it carries files, past a send's budget, `MAX_CONVERSATION_SEND_INPUT_TOKENS` | write |
 | `stop_subagent` | `{ id }`: asks it to stop, as its row's Stop does. One already ended is answered as such, and changes nothing | write |
 
@@ -1605,8 +1605,9 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
   a stop run alone, in order. A result carries no web address, since a subagent is reached from its
   parent's thread, not from a page of its own.
 - The tools list grows by four, at its end. `drop_block` makes that a one-time loss of earlier
-  reasoning for existing conversations, as any tool is. M33 counts what they add to the modules'
-  7381 tokens, against the 10000 at which Later modules weighs Claude's tool search.
+  reasoning for existing conversations, as any tool is. M33 counts the whole list as M29 left it and
+  what the four add, since the modules' 7381 tokens were counted before M29's three integration
+  tools, against the 10000 at which Later modules weighs Claude's tool search.
 
 **Idempotent writes.** MCP has no idempotency key (the specification's issue #3394 asks for one),
 so a write retried by a client that lost its answer would land twice. Every write tool takes one in
@@ -2052,7 +2053,9 @@ way (see The orchestrator).
   parent, triggered `REPORTS`. Its `USER` entry holds one text block per undelivered report of every
   batch that is complete, never one of a batch still working, so each batch is reacted to whole: the
   subagent's id, title, ending and report, and the first 20 of what it wrote with their `total`,
-  `read_subagent` paging the rest. The mutation that stores the entry and
+  `read_subagent` paging the rest, each block one JSON object, from M33, so no report, written from
+  whatever its subagent read, can pass for the member's words or for another block, in a reaction's
+  entry or beside a member's text in a send. The mutation that stores the entry and
   starts the run marks those reports delivered (`reportDeliveredAt`), under the conversation's lock
   (`activeRunId` null, `@check(this == 1)`), so two subagents ending at once start one reaction and
   the second finds the parent busy. A subagent's end checks after its own write, a parent run ending
@@ -2168,7 +2171,10 @@ way (see The orchestrator).
   subagent and not its parent; each working row reads its step through `GetConversationRun`. A
   Retry whose cut runs launched subagents asks first, naming how many it stops and discards, since
   their reports are lost while what they wrote stays: a parent that failed at its limits after a
-  fan-out offers Retry alone, which would otherwise end the fan-out without a word.
+  fan-out offers Retry alone, which would otherwise end the fan-out without a word. When reports
+  wait undelivered and the parent cannot react, its last run stopped, failed, refused or
+  interrupted, the strip above the composer says so, "2 reports waiting. Your next message delivers
+  them.", since nothing else would tell the member a send is what brings them in.
 - **Integrations** (M36): a subagent reaches the three integration
   tools as its member, with their connections and the organization's keys, and calls only the tools
   an administrator lets run without approval, as David chose, since nobody can approve a call for a
@@ -2418,6 +2424,11 @@ worker's claim checks the role again, so a queued run stops too:
   conversations' gate, their routes (the reconcile and the stops) are conversations' routes, behind
   `staffOnlyMiddleware`, and a subagent's worker checks the role at its claim, as every run's does.
   The Subagents module is served to no external agent, so `ARE_MODULES_STAFF_ONLY` never meets it.
+  Launches have a gate of their own between M33 and M34 alone, `IS_SUBAGENT_LAUNCH_GATED`, lifted on
+  the development backend: M33 lets the agent launch, and only M34 has the page reconcile a parent's
+  subagents and Retry ask before it discards them, so in production `launch_subagent` refuses with a
+  sentence telling the agent to do the work itself until M34 removes it, and a release cut between
+  the two launches nothing.
 - What replaces the gate is M37's, before M38 removes it: a member starts a run only once their
   address is verified (`ERROR_CODE_EMAIL_NOT_VERIFIED`), since an account costs nothing to make and
   the caps' allowance is an account's, and staff can suspend an account or an organization

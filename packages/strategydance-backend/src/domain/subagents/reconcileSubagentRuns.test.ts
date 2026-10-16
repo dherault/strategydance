@@ -1,0 +1,208 @@
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
+
+import { MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER } from 'strategydance-core'
+
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
+
+import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
+import createConversationTestKit, { ORGANIZATION_ID } from '~domain/conversations/testing/createConversationTestKit'
+
+const fake = createConversationDatabaseFake()
+const kit = createConversationTestKit(fake)
+
+// The runs a promotion queued, which here nothing runs
+const enqueueRun = mock(async (_reference: ConversationRunReference, _queue: ConversationRunQueue) => true)
+
+mock.module('~firebase', () => ({ dataConnect: {} }))
+
+mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
+
+mock.module('strategydance-database/backend', () => fake.sdk)
+
+mock.module('~domain/conversations/enqueueRun', () => ({ default: enqueueRun }))
+
+const { default: reconcileSubagentRuns } = await import('./reconcileSubagentRuns')
+const { default: reconcileConversationSubagents } = await import('./reconcileConversationSubagents')
+const { default: sweepSubagentRuns } = await import('./sweepSubagentRuns')
+
+const AUTHOR = 'author'
+
+const MEMBER = { organizationId: ORGANIZATION_ID, userId: AUTHOR }
+
+// A parent with the member's five subagent runs going, and the subagents launched after them, which
+// wait for a slot
+async function fillSlots(waiting = 1) {
+  const parent = await kit.start()
+  const running: ConversationRunReference[] = []
+  const pending: ConversationRunReference[] = []
+
+  for (let index = 0; index < MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER; index++) running.push(await kit.launch(parent))
+  for (let index = 0; index < waiting; index++) pending.push(await kit.launch(parent))
+
+  return { parent, running, pending }
+}
+
+function readStatuses(references: ConversationRunReference[]) {
+  return references.map(reference => kit.readRun(reference)?.status)
+}
+
+function readNote(reference: ConversationRunReference) {
+  return kit.readThread(reference).at(-1)
+}
+
+beforeEach(() => {
+  fake.reset()
+  fake.addMember(AUTHOR, ORGANIZATION_ID)
+  enqueueRun.mockClear()
+})
+
+describe('reconcileSubagentRuns', () => {
+  test('finalizes a subagent run that died with its worker, its report saying so, and promotes into its slot', async () => {
+    const { running, pending } = await fillSlots()
+    const [dead] = running
+
+    if (!dead) throw new Error('No subagent launched')
+
+    kit.expireLease(dead)
+
+    await reconcileSubagentRuns(MEMBER)
+
+    expect(kit.readRun(dead)?.status).toBe('INTERRUPTED')
+    expect(readNote(dead)).toMatchObject({ kind: 'NOTE', noteKind: 'INTERRUPTED' })
+    expect(kit.readConversation(dead)).toMatchObject({
+      activeRunId: null,
+      report: 'This subagent was interrupted before it finished.',
+      reportedAt: expect.any(String),
+    })
+    expect(readStatuses(pending)).toEqual(['QUEUED'])
+    expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: pending[0]?.runId }), 'subagent-runs')
+  })
+
+  test('ends a run asked to stop while it waited, with its report, promoting nothing while five run', async () => {
+    const { pending } = await fillSlots(2)
+    const [stopped, waiting] = pending
+
+    if (!stopped || !waiting) throw new Error('No subagent launched')
+
+    const run = kit.readRun(stopped)
+
+    if (run) run.stopRequestedAt = new Date().toISOString()
+
+    await reconcileSubagentRuns(MEMBER)
+
+    expect(readStatuses(pending)).toEqual(['STOPPED', 'PENDING'])
+    expect(readNote(stopped)).toMatchObject({ kind: 'NOTE', noteKind: 'STOPPED' })
+    expect(kit.readConversation(stopped)).toMatchObject({
+      activeRunId: null,
+      report: 'This subagent was stopped before it finished.',
+    })
+    expect(fake.calls).not.toContain('PromoteSubagentRun')
+  })
+
+  test('ends a run whose subagent was deleted while it waited, stopped', async () => {
+    const { pending } = await fillSlots()
+    const [deleted] = pending
+
+    if (!deleted) throw new Error('No subagent launched')
+
+    const conversation = kit.readConversation(deleted)
+
+    if (conversation) conversation.deletedAt = new Date().toISOString()
+
+    await reconcileSubagentRuns(MEMBER)
+
+    expect(kit.readRun(deleted)).toMatchObject({
+      status: 'STOPPED',
+      failure: 'Its subagent was deleted while it waited for a slot',
+    })
+  })
+
+  test('leaves a run of a member removed to the sweep, which ends it interrupted, and promotes nothing', async () => {
+    const { running, pending } = await fillSlots()
+    const [waiting] = pending
+
+    if (!waiting) throw new Error('No subagent launched')
+
+    await kit.call('finishSubagentRun', {
+      ...(await kit.claim(running[0] ?? waiting)),
+      status: 'COMPLETED',
+      report: 'Done.',
+    })
+    fake.removeMember(AUTHOR, ORGANIZATION_ID)
+
+    expect(await sweepSubagentRuns()).toEqual({ reconciled: 1 })
+    expect(kit.readRun(waiting)).toMatchObject({
+      status: 'INTERRUPTED',
+      failure: 'Its author left the organization while it waited for a slot',
+    })
+    expect(kit.readConversation(waiting)?.report).toBe('This subagent was interrupted before it finished.')
+    expect(fake.calls).not.toContain('PromoteSubagentRun')
+  })
+
+  test('ends a run of a membership since replaced interrupted, and promotes the next into the slot free', async () => {
+    const { running, pending } = await fillSlots(2)
+    const [ofBefore, waiting] = pending
+    const run = kit.readRun(ofBefore ?? MEMBER_RUN)
+
+    // As a member removed and invited back finds the runs they launched before
+    if (run) run.membershipCreatedAt = '2026-01-01T00:00:00.000000Z'
+
+    await kit.call('finishSubagentRun', {
+      ...(await kit.claim(running[0] ?? MEMBER_RUN)),
+      status: 'COMPLETED',
+      report: 'Done.',
+    })
+    await reconcileSubagentRuns(MEMBER)
+
+    expect(readStatuses(pending)).toEqual(['INTERRUPTED', 'QUEUED'])
+    expect(kit.readRun(ofBefore ?? MEMBER_RUN)?.failure).toBe('Its author was invited back while it waited for a slot')
+    expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: waiting?.runId }), 'subagent-runs')
+  })
+
+  test('sweeps every member with a subagent run nobody reconciled, and nobody else', async () => {
+    const { running } = await fillSlots(0)
+
+    // Five runs going, none past its lease and none waiting
+    expect(await sweepSubagentRuns()).toEqual({ reconciled: 0 })
+
+    kit.expireLease(running[0] ?? MEMBER_RUN)
+
+    expect(await sweepSubagentRuns()).toEqual({ reconciled: 1 })
+    expect(kit.readRun(running[0] ?? MEMBER_RUN)?.status).toBe('INTERRUPTED')
+  })
+})
+
+describe('reconcileConversationSubagents', () => {
+  test('reconciles for the member’s conversation, and refuses a subagent, another member’s and a deleted one', async () => {
+    const { parent, running } = await fillSlots(0)
+    const [dead] = running
+
+    if (!dead) throw new Error('No subagent launched')
+
+    kit.expireLease(dead)
+
+    expect(await reconcileConversationSubagents({ ...MEMBER, conversationId: dead.conversationId })).toEqual({
+      outcome: 'missing',
+    })
+    expect(
+      await reconcileConversationSubagents({ ...MEMBER, userId: 'another', conversationId: parent.conversationId }),
+    ).toEqual({ outcome: 'missing' })
+    expect(kit.readRun(dead)?.status).toBe('QUEUED')
+
+    expect(await reconcileConversationSubagents({ ...MEMBER, conversationId: parent.conversationId })).toEqual({
+      outcome: 'reconciled',
+    })
+    expect(kit.readRun(dead)?.status).toBe('INTERRUPTED')
+
+    const conversation = kit.readConversation(parent)
+
+    if (conversation) conversation.deletedAt = new Date().toISOString()
+
+    expect(await reconcileConversationSubagents({ ...MEMBER, conversationId: parent.conversationId })).toEqual({
+      outcome: 'missing',
+    })
+  })
+})
+
+// A reference no run has, for a test whose own is missing
+const MEMBER_RUN: ConversationRunReference = { ...MEMBER, conversationId: 'none', runId: 'none' }

@@ -2072,6 +2072,50 @@ own.
 - **Verify**: launch six subagents from the script against the emulators, five running and the
   sixth waiting until one ends; and, with the real model, one brief long enough to chain, read
   through its runs and its report.
+- Built with these settled, on 2026-10-16:
+  - **Two launch operations**, since a new required variable on `LaunchSubagent`, or the `Boolean!`
+    an `@include` needs, would be a breaking connector change: `LaunchSubagent` gains the slot
+    check, and `LaunchPendingSubagent` inserts the run `PENDING` with no lease. A launch that read
+    the five taken inserts pending, then promotes itself: an end committing while the launch held
+    the lock reads no run waiting yet, so its promotion promotes nothing, and the launch's own
+    promotion is what gives the freed slot to the oldest run waiting, this one or an older.
+  - **One run a promotion** (`PromoteSubagentRun`), looped oldest first by `promoteSubagentRuns`,
+    each read again after, a run refused once skipped, so each write names the subagent its live run
+    refreshes on. The runs it skips end through `StopPendingSubagentRun`, while the run was asked to
+    stop or its subagent is deleted, and `InterruptPendingSubagentRun`, while no membership has the
+    `createdAt` it was launched under, each fenced on its reason, so a stale read never ends a run
+    that could be promoted, and each writes its note and report.
+  - **The chain is decided at the ending, from `isAtLimit`**, so every limit chains a run numbered
+    below 3, the stream's fourteen minutes included, which belong to the ten. A run asked to stop as
+    it reaches a limit stops instead, read before the chain, which is fenced on no stop too, so a
+    stop that committed first is never lost on a run it never named. The chain writes no note and
+    leaves the calls running `RUNNING`, since the next run runs them, and carries the results kept
+    only from the ten minutes before a call, the one limit met mid-turn.
+  - **A chain is finished once its next run is queued**: the next run's id derives from the chained
+    one's (`deriveChainedRunId`), so a step that reads its own run `CHAINED` after the answer was
+    lost, and a delivery that finds it `CHAINED`, queue the same run, and a queueing that fails
+    answers `held`, for Cloud Tasks to deliver the chained run again. A chain sent twice is refused
+    on the next run's number, which Postgres reports before the fence's own check, as a launch sent
+    again is refused on its id.
+  - **A run's queue is a required argument** (`ConversationRunQueue`) of everything that touches its
+    task, `finalizeDeadConversationRun(s)` included, where it also says which kind of run is meant:
+    a subagent's on `subagent-runs` ends through `InterruptDeadSubagentRun` with its report, and
+    either kind is `missing` to the other's queue, so the member's run reconcile still never reaches
+    a subagent's.
+  - The fourth run's last request ends the results entry with `SUBAGENT_REPORT_REQUEST`, stored in
+    the transcript, so a replay sends the bytes it was sent as.
+  - `bun run launch:subagent` takes `--count`: a promotion runs the subagent it promotes in the
+    process whose run freed the slot, so six launched from six scripts would lose a promoted run to
+    the first script to exit.
+  - **For M32 and M33**: a Stop whose update waits on a chain's lock finds the old run `CHAINED` and
+    passes over it, so `stop_subagent`, the parent's Stop and its cascades reach the subagent's run
+    by its `activeRunId`, or read again after, never by the run they read before.
+  - Verified: the four checks; `check:subagent-runs`, `check:conversation-runs`, `-attachments`,
+    `-list`, `-page` and `-search` against an emulator of the branch's schema; six subagents
+    launched at once from the script under the placeholder, five running and the sixth waiting until
+    one ended, every one reporting. Not yet: a brief long enough to chain on the real model, which
+    waits on gcloud's credentials here (`gcloud auth login`). Setup step 11, the `subagent-runs`
+    queue, is still to do before M33's release.
 
 ### M32: The Subagents module
 

@@ -60,7 +60,8 @@ account or an organization, the micromark risk closed, capacity and alerts check
 left for the recorded usage taken (see Release gate); a run stops at $10 of estimated cost, an
 account has ceilings across its organizations, and what finishes work under way passes a cap only up
 to one and a half times it (see Usage caps); subagents delete nothing, saying in their report
-what they would delete, and one briefed on a task moves it to `ONGOING` as it starts, and their
+what they would delete, a task is claimed for a subagent by a conditional move to `ONGOING` before
+its launch, and their
 model and effort are chosen from what M33 measures (see Subagents); and M36 is written again against
 M29 as it was built, the parent hearing of every integration call a subagent made. When a decision
 changes, change it here first.
@@ -1946,11 +1947,15 @@ way (see The orchestrator).
   - Its context message is the one its parent's next run would send: the date and time, the member,
     the organization and the language. What a subagent needs of the conversation goes in its brief,
     which the launcher writes: the parent's transcript never reaches it.
-- **Taking up a task.** A subagent briefed on a task assigned to Strategy Dance moves it to `ONGOING`
-  as it starts, from whatever column it is in, as a session tackling a task does (`CLAUDE.md`), so the
-  team sees it taken up and another conversation does not take it up too, and moves it to `DONE`
-  only when its brief says so, saying in its report whether the work is done. The conversation's
-  agent launches only for those not already `ONGOING` or `DONE` (M33).
+- **Taking up a task.** A task assigned to Strategy Dance is claimed before its subagent is launched,
+  so two conversations, a member's each, never take up one task at once: the parent moves it to
+  `ONGOING` with `update_task`'s `fromStatus`, from M33, naming the column it read the task in, which
+  the module refuses once the task has left it, as the page's own moves refuse it (`CLAUDE.md` § The
+  database). A refused claim means another took it up, and the parent launches nothing for it; a
+  claim whose launch is then refused is moved back, with `fromStatus: ONGOING`, or said in the
+  parent's reply. A claim waits for no slot, so a subagent left `PENDING` holds its task as visibly
+  as one running. The subagent never moves its task back, and moves it to `DONE` only when its brief
+  says so, saying in its report whether the work is done.
 - **The brief** is its first `USER` entry: the launcher's text and the parent's files it names, by
   the ids the member's entries name them with (see Attachments § Its count), each as the Files API
   reference the parent's transcript holds. A file sent before M33 is named by no entry, so the agent

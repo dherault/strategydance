@@ -2138,10 +2138,16 @@ own.
   caller's launcher as `launch_subagent` does, with a sentence telling the agent to ask the member,
   and the conversation's prompt says to ask with `ask_user` before deleting what a report proposes,
   so the run the answer starts deletes it.
-- **Taking up a task**: the subagent's prompt moves the task its brief names to `ONGOING` as it
-  starts, from whatever column it is in, and to `DONE` only when the brief says so, its report saying
-  whether the work is done; the conversation's prompt launches only for tasks assigned to Strategy
-  Dance that are not already `ONGOING` or `DONE`, so two conversations do not take up one task.
+- **Taking up a task**, claimed before the launch (see Subagents § Taking up a task): the Tasks
+  module's `update_task` gains an optional `fromStatus`, matched in its operation's `where` as the
+  page's moves match theirs, an optional variable of its `…ForAgent` operation, refused with a
+  sentence once the task has left that column, never retried as a position conflict is. The
+  conversation's prompt takes a task up by moving it to `ONGOING` from the column it read it in,
+  launches only once that move went through, launches nothing for a task whose move was refused,
+  and moves it back, or says so, when the launch is then refused. The subagent's prompt never moves
+  its task back, and moves it to `DONE` only when the brief says so, its report saying whether the
+  work is done. The Tasks module's tools list moves with the new field, for external agents too,
+  and `bun run probe:claude` sends it.
 - **A member's entry names its files**: a text block before them, one line per file in their order,
   its name and its id, as `report.pdf (attachment <id>)`, which `measureConversationMessage` counts,
   so the agent can pass a file to `launch_subagent` (see Attachments § Its count). Only entries sent
@@ -2216,6 +2222,8 @@ own.
     `delete_task` answered as a tool nobody runs.
   - `delete_document` and `delete_task` refused from a reaction's run with their sentence, and run
     from the answer's continuation.
+  - Two parents claiming one task at once, through `update_task`'s `fromStatus`: one moved, the
+    other refused and launching nothing; and a claim whose launch is refused moved back.
   - The sweep pruning subagents before their parent.
   - A reaction finding the member's three runs taken, started by the next reconcile.
   - Retries deleting several subagents of one parent, pruned while it stays, lowering its
@@ -2239,7 +2247,8 @@ own.
   `buildSubagentTools`, and M35's price table names the model it chose.
 - **Verify** with the real model:
   - Ask the agent to take up three tasks assigned to Strategy Dance, one already `ONGOING`, and read
-    the board, each task taken up moved to `ONGOING`, and the reaction.
+    the board, each task taken up moved to `ONGOING` before its subagent launched, the one already
+    there left alone, and the reaction.
   - Brief a subagent whose work calls for a delete, and read its report proposing it, the reaction
     asking, and the run the answer starts deleting it.
   - Ask it to research two competitors at once.

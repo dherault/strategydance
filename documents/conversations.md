@@ -2198,8 +2198,10 @@ way (see The orchestrator).
   figures, not bounds: a request may write 64000 tokens over a context of up to 800000, and a brief
   can ask for that. The bound is M35's $10 a run, $40 a subagent, so the thirty a member may launch
   in an organization a day come to $1200 at most and an account's sixty to $2400. Its web searches
-  cost $0.01 each, up to $2 for one that searches at every call. Each request is in its run's ledger,
-  which the cost limit prices and the credit system will read.
+  cost $0.01 each, five a request at most (`max_uses`), outside the fifty tool calls a run counts,
+  so up to $5 for one that searches five times at every request, which the cost limit prices with
+  the rest. Each request is in its run's ledger, which the cost limit prices and the credit system
+  will read.
 
 ### The orchestrator (later)
 
@@ -2577,11 +2579,14 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
   when that context is cached, and a member can ask for that at every request. Before each request,
   the worker prices the run's ledger, every request settled or charged at its estimate, at list
   prices from a table in the backend (`CLAUDE_MODEL_PRICES`, beside `CONVERSATION_MAX_TOKENS`), web
-  searches at $0.01 each, and adds the request about to be reserved: what the last request read or
-  wrote at the cache-read rate, what was appended since at the cache-write rate, and its output at
-  the full `max_tokens`. A run whose total would pass $10 (`CONVERSATION_RUN_MAX_COST_MICRODOLLARS`)
-  sends nothing more and ends `FAILED` with its limits' note, as at its other limits, and a
-  subagent's run chains instead, so a subagent costs $40 at most. A run's side request is priced
+  searches at $0.01 each, and adds the most the request about to be reserved can cost: its whole
+  input at the cache-write rate, as though the cache had expired, which five minutes, a worker's
+  takeover or an eviction can bring about, its output at the full `max_tokens`, and the five web
+  searches one request may make. A run whose total would pass $10
+  (`CONVERSATION_RUN_MAX_COST_MICRODOLLARS`) sends nothing more and ends `FAILED` with its limits'
+  note, as at its other limits, and a subagent's run chains instead, so $10 a run and $40 a
+  subagent are bounds rather than estimates. Reserving for a cold cache stops a run over a very
+  large context sooner, some $5 into a run at 700000 tokens, which is the price of a true bound. A run's side request is priced
   with it. The check is the worker's alone, on the ledger it already writes before each request, so
   no table and no lock join it; what one run ends, a Resume or a Retry starts again under the
   daily caps.

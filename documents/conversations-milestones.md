@@ -2303,8 +2303,9 @@ he added on 2026-10-16.
   `CONVERSATION_MAX_TOKENS`, and `priceConversationUsage`, which prices a run's ledger, each request
   settled or charged at its estimate, its web searches at $0.01, and its side requests with it.
   Before each request, where the lease's write reserves it, the run's price plus the request about to
-  be reserved, its prefix at the cache-read rate, what was appended at the cache-write rate and its
-  output at the full `max_tokens`, is held to `CONVERSATION_RUN_MAX_COST_MICRODOLLARS` ($10): past
+  be reserved at the most it can cost, its whole input at the cache-write rate, as though the cache
+  had expired, its output at the full `max_tokens` and five web searches, is held to
+  `CONVERSATION_RUN_MAX_COST_MICRODOLLARS` ($10): past
   it, the run sends nothing more and ends `FAILED` with its limits' note, `isAtLimit` as at its
   other limits, and a subagent's run before its fourth chains, as M31 chains it at the other three.
   A model the table lacks fails the tests, rather than being priced at nothing.
@@ -2347,6 +2348,9 @@ he added on 2026-10-16.
     ceiling across two organizations refused in a third.
   - A run priced past $10 by its next request ending with its limits' note before that request, its
     ledger's estimated requests counted, a subagent's run chaining there, and its fourth ending.
+  - The reservation holding the bound when the cache has expired: a run at $8 over 700000 tokens
+    refused its next request, which a cache hit would have kept under $10 and a miss would have
+    taken to near $13.
   - An answer loop stopped at one and a half times the cap: the answer recorded, no run started,
     and the reconcile starting it once the oldest row turns 24 hours old; an Allow the same; a
     reaction waiting past it and started by the next run end that finds room.
@@ -2445,10 +2449,11 @@ and Risks). It removes no gate: M38 does.
 - **The micromark risk closed** (see Risks). Subagents read the web with nobody watching, so injected
   text reaching one is the likeliest way to make the agent write a shape micromark takes minutes on.
   `splitConversationText` parses with markdown-it, as `markdownToRichText` does, since it only needs
-  where the top-level blocks start and end, keeping the cuts its tests pin today, with new tests
-  holding it to 20000 characters of brackets and list markers. The thread's `Markdown` stays on `react-markdown`, whose components the
-  thread is built from, but first counts brackets and list markers in one pass, and draws a piece past
-  the counts measured here, on micromark at a piece's 20000 characters, as plain text with its line
+  where the top-level blocks start and end, keeping the cuts its tests pin today, with new tests on
+  replies past the 20000 characters below which it parses nothing, 200000 characters of brackets and
+  of list markers. The thread's `Markdown` stays on `react-markdown`, whose components the thread is
+  built from, but first counts brackets and list markers in one pass, and draws a piece past the
+  counts measured here, on micromark at a piece's 20000 characters, as plain text with its line
   breaks. A story shows both.
 - **Capacity**, checked against the Anthropic organization's rate limit tier rather than assumed:
   the two queues dispatch 70 runs at once, 50 on `conversation-runs` and 20 on `subagent-runs`,
@@ -2479,7 +2484,8 @@ and Risks). It removes no gate: M38 does.
   subagents' runs among them.
 - **Tests**: each route refusing an unverified caller and a suspended account or organization, and
   passing once confirmed or lifted; the claim refusing a suspended run's member; `launch_subagent`'s
-  sentence; `splitConversationText` on the long shapes; `Markdown` drawing a past-bound piece as text.
+  sentence; `splitConversationText` on the long shapes past 20000 characters, which it would
+  otherwise never parse; `Markdown` drawing a past-bound piece of 20000 as text.
 - **Verify** against the emulators with the lifts off: an unverified password account refused and
   let through once its link is followed; an account suspended mid-run, its run stopping before its
   next request and a queued one never claimed, and lifted; and in production, before M38, `report:usage` read for the staff's own weeks.

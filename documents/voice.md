@@ -523,7 +523,7 @@ against the thresholds below.
 
 ## Decisions for David
 
-1. **Go or no go** on voice, and when, relative to M30 to M37.
+1. **Go or no go** on voice, and when, relative to M30 to M38.
 2. **The provider**: GPT-Live-1 first and Gemini 3.8 Live second, chosen by the probe, as
    recommended; or one of them now.
 3. **The locales at launch**, and if GPT-Live fails some: ship them later, route them to Gemini, or

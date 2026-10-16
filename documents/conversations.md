@@ -1,7 +1,7 @@
 # Conversations
 
 How Strategy Dance's conversation agents get built: what the design asks for, the decisions taken,
-and the architecture. The thirty-seven milestones that take the feature from nothing to launch, each
+and the architecture. The thirty-eight milestones that take the feature from nothing to launch, each
 one pull request into `dev` that a Claude Code session can implement, are in
 [conversations-milestones.md](conversations-milestones.md), with the conventions every one of them
 follows.
@@ -53,8 +53,12 @@ mutation of its own and every cascade keeps one lock order, a launch finalizes t
 subagent runs before it counts, a delete only asks, and what a Retry deleted is left out of the ten
 and of the batches. Revised on 2026-10-14, in M29, as David chose: a turn holding a call waiting for
 the member's approval runs its other calls at once, as beside a question; and with what building
-integrations in conversations settled, in The transcript and the milestone. When a decision changes,
-change it here first.
+integrations in conversations settled, in The transcript and the milestone. Revised on 2026-10-16,
+after an adversarial review of M30 to M37, as David chose: a milestone of launch readiness, M37,
+comes before Launch, which moved to M38: a verified email to start runs, staff's suspension of an
+account or an organization, the micromark risk closed, capacity and alerts checked, and the decisions
+left for the recorded usage taken (see Release gate). When a decision changes, change it here
+first.
 
 ## The design
 
@@ -1419,7 +1423,7 @@ agents in M20:
   document the team keeps from AI is neither found, listed nor read by any agent, and one the team
   keeps from AI's changes is changed by none. A member who connects an external agent lets what AI
   may read reach that agent's provider. Members decide which agents they connect, as David chose on
-  2026-10-07, and no organization setting governs it; the legal review before M37 names it.
+  2026-10-07, and no organization setting governs it; the legal review in M37 names it.
 - **Addresses.** An external agent's results carry each document's web address,
   `https://strategydance.com/<organization>/knowledge/<id>`, where `<organization>` is the segment
   the app's paths lead with: the organization's slug, or its id while it has none, as
@@ -1459,7 +1463,7 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
 - **The board is the team's.** Any member reads and changes any task, and so does any agent acting
   as one: tasks carry no AI permission, unlike documents, as David chose on 2026-10-09, since a
   task is a short brief the whole team shares and nothing on the board is private. What an external
-  agent reads of it reaches that agent's provider, which the legal review before M37 names with the
+  agent reads of it reaches that agent's provider, which the legal review in M37 names with the
   rest.
 - **A description is a post's, with mentions.** It is stored as a post's blocks and mentions,
   serialized (`RICH_TEXT_TASK_BLOCKS`: paragraphs, headings, quotes, lists and check lists, and
@@ -1871,7 +1875,7 @@ cost of a search step before a deferred tool's first use; Knowledge's and the Ta
 thinking is checked against, so a module joining that way would cost no conversation its earlier
 reasoning.
 Listing the modules in the MCP Registry, under the `com.strategydance` name a DNS record proves, is
-David's call at M37.
+David's call in M37.
 
 ### Subagents
 
@@ -2340,7 +2344,7 @@ address, and whatever an injected instruction wrote into it, out from the reader
 
 ### Release gate
 
-Until M37, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
+Until M38, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
 feature; it protects no data, since a conversation is its owner's own. A staff member who loses the
 role keeps reading the conversations they wrote, which exposes nothing of anybody else's, while the
 backend's routes, checked on every action, stop them starting or continuing runs, and the
@@ -2349,9 +2353,10 @@ worker's claim checks the role again, so a queued run stops too:
 - The sidebar item and the dock show for `user.isAdministrator` only. The
   sidebar's `useConversationsAwaitingAnswer` runs for staff only and never behind a waiter.
 - The routes sit behind a release bouncer that redirects anybody else to `/today`, as
-  `AdministrationBouncer` does, mounted once in the parent layout route `_app/conversations.tsx`
-  around its `<Outlet />`, as `administration.tsx` mounts its bouncer, so the list, a conversation's
-  page and any page added under `/conversations/` later are all behind it.
+  `AdministrationBouncer` does, mounted once in the parent layout route
+  `_app/$organizationSlug/conversations.tsx` around its `<Outlet />`, as `administration.tsx` mounts
+  its bouncer, so the list, a conversation's page and any page added under `/conversations/` later
+  are all behind it.
 - The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
   M27 and M28, the OAuth initiation and its finish included: an authorization's state only exists
   once a staff member started it, so the callback is gated through it, and only that member's own
@@ -2363,13 +2368,13 @@ worker's claim checks the role again, so a queued run stops too:
 - The web connector's conversation operations need no gate of their own: a conversation only comes
   into being through the backend's gated routes, so a caller who skips the interface reads and
   changes nothing.
-- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M37 removes.
+- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M38 removes.
   Locally it is lifted, so every member of every organization has conversations: the web against
   the emulators (`EMULATORS_REQUESTED`) and the development backend
   (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
   the tests keep the gate.
 - Modules have a gate of their own, `ARE_MODULES_STAFF_ONLY`, lifted on the development backend as
-  conversations' is (`IS_MODULES_RELEASE_GATED`, M18), also removed in M37, since an
+  conversations' is (`IS_MODULES_RELEASE_GATED`, M18), also removed in M38, since an
   external agent reaches them without any conversation: the consent page's Allow refuses anybody
   else, the token verifier checks the role on every call, so a connection outlives no lost role,
   and the Connected agents tab and the Use with your agents button show for staff only. The
@@ -2380,6 +2385,12 @@ worker's claim checks the role again, so a queued run stops too:
   conversations' gate, their routes (the reconcile and the stops) are conversations' routes, behind
   `staffOnlyMiddleware`, and a subagent's worker checks the role at its claim, as every run's does.
   The Subagents module is served to no external agent, so `ARE_MODULES_STAFF_ONLY` never meets it.
+- What replaces the gate is M37's, before M38 removes it: a member starts a run only once their
+  address is verified (`ERROR_CODE_EMAIL_NOT_VERIFIED`), since an account costs nothing to make and
+  the caps' allowance is an account's, and staff can suspend an account or an organization
+  (`conversationsSuspendedAt`, `bun run suspend:conversations`), which every route, a launch and the
+  worker's claim refuse, the one lever short of the workspace's spend limit, which stops every
+  customer at once.
 
 ### Setup
 
@@ -2392,8 +2403,8 @@ account, and until both exist every send in production answers 503.
 1. An Anthropic Console organization with billing, and a workspace for Strategy Dance with a spend
    limit. Its API key goes into Secret Manager as `anthropic-api-key` (`gcloud secrets create
    anthropic-api-key --data-file=- --project strategydance`, typed in rather than passed through a
-   file or a chat). The workspace's default inference region is the legal review's call before M37.
-   Check the organization's rate limit tier before staff use, and raise it before M37.
+   file or a chat). The workspace's default inference region is the legal review's call in M37.
+   Check the organization's rate limit tier before staff use, and raise it in M37.
 2. `gcloud services enable cloudtasks.googleapis.com cloudscheduler.googleapis.com --project
    strategydance`. Done on 2026-10-04, with `aiplatform.googleapis.com` and a policy allowing web
    search for partner models on Vertex, both from when Vertex was the plan, and unused since.
@@ -2573,7 +2584,7 @@ the lifetime is chosen from what members' pauses turn out to be.
   which many organizations at their caps add up to.
 - **Rate limits**: a new Anthropic organization starts on a low usage tier, which rises with what
   it has spent. The tier bounds how many runs go at once before the queue's own limits do, so it is
-  checked before staff use and raised before M37. Subagents add up to five runs per member beside
+  checked before staff use and raised in M37. Subagents add up to five runs per member beside
   their three, twenty at once across their queue, which the tier has to hold too.
 - **Fan-out spend**: one member action can launch ten subagents of four runs each, some $60 when
   each uses its whole budget, and from M35 a member launches at most thirty a day in each organization, some $180, as
@@ -2605,9 +2616,12 @@ the lifetime is chosen from what members' pauses turn out to be.
   draws every reply with micromark in the reader's browser, and the backend's
   `splitConversationText` parses a reply past 20000 characters with it on the worker. A reply is
   Claude's, bounded by its output, so neither is reachable without injected text making the model
-  write such a shape; moving both to markdown-it, or bounding what they parse, closes it.
+  write such a shape; moving both to markdown-it, or bounding what they parse, closes it. Subagents
+  read the web with nobody watching, which makes such text likelier to reach one, so M37 closes it:
+  `splitConversationText` on markdown-it, and `Markdown` drawing a piece past measured counts of
+  brackets and list markers as plain text.
 - **Processing location**: the API runs inference in the workspace's default region unless a
-  request names one (`inference_geo`). The legal review before M37 picks it, and names Anthropic as
+  request names one (`inference_geo`). The legal review in M37 picks it, and names Anthropic as
   the processor of what members write and attach, files included, which the Files API keeps until
   they are deleted.
 - **Prompt injection**: knowledge, tasks, the web, files and integrations carry text others wrote,
@@ -2627,7 +2641,7 @@ the lifetime is chosen from what members' pauses turn out to be.
   carries no AI permission, on that member's word alone: no setting lets an organization refuse
   external agents, and no administrator sees the connections, by David's decision on 2026-10-07.
   What AI may read then reaches the agent's provider, OpenAI or Cursor say, which the legal review
-  before M37 names; injected text reaching that agent can do what its access allows. The AI
+  in M37 names; injected text reaching that agent can do what its access allows. The AI
   permissions bound it, a connection can be read only, and the member disconnects it from Connected
   agents. If teams ask for more, an organization switch and an administrators' view of connections
   fit the data as it is.

@@ -1,6 +1,6 @@
 # Conversations: the milestones
 
-The thirty-seven milestones that build the conversations feature, each one pull request into `dev`
+The thirty-eight milestones that build the conversations feature, each one pull request into `dev`
 that a Claude Code session can implement, with the conventions every one of them follows. What they
 build, and why, is in [conversations.md](conversations.md): the sections named here, such as The
 data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
@@ -44,7 +44,8 @@ merges, write its pull request number in the table below.
 
 A milestone starts once the ones it depends on have merged, so several can be under way at once:
 M3 from the start, M13 as soon as M1 has merged, M15 and M18 as soon as M14 has, M30 as soon as M17
-and M25 have, M35 and M36 as soon as M33 has, and M12, M24 and M27 well before their neighbours. M33
+and M25 have, M35 and M36 as soon as M33 has, M37 once M35 and M36 have, and M12, M24 and M27 well
+before their neighbours. M33
 and M34 reach production in one release: M33 lets the agent launch, and only M34 has the page
 reconcile a parent's subagents and Retry ask before it discards them, so a release cut between the
 two would leave the daily sweep their only recovery.
@@ -87,7 +88,8 @@ two would leave the daily sweep their only recovery.
 | M34 | Subagents in the thread | web, database | M24, M26, M33 | |
 | M35 | Usage caps | core, database, backend, web, root | M33 | |
 | M36 | Integrations in subagents | backend | M29, M33 | |
-| M37 | Launch | all | all | |
+| M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | |
+| M38 | Launch | all | all | |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 
@@ -2288,19 +2290,92 @@ Written on 2026-10-12, as David chose, before M29 was built: read it against M29
 - **Verify**: a subagent reading through an auto-approved tool, and one reporting a call it could not
   make, which the parent proposes and the member allows.
 
-### M37: Launch
+### M37: Launch readiness
 
-- Remove the release gate everywhere, and `ARE_CONVERSATIONS_STAFF_ONLY`, the backend's
-  `IS_CONVERSATIONS_RELEASE_GATED` and `ARE_MODULES_STAFF_ONLY`.
-- `CLAUDE.md`: a Conversations section with what a new tool needs, the transcript's rules and the
-  run lifecycle, where earlier milestones have not written it.
-- Whether to list the modules in the MCP Registry, under the `com.strategydance` name a DNS record
-  proves, which is David's call.
+What stands between a feature staff use and one anybody with an account can: who may start runs,
+how staff stop an account or an organization that abuses them, what tells them something is wrong,
+and the decisions left until there is usage to read, as David chose on 2026-10-16 (see Release gate
+and Risks). It removes no gate: M38 does.
+
+- **A verified email.** An account costs nothing to make, and a password sign-up names any address
+  nobody has claimed, so the caps' allowance is tied to an address its owner confirmed. The
+  conversation routes a member starts or continues a run through, the send, the answer, the
+  approval, Resume and Retry, and the upload, refuse a caller whose ID token carries no
+  `email_verified`, with 403 and `ERROR_CODE_EMAIL_NOT_VERIFIED`. A run already started, and the
+  reconcile finishing one, are not refused. `authenticationMiddleware` keeps the claim on the viewer
+  (`isEmailVerified`), and a middleware of its own, `verifiedEmailMiddleware`, mounted beside
+  `staffOnlyMiddleware`, reads it. The composer says the address
+  needs confirming and sends the link again, as `OrganizationInvitationUnverified` does, then mints a
+  new token once it is confirmed (`refetch` on `AuthenticationContext`). The development backend
+  lifts it, as it lifts the gates, since the Auth emulator confirms nothing by itself; the tests keep
+  it.
+- **Suspension.** `User.conversationsSuspendedAt` and `Organization.conversationsSuspendedAt`,
+  optional timestamps nothing else writes. A suspended account, or any member of a suspended
+  organization, is refused by every route the verified email guards, with 403 and
+  `ERROR_CODE_CONVERSATIONS_SUSPENDED`, by `launch_subagent` with a sentence, and by the worker's
+  claim, which checks it where it checks the staff role today (`runConversation`), so a run in flight
+  stops at its next claim and a queued one never starts. Set and lifted by `bun run
+  suspend:conversations --production <email | organization id or slug> [--lift]`, in the backend's
+  package, through a backend operation, run by staff by hand: the one lever short of the workspace's
+  spend limit, which stops every customer at once. The page says the account or the organization is
+  suspended and to write to `david@strategydance.com`.
+- **The micromark risk closed** (see Risks). Subagents read the web with nobody watching, so injected
+  text reaching one is the likeliest way to make the agent write a shape micromark takes minutes on.
+  `splitConversationText` parses with markdown-it, as `markdownToRichText` does, since it only needs
+  where the top-level blocks start and end, with its tests holding it to 20000 characters of
+  brackets and list markers. The thread's `Markdown` stays on `react-markdown`, whose components the
+  thread is built from, but first counts brackets and list markers in one pass, and draws a piece past
+  the counts measured here, on micromark at a piece's 20000 characters, as plain text with its line
+  breaks. A story shows both.
+- **Capacity**, checked against the Anthropic organization's rate limit tier rather than assumed:
+  the two queues dispatch 70 runs at once, 50 on `conversation-runs` and 20 on `subagent-runs`,
+  which at a few thousand output tokens a request each has to fit the tier's input and output
+  tokens a minute; the worker, at a concurrency of 4, needs 18 instances for them, within its
+  service's maximum. Either queue's `max-concurrent-dispatches` is raised only as far as the tier
+  holds, and Setup says what each is.
+- **Alerts**, in Cloud Monitoring, mailed to `david@strategydance.com`: the worker's 5xx rate, the age
+  of the oldest task on each queue, and the runs finalized as interrupted past a rate, read from the
+  backend's log line for each. `bun run report:usage --production`, in the backend's
+  package, sums the ledger of the last 24 hours as M35 prices it, by organization and by account,
+  the subagents' runs apart, which is what the caps below are read against.
+- **The decisions left for the data**, each David's, taken with what `report:usage` and the
+  recorded runs show, and written where each belongs:
+  - the prompt cache's lifetime on the conversation's breakpoint, five minutes or an hour, from the
+    pauses between a member's messages (see Cost);
+  - whether web search keeps its filtering or sends `allowed_callers: ["direct"]`, which brings its
+    citations back (see Drawing a turn);
+  - the subagents' model and effort, if M33's measurement left it open;
+  - the caps of M35 and the cost limit a run, against the recorded usage;
+  - the rate limit tier, raised, the workspace's spend limit and the budget alert's threshold;
+  - whether to list the modules in the MCP Registry, under the `com.strategydance` name a DNS record
+    proves;
+  - the legal page, reviewed for AI processing: naming Anthropic as processor, the region inference
+    runs in (`inference_geo`), how long a conversation and its files are kept, and that what a
+    member's connected agents read reaches those agents' providers, at the member's choice.
 - `operations-costs.md`: Claude, Cloud Tasks and attachment storage, from the recorded usage,
   subagents' runs among them.
-- Before merging: the rate limit tier raised, the spend limit and the budget alert's threshold looked
-  at again against the recorded usage, and the legal page reviewed for AI processing, naming
-  Anthropic as processor and the region inference runs in, and saying that what a member's
-  connected agents read reaches those agents' providers, at the member's choice, which are David's
-  calls; and the daily caps of M35 looked at again against the recorded usage, which is David's call
-  too.
+- **Tests**: each route refusing an unverified caller and a suspended account or organization, and
+  passing once confirmed or lifted; the claim refusing a suspended run's member; `launch_subagent`'s
+  sentence; `splitConversationText` on the long shapes; `Markdown` drawing a past-bound piece as text.
+- **Verify** against the emulators with the lifts off: an unverified password account refused and
+  let through once its link is followed; an account suspended mid-run, its run stopping at the next
+  claim, and lifted; and in production, before M38, `report:usage` read for the staff's own weeks.
+
+### M38: Launch
+
+- Remove every release gate, by name, so none outlives the launch:
+  - `ARE_CONVERSATIONS_STAFF_ONLY` and `ARE_MODULES_STAFF_ONLY` in strategydance-core;
+  - the backend's `IS_CONVERSATIONS_RELEASE_GATED`, with `staffOnlyMiddleware` on the
+    conversations' and the integrations' routes and the worker's claim's role check, and
+    `IS_MODULES_RELEASE_GATED`, with `modulesStaffOnlyMiddleware` on the consent page's routes and
+    the role check in `createAgentConnectionTokenVerifier`;
+  - the web's `useCanUseConversations`, `useCanUseIntegrations` and `useCanUseModules`, the release
+    bouncer in `$organizationSlug/conversations.tsx`, and the staff checks on the sidebar's item, its
+    badge (`useConversationsAwaitingAnswer`) and the dock;
+  - the tests that pin a gate, turned into tests that a member who is not staff passes.
+- `CLAUDE.md`: a Conversations section with what a new tool needs, the transcript's rules and the
+  run lifecycle, where earlier milestones have not written it, and the gates' paragraphs gone.
+- **Verify** against the emulators, with the development backend's lifts off, as an account that is
+  not staff: a conversation, a fan-out, an integration call, and an external agent connected through
+  `check:oauth`'s flow; then the same in production once released. Before merging, everything M37
+  left for David is decided.

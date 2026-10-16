@@ -2300,8 +2300,8 @@ he added on 2026-10-16.
   other limits, and a subagent's run before its fourth chains, as M31 chains it at the other three.
   A model the table lacks fails the tests, rather than being priced at nothing.
 - **The rows**: each mutation that starts what a cap counts inserts its `CappedStart`, a `RUN` row
-  for every run triggered `MESSAGE`, `ANSWER`, `RESUME`, `RETRY` or `REPORTS`, `ContinueConversationRun`
-  and a reaction's start among them.
+  for every run triggered `MESSAGE`, `ANSWER`, `RESUME`, `RETRY` or `REPORTS`, `ContinueConversationRun`,
+  M29's `ContinueConversationRunWithCalls` and a reaction's start among them.
 - **The counts**, each reading the newest `CappedStart` rows, as many as one and a half times its
   cap, ordered by `createdAt` descending as `GetConversationSearchQuota` reads, the member's under the
   membership lock the mutation already takes, and the account's and the organization's without one:
@@ -2417,26 +2417,27 @@ and Risks). It removes no gate: M38 does.
   `email_verified`, with 403 and `ERROR_CODE_EMAIL_NOT_VERIFIED`. A run already started, and the
   reconcile finishing one, are not refused. `authenticationMiddleware` keeps the claim on the viewer
   (`isEmailVerified`), and a middleware of its own, `verifiedEmailMiddleware`, mounted beside
-  `staffOnlyMiddleware`, reads it. The composer says the address
-  needs confirming and sends the link again, as `OrganizationInvitationUnverified` does, then mints a
-  new token once it is confirmed (`refetch` on `AuthenticationContext`). The development backend
+  `staffOnlyMiddleware`, reads it. The composer says the address needs confirming and sends the link
+  again, as `OrganizationInvitationUnverified` does, then mints a new token once it is confirmed
+  (`refetch` on `AuthenticationContext`). The development backend
   lifts it, as it lifts the gates, since the Auth emulator confirms nothing by itself; the tests keep
   it.
 - **Suspension.** `User.conversationsSuspendedAt` and `Organization.conversationsSuspendedAt`,
   optional timestamps nothing else writes. A suspended account, or any member of a suspended
   organization, is refused by every route the verified email guards, with 403 and
   `ERROR_CODE_CONVERSATIONS_SUSPENDED`, by `launch_subagent` with a sentence, and by the worker's
-  claim, which checks it where it checks the staff role today (`runConversation`), so a run in flight
-  stops at its next claim and a queued one never starts. Set and lifted by `bun run
-  suspend:conversations --production <email | organization id or slug> [--lift]`, in the backend's
-  package, through a backend operation, run by staff by hand: the one lever short of the workspace's
+  claim, which checks it where it checks the staff role today (`runConversation`), so a queued run
+  never starts. Set and lifted by `bun run suspend:conversations --production <email | organization
+  id or slug> [--lift]`, in the backend's package, through a backend operation, run by staff by hand,
+  which also asks every run of theirs in flight to stop, subagents' included, as Stop does, so
+  nothing goes on past its next request: the one lever short of the workspace's
   spend limit, which stops every customer at once. The page says the account or the organization is
   suspended and to write to `david@strategydance.com`.
 - **The micromark risk closed** (see Risks). Subagents read the web with nobody watching, so injected
   text reaching one is the likeliest way to make the agent write a shape micromark takes minutes on.
   `splitConversationText` parses with markdown-it, as `markdownToRichText` does, since it only needs
-  where the top-level blocks start and end, with its tests holding it to 20000 characters of
-  brackets and list markers. The thread's `Markdown` stays on `react-markdown`, whose components the
+  where the top-level blocks start and end, keeping the cuts its tests pin today, with new tests
+  holding it to 20000 characters of brackets and list markers. The thread's `Markdown` stays on `react-markdown`, whose components the
   thread is built from, but first counts brackets and list markers in one pass, and draws a piece past
   the counts measured here, on micromark at a piece's 20000 characters, as plain text with its line
   breaks. A story shows both.
@@ -2448,9 +2449,9 @@ and Risks). It removes no gate: M38 does.
   holds, and Setup says what each is.
 - **Alerts**, in Cloud Monitoring, mailed to `david@strategydance.com`: the worker's 5xx rate, the age
   of the oldest task on each queue, and the runs finalized as interrupted past a rate, read from the
-  backend's log line for each. `bun run report:usage --production`, in the backend's
-  package, sums the ledger of the last 24 hours as M35 prices it, by organization and by account,
-  the subagents' runs apart, which is what the caps below are read against.
+  backend's log line for each. `bun run report:usage --production`, in the backend's package, sums
+  the ledger of the last 24 hours as M35 prices it, by organization and by account, the subagents'
+  runs apart, which is what the decisions below are read against.
 - **The decisions left for the data**, each David's, taken with what `report:usage` and the
   recorded runs show, and written where each belongs:
   - the prompt cache's lifetime on the conversation's breakpoint, five minutes or an hour, from the
@@ -2471,8 +2472,8 @@ and Risks). It removes no gate: M38 does.
   passing once confirmed or lifted; the claim refusing a suspended run's member; `launch_subagent`'s
   sentence; `splitConversationText` on the long shapes; `Markdown` drawing a past-bound piece as text.
 - **Verify** against the emulators with the lifts off: an unverified password account refused and
-  let through once its link is followed; an account suspended mid-run, its run stopping at the next
-  claim, and lifted; and in production, before M38, `report:usage` read for the staff's own weeks.
+  let through once its link is followed; an account suspended mid-run, its run stopping before its
+  next request and a queued one never claimed, and lifted; and in production, before M38, `report:usage` read for the staff's own weeks.
 
 ### M38: Launch
 

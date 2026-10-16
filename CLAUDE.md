@@ -728,13 +728,17 @@ A conversation is kept twice, once for Claude and once for the page, and
   whatever freed the slot, never inside it: after every end of a subagent's run that held a slot and
   every dead one finalized, never after a chain, which keeps its slot, nor after a `PENDING` run's
   end, which held none. It skips a run asked to stop, one whose subagent is deleted and one launched
-  under a membership since replaced (`decidePendingSubagentRun`), which the reconcile and the sweep
-  end through `StopPendingSubagentRun` and `InterruptPendingSubagentRun`, each fenced on its reason.
-  A promotion sets the run's `createdAt` again, so its twenty minutes to be queued again count from
-  there. A new way to end a subagent's run that held a slot promotes after it. `POST
-  …/:conversationId/subagents/reconcile`, which a parent's page calls, and the daily sweep
-  (`sweepSubagentRuns`) reconcile a member's subagent runs (`reconcileSubagentRuns`): the dead ones
-  finalized or queued again, the skipped ones ended, then a promotion
+  under a membership since replaced, which the reconcile and the sweep end through
+  `StopPendingSubagentRun` and `InterruptPendingSubagentRun`, each fenced on its reason:
+  `GetSubagentPendingRuns` reads the runs it may promote apart from those it skips, filtered in the
+  query, so no number of runs skipped hides one it may promote, and a read of runs waiting filtered
+  in code would. A promotion refused is read again, and a run found queued is queued, since its
+  answer may be what was lost. A promotion sets the run's `createdAt` again, so its twenty minutes
+  to be queued again count from there. A new way to end a subagent's run that held a slot promotes
+  after it. `POST …/:conversationId/subagents/reconcile`, which a parent's page calls, and the daily
+  sweep (`sweepSubagentRuns`) reconcile a member's subagent runs (`reconcileSubagentRuns`): the dead
+  ones finalized or queued again, the skipped ones ended, a hundred at a time until none is left,
+  then a promotion
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under an organization's `conversations/` sits behind the bouncer its layout route

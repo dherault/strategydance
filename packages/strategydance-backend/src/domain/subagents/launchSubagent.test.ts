@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import type { MessageCountTokensParams } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import { MAX_CONVERSATION_SEND_INPUT_TOKENS, MAX_SUBAGENTS_PER_ACTION } from 'strategydance-core'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
 import createScriptedClaudeClient from '~domain/agent/testing/createScriptedClaudeClient'
 import createConversationDatabaseFake, {
@@ -35,7 +35,7 @@ function count(body: MessageCountTokensParams) {
 const scripted = createScriptedClaudeClient({ count })
 
 // The runs the launches started, which here nothing runs: each is on its way, unless a test says not
-const enqueueRun = mock(async (_reference: ConversationRunReference) => true)
+const enqueueRun = mock(async (_reference: ConversationRunReference, _queue: ConversationRunQueue) => true)
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
 
@@ -136,12 +136,10 @@ describe('launchSubagent', () => {
     expect(kit.readEntries({ ...parent, conversationId: subagentId, runId })).toMatchObject([
       { role: 'USER', position: 0, content: JSON.stringify([{ type: 'text', text: BRIEF }]) },
     ])
-    expect(enqueueRun).toHaveBeenCalledWith({
-      organizationId: ORGANIZATION_ID,
-      userId: AUTHOR,
-      conversationId: subagentId,
-      runId,
-    })
+    expect(enqueueRun).toHaveBeenCalledWith(
+      { organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId: subagentId, runId },
+      'subagent-runs',
+    )
   })
 
   test('answers a launch sent again with the subagent it made, and queues its run again while it waits', async () => {

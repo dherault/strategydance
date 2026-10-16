@@ -136,7 +136,7 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
 
       const [run] = data.subagentRuns
 
-      if (run?.status === ConversationRunStatus.QUEUED && !(await enqueueRun(reference))) {
+      if (run?.status === ConversationRunStatus.QUEUED && !(await enqueueRun(reference, 'subagent-runs'))) {
         return { outcome: 'unavailable', subagentId, runId }
       }
 
@@ -230,7 +230,7 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
       continue
     }
 
-    if (!(await enqueueRun(reference))) return { outcome: 'unavailable', subagentId, runId }
+    if (!(await enqueueRun(reference, 'subagent-runs'))) return { outcome: 'unavailable', subagentId, runId }
 
     return { outcome: 'launched', subagentId, runId }
   }

@@ -87,7 +87,7 @@ describe('resumeConversationRun', () => {
     const stopped = await startStopped()
     const resuming = await resumed(stopped)
 
-    expect(enqueueRun).toHaveBeenCalledWith(resuming)
+    expect(enqueueRun).toHaveBeenCalledWith(resuming, 'conversation-runs')
     expect(readRun(resuming)).toMatchObject({ trigger: 'RESUME', status: 'QUEUED', anchorPosition: 0, number: 1 })
     expect(readThread(stopped).map(({ kind }) => kind)).toEqual(['MEMBER_TEXT'])
     expect(readConversation(stopped)).toMatchObject({

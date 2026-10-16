@@ -11,7 +11,7 @@ import {
   renewQueuedConversationRunLease,
 } from 'strategydance-database/backend'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
 import { ARE_CONVERSATION_RUNS_IN_PROCESS, CONVERSATION_RUN_REQUEUE_WINDOW_MS } from '~constants'
 
@@ -44,7 +44,7 @@ type Options = {
   organization.
 
   A queued run's lease only says when to ask again whether it is still coming, so where runs go
-  through the queue, Cloud Tasks is asked first, and a queued run past its lease is kept while its
+  through the queue, Cloud Tasks is asked first, on the run's own queue, and a queued run past its lease is kept while its
   task is there. Its task gone, the run is queued again while it is young (see
   `CONVERSATION_RUN_REQUEUE_WINDOW_MS`), and finalized once it is older. A claimed run past its
   lease is dead whatever the queue holds, and so is a queued one in development, which has no queue.
@@ -61,6 +61,7 @@ type Options = {
 */
 async function finalizeDeadConversationRun(
   reference: ConversationRunReference,
+  queue: ConversationRunQueue,
   { retryDelayMs = 200 }: Options = {},
 ): Promise<'missing' | 'ended' | 'alive'> {
   for (let tries = 1; ; tries++) {
@@ -77,7 +78,7 @@ async function finalizeDeadConversationRun(
     if (
       run.status === ConversationRunStatus.QUEUED
       && !ARE_CONVERSATION_RUNS_IN_PROCESS
-      && (await isStillComing(reference, run.createdAt))
+      && (await isStillComing(reference, queue, run.createdAt))
     ) {
       return 'alive'
     }
@@ -157,17 +158,18 @@ function describeDeath(status: ConversationRunStatus) {
 */
 async function isStillComing(
   { organizationId, userId, conversationId, runId }: ConversationRunReference,
+  queue: ConversationRunQueue,
   createdAt: string,
 ) {
   const reference = { organizationId, userId, conversationId, runId }
-  const task = await findConversationRunTask(runId)
+  const task = await findConversationRunTask(runId, queue)
 
   if (task === 'unknown') return true
 
   if (task === 'gone') {
     if (Date.parse(createdAt) + CONVERSATION_RUN_REQUEUE_WINDOW_MS <= Date.now()) return false
 
-    if ((await queueConversationRun(reference)) === 'unavailable') return true
+    if ((await queueConversationRun(reference, queue)) === 'unavailable') return true
   }
 
   await renewQueuedConversationRunLease(dataConnect, reference)

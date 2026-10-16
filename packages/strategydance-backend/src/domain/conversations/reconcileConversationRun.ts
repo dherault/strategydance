@@ -14,7 +14,7 @@ import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConve
   subagent's, which no member action reaches
 */
 async function reconcileConversationRun(reference: ConversationRunReference) {
-  const state = await finalizeDeadConversationRun(reference)
+  const state = await finalizeDeadConversationRun(reference, 'conversation-runs')
 
   if (state === 'missing') return { outcome: 'missing' as const }
 

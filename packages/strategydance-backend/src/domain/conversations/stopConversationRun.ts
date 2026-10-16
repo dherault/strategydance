@@ -57,7 +57,7 @@ async function stopConversationRun(
     }
 
     // A queued run past its lease that is still coming is stopped as any queued run is
-    if (isDeadConversationRun(run) && (await finalizeDeadConversationRun(reference)) !== 'alive') {
+    if (isDeadConversationRun(run) && (await finalizeDeadConversationRun(reference, 'conversation-runs')) !== 'alive') {
       return { outcome: 'stopped' }
     }
 

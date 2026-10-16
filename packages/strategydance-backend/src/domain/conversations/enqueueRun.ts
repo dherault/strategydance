@@ -1,6 +1,6 @@
 import { expireQueuedConversationRunLease } from 'strategydance-database/backend'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
 import { ARE_CONVERSATION_RUNS_IN_PROCESS } from '~constants'
 
@@ -14,14 +14,14 @@ import runConversation from '~domain/conversations/runConversation'
 /*
   Sends a queued run on its way, and answers whether it is: in development it starts in the
   backend's own process, without being waited for, and in production its task is queued for the
-  worker. Asking twice is safe, since a run has one task and only one worker claims it, which is how
+  worker, on the run's queue, a subagent's own or the conversations'. Asking twice is safe, since a run has one task and only one worker claims it, which is how
   a send retried after its run was queued completes what the first one did not.
 
   A run whose task could not be queued stays queued, and its lease is brought in to now, so its page
   asks the backend to reconcile it at once, which queues the task again, rather than twenty minutes
   later
 */
-async function enqueueRun(reference: ConversationRunReference) {
+async function enqueueRun(reference: ConversationRunReference, queue: ConversationRunQueue) {
   const { organizationId, userId, conversationId, runId } = reference
 
   if (ARE_CONVERSATION_RUNS_IN_PROCESS) {
@@ -32,7 +32,7 @@ async function enqueueRun(reference: ConversationRunReference) {
     return true
   }
 
-  if ((await queueConversationRun(reference)) === 'queued') return true
+  if ((await queueConversationRun(reference, queue)) === 'queued') return true
 
   try {
     await expireQueuedConversationRunLease(dataConnect, { organizationId, userId, conversationId, runId })

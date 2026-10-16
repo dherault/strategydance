@@ -1,6 +1,6 @@
 import type { ConversationRunStatus } from 'strategydance-database/backend'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
@@ -15,23 +15,27 @@ type InFlightRun = {
 
 /*
   Finalizes each of the caller's runs in flight past its lease, in whichever conversation of theirs
-  it goes, as a route does before it counts them or starts another, and answers whether any ended,
+  it goes, each looked up on the queue those runs go through, as a route does before it counts them or starts another, and answers whether any ended,
   which frees its conversation and the caller's allowance, so the route reads again. One still
   coming counts as in flight, as it was read
 */
 async function finalizeDeadConversationRuns(
   { organizationId, userId }: Pick<ConversationRunReference, 'organizationId' | 'userId'>,
   runs: InFlightRun[],
+  queue: ConversationRunQueue,
 ) {
   let hasEnded = false
 
   for (const run of runs.filter(isDeadConversationRun)) {
-    const state = await finalizeDeadConversationRun({
-      organizationId,
-      userId,
-      conversationId: run.conversation.id,
-      runId: run.id,
-    })
+    const state = await finalizeDeadConversationRun(
+      {
+        organizationId,
+        userId,
+        conversationId: run.conversation.id,
+        runId: run.id,
+      },
+      queue,
+    )
 
     if (state === 'ended') hasEnded = true
   }

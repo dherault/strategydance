@@ -107,7 +107,10 @@ describe('sendConversationMessage', () => {
     expect(entry?.content).toBe(
       JSON.stringify([{ type: 'text', text: 'Help me price the beta,\u0000 then plan the launch for next month' }]),
     )
-    expect(enqueueRun).toHaveBeenCalledWith({ organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId, runId })
+    expect(enqueueRun).toHaveBeenCalledWith(
+      { organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId, runId },
+      'conversation-runs',
+    )
   })
 
   test('starts a conversation with the aspects its member picked on the draft, as the member’s', async () => {
@@ -236,7 +239,10 @@ describe('sendConversationMessage', () => {
     enqueueRun.mockClear()
 
     expect(await send(conversationId)).toEqual({ outcome: 'busy' })
-    expect(enqueueRun).toHaveBeenCalledWith({ organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId, runId })
+    expect(enqueueRun).toHaveBeenCalledWith(
+      { organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId, runId },
+      'conversation-runs',
+    )
   })
 
   test('answers busy without queueing anything once the conversation’s run is claimed', async () => {

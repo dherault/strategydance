@@ -2586,7 +2586,19 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
   (`CONVERSATION_RUN_MAX_COST_MICRODOLLARS`) sends nothing more and ends `FAILED` with its limits'
   note, as at its other limits, and a subagent's run chains instead, so $10 a run and $40 a
   subagent are bounds rather than estimates. Reserving for a cold cache stops a run over a very
-  large context sooner, some $5 into a run at 700000 tokens, which is the price of a true bound. A run's side request is priced
+  large context sooner, some $5 into a run at 700000 tokens, which is the price of a true bound.
+  Two things keep it one:
+  - **The reservation is stored, and stands while what was billed is unknown.** The lease's write
+    that reserves a request records its worst case in the ledger beside its estimate, and the cost
+    limit prices a request that has no settled usage at that worst case, never at the estimate a
+    worker taking over charges it at for the credits (`chargeUnsettledRequests`), which counts its
+    input as uncached and its searches as none.
+  - **A refusal's fallback is reserved too.** Every request sends `fallbacks: "default"`, and a
+    declined attempt is billed beside the fallback that answers it, so one request can cost two
+    attempts. The reservation covers both, the second at the costliest model the default fallback
+    can route to, which `CLAUDE_MODEL_PRICES` lists. A request whose one attempt fits the limit and
+    whose two do not is sent without `fallbacks`, so a refusal near the limit ends the run with the
+    refused note rather than passing $10. A run's side request is priced
   with it. The check is the worker's alone, on the ledger it already writes before each request, so
   no table and no lock join it; what one run ends, a Resume or a Retry starts again under the
   daily caps.

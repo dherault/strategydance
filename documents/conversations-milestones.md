@@ -2305,7 +2305,11 @@ he added on 2026-10-16.
   Before each request, where the lease's write reserves it, the run's price plus the request about to
   be reserved at the most it can cost, its whole input at the cache-write rate, as though the cache
   had expired, its output at the full `max_tokens` and five web searches, is held to
-  `CONVERSATION_RUN_MAX_COST_MICRODOLLARS` ($10): past
+  `CONVERSATION_RUN_MAX_COST_MICRODOLLARS` ($10), the worst case recorded in the ledger by the write
+  that reserves it and standing for every request whose billed usage is unknown, a takeover's
+  included, rather than the estimate `chargeUnsettledRequests` charges for the credits, and covering
+  a refusal's fallback, the second attempt at the costliest model the default fallback can route to,
+  a request whose one attempt fits and whose two do not sent without `fallbacks`: past
   it, the run sends nothing more and ends `FAILED` with its limits' note, `isAtLimit` as at its
   other limits, and a subagent's run before its fourth chains, as M31 chains it at the other three.
   A model the table lacks fails the tests, rather than being priced at nothing.
@@ -2351,6 +2355,11 @@ he added on 2026-10-16.
   - The reservation holding the bound when the cache has expired: a run at $8 over 700000 tokens
     refused its next request, which a cache hit would have kept under $10 and a miss would have
     taken to near $13.
+  - A worker taking over a run whose request was reserved and never settled pricing it at its
+    stored worst case, not at the estimate it charges for the credits, and refusing the next request
+    that worst case leaves no room for.
+  - A request near the limit whose fallback would pass it sent without `fallbacks`, its refusal
+    ending the run with the refused note, and one with room for both sent with them.
   - An answer loop stopped at one and a half times the cap: the answer recorded, no run started,
     and the reconcile starting it once the oldest row turns 24 hours old; an Allow the same; a
     reaction waiting past it and started by the next run end that finds room.

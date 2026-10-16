@@ -15,11 +15,14 @@ import type { ConversationRunFence, ConversationRunReference } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import logger from '~utils/logger'
+
 import type { ConversationRunUsage } from '~domain/conversations/conversationRunUsage'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import buildSubagentReport from '~domain/subagents/buildSubagentReport'
+import promoteSubagentRuns from '~domain/subagents/promoteSubagentRuns'
 
 /*
   How a worker ends its run:
@@ -73,7 +76,8 @@ type EndConversationRunInput = {
 
   A subagent's run ends through the subagent's own endings, which write its report in the same
   write, however it ends (`buildSubagentReport`), read from its transcript as it stands. A subagent
-  never waits, since nobody answers it
+  never waits, since nobody answers it. Its run held one of its member's five slots, so the oldest
+  run waiting for one is promoted once it has ended
 */
 async function endConversationRun({ ending, fence, lease, position, isSubagent }: EndConversationRunInput) {
   const write = <T>(operation: () => Promise<T>) => (lease ? lease.write(operation) : operation())
@@ -144,8 +148,18 @@ type EndSubagentRunInput = Omit<EndConversationRunInput, 'lease' | 'isSubagent'>
   write: <T>(operation: () => Promise<T>) => Promise<T>
 }
 
-// Ends a subagent's run as its worker decided, with its report, in one write
-async function endSubagentRun({ ending, fence, position, write }: EndSubagentRunInput) {
+// Ends a subagent's run as its worker decided, with its report, in one write, then promotes into the
+// slot it held
+async function endSubagentRun(input: EndSubagentRunInput) {
+  await writeSubagentEnding(input)
+
+  // The ending needs one of the two, without which it throws before
+  const run = input.ending.kind === 'interrupted' ? input.ending.reference : input.fence
+
+  if (run) await promoteFreedSlot(run)
+}
+
+async function writeSubagentEnding({ ending, fence, position, write }: EndSubagentRunInput) {
   if (ending.kind === 'waiting') throw new Error('A subagent never waits: nobody answers it')
 
   const reference = ending.kind === 'interrupted' ? ending.reference : fence
@@ -199,6 +213,16 @@ async function endSubagentRun({ ending, fence, position, write }: EndSubagentRun
       report,
     }),
   )
+}
+
+// Promotes into the slot a subagent's run held until it ended. A promotion that fails leaves the
+// slot to the reconcile and the sweep, never failing the end, which is written
+async function promoteFreedSlot({ organizationId, userId, runId }: ConversationRunReference) {
+  try {
+    await promoteSubagentRuns({ organizationId, userId })
+  } catch (error) {
+    logger.warn(`Subagent run ${runId}: the slot it freed could not be promoted into`, error)
+  }
 }
 
 export default endConversationRun

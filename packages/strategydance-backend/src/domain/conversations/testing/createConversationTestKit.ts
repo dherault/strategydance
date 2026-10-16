@@ -3,6 +3,7 @@ import type {
   BetaStopReason,
   MessageCountTokensParams,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
+import { MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER } from 'strategydance-core'
 
 import type { ConversationContentBlock, ConversationRunReference } from '~types'
 
@@ -95,7 +96,8 @@ function createConversationTestKit(
 
   /*
     A subagent of a conversation, launched as `launchSubagent` launches one, on the parent's latest
-    anchor, its run queued on its brief, the entry holding the files a test hands over before it
+    anchor, its run queued on its brief, or pending once the author's five subagent slots are taken,
+    the entry holding the files a test hands over before it
   */
   async function launch(
     parent: ConversationRunReference,
@@ -109,8 +111,15 @@ function createConversationTestKit(
     const [latest] = [...fake.runs.values()]
       .filter(run => run.conversationId === parent.conversationId)
       .sort((a, b) => b.number - a.number)
+    const slots = [...fake.runs.values()].filter(
+      run =>
+        (run.status === 'QUEUED' || run.status === 'RUNNING')
+        && fake.conversations.get(run.conversationId)?.userId === author
+        && fake.conversations.get(run.conversationId)?.organizationId === organizationId
+        && fake.conversations.get(run.conversationId)?.parentId != null,
+    )
 
-    await call('launchSubagent', {
+    await call(slots.length >= MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER ? 'launchPendingSubagent' : 'launchSubagent', {
       ...reference,
       membershipCreatedAt: readMembershipCreatedAt(),
       parentId: parent.conversationId,

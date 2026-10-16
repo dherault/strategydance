@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { BetaMessageStreamParams } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import { MAX_CONVERSATION_MESSAGES, MAX_SUBAGENT_REPORT_LENGTH } from 'strategydance-core'
 
-import type { ConversationRunReference, ConversationToolRunner } from '~types'
+import type { ConversationRunQueue, ConversationRunReference, ConversationToolRunner } from '~types'
 
 import connectTestModules from '~domain/conversations/testing/connectTestModules'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
@@ -24,6 +24,11 @@ mock.module('~firebase', () => ({ dataConnect: {} }))
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 
 mock.module('strategydance-database/backend', () => fake.sdk)
+
+// The runs a subagent's end promotes or chains to, which here nothing runs
+const enqueueRun = mock(async (_reference: ConversationRunReference, _queue: ConversationRunQueue) => true)
+
+mock.module('~domain/conversations/enqueueRun', () => ({ default: enqueueRun }))
 
 const { default: runConversation } = await import('./runConversation')
 const { default: SUBAGENT_SYSTEM_PROMPT } = await import('~domain/agent/subagentSystemPrompt')
@@ -76,6 +81,7 @@ function refusal() {
 beforeEach(() => {
   fake.reset()
   fake.addMember(AUTHOR, ORGANIZATION_ID)
+  enqueueRun.mockClear()
 })
 
 describe('runConversation, for a subagent', () => {

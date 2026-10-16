@@ -44,6 +44,16 @@ async function fillSlots(waiting = 1) {
   return { running, pending }
 }
 
+// A conversation of the member's whose run ended, as a parent is between the member's messages, so
+// parents beyond their three runs in flight can be made
+async function startParent() {
+  const parent = await kit.start()
+
+  await kit.call('finishConversationRun', { ...(await kit.claim(parent)), status: 'COMPLETED' })
+
+  return parent
+}
+
 // Ends a subagent's run as its worker would, without the promotion the domain's ending follows it with
 async function end(reference: ConversationRunReference | undefined) {
   if (!reference) throw new Error('No run to end')
@@ -119,7 +129,7 @@ describe('promoteSubagentRuns', () => {
     })
 
     fake.beforeOperation = async name => {
-      if (name !== 'GetSubagentSlots' || reads >= 2) return
+      if (name !== 'GetSubagentPendingRuns' || reads >= 2) return
 
       reads++
 
@@ -134,6 +144,30 @@ describe('promoteSubagentRuns', () => {
     expect(readStatuses(pending)).toEqual(['QUEUED'])
     expect(readQueued()).toHaveLength(1)
     expect(fake.calls.filter(name => name === 'PromoteSubagentRun')).toHaveLength(2)
+  })
+
+  test('promotes a run waiting behind more than a hundred it skips', async () => {
+    const { running } = await fillSlots(0)
+    const skipped: ConversationRunReference[] = []
+
+    // Ten a parent's anchor holds at most
+    for (let parentIndex = 0; parentIndex < 11; parentIndex++) {
+      const parent = await startParent()
+
+      for (let index = 0; index < 10; index++) skipped.push(await kit.launch(parent))
+    }
+
+    for (const reference of skipped) {
+      const run = kit.readRun(reference)
+
+      if (run) run.stopRequestedAt = new Date().toISOString()
+    }
+
+    const waiting = await kit.launch(await startParent())
+
+    await end(running[0])
+
+    expect((await promoteSubagentRuns(MEMBER)).map(({ runId }) => runId)).toEqual([waiting.runId])
   })
 
   test('skips a run asked to stop, one whose subagent is deleted and one of a membership since replaced', async () => {

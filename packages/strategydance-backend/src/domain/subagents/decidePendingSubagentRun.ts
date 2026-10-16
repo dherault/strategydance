@@ -1,5 +1,6 @@
 /*
-  What becomes of a subagent's run waiting for a slot, as the promotion and the reconcile read it:
+  What becomes of a subagent's run waiting for a slot, as the reconcile reads it, and as the
+  promotion's own read filters it (`GetSubagentPendingRuns`):
 
   - `promoted`, once a slot frees: it was launched under its member's membership as it is, nobody
     asked it to stop and its subagent is not deleted

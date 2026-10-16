@@ -42,6 +42,16 @@ async function fillSlots(waiting = 1) {
   return { parent, running, pending }
 }
 
+// A conversation of the member's whose run ended, so parents beyond their three runs in flight can
+// be made
+async function startParent() {
+  const parent = await kit.start()
+
+  await kit.call('finishConversationRun', { ...(await kit.claim(parent)), status: 'COMPLETED' })
+
+  return parent
+}
+
 function readStatuses(references: ConversationRunReference[]) {
   return references.map(reference => kit.readRun(reference)?.status)
 }
@@ -157,6 +167,29 @@ describe('reconcileSubagentRuns', () => {
     expect(readStatuses(pending)).toEqual(['INTERRUPTED', 'QUEUED'])
     expect(kit.readRun(ofBefore ?? MEMBER_RUN)?.failure).toBe('Its author was invited back while it waited for a slot')
     expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: waiting?.runId }), 'subagent-runs')
+  })
+
+  test('ends every run the promotion skips, a hundred at a time, past the first hundred', async () => {
+    await fillSlots(0)
+
+    const skipped: ConversationRunReference[] = []
+
+    // Ten a parent's anchor holds at most
+    for (let parentIndex = 0; parentIndex < 11; parentIndex++) {
+      const parent = await startParent()
+
+      for (let index = 0; index < 10; index++) skipped.push(await kit.launch(parent))
+    }
+
+    for (const reference of skipped) {
+      const run = kit.readRun(reference)
+
+      if (run) run.stopRequestedAt = new Date().toISOString()
+    }
+
+    await reconcileSubagentRuns(MEMBER)
+
+    expect(readStatuses(skipped).every(status => status === 'STOPPED')).toBe(true)
   })
 
   test('sweeps every member with a subagent run nobody reconciled, and nobody else', async () => {

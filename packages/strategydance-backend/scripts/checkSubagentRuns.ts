@@ -19,6 +19,7 @@ import {
   getConversationRunContext,
   getConversationSearchCorpus,
   getConversationSendContext,
+  getSubagentPendingRuns,
   getSubagentSlots,
   interruptDeadConversationRun,
   interruptDeadSubagentRun,
@@ -1075,6 +1076,21 @@ async function checkSlots() {
   check(
     'a promotion under a membership since replaced is refused',
     await isRefused(promotion(pending, new Date().toISOString()), 'The membership changed since the promotion read it'),
+  )
+
+  const { data: waitingRuns } = await getSubagentPendingRuns(dataConnect, {
+    organizationId,
+    userId: userIds.author,
+    membershipCreatedAt: parent.membershipCreatedAt,
+  })
+  const promotableIds = waitingRuns.promotableRuns.map(({ id }) => id)
+  const skippedIds = waitingRuns.skippedRuns.map(({ id }) => id)
+
+  check(
+    'the runs a promotion may promote are read oldest first, and those it skips apart',
+    promotableIds.join() === [pending.runId, waiting.runId].join()
+      && [stopped, deleted, ofBefore].every(({ runId }) => skippedIds.includes(runId) && !promotableIds.includes(runId))
+      && !skippedIds.includes(pending.runId),
   )
 
   for (const [name, subagent] of [

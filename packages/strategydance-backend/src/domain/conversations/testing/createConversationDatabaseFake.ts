@@ -3176,6 +3176,32 @@ function createConversationDatabaseFake() {
       }
     },
 
+    GetSubagentPendingRuns: variables => {
+      const pending = subagentRuns(variables.userId, variables.organizationId, ['PENDING'])
+      const isDeleted = (run: FakeRun) => conversations.get(run.conversationId)?.deletedAt != null
+      const isPromotable = (run: FakeRun) =>
+        run.membershipCreatedAt === variables.membershipCreatedAt && run.stopRequestedAt === null && !isDeleted(run)
+
+      return {
+        activeRuns: subagentRuns(variables.userId, variables.organizationId, RUN_IN_FLIGHT)
+          .slice(0, MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER)
+          .map(({ id: runId }) => ({ id: runId })),
+        promotableRuns: pending
+          .filter(isPromotable)
+          .slice(0, MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER)
+          .map(({ id: runId, conversationId }) => ({ id: runId, conversation: { id: conversationId } })),
+        skippedRuns: pending
+          .filter(run => !isPromotable(run))
+          .slice(0, 100)
+          .map(({ id: runId, membershipCreatedAt, stopRequestedAt, conversationId }) => ({
+            id: runId,
+            membershipCreatedAt,
+            stopRequestedAt,
+            conversation: { id: conversationId, deletedAt: conversations.get(conversationId)?.deletedAt ?? null },
+          })),
+      }
+    },
+
     GetSubagentRunsToSweep: () => {
       const authorOf = ({ conversationId }: FakeRun) => {
         const conversation = conversations.get(conversationId)

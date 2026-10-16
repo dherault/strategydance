@@ -1,4 +1,4 @@
-import { getSubagentSlots } from 'strategydance-database/backend'
+import { getSubagentPendingRuns, getSubagentSlots } from 'strategydance-database/backend'
 
 import type { ConversationRunReference } from '~types'
 
@@ -8,6 +8,11 @@ import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConv
 import decidePendingSubagentRun from '~domain/subagents/decidePendingSubagentRun'
 import endPendingSubagentRun from '~domain/subagents/endPendingSubagentRun'
 import promoteSubagentRuns from '~domain/subagents/promoteSubagentRuns'
+
+// How many hundreds of runs the promotion skips a reconcile ends, reading them again after each
+const MAX_ROUNDS = 10
+
+type Member = Pick<ConversationRunReference, 'organizationId' | 'userId'>
 
 /*
   Reconciles a member's subagent runs in an organization, whatever conversation launched them, as a
@@ -19,24 +24,39 @@ import promoteSubagentRuns from '~domain/subagents/promoteSubagentRuns'
     is looked up on the subagents' queue and queued again while it is under twenty minutes old, and
     any other finalized interrupted, with its report (`finalizeDeadConversationRuns`)
   - each run waiting for a slot that the promotion skips is ended, stopped when it was asked to stop
-    or its subagent was deleted, interrupted when its member's membership changed or went
+    or its subagent was deleted, interrupted when its member's membership changed or went, a hundred
+    at a time, read again until none is left
   - then the oldest runs waiting are promoted into the slots free, while the member still is one
 */
-async function reconcileSubagentRuns(member: Pick<ConversationRunReference, 'organizationId' | 'userId'>) {
+async function reconcileSubagentRuns(member: Member) {
   const { data } = await getSubagentSlots(dataConnect, member)
   const membershipCreatedAt = data.userOrganization?.createdAt ?? null
 
   await finalizeDeadConversationRuns(member, data.activeRuns, 'subagent-runs')
 
-  for (const run of data.pendingRuns) {
-    const fate = decidePendingSubagentRun(run, membershipCreatedAt)
+  for (let round = 1; round <= MAX_ROUNDS; round++) {
+    const runs = await readSkippedRuns(member, membershipCreatedAt)
 
-    if (fate !== 'promoted') {
-      await endPendingSubagentRun({ ...member, conversationId: run.conversation.id, runId: run.id }, fate)
+    if (!runs.length) break
+
+    for (const run of runs) {
+      const fate = decidePendingSubagentRun(run, membershipCreatedAt)
+
+      if (fate !== 'promoted') {
+        await endPendingSubagentRun({ ...member, conversationId: run.conversation.id, runId: run.id }, fate)
+      }
     }
   }
 
   if (membershipCreatedAt) await promoteSubagentRuns(member)
+}
+
+// The runs waiting for a slot that the promotion skips, oldest first: every one once the member is
+// no member any more
+async function readSkippedRuns(member: Member, membershipCreatedAt: string | null) {
+  if (!membershipCreatedAt) return (await getSubagentSlots(dataConnect, member)).data.pendingRuns
+
+  return (await getSubagentPendingRuns(dataConnect, { ...member, membershipCreatedAt })).data.skippedRuns
 }
 
 export default reconcileSubagentRuns

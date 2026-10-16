@@ -35,12 +35,7 @@ function OAuthConsentRequestBouncer({ requestId, children }: Props) {
 
   return (
     <div className="flex flex-col items-start gap-4">
-      <Alert
-        variant="danger"
-        className="max-w-xl"
-      >
-        {formatMessage(moduleMessages.readError)}
-      </Alert>
+      <Alert variant="danger">{formatMessage(moduleMessages.readError)}</Alert>
       <Button
         variant="outline"
         disabled={loading}

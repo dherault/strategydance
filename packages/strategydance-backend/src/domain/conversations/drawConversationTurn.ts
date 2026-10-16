@@ -8,6 +8,7 @@ import {
   drawConversationClientToolCall,
   drawConversationQuestion,
   drawConversationToolCall,
+  drawSubagentAgentText,
 } from 'strategydance-database/backend'
 
 import type { ConversationContentBlock, ConversationRunFence } from '~types'
@@ -26,12 +27,9 @@ import type { ConversationToolCallPlan } from '~domain/agent/planConversationToo
 import { toFailedOutput } from '~domain/conversations/conversationToolResults'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
-import mergeConversationText, {
-  type ConversationTextBlockWithCitations,
-} from '~domain/conversations/mergeConversationText'
+import readConversationText, { isConversationTextBlock } from '~domain/conversations/readConversationText'
 import readPieceText from '~domain/conversations/readPieceText'
 import selectPieceCitations from '~domain/conversations/selectPieceCitations'
-import splitConversationText from '~domain/conversations/splitConversationText'
 import readConversationIntegration from '~domain/integrations/readConversationIntegration'
 
 // One part of the run's reply, stored as a transcript entry, with its blocks and its cursor
@@ -51,6 +49,9 @@ type DrawConversationTurnInput = {
   plans: Map<string, ConversationToolCallPlan>
   // The conversation's counter, where the message goes
   position: number
+  // Whether the conversation is a subagent, whose replies nobody reads as they come, so none adds to
+  // its unread count
+  isSubagent: boolean
 }
 
 // What a part draws next from its cursor
@@ -158,7 +159,7 @@ type Drawing =
   Each message's id derives from its part, its first block and its piece, so a worker taking over
   after a crash, which draws from the same cursor, derives the same one
 */
-async function drawConversationTurn({ fence, lease, entries, plans, position }: DrawConversationTurnInput) {
+async function drawConversationTurn({ fence, lease, entries, plans, position, isSubagent }: DrawConversationTurnInput) {
   for (const [index, entry] of entries.entries()) {
     const drawing = findNextDrawing(entry, entries.slice(index + 1), plans)
 
@@ -167,7 +168,7 @@ async function drawConversationTurn({ fence, lease, entries, plans, position }: 
 
     const decided = drawing.kind === 'integrationCall' ? await decideIntegrationDrawing(fence, drawing) : drawing
 
-    await lease.write(() => write(fence, entry.id, position, decided))
+    await lease.write(() => write(fence, entry.id, position, decided, isSubagent))
 
     return 'drawn'
   }
@@ -183,7 +184,7 @@ function findNextDrawing(
   const { blocks, drawnBlocks: cursor, drawnPieces } = entry
 
   if (drawnPieces > 0) {
-    const { text, pieces, citations, toBlock } = readText(blocks, cursor)
+    const { text, pieces, citations, toBlock } = readConversationText(blocks, cursor)
     const piece = pieces[drawnPieces]
 
     if (!piece) throw new Error(`Part ${entry.id} has no piece ${drawnPieces} at block ${cursor}`)
@@ -205,8 +206,8 @@ function findNextDrawing(
   for (let index = cursor; index < blocks.length; index++) {
     const block = blocks[index]
 
-    if (isTextBlock(block)) {
-      const { text, pieces, citations, toBlock } = readText(blocks, index)
+    if (isConversationTextBlock(block)) {
+      const { text, pieces, citations, toBlock } = readConversationText(blocks, index)
       const [first] = pieces
 
       if (!first) return { kind: 'none' }
@@ -342,24 +343,6 @@ function toArgumentsPreview(args: Record<string, unknown>) {
   return `${cut}…`
 }
 
-/*
-  The text run starting at `fromBlock`, merged, with its pieces and its citations. A fallback model
-  carries on the text a declining model left, so the run goes on across a `fallback` block between
-  two texts, as one reply
-*/
-function readText(blocks: ConversationContentBlock[], fromBlock: number) {
-  let toBlock = fromBlock
-
-  while (isTextBlock(blocks[toBlock]) || blocks[toBlock]?.type === 'fallback') toBlock++
-  while (toBlock > fromBlock && !isTextBlock(blocks[toBlock - 1])) toBlock--
-
-  const { text, blockEnds, citations } = mergeConversationText(
-    blocks.slice(fromBlock, toBlock).filter(isTextBlock) as ConversationTextBlockWithCitations[],
-  )
-
-  return { text, pieces: splitConversationText(text, blockEnds), citations, toBlock }
-}
-
 // A web search's result, `content` a list of results or an error object
 function findResult(toolUseId: string, entries: Pick<ConversationDrawEntry, 'blocks'>[]) {
   for (const { blocks } of entries) {
@@ -392,9 +375,17 @@ function describeResult(result: ConversationContentBlock) {
   return { toolStatus: ConversationToolStatus.SUCCEEDED, toolOutput: JSON.stringify({ results }) }
 }
 
-async function write(fence: ConversationRunFence, entryId: string, position: number, drawing: Drawing) {
+async function write(
+  fence: ConversationRunFence,
+  entryId: string,
+  position: number,
+  drawing: Drawing,
+  isSubagent: boolean,
+) {
   if (drawing.kind === 'text') {
-    await drawConversationAgentText(dataConnect, {
+    const drawText = isSubagent ? drawSubagentAgentText : drawConversationAgentText
+
+    await drawText(dataConnect, {
       ...fence,
       entryId,
       fromBlock: drawing.fromBlock,
@@ -521,10 +512,6 @@ async function write(fence: ConversationRunFence, entryId: string, position: num
       preview: buildConversationPreview({ kind: 'QUESTION', questionPrompt: drawing.question.prompt }),
     })
   }
-}
-
-function isTextBlock(block: ConversationContentBlock | undefined) {
-  return block?.type === 'text' && typeof block.text === 'string'
 }
 
 function isWebSearch(block: ConversationContentBlock | undefined): block is ConversationContentBlock & { id: string } {

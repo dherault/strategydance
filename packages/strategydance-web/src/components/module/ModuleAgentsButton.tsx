@@ -3,21 +3,24 @@ import { useIntl } from 'react-intl'
 import type { ModuleName } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Dialog, DialogTrigger } from 'strategydance-design-system/components/ui/Dialog'
+import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
 import useCanUseModules from '~hooks/module/useCanUseModules'
 
-import ModuleAgentsDialog from '~components/module/ModuleAgentsDialog'
+import getModuleMessages from '~utils/module/getModuleMessages'
 
-import moduleMessages from '~data/intl/messages/module'
+import ModuleAgentsDialog from '~components/module/ModuleAgentsDialog'
 
 type Props = {
   module: ModuleName
 }
 
 /*
-  A module's page's "Use with your agents", which opens the dialog telling how to connect an agent
-  of the member's own to it, and takes the focus back once it closes. Nothing for a reader who may
-  not connect one yet, while modules are for Strategy Dance's administrators alone
+  A module's page's agents button, an icon whose tooltip says what an agent of the member's own may
+  do there, which opens the dialog telling how to connect one, and takes the focus back once it
+  closes. Nothing for a reader who may not connect one yet, while modules are for Strategy Dance's
+  administrators alone. It sits in the page's toolbar after the page's own action, so it takes the
+  fields' height
 */
 function ModuleAgentsButton({ module }: Props) {
   const { formatMessage } = useIntl()
@@ -25,17 +28,19 @@ function ModuleAgentsButton({ module }: Props) {
 
   if (!canUseModules) return null
 
+  const label = formatMessage(getModuleMessages(module).agentsButton)
+
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          icon={<BotIcon />}
-        >
-          {formatMessage(moduleMessages.agentsButton)}
-        </Button>
-      </DialogTrigger>
+      <Tooltip content={label}>
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            icon={<BotIcon />}
+            aria-label={label}
+          />
+        </DialogTrigger>
+      </Tooltip>
       <ModuleAgentsDialog module={module} />
     </Dialog>
   )

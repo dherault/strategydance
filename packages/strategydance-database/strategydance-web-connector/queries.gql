@@ -1310,6 +1310,8 @@ query GetConversations($organizationId: UUID!)
       userId: { eq_expr: "auth.uid" }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      # A subagent is in no list: it is reached from its parent's thread
+      parentId: { isNull: true }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
     }
     # `id` breaks the tie between two conversations active in the same instant
@@ -1388,6 +1390,8 @@ query GetConversationsAwaitingAnswer($organizationId: UUID!)
       userId: { eq_expr: "auth.uid" }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      # A subagent never waits, and is no conversation of the member's
+      parentId: { isNull: true }
       isAwaitingAnswer: { eq: true }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
     }
@@ -1542,6 +1546,8 @@ query GetDockConversations($organizationId: UUID!, $ids: [UUID!]!)
       userId: { eq_expr: "auth.uid" }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
+      # A subagent is never docked
+      parentId: { isNull: true }
       organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
     }
     limit: 20
@@ -1569,7 +1575,8 @@ query GetDockConversations($organizationId: UUID!, $ids: [UUID!]!)
 # when the pages it holds have to be read again.
 #
 # A live query. Each `@refresh` names a mutation that changes the conversation or its messages,
-# matched on its author and its id, and the backend's run mutations join them as they arrive.
+# matched on its author and its id, and the backend's run mutations join them as they arrive, a
+# subagent's among them, since a subagent is read by its id as any conversation of the member's is.
 # Marking it read does not wake it: the page never shows the count, and every tab would be sent the
 # whole tail after each reply. Removing a member empties theirs, and deleting the organization
 # empties everybody's
@@ -1752,6 +1759,36 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "SendConversationMessageAnsweringCalls"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "LaunchSubagent"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawSubagentAgentText"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishSubagentRunWithNote"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptSubagentRun"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
 )
@@ -1949,7 +1986,8 @@ query GetConversationMessagesBefore($organizationId: UUID!, $id: UUID!, $beforeP
 # once its member asked. A queued run is timed from `createdAt`.
 #
 # A live query of its own, so the progress lines and lease renewals a run writes wake this small
-# read rather than the thread. The backend's run mutations join its `@refresh` list as they arrive
+# read rather than the thread. The backend's run mutations join its `@refresh` list as they arrive,
+# a subagent's among them
 query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @auth(level: USER)
 @refresh(
@@ -2159,6 +2197,36 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "SendConversationMessageAnsweringCalls"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "LaunchSubagent"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DrawSubagentAgentText"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishSubagentRunWithNote"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptSubagentRun"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
 )

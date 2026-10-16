@@ -14,6 +14,7 @@ import createPlaceholderClaudeClient from '~domain/agent/createPlaceholderClaude
 import createAttachmentStorageFake from '~domain/conversations/testing/createAttachmentStorageFake'
 import createConversationDatabaseFake, {
   type FakeConversation,
+  type FakeMessage,
 } from '~domain/conversations/testing/createConversationDatabaseFake'
 
 const fake = createConversationDatabaseFake()
@@ -90,7 +91,7 @@ function sendMessage(origin: string, conversationId: string, body: Record<string
   })
 }
 
-function insertConversation(title: string) {
+function insertConversation(title: string, values: Partial<FakeConversation> = {}) {
   const conversation: FakeConversation = {
     id: crypto.randomUUID().replaceAll('-', ''),
     userId: SEARCHER,
@@ -107,6 +108,7 @@ function insertConversation(title: string) {
     deletedAt: null,
     pruneClaimedAt: null,
     updatedAt: new Date().toISOString(),
+    ...values,
   }
 
   fake.conversations.set(conversation.id, conversation)
@@ -173,6 +175,146 @@ describe('POST /:conversationId/approvals', () => {
     const response = await decide(origin, conversationId, { messageId: crypto.randomUUID(), isAllowed: true })
 
     expect(response.status).toBe(404)
+  })
+})
+
+describe('a subagent', () => {
+  function post(origin: string, path: string, body?: unknown) {
+    return fetch(`${origin}/organizations/${ORGANIZATION_ID}/conversations/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+  }
+
+  function insertMessage(message: Partial<FakeMessage> & Pick<FakeMessage, 'conversationId' | 'kind' | 'position'>) {
+    const row: FakeMessage = {
+      id: crypto.randomUUID().replaceAll('-', ''),
+      runId: null,
+      text: null,
+      noteKind: null,
+      toolStatus: null,
+      ...message,
+    }
+
+    fake.messages.set(row.id, row)
+
+    return row
+  }
+
+  /*
+    A subagent of the member's conversation, as a launch makes one, holding what each route acts on
+    in a conversation of the member's: its run queued and long past its lease, which a reconcile
+    would finalize and a stop would stop, a question waiting and a call waiting for approval
+  */
+  function insertSubagent() {
+    const parentId = insertConversation('Pricing')
+    const runId = crypto.randomUUID().replaceAll('-', '')
+    const subagentId = insertConversation('Pricing research', {
+      parentId,
+      activeRunId: runId,
+      isAwaitingAnswer: true,
+      nextRunNumber: 1,
+      nextMessagePosition: 3,
+      messageCount: 3,
+    })
+
+    fake.runs.set(runId, {
+      id: runId,
+      conversationId: subagentId,
+      number: 0,
+      trigger: 'LAUNCH',
+      status: 'QUEUED',
+      membershipCreatedAt: fake.memberships.get(`${SEARCHER}:${ORGANIZATION_ID}`)?.createdAt ?? '',
+      step: null,
+      anchorPosition: 0,
+      stopRequestedAt: null,
+      leaseExpiresAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+      attempts: 0,
+      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      startedAt: null,
+      endedAt: null,
+    })
+    insertMessage({ conversationId: subagentId, runId, kind: 'BRIEF', text: 'Compare the pricing pages', position: 0 })
+
+    const question = insertMessage({
+      conversationId: subagentId,
+      runId,
+      kind: 'QUESTION',
+      position: 1,
+      toolUseId: 'toolu_question',
+      questionPrompt: 'Monthly or yearly?',
+      questionOptions: ['Monthly', 'Yearly'],
+      isMultipleChoice: false,
+    })
+    const approval = insertMessage({
+      conversationId: subagentId,
+      runId,
+      kind: 'APPROVAL',
+      position: 2,
+      toolUseId: 'toolu_approval',
+      approvalState: 'PENDING',
+    })
+
+    fake.conversations.get(subagentId)!.previewMessageId = approval.id
+
+    return { subagentId, runId, question, approval }
+  }
+
+  // Every way a member acts on a conversation refuses a subagent, which only its parent acts on
+  test('is refused by every route a member acts through, as a conversation gone', async () => {
+    const origin = await listen()
+    const { subagentId, runId, question, approval } = insertSubagent()
+    const messageCount = fake.messages.size
+
+    expect((await sendMessage(origin, subagentId, {})).status).toBe(404)
+    expect(
+      (await post(origin, `${subagentId}/answers`, { messageId: question.id, selected: ['Monthly'], other: null }))
+        .status,
+    ).toBe(404)
+    expect((await post(origin, `${subagentId}/approvals`, { messageId: approval.id, isAllowed: true })).status).toBe(
+      404,
+    )
+
+    for (const action of ['stop', 'reconcile', 'resume', 'retry']) {
+      expect((await post(origin, `${subagentId}/runs/${runId}/${action}`)).status).toBe(404)
+    }
+
+    expect(fake.messages.size).toBe(messageCount)
+    expect(fake.runs.size).toBe(1)
+    expect(fake.runs.get(runId)).toMatchObject({ status: 'QUEUED', stopRequestedAt: null })
+    expect(fake.messages.get(question.id)?.answeredAt).toBeUndefined()
+    expect(fake.messages.get(approval.id)).toMatchObject({ approvalState: 'PENDING' })
+  })
+
+  test('is left out of what a search finds, by its title or its messages, in any language', async () => {
+    const origin = await listen()
+    const parentId = insertConversation('Pricing for the launch')
+    const subagentId = insertConversation('Pricing research', { parentId })
+
+    insertMessage({ conversationId: subagentId, kind: 'AGENT_TEXT', text: 'Competitor pricing, compared', position: 0 })
+
+    for (const [query, expected] of [
+      ['pricing', [parentId]],
+      ['competitor', []],
+    ] as const) {
+      const response = await search(origin, query)
+
+      expect(response.status).toBe(200)
+      expect(((await response.json()) as { data: { conversationIds: string[] } }).data.conversationIds).toEqual([
+        ...expected,
+      ])
+    }
+
+    const chineseParent = insertConversation('定价方案')
+
+    insertConversation('定价研究', { parentId: chineseParent })
+
+    const chinese = await search(origin, '定价')
+
+    expect(((await chinese.json()) as { data: { conversationIds: string[] } }).data.conversationIds).toEqual([
+      chineseParent,
+    ])
   })
 })
 

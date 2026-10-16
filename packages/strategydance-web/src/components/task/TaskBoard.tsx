@@ -31,6 +31,7 @@ import getTaskDescriptionTexts from '~utils/task/getTaskDescriptionTexts'
 import toTaskLinks from '~utils/task/toTaskLinks'
 
 import PageHeader from '~components/layout/PageHeader'
+import PageToolbar from '~components/layout/PageToolbar'
 import ModuleAgentsButton from '~components/module/ModuleAgentsButton'
 import NewTaskDialog from '~components/task/NewTaskDialog'
 import TaskBoardColumn from '~components/task/TaskBoardColumn'
@@ -86,17 +87,7 @@ function TaskBoard() {
     setAspects([])
   }
 
-  function renderBody() {
-    if (hasFailed) {
-      return (
-        <TaskLoadFailed
-          message={formatMessage(taskMessages.loadError)}
-          isRetrying={isRetrying}
-          onRetry={retry}
-        />
-      )
-    }
-
+  function renderBoard() {
     if (!tasks.length) {
       return (
         <Empty className="border border-dashed border-border">
@@ -122,19 +113,7 @@ function TaskBoard() {
     }
 
     return (
-      <div className="flex flex-col gap-4">
-        <TaskBoardFilters
-          query={query}
-          assignee={assignee}
-          aspects={aspects}
-          members={members}
-          viewerId={viewerId}
-          isFiltering={isFiltering}
-          onQueryChange={setQuery}
-          onAssigneeChange={setAssignee}
-          onAspectsChange={setAspects}
-          onClear={clearFilters}
-        />
+      <>
         <div className="grid grid-cols-[repeat(4,minmax(216px,1fr))] items-stretch gap-3 overflow-x-auto pb-1">
           {TASK_STATUSES.map(status => {
             const column = columns.get(status) ?? []
@@ -165,6 +144,52 @@ function TaskBoard() {
         >
           {announcement}
         </p>
+      </>
+    )
+  }
+
+  function renderBody() {
+    if (hasFailed) {
+      return (
+        <TaskLoadFailed
+          message={formatMessage(taskMessages.loadError)}
+          isRetrying={isRetrying}
+          onRetry={retry}
+        />
+      )
+    }
+
+    return (
+      <div className="flex flex-col gap-4">
+        <PageToolbar
+          actions={
+            <>
+              <Button
+                icon={<PlusIcon />}
+                onClick={() => setDraftStatus(TaskStatus.TODO)}
+              >
+                {formatMessage(taskMessages.newTask)}
+              </Button>
+              <ModuleAgentsButton module="tasks" />
+            </>
+          }
+        >
+          {tasks.length ? (
+            <TaskBoardFilters
+              query={query}
+              assignee={assignee}
+              aspects={aspects}
+              members={members}
+              viewerId={viewerId}
+              isFiltering={isFiltering}
+              onQueryChange={setQuery}
+              onAssigneeChange={setAssignee}
+              onAspectsChange={setAspects}
+              onClear={clearFilters}
+            />
+          ) : null}
+        </PageToolbar>
+        {renderBoard()}
       </div>
     )
   }
@@ -175,19 +200,6 @@ function TaskBoard() {
         eyebrow={formatMessage(taskMessages.eyebrow)}
         title={formatMessage(navigationMessages.tasks)}
         lead={formatMessage(taskMessages.lead)}
-        actions={
-          hasFailed ? undefined : (
-            <>
-              <ModuleAgentsButton module="tasks" />
-              <Button
-                icon={<PlusIcon />}
-                onClick={() => setDraftStatus(TaskStatus.TODO)}
-              >
-                {formatMessage(taskMessages.newTask)}
-              </Button>
-            </>
-          )
-        }
       />
       {renderBody()}
       {draftStatus ? (

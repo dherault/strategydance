@@ -13,8 +13,17 @@ import {
   CONVERSATION_MAX_TOKENS,
   CONVERSATION_MODEL,
 } from '~domain/agent/conversationRequestSettings'
-import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
+
+/*
+  What a run's requests send besides their messages: the system prompt and the tools, each the same
+  for every conversation, so the prompt cache holds them across conversations, and pinned by its
+  bytes, the conversation's or a subagent's
+*/
+export type ConversationRequestConfig = {
+  system: string
+  tools: ConversationRequestTools
+}
 
 // A transcript entry as the request replays it: its role, and its content as the JSON text it
 // was sent as
@@ -68,7 +77,7 @@ export function buildConversationMessages({ entries, context, parts }: BuildConv
 */
 function buildConversationRequest(
   messages: BetaMessageParam[],
-  tools: ConversationRequestTools,
+  { system, tools }: ConversationRequestConfig,
 ): BetaMessageStreamParams {
   return {
     model: CONVERSATION_MODEL,
@@ -78,7 +87,7 @@ function buildConversationRequest(
     fallbacks: 'default',
     output_config: { effort: 'medium' },
     cache_control: { type: 'ephemeral' },
-    system: [{ type: 'text', text: CONVERSATION_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+    system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
     tools,
     messages,
   }

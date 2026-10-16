@@ -13,6 +13,7 @@ import buildConversationTools from '~domain/agent/buildConversationTools'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
 import measureConversationSend from '~domain/agent/measureConversationSend'
+import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import toConversationProfile from '~domain/agent/toConversationProfile'
 import { parseConversationRunUsage } from '~domain/conversations/conversationRunUsage'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
@@ -74,7 +75,7 @@ async function measureConversationMessage({
   try {
     return await measureConversationSend({
       client: conversationClaudeClient,
-      tools: buildConversationTools(modules.tools),
+      config: { system: CONVERSATION_SYSTEM_PROMPT, tools: buildConversationTools(modules.tools) },
       entries,
       entry: parseTranscriptContent(content),
       context: context.content,

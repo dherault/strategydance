@@ -30,6 +30,9 @@ type Options = {
   callsBefore: number
   // The tools the worker runs
   runnerNames: string[]
+  // Whether anybody answers a question, which nobody does a subagent's: its `ask_user`, a tool it is
+  // never sent, is then refused as one nobody runs
+  asksQuestions?: boolean
 }
 
 /*
@@ -40,11 +43,11 @@ type Options = {
 */
 function planConversationToolCalls(
   calls: ConversationToolCall[],
-  { callsBefore, runnerNames }: Options,
+  { callsBefore, runnerNames, asksQuestions = true }: Options,
 ): ConversationToolCallPlan[] {
   return calls.map((call, index) => {
     // Checked before the limits, so a question past its bounds never reaches the thread
-    const checked = call.name === ASK_USER_TOOL_NAME ? checkConversationQuestion(call.input) : null
+    const checked = asksQuestions && call.name === ASK_USER_TOOL_NAME ? checkConversationQuestion(call.input) : null
 
     if (checked?.outcome === 'invalid') return { kind: 'refused', call, reason: checked.reason, isDrawn: false }
 

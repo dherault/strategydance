@@ -443,6 +443,20 @@
   font-weight: 600;
 }
 
+/*
+  Inline code as `RICH_TEXT_CLASSES.text.code` draws it: the monospace face a step smaller than the
+  text around it, on the code block's fill, which each line of it keeps when it wraps
+*/
+.rich-text-editor.bn-root .bn-editor .bn-inline-content code {
+  border-radius: var(--radius-xs);
+  padding: 0.1em 0.3em;
+  background-color: var(--color-neutral-100);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
 .rich-text-editor.bn-root .bn-editor a {
   color: var(--color-primary);
   text-decoration: underline;
@@ -786,9 +800,12 @@
 /*
   The tooltip over a control, as `Tooltip` draws it: white, bordered, 12px, its shortcut after the
   name in a kbd chip rather than on a line of its own. Its arrow is a square straddling the edge,
-  white, with a border on the two sides that face out, so the tooltip's own border runs around it
+  white, with a border on the two sides that face out, so the tooltip's own border runs around it.
+  It portals into a zero-width anchor beside its toolbar, so it is as wide as its text, on one line,
+  rather than `w-fit`, which fits it to the room the anchor leaves and wraps every word
 */
 .rich-text-editor.bn-root [data-slot='tooltip-content'] {
+  width: max-content;
   flex-direction: row;
   align-items: center;
   gap: 0;

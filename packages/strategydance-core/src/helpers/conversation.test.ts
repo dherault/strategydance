@@ -338,6 +338,10 @@ describe('buildConversationPreview', () => {
     expect(buildConversationPreview({ kind: 'ASPECTS' })).toBeNull()
   })
 
+  it('never makes a subagent’s brief the preview', () => {
+    expect(buildConversationPreview({ kind: 'BRIEF', text: 'Compare the two pricing pages' })).toBeNull()
+  })
+
   it('refuses a tool call or a note missing what its preview shows', () => {
     expect(() => buildConversationPreview({ kind: 'TOOL_CALL', toolStatus: 'RUNNING' })).toThrow()
     expect(() => buildConversationPreview({ kind: 'NOTE' })).toThrow()

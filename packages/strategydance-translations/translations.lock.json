@@ -3329,6 +3329,34 @@
         "hash": "252f9ce064fb4771",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.aspectsFilterClear": {
+        "hash": "30919fbb352264b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterClose": {
+        "hash": "1a13a4f70689f71f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterEmpty": {
+        "hash": "247e09989c0fc1a4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterLabel": {
+        "hash": "d4a0d8b24f4357e2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterMore": {
+        "hash": "84a2e6f799dfa287",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterPlaceholder": {
+        "hash": "b092b186f60c2ded",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.aspectsFilterSearch": {
+        "hash": "baeaf518d700da0c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.aspectsSelected": {
         "hash": "9ca4fc2514431ab3",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3347,6 +3375,10 @@
       },
       "knowledge.cancel": {
         "hash": "7963065a998a0c17",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.clearFilters": {
+        "hash": "26c48b21e459dc88",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.close": {
@@ -3517,6 +3549,14 @@
         "hash": "0d8fef38e801c449",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.noMatchText": {
+        "hash": "62138b6ea8351391",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.noMatchTitle": {
+        "hash": "5f06808e0cfc66ac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.notFoundText": {
         "hash": "f02845409afd6246",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3547,6 +3587,10 @@
       },
       "knowledge.saving": {
         "hash": "e1c88c25f4be6ca6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.searchPlaceholder": {
+        "hash": "de4a86fede42cf6c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.stay": {
@@ -3727,10 +3771,6 @@
         "hash": "c52dbb98674d4f25",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "module.agentsButton": {
-        "hash": "5985490d66a173f8",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "module.agentsChatGpt": {
         "hash": "81dda9eab32b6cb9",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3891,6 +3931,10 @@
         "hash": "3fb0f5196115dc3b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.knowledgeAgentsButton": {
+        "hash": "9acba3475fbd19df",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.knowledgeName": {
         "hash": "11870396e2df3f8a",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3969,6 +4013,10 @@
       },
       "module.refusedTitle": {
         "hash": "1890892761cecc66",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.tasksAgentsButton": {
+        "hash": "3a3bd49e6fa23bcd",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.tasksName": {
@@ -4137,6 +4185,10 @@
         "hash": "43a1d9ec8d9513c4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.guidance": {
+        "hash": "a081bc022e83d5a4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.integrations": {
         "hash": "8122d2f707abcdb0",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -4183,10 +4235,6 @@
       },
       "navigation.profile": {
         "hash": "7daadd2d0e2e55df",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "navigation.reflection": {
-        "hash": "84c655bf63091991",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.sidebar": {

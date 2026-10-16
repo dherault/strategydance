@@ -3,8 +3,9 @@ import { defineMessages } from 'react-intl'
 /*
   Strategy Dance's modules as a member sees them: what each is called and what each access lets an
   agent do, the consent page where a member allows an external agent to use one, the account page's
-  Connected agents tab, and the dialog a module's page opens to tell how to connect one. Registered
-  app-wide, since the account page reads it, and on the consent page, which sits outside the app
+  Connected agents tab, and the button on a module's page and the dialog it opens to tell how to
+  connect one. Registered app-wide, since the account page reads it, and on the consent page, which
+  sits outside the app
 */
 const moduleMessages = defineMessages({
   knowledgeName: {
@@ -24,6 +25,12 @@ const moduleMessages = defineMessages({
     description:
       'What an agent allowed to write in the Knowledge module can do, beside reading. Each document has a setting saying whether agents may change it.',
   },
+  knowledgeAgentsButton: {
+    id: 'module.knowledgeAgentsButton',
+    defaultMessage: 'Allow your agents to read and write documents',
+    description:
+      "Tooltip and accessible name of the icon button on the Knowledge page that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to the organization's knowledge documents.",
+  },
   tasksName: {
     id: 'module.tasksName',
     defaultMessage: 'Tasks',
@@ -38,6 +45,12 @@ const moduleMessages = defineMessages({
     id: 'module.tasksWriteAccess',
     defaultMessage: "Create, change, link and delete the tasks on your team's board.",
     description: 'What an agent allowed to write in the Tasks module can do, beside reading.',
+  },
+  tasksAgentsButton: {
+    id: 'module.tasksAgentsButton',
+    defaultMessage: 'Allow your agents to read and tackle tasks',
+    description:
+      "Tooltip and accessible name of the icon button on the Tasks page that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to the team's task board. To tackle a task is to take it up and work on it.",
   },
   readAccess: {
     id: 'module.readAccess',
@@ -312,12 +325,6 @@ const moduleMessages = defineMessages({
     id: 'module.disconnectError',
     defaultMessage: '{agentName} could not be disconnected',
     description: "Error shown when disconnecting an external agent failed. {agentName} is the agent's name.",
-  },
-  agentsButton: {
-    id: 'module.agentsButton',
-    defaultMessage: 'Use with your agents',
-    description:
-      "Button on a module's page, such as Knowledge, that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to that module.",
   },
   agentsTitle: {
     id: 'module.agentsTitle',

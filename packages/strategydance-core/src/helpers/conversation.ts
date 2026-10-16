@@ -12,7 +12,8 @@ import type {
   "You: …" or "Question: …" in the reader's language. "Thinking…" and "No messages yet" are the
   web's too, read from the conversation's run and from a preview that is not there.
 
-  An aspects note is never the preview: null tells the caller to keep the one before it
+  An aspects note is never the preview: null tells the caller to keep the one before it. Nor is a
+  subagent's brief, since no list shows a subagent
 */
 export function buildConversationPreview(source: ConversationPreviewSource): ConversationPreview | null {
   switch (source.kind) {
@@ -50,6 +51,7 @@ export function buildConversationPreview(source: ConversationPreviewSource): Con
 
       return { kind: source.kind, noteKind: source.noteKind }
     case 'ASPECTS':
+    case 'BRIEF':
       return null
   }
 }

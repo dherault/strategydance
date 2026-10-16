@@ -6,8 +6,10 @@ const richTextSampleBlocks: RichTextBlock[] = [
   {
     type: 'paragraph',
     content: [
-      { type: 'text', text: 'Task feed p95 is down from 410ms to 230ms. Two indexes on ' },
-      { type: 'text', text: 'task_assignments', styles: { bold: true } },
+      { type: 'text', text: 'Task feed p95 is down from ' },
+      { type: 'text', text: '410ms to 230ms', styles: { bold: true } },
+      { type: 'text', text: '. Two indexes on ' },
+      { type: 'text', text: 'task_assignments', styles: { code: true } },
       { type: 'text', text: ' did most of the work, as the ' },
       {
         type: 'link',

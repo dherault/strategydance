@@ -63,7 +63,7 @@ type SendConversationMessageResult =
   | { outcome: 'sent'; runId: string }
   // The caller is no member of the organization
   | { outcome: 'forbidden' }
-  // The conversation is somebody else's, or deleted
+  // The conversation is somebody else's, deleted or a subagent
   | { outcome: 'missing' }
   // The message's id was sent already, elsewhere
   | { outcome: 'conflict' }
@@ -163,7 +163,8 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       return { outcome: 'missing' }
     }
 
-    if (conversation?.deletedAt) return { outcome: 'missing' }
+    // A subagent is written to by the agent that launched it alone
+    if (conversation?.deletedAt || conversation?.parentId) return { outcome: 'missing' }
     if (conversation?.activeRunId) {
       // Among the caller's runs in flight, since it is one
       const activeRun = data.conversationRuns.find(run => run.id === conversation.activeRunId)

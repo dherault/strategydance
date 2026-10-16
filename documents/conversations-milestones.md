@@ -80,7 +80,7 @@ it discards them, so a release cut between the two would leave the daily sweep t
 | M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | #157 |
 | M28 | Integrations: members connect their accounts | database, backend, web | M27 | #165 |
 | M29 | Integrations in conversations | database, backend, web | M11, M28 | #171 |
-| M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | |
+| M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | #184 |
 | M31 | Chains, slots and the subagents' queue | database, core, backend, web, root | M30, setup 11 | |
 | M32 | The Subagents module | core, backend, database, web | M31 | |
 | M33 | Subagents in conversations | backend, database, root | M11, M32 | |
@@ -1985,6 +1985,42 @@ own.
   the emulators.
 - **Verify**: launch three subagents from the script against the emulators, under
   `CONVERSATION_AGENT=placeholder` and then the real model, and read their transcripts and reports.
+- Built with these settled, on 2026-10-15:
+  - **A subagent's run ends through endings of its own**, `FinishSubagentRun`,
+    `FinishSubagentRunWithNote` and `InterruptSubagentRun`, which write `report` and `reportedAt` in
+    the write that lets go of `activeRunId`, since no write sets a column for some rows and not
+    others, and a mutation writes each row once. Every other ending's fence matches a conversation
+    that is no subagent, so no subagent ends without its report, and `finalizeDeadConversationRun`
+    answers `missing` for a subagent's run until M31 finalizes one with its report. Its text is drawn
+    by `DrawSubagentAgentText`, `DrawConversationAgentText` without the unread count; a subagent
+    draws no question or approval, its planner refusing a stray `ask_user` as a tool nobody runs.
+  - **The report** is its last text, read from its transcript's replies alone, never its brief or a
+    context message, a run that did not complete leading it with a sentence saying how it ended, at
+    its limits (`isAtLimit` on the ending), failed, full, refused, stopped or interrupted, and one
+    that wrote nothing saying that alone. Past 8000 characters it is cut at its last line break, or
+    else its last space, and marked with an ellipsis: a piece's cut stops at the block before a long
+    code block, which left a report of a few characters.
+  - **The system prompt is passed beside the tools** (`ConversationRequestConfig`), to the request,
+    its measurement and a send's, so a subagent's request can never send the conversation's prompt.
+    A subagent's context names its parent's aspects, read through `GetConversationRequestContext`'s
+    `parent`, and its files are counted from `parentAttachments`, its parent's sent files, since
+    `replaceConversationFiles` refuses a file it has no count for.
+  - **Ids** derive from the parent's and the launch's key (`deriveUuid`, which
+    `deriveConversationMessageId` now calls): the subagent's, its run's and its brief's. A launch sent
+    again finds the subagent's key taken, which Postgres reports before the query step's own check,
+    and reads it back. The brief names its run, as the member's message does, and the run's drawn
+    entries leave it out (`nin: [MEMBER_TEXT, BRIEF]`).
+  - **The web connector's reads and mutations are checked by `check:subagent-runs`**, since the fake
+    holds the backend connector's operations alone: a subagent's tail, bodies, history and run read
+    by its id, nothing for another member, and the delete, restore, read and aspects mutations
+    refusing it. The routes refusing a subagent are tested on the fake, each with what would let it
+    act on a conversation of the member's.
+  - The script titles the subagent after its brief, as a conversation is titled after its first
+    message, and launches on the conversation's latest anchor with a key of its own.
+  - Verified: the four checks; `check:subagent-runs`, `check:conversation-runs`, `-search`, `-list`,
+    `-attachments` and `-page` against an emulator of the branch's schema; three subagents launched
+    at once from the script under the placeholder, and one handed a file of its parent's, each
+    completing with its report. Not yet: the real model, which waits on gcloud's credentials here.
 
 ### M31: Chains, slots and the subagents' queue
 

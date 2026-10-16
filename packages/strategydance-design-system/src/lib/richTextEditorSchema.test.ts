@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
+import { defaultStyleSpecs } from '@blocknote/core'
 import {
   RICH_TEXT_EDITOR_BLOCKS,
   RICH_TEXT_POST_BLOCKS,
@@ -20,7 +21,7 @@ describe('createRichTextSchema', () => {
     expect(Object.keys(blockSchema).sort()).toEqual(['checkListItem', 'heading', 'paragraph'])
     expect(Object.keys(blockSchema.heading.propSchema)).toEqual(['level'])
     expect(Object.keys(blockSchema.paragraph.propSchema)).toEqual([])
-    expect(Object.keys(styleSchema).sort()).toEqual(['bold', 'italic', 'strike', 'underline'])
+    expect(Object.keys(styleSchema).sort()).toEqual(['bold', 'code', 'italic', 'strike', 'underline'])
     expect(Object.keys(inlineContentSchema).sort()).toEqual(['link', 'text'])
   })
 
@@ -40,6 +41,17 @@ describe('createRichTextSchema', () => {
       // Stored under these names for good, since a shared text holding a prop its schema lacks cannot be read
       expect(Object.keys(schema.documentMention.propSchema)).toEqual(['documentId', 'title'])
       expect(Object.keys(schema.taskMention.propSchema)).toEqual(['taskId', 'name'])
+    }
+  })
+
+  it("writes inline code with BlockNote's own mark, whose rules turn text typed between backticks into code", () => {
+    const { mark } = defaultStyleSpecs.code.implementation
+
+    for (const blocks of [RICH_TEXT_POST_BLOCKS, RICH_TEXT_TASK_BLOCKS, RICH_TEXT_EDITOR_BLOCKS]) {
+      const code = createRichTextSchema(blocks).styleSpecs.code.implementation.mark
+
+      expect(code.name).toBe('code')
+      expect(code.config.addInputRules).toBe(mark.config.addInputRules)
     }
   })
 

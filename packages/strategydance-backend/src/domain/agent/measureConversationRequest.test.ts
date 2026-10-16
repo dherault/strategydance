@@ -4,6 +4,7 @@ import type { BetaMessageParam, MessageCountTokensParams } from '@anthropic-ai/s
 
 import CONVERSATION_TOOLS from '~domain/agent/conversationTools'
 import createClaudeMessage from '~domain/agent/createClaudeMessage'
+import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import createScriptedClaudeClient from '~domain/agent/testing/createScriptedClaudeClient'
 import {
   parseConversationRunUsage,
@@ -14,6 +15,8 @@ import {
 import measureConversationRequest from './measureConversationRequest'
 
 const RUN_ID = 'run'
+
+const CONFIG = { system: CONVERSATION_SYSTEM_PROMPT, tools: CONVERSATION_TOOLS }
 
 const member: BetaMessageParam = { role: 'user', content: [{ type: 'text', text: 'Price the beta' }] }
 const context: BetaMessageParam = { role: 'system', content: [{ type: 'text', text: 'Context' }] }
@@ -57,12 +60,12 @@ const results: BetaMessageParam = {
 }
 
 describe('measureConversationRequest', () => {
-  test('counts the system prompt’s and tools’ share once for each list of tools', async () => {
+  test('counts the system prompt’s and tools’ share once for each prompt and list of tools', async () => {
     const scripted = createScriptedClaudeClient({ count: createCounter() })
-    const measure = (tools: typeof CONVERSATION_TOOLS) =>
+    const measure = (tools: typeof CONVERSATION_TOOLS, system = CONVERSATION_SYSTEM_PROMPT) =>
       measureConversationRequest({
         client: scripted.client,
-        tools,
+        config: { system, tools },
         messages: [member, context],
         entries: [{ position: 0, runId: RUN_ID }],
         runs: [{ id: RUN_ID, usage: parseConversationRunUsage(null) }],
@@ -72,17 +75,19 @@ describe('measureConversationRequest', () => {
     await measure(CONVERSATION_TOOLS)
     await measure(CONVERSATION_TOOLS)
     await measure(CONVERSATION_TOOLS.slice(1))
+    await measure(CONVERSATION_TOOLS, 'Another prompt')
 
-    // A request counted whole each time, and the share twice for each of the two lists
-    expect(scripted.counts).toHaveLength(7)
+    // A request counted whole each time, and the share twice for each of the three configurations
+    expect(scripted.counts).toHaveLength(10)
     expect(scripted.counts.filter(body => body.tools?.length === CONVERSATION_TOOLS.length - 1)).toHaveLength(2)
+    expect(scripted.counts.filter(body => body.system === 'Another prompt')).toHaveLength(2)
   })
 
   test('counts a conversation’s first request whole, and the system prompt’s and tools’ share once', async () => {
     const scripted = createScriptedClaudeClient({ count: createCounter() })
     const measured = await measureConversationRequest({
       client: scripted.client,
-      tools: CONVERSATION_TOOLS,
+      config: CONFIG,
       messages: [member, context],
       entries: [{ position: 0, runId: RUN_ID }],
       runs: [{ id: RUN_ID, usage: parseConversationRunUsage(null) }],
@@ -97,7 +102,7 @@ describe('measureConversationRequest', () => {
     const scripted = createScriptedClaudeClient({ count: createCounter() })
     const measured = await measureConversationRequest({
       client: scripted.client,
-      tools: CONVERSATION_TOOLS,
+      config: CONFIG,
       messages: [member, context, call, results],
       entries: [
         { position: 0, runId: RUN_ID },
@@ -116,7 +121,7 @@ describe('measureConversationRequest', () => {
     const scripted = createScriptedClaudeClient({ count: createCounter() })
     const measured = await measureConversationRequest({
       client: scripted.client,
-      tools: CONVERSATION_TOOLS,
+      config: CONFIG,
       messages: [member, context, reply, member, context],
       entries: [
         { position: 0, runId: 'earlier' },
@@ -147,7 +152,7 @@ describe('measureConversationRequest', () => {
     }
     const measured = await measureConversationRequest({
       client: scripted.client,
-      tools: CONVERSATION_TOOLS,
+      config: CONFIG,
       messages: [member, context, reply, withFile, context],
       entries: [
         { position: 0, runId: 'earlier' },
@@ -172,7 +177,7 @@ describe('measureConversationRequest', () => {
     const scripted = createScriptedClaudeClient({ count: createCounter(3000) })
     const measured = await measureConversationRequest({
       client: scripted.client,
-      tools: CONVERSATION_TOOLS,
+      config: CONFIG,
       messages: [member, context, reply, member, context],
       entries: [0, 1, 2, 3].map(position => ({ position, runId: position < 3 ? 'earlier' : RUN_ID })),
       runs: [{ id: 'earlier', usage: settledUsage(2, 1000) }],
@@ -187,7 +192,7 @@ describe('measureConversationRequest', () => {
     const scripted = createScriptedClaudeClient({ count: createCounter() })
     const measured = await measureConversationRequest({
       client: scripted.client,
-      tools: CONVERSATION_TOOLS,
+      config: CONFIG,
       messages: [member, context, reply],
       entries: [0, 1, 2].map(position => ({ position, runId: RUN_ID })),
       runs: [{ id: 'retried', usage: settledUsage(2) }],
@@ -202,7 +207,7 @@ describe('measureConversationRequest', () => {
     const usage = settledUsage(2)
     const measured = await measureConversationRequest({
       client: scripted.client,
-      tools: CONVERSATION_TOOLS,
+      config: CONFIG,
       messages: [member, context, reply],
       entries: [{ position: 0, runId: RUN_ID }],
       runs: [{ id: RUN_ID, usage }],

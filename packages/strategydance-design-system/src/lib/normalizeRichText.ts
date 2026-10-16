@@ -55,7 +55,7 @@ const MAX_TABLE_COLUMNS = 25
 const MIN_COLUMN_WIDTH = 35
 const MAX_COLUMN_WIDTH = 2000
 
-const STYLES = ['bold', 'italic', 'underline', 'strike'] as const
+const STYLES = ['bold', 'italic', 'underline', 'strike', 'code'] as const
 
 const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:'])
 
@@ -117,8 +117,9 @@ type UnknownRecord = Record<string, unknown>
   wrote, so nothing in it is trusted. A block keeps its type when it is one the options allow, and
   becomes a paragraph otherwise when it holds text. One holding none, such as a table or an image,
   gives way to its children. Ids, colors, alignment and every other prop go, but a heading's level,
-  a numbered list's first number, a check item's tick and a code block's language. Text keeps four
-  styles, and code none. A table keeps its cells' text, laid out on its grid with merged cells
+  a numbered list's first number, a check item's tick and a code block's language. Text keeps five
+  styles, inline code alone of them and never in a link, as the editor's code mark has it, and a
+  code block's text none. A table keeps its cells' text, laid out on its grid with merged cells
   split, and the widths of its columns, and whether its first row and column are headers. A
   picture keeps its web address, its alternative text, its caption and the width it was resized
   to, a video the address of its page on YouTube, Vimeo or Loom, written one way, and a link
@@ -382,8 +383,13 @@ function normalizeInline(content: unknown, rules: Rules): RichTextInline[] {
 
     if (!runs.length) return []
 
-    return href ? [{ type: 'link', href, content: runs }] : runs
+    return href ? [{ type: 'link', href, content: runs.map(withoutCode) }] : runs
   })
+}
+
+// A run of a link without inline code, which BlockNote's code mark keeps out of a link
+function withoutCode(run: RichTextRun): RichTextRun {
+  return run.styles?.code ? { type: 'text', text: run.text } : run
 }
 
 /*
@@ -457,6 +463,9 @@ function normalizeStyles(styles: unknown): RichTextStyles | undefined {
   const kept: RichTextStyles = {}
 
   for (const style of STYLES) if (styles[style] === true) kept[style] = true
+
+  // Inline code goes alone, as BlockNote's code mark excludes every other mark
+  if (kept.code) return { code: true }
 
   return Object.keys(kept).length ? kept : undefined
 }

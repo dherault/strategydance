@@ -29,6 +29,69 @@ const knowledgeMessages = defineMessages({
     description:
       "Line under the title of the Knowledge page's empty state. Aspects are the parts of a company, such as strategy or finances, each with a page of its own.",
   },
+  searchPlaceholder: {
+    id: 'knowledge.searchPlaceholder',
+    defaultMessage: 'Search knowledge',
+    description:
+      'Placeholder and accessible name of the field that filters the Knowledge page by the words in the titles of its items, such as notes, plans and decisions.',
+  },
+  aspectsFilterPlaceholder: {
+    id: 'knowledge.aspectsFilterPlaceholder',
+    defaultMessage: 'All aspects',
+    description:
+      'Placeholder of the select that filters the Knowledge page by the aspects of the company its items are tagged with, such as Marketing, while none is picked.',
+  },
+  aspectsFilterLabel: {
+    id: 'knowledge.aspectsFilterLabel',
+    defaultMessage: 'Filter by aspect',
+    description:
+      'Accessible name of the select that filters the Knowledge page by the aspects of the company its items are tagged with.',
+  },
+  aspectsFilterSearch: {
+    id: 'knowledge.aspectsFilterSearch',
+    defaultMessage: 'Search aspects',
+    description:
+      'Placeholder of the search field in the list of aspects of the company, such as Marketing or Legal, that filters the Knowledge page.',
+  },
+  aspectsFilterEmpty: {
+    id: 'knowledge.aspectsFilterEmpty',
+    defaultMessage: 'No aspects found',
+    description: 'Shown in the list of aspects that filters the Knowledge page when its search matches none.',
+  },
+  aspectsFilterClear: {
+    id: 'knowledge.aspectsFilterClear',
+    defaultMessage: 'Clear',
+    description:
+      'Button at the bottom of the list of aspects that filters the Knowledge page, which unpicks every one.',
+  },
+  aspectsFilterClose: {
+    id: 'knowledge.aspectsFilterClose',
+    defaultMessage: 'Close',
+    description: 'Button at the bottom of the list of aspects that filters the Knowledge page, which closes the list.',
+  },
+  aspectsFilterMore: {
+    id: 'knowledge.aspectsFilterMore',
+    defaultMessage: '+{count} more',
+    description:
+      'Drawn after the aspects the Knowledge page is filtered by, in the select that picks them, counting the ones it has no room to show.',
+  },
+  noMatchTitle: {
+    id: 'knowledge.noMatchTitle',
+    defaultMessage: 'No knowledge matches these filters',
+    description:
+      'Title of what the Knowledge page shows in place of its items when none matches its search and aspect filter.',
+  },
+  noMatchText: {
+    id: 'knowledge.noMatchText',
+    defaultMessage: 'Search looks at titles.',
+    description:
+      "Line under the title of what the Knowledge page shows when none of its items matches, saying that its search reads only the items' titles, not their text.",
+  },
+  clearFilters: {
+    id: 'knowledge.clearFilters',
+    defaultMessage: 'Clear filters',
+    description: "Button that resets the Knowledge page's search and aspect filter, shown when no item matches them.",
+  },
   loadError: {
     id: 'knowledge.loadError',
     defaultMessage: 'Your knowledge could not be loaded. Check your connection and try again.',

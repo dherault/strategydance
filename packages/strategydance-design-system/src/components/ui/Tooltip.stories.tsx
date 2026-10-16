@@ -1,7 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { InfoIcon, LockIcon, LockOpenIcon, SearchIcon } from 'lucide-react'
+import { BotIcon, InfoIcon, LockIcon, LockOpenIcon, SearchIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from 'strategydance-design-system/components/ui/Dialog'
 import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
 const meta = {
@@ -98,6 +106,33 @@ function KeptOpenOnPressExample(props: Parameters<typeof Tooltip>[0]) {
       />
     </Tooltip>
   )
+}
+
+// A dialog's trigger, which takes the focus back as the dialog closes. Its tooltip comes back with the
+// focus ring once Escape closed it from the keyboard, and stays away once a click on Close did
+export const OnDialogTrigger: Story = {
+  render: args => (
+    <Dialog>
+      <Tooltip
+        {...args}
+        content="Allow your agents to read and write documents"
+      >
+        <DialogTrigger asChild>
+          <Button
+            variant="outline"
+            icon={<BotIcon />}
+            aria-label="Allow your agents to read and write documents"
+          />
+        </DialogTrigger>
+      </Tooltip>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Use Knowledge with your agents</DialogTitle>
+          <DialogDescription>Close this with the button, or with Escape from the keyboard.</DialogDescription>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
+  ),
 }
 
 // An explanation behind an info button, which a phone's reader, with no hover, opens with a tap and

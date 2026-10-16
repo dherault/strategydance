@@ -2485,9 +2485,10 @@ and Risks). It removes no gate: M38 does.
   the ledger of the last 24 hours as M35 prices it, by organization and by account, the subagents'
   runs apart, which is what the decisions below are read against. A deleted organization's runs go
   with it, `DeleteOrganization` cascading to their ledgers, so the report prints beside its total the
-  workspace's own usage for the same day, read in the Anthropic Console, and calls the difference
-  what deleted organizations spent: metering that outlives a deletion is the credit system's to
-  build, which this plan leaves to it. It also lists every request whose billed usage passed its
+  workspace's own usage over the same 24 hours, read in the Anthropic Console, and calls the
+  difference unattributed: deleted organizations' runs, development's and the probes', which read
+  the same key (see Setup), and the gap between the ledger's estimates and what was billed. Metering
+  that outlives a deletion is the credit system's to build, which this plan leaves to it. It also lists every request whose billed usage passed its
   reservation, which is what raises the searches' allowance.
 - **The decisions left for the data**, each David's, taken with what `report:usage` and the
   recorded runs show, and written where each belongs:

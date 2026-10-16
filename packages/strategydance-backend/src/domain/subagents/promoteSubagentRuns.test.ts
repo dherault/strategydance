@@ -140,10 +140,30 @@ describe('promoteSubagentRuns', () => {
 
     const [one, two] = await Promise.all([promoteSubagentRuns(MEMBER), promoteSubagentRuns(MEMBER)])
 
-    expect([...one, ...two].map(({ runId }) => runId)).toEqual([sixth?.runId])
+    // The second's write is refused, and it queues the run it finds promoted, which queues it once
+    expect(new Set([...one, ...two].map(({ runId }) => runId))).toEqual(new Set([sixth?.runId]))
     expect(readStatuses(pending)).toEqual(['QUEUED'])
-    expect(readQueued()).toHaveLength(1)
     expect(fake.calls.filter(name => name === 'PromoteSubagentRun')).toHaveLength(2)
+    expect(readQueued().every(({ runId, queue }) => runId === sixth?.runId && queue === 'subagent-runs')).toBe(true)
+  })
+
+  test('queues a run whose promotion landed though its answer was lost', async () => {
+    const { running, pending } = await fillSlots()
+    const [sixth] = pending
+
+    await end(running[0])
+
+    fake.afterOperation = async name => {
+      if (name !== 'PromoteSubagentRun') return
+
+      fake.afterOperation = async () => {}
+
+      throw new Error('The connection closed before the answer')
+    }
+
+    expect((await promoteSubagentRuns(MEMBER)).map(({ runId }) => runId)).toEqual([sixth?.runId])
+    expect(readStatuses(pending)).toEqual(['QUEUED'])
+    expect(readQueued()).toEqual([{ runId: sixth?.runId, queue: 'subagent-runs' }])
   })
 
   test('promotes a run waiting behind more than a hundred it skips', async () => {

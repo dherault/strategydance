@@ -1,5 +1,11 @@
 import { MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER } from 'strategydance-core'
-import { getSubagentPendingRuns, getSubagentSlots, promoteSubagentRun } from 'strategydance-database/backend'
+import {
+  ConversationRunStatus,
+  getConversationRunContext,
+  getSubagentPendingRuns,
+  getSubagentSlots,
+  promoteSubagentRun,
+} from 'strategydance-database/backend'
 
 import type { ConversationRunReference } from '~types'
 
@@ -26,8 +32,10 @@ const MAX_ROUNDS = 2 * MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER
   run waiting: a promotion that ran meanwhile could not see that run yet.
 
   A promotion refused, the run promoted by another meanwhile, asked to stop, or every slot taken
-  again, is read again, the run it named skipped from then on. A run whose queueing failed has its
-  lease brought in to now, so the reconcile queues it again within its twenty minutes
+  again, is read again, the run it named skipped from then on. One whose answer was lost may have
+  landed, as another's may meanwhile: a run found queued is queued, which queues it once. A run whose
+  queueing failed has its lease brought in to now, so the reconcile queues it again within its
+  twenty minutes
 */
 async function promoteSubagentRuns({
   organizationId,
@@ -51,10 +59,13 @@ async function promoteSubagentRuns({
     try {
       await promoteSubagentRun(dataConnect, { ...reference, membershipCreatedAt })
     } catch (error) {
-      logger.warn(`Subagent run ${next.id}: its promotion was refused, and the runs waiting are read again`, error)
       refused.add(next.id)
 
-      continue
+      if (!(await isQueued(reference))) {
+        logger.warn(`Subagent run ${next.id}: its promotion was refused, and the runs waiting are read again`, error)
+
+        continue
+      }
     }
 
     queued.push(reference)
@@ -63,6 +74,12 @@ async function promoteSubagentRuns({
   }
 
   return queued
+}
+
+async function isQueued(reference: ConversationRunReference) {
+  const { data } = await getConversationRunContext(dataConnect, reference)
+
+  return data.conversationRuns[0]?.status === ConversationRunStatus.QUEUED
 }
 
 export default promoteSubagentRuns

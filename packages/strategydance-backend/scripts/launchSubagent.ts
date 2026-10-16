@@ -9,6 +9,7 @@ import { authentication, dataConnect } from '~firebase'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import launchSubagent from '~domain/subagents/launchSubagent'
+import reconcileSubagentRuns from '~domain/subagents/reconcileSubagentRuns'
 
 /*
   Launches a subagent of one of an account's conversations, in development, as Strategy Dance's
@@ -28,8 +29,10 @@ import launchSubagent from '~domain/subagents/launchSubagent'
   chained to included, so the script stays until every one has reported, printing each run as it
   waits for a slot, chains or ends, then prints each transcript, entry by entry, and its report. A
   promotion runs the subagent in the process of the run whose end freed its slot, so subagents of
-  one account are launched together, from one script, rather than from scripts side by side. It
-  stops sooner, saying so, once a run ends without a report or is left past its lease. With
+  one account are launched together, from one script, rather than from scripts side by side. A run
+  its worker left past its lease is reconciled as a parent's page would, finalized with its report
+  and its slot promoted into, and the script gives up on one still past its lease after three
+  reconciles, or that ended without a report, saying so. With
   `CONVERSATION_AGENT=placeholder` the runs answer with a stand-in reply, as `dev:backend` does;
   otherwise they ask Claude, which costs money.
 
@@ -48,6 +51,9 @@ const USAGE =
 
 // How often it reads whether the subagent reported
 const POLL_INTERVAL_MS = 2000
+
+// How many reconciles a run may stay past its lease through before the script gives up on it
+const MAX_RECONCILES = 3
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
@@ -167,8 +173,10 @@ for (let index = 0; index < count; index++) {
   subagentIds.push(result.subagentId)
 }
 
-// Each subagent's latest run as last printed, which a change of prints again
+// Each subagent's latest run as last printed, which a change of prints again, and how many
+// reconciles its run has stayed past its lease through
 const printed = new Map<string, string>()
+const reconciles = new Map<string, number>()
 const finished = new Map<string, ConversationRead>()
 
 while (finished.size < subagentIds.length) {
@@ -190,9 +198,34 @@ while (finished.size < subagentIds.length) {
 
     const isInFlight = run?.status === 'QUEUED' || run?.status === 'RUNNING' || run?.status === 'PENDING'
     const isPastLease =
-      run?.status === 'RUNNING' && run.leaseExpiresAt !== null && Date.parse(run.leaseExpiresAt) < Date.now()
+      (run?.status === 'QUEUED' || run?.status === 'RUNNING')
+      && run.leaseExpiresAt !== null
+      && Date.parse(run.leaseExpiresAt) < Date.now()
 
-    if (read.conversation?.reportedAt || !isInFlight || isPastLease) finished.set(subagentId, read)
+    if (read.conversation?.reportedAt || !isInFlight) {
+      finished.set(subagentId, read)
+
+      continue
+    }
+
+    if (!isPastLease) continue
+
+    // Its worker left it, holding a slot: finalized with its report, and the run waiting promoted
+    const count = (reconciles.get(subagentId) ?? 0) + 1
+
+    reconciles.set(subagentId, count)
+
+    if (count > MAX_RECONCILES) {
+      finished.set(subagentId, read)
+
+      continue
+    }
+
+    console.log(`Subagent ${subagentId}: its run is past its lease, reconciled`)
+
+    await reconcileSubagentRuns({ organizationId: parent.organizationId, userId }).catch((error: unknown) => {
+      console.error('The reconcile failed', error)
+    })
   }
 }
 
@@ -205,7 +238,7 @@ for (const [subagentId, { conversation: subagent, conversationRuns, conversation
 
   if (!subagent?.reportedAt) {
     hasFailed = true
-    console.error('\nIts run ended without a report, or is past its lease, left by its worker')
+    console.error('\nIts run ended without a report, or stayed past its lease through three reconciles')
 
     continue
   }

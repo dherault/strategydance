@@ -73,4 +73,19 @@ describe('planConversationToolCalls', () => {
     expect(plans[0]?.kind).toBe('run')
     expect(plans[1]).toMatchObject({ kind: 'refused', isDrawn: true })
   })
+
+  test('runs past 50 calls under a subagent chain’s budget, and refuses past it, naming it', () => {
+    const calls = [call('read_log', 0), call('read_log', 1)]
+    const plans = planConversationToolCalls(calls, {
+      callsBefore: 2 * MAX_TOOL_CALLS_PER_RUN - 1,
+      runnerNames: ['read_log'],
+      maxCalls: 2 * MAX_TOOL_CALLS_PER_RUN,
+    })
+
+    expect(plans[0]?.kind).toBe('run')
+    expect(plans[1]).toMatchObject({
+      kind: 'refused',
+      reason: `Not run: a response runs at most ${2 * MAX_TOOL_CALLS_PER_RUN} calls. Answer with what you have.`,
+    })
+  })
 })

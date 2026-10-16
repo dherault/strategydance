@@ -179,8 +179,15 @@ describe('runConversation, for a subagent', () => {
     expect(kit.readConversation(subagent)?.isAwaitingAnswer ?? false).toBe(false)
   })
 
-  test('fails at its limits with a report saying so, after the text it had', async () => {
+  test('fails at its limits on its fourth run, with a report saying so, after the text it had', async () => {
     const { subagent } = await launch()
+    const run = kit.readRun(subagent)
+    const conversation = kit.readConversation(subagent)
+
+    // As the fourth of its chain is numbered, which no limit chains any further
+    if (run) run.number = 3
+    if (conversation) conversation.nextRunNumber = 4
+
     const scripted = kit.createClient([
       answer(
         [

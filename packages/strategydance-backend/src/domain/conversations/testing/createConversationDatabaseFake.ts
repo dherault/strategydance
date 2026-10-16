@@ -38,7 +38,7 @@ import createModuleDatabaseFake from '~domain/modules/testing/createModuleDataba
   An operation checks everything before it changes anything, so it applies whole or not at all, as
   a transaction does, and runs without yielding, so two called at once take turns as two locked
   transactions do. `beforeOperation` runs first, which is where a test lets something happen
-  meanwhile, a member removed say. Times are the clock's, which a test moves with `setSystemTime`.
+  meanwhile, a member removed say, and `afterOperation` last, which is where it loses an answer. Times are the clock's, which a test moves with `setSystemTime`.
   Ids are kept as Data Connect keeps them, dashless
 */
 
@@ -313,6 +313,8 @@ function createConversationDatabaseFake() {
     attachments,
     calls,
     beforeOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
+    // Runs once an operation applied, where a test throws to lose a write's answer after it landed
+    afterOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
   }
 
   function now() {
@@ -3194,6 +3196,49 @@ function createConversationDatabaseFake() {
       }
     },
 
+    ChainSubagentRun: variables => {
+      const run = requireSubagentRun(variables)
+      const conversation = conversations.get(run.conversationId)
+
+      if (
+        !conversation
+        || run.number !== variables.runNumber
+        || run.anchorPosition !== variables.anchorPosition
+        || run.stopRequestedAt !== null
+        || conversation.deletedAt !== null
+      ) {
+        refuse("The run is no longer this worker's")
+      }
+
+      if (!(variables.runNumber < 3 && variables.nextRunNumber === variables.runNumber + 1)) {
+        refuse("A subagent's run chains to the run right after it, before its fourth")
+      }
+
+      if (conversation.activeRunId !== run.id || conversation.nextRunNumber !== variables.nextRunNumber) {
+        refuse('The subagent could not take the run its run chains to')
+      }
+
+      const nextRunId = id(variables.nextRunId)
+
+      if (runs.has(nextRunId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+
+      end(run, 'CHAINED')
+      assignGiven(run, { usage: variables.usage, failure: variables.failure })
+      Object.assign(conversation, { activeRunId: nextRunId, nextRunNumber: conversation.nextRunNumber + 1 })
+      runs.set(nextRunId, {
+        ...queuedRun(
+          nextRunId,
+          conversation.id,
+          { ...variables, runNumber: variables.nextRunNumber },
+          'CONTINUE',
+          variables.anchorPosition,
+        ),
+        pendingToolResults: variables.pendingToolResults ?? null,
+      })
+
+      return { conversationRun_updateMany: 1 }
+    },
+
     PromoteSubagentRun: variables => {
       const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
 
@@ -3706,7 +3751,11 @@ function createConversationDatabaseFake() {
 
       await fake.beforeOperation(name, variables)
 
-      return { data: operation(variables) }
+      const data = operation(variables)
+
+      await fake.afterOperation(name, variables)
+
+      return { data }
     }
   }
 
@@ -3718,6 +3767,7 @@ function createConversationDatabaseFake() {
 
     calls.length = 0
     fake.beforeOperation = async () => {}
+    fake.afterOperation = async () => {}
     modules.reset()
     integrations.reset()
   }

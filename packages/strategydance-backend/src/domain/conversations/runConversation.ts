@@ -2,7 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { setTimeout as wait } from 'node:timers/promises'
 
 import type { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { MAX_CONVERSATION_MESSAGES, MAX_CONVERSATION_RUN_ENTRIES, buildConversationPreview } from 'strategydance-core'
+import {
+  MAX_CONVERSATION_MESSAGES,
+  MAX_CONVERSATION_RUN_ENTRIES,
+  MAX_SUBAGENT_RUNS,
+  MAX_TOOL_CALLS_PER_RUN,
+  buildConversationPreview,
+} from 'strategydance-core'
 import {
   ConversationMessageKind,
   ConversationNoteKind,
@@ -53,6 +59,7 @@ import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
 import createConversationIntegrationRunners from '~domain/agent/createConversationIntegrationRunners'
 import planConversationToolCalls, { type ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
+import SUBAGENT_REPORT_REQUEST from '~domain/agent/subagentReportRequest'
 import SUBAGENT_SYSTEM_PROMPT from '~domain/agent/subagentSystemPrompt'
 import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import buildConversationToolResults from '~domain/conversations/buildConversationToolResults'
@@ -61,10 +68,15 @@ import {
   chargeUnsettledRequests,
   parseConversationRunUsage,
 } from '~domain/conversations/conversationRunUsage'
+import { serializePendingToolResults } from '~domain/conversations/conversationToolResults'
 import createConversationRunLease, { type ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import drawConversationTurn from '~domain/conversations/drawConversationTurn'
-import endConversationRun, { type ConversationRunEnding } from '~domain/conversations/endConversationRun'
+import endConversationRun, {
+  type ConversationRunEnding,
+  type SubagentChain,
+} from '~domain/conversations/endConversationRun'
+import enqueueRun from '~domain/conversations/enqueueRun'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import requestConversationTagging from '~domain/conversations/requestConversationTagging'
@@ -75,6 +87,7 @@ import requestConversationTurn, {
 import runConversationToolCalls from '~domain/conversations/runConversationToolCalls'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import storeConversationParts from '~domain/conversations/storeConversationParts'
+import deriveChainedRunId from '~domain/subagents/deriveChainedRunId'
 
 // How many steps a run takes at most, each a request, a message drawn or its end. A run draws at
 // most 100 entries before it sends no further request, so only a loop that would never end reaches it
@@ -139,7 +152,11 @@ type ConversationRunContext = GetConversationRunContextData
 
   A subagent's run sends the subagent's own system prompt and tools, which leave out `ask_user` and
   the integrations', never tags its conversation, draws no reply as unread, and ends through the
-  subagent's own endings, which write its report, however it ends.
+  subagent's own endings, which write its report, however it ends. At one of its limits before its
+  fourth run it chains instead, to a run that carries it on, which is queued once this one has let
+  go of its lease, the run answering `held` while it cannot be, so the delivery comes back to queue
+  it, as a delivery finding the run chained does. Its calls count 50 for each run of the chain, and
+  its fourth run's last request, after a turn's results, asks for its report.
 
   What a request came to, the turn to store or the run's end, is kept until it is written, so a
   write refused once is tried again, never paid for again. Every write is fenced on the run's
@@ -163,6 +180,9 @@ async function runConversation(
   const context = await readContext(reference)
   const [run] = context.conversationRuns
   const isSubagent = Boolean(context.conversation?.parentId)
+
+  // Delivered again after its chain's next run could not be queued, or a crash right after the chain
+  if (run?.status === ConversationRunStatus.CHAINED) return queueChainedRun(reference)
 
   if (!run || !isInFlight(run.status)) return 'finished'
   if (run.status === ConversationRunStatus.RUNNING && !isPast(run.leaseExpiresAt)) return 'held'
@@ -214,9 +234,10 @@ async function runConversation(
 
   const controller = new AbortController()
   const lease = createConversationRunLease({ fence, onLost: () => controller.abort() })
+  let outcome: Awaited<ReturnType<typeof takeSteps>>
 
   try {
-    return await takeSteps({
+    outcome = await takeSteps({
       fence,
       lease,
       signal: controller.signal,
@@ -237,6 +258,23 @@ async function runConversation(
     await lease.stop()
     await modules.close()
   }
+
+  // The next run takes over once this one's lease has stopped
+  return outcome === 'chained' ? queueChainedRun(fence) : outcome
+}
+
+/*
+  Queues the run a subagent's run chained to, and answers `finished` once it is, or `held` while it
+  cannot be, so Cloud Tasks delivers the chained run again, which queues it then
+*/
+async function queueChainedRun(reference: ConversationRunReference) {
+  const next = { ...toReference(reference), runId: deriveChainedRunId(reference.runId) }
+
+  if (await enqueueRun(next, 'subagent-runs')) return 'finished'
+
+  logger.warn(`Conversation run ${reference.runId}: the run it chained to could not be queued, left for its delivery`)
+
+  return 'held'
 }
 
 type StepsInput = {
@@ -268,7 +306,7 @@ async function takeSteps({
   runners,
   toolTimeoutMs,
   isSubagent,
-}: StepsInput) {
+}: StepsInput): Promise<'finished' | 'held' | 'chained'> {
   const reference = toReference(fence)
   let failedSteps = 0
   // What a request came to and is not written yet
@@ -278,6 +316,8 @@ async function takeSteps({
     const context = await readContext(reference)
     const [run] = context.conversationRuns
 
+    // Chained by this worker's own write, whose answer was lost
+    if (run?.status === ConversationRunStatus.CHAINED && run.attempts === fence.attempts) return 'chained'
     if (run?.status !== ConversationRunStatus.RUNNING || run.attempts !== fence.attempts) return 'finished'
 
     try {
@@ -296,10 +336,11 @@ async function takeSteps({
         outcome,
       })
 
-      outcome = result === 'ended' || result === 'next' ? null : result
+      outcome = result === 'ended' || result === 'chained' || result === 'next' ? null : result
       failedSteps = 0
 
       if (result === 'ended') return 'finished'
+      if (result === 'chained') return 'chained'
     } catch (error) {
       failedSteps++
 
@@ -327,9 +368,10 @@ type StepInput = Omit<StepsInput, 'retryDelayMs'> & {
 }
 
 /*
-  Takes the run's next step, and answers `ended` once it ended the run, `next` when there is
-  another, or what a request came to, for the next step to write. A run whose author left, or
-  whose conversation was deleted, ends first, a turn not written yet included
+  Takes the run's next step, and answers `ended` once it ended the run, `chained` once a subagent's
+  run handed on to the next, `next` when there is another, or what a request came to, for the next
+  step to write. A run whose author left, or whose conversation was deleted, ends first, a turn not
+  written yet included
 */
 async function takeStep({
   context,
@@ -344,7 +386,7 @@ async function takeStep({
   toolTimeoutMs,
   isSubagent,
   outcome,
-}: StepInput): Promise<'ended' | 'next' | ConversationTurnOutcome> {
+}: StepInput): Promise<'ended' | 'chained' | 'next' | ConversationTurnOutcome> {
   const { conversation } = context
   const [run] = context.conversationRuns
   const [entry] = context.conversationTranscriptEntries
@@ -353,10 +395,16 @@ async function takeStep({
   // worker holds what it came to
   const usage = readOutcomeUsage(outcome) ?? chargeUnsettledRequests(parseConversationRunUsage(run?.usage))
 
-  async function end(ending: ConversationRunEnding) {
-    await endConversationRun({ ending, fence, lease, position, isSubagent })
-
-    return 'ended' as const
+  // With the results the turn's calls kept, when the ten minutes came between them
+  function end(ending: ConversationRunEnding, pendingToolResults: string | null = null) {
+    return endConversationRun({
+      ending,
+      fence,
+      lease,
+      position,
+      isSubagent,
+      chain: readChain(context, isSubagent, pendingToolResults),
+    })
   }
 
   // Its member asked it to stop, which a run reads before each request and each call: what was
@@ -384,7 +432,7 @@ async function takeStep({
     return end({ kind: 'finished', status: ConversationRunStatus.STOPPED, usage })
   }
 
-  if (outcome) return (await writeOutcome({ outcome, context, fence, lease, isSubagent })) ? 'ended' : 'next'
+  if (outcome) return (await writeOutcome({ outcome, context, fence, lease, isSubagent })) ?? 'next'
 
   if (!entry) throw new Error('A run answers a transcript, and its conversation has none')
   if (entry.role === ConversationTranscriptRole.SYSTEM) throw new Error('A transcript never ends on a context message')
@@ -398,7 +446,7 @@ async function takeStep({
     const parts = sinceAnchor
       .filter(({ role }) => role === ConversationTranscriptRole.ASSISTANT)
       .map(part => ({ ...part, blocks: parseTranscriptContent(part.content) }))
-    const plans = planCalls(parts, runners, isSubagent)
+    const plans = planCalls(parts, runners, isSubagent, readMaxCalls(context, isSubagent))
     const drawn = await drawConversationTurn({ fence, lease, entries: parts, plans, position, isSubagent })
 
     if (drawn === 'drawn') return 'next'
@@ -473,14 +521,17 @@ async function takeStep({
       }
       if (ran.outcome === 'stopped') return stop('Its member stopped it before its next call')
       if (ran.outcome === 'expired') {
-        return end({
-          kind: 'noted',
-          status: ConversationRunStatus.FAILED,
-          noteKind: ConversationNoteKind.FAILED,
-          failure: `The run passed ${limits.maxDurationMs / 1000} seconds since it was first claimed, before its next call`,
-          usage,
-          isAtLimit: true,
-        })
+        return end(
+          {
+            kind: 'noted',
+            status: ConversationRunStatus.FAILED,
+            noteKind: ConversationNoteKind.FAILED,
+            failure: `The run passed ${limits.maxDurationMs / 1000} seconds since it was first claimed, before its next call`,
+            usage,
+            isAtLimit: true,
+          },
+          ran.pending.size ? serializePendingToolResults(ran.pending) : null,
+        )
       }
 
       const results = buildConversationToolResults({
@@ -489,6 +540,12 @@ async function takeStep({
         pending: ran.pending,
         skipsQuestions: false,
       })
+      // A subagent's last request, when it follows the results, asks for its report, calling nothing
+      const isLastRequestNext =
+        isSubagent && run?.number === MAX_SUBAGENT_RUNS - 1 && usage.requests.length === limits.maxRequests - 1
+      const content = isLastRequestNext
+        ? [...results, { type: 'text' as const, text: SUBAGENT_REPORT_REQUEST }]
+        : results
       /*
         A run an answer started that stores the results of a turn another run drew carried a waiting
         turn on to make the calls its member allowed, and is anchored on those results from then on,
@@ -514,7 +571,7 @@ async function takeStep({
           ...fence,
           entryId: randomUUID().replaceAll('-', ''),
           position: entry.position + 1,
-          content: serializeTranscriptContent(results),
+          content: serializeTranscriptContent(content),
           ...(isReanchored && { anchorPosition: entry.position + 1 }),
         }),
       )
@@ -587,24 +644,23 @@ type WriteOutcomeInput = {
   isSubagent: boolean
 }
 
-// Writes what a request came to, and answers whether that ended the run
+// Writes what a request came to, and answers whether that ended or chained the run, or null
 async function writeOutcome({ outcome, context, fence, lease, isSubagent }: WriteOutcomeInput) {
   if (outcome.kind === 'tagging') {
     await writeTagging({ outcome, context, fence, lease })
 
-    return false
+    return null
   }
 
   if (outcome.kind === 'ending') {
-    await endConversationRun({
+    return endConversationRun({
       ending: outcome.ending,
       fence,
       lease,
       position: context.conversation?.nextMessagePosition ?? 0,
       isSubagent,
+      chain: readChain(context, isSubagent, null),
     })
-
-    return true
   }
 
   await storeConversationParts({
@@ -614,7 +670,27 @@ async function writeOutcome({ outcome, context, fence, lease, isSubagent }: Writ
     storedEntryIds: new Set(context.runEntries.map(({ id }) => id)),
   })
 
-  return false
+  return null
+}
+
+/*
+  What a subagent's run hands on to at one of its limits, as the step read it, null for its fourth
+  run and for a conversation's: its number and anchor, and the results its turn's calls kept
+*/
+function readChain(
+  { conversationRuns: [run] }: ConversationRunContext,
+  isSubagent: boolean,
+  pendingToolResults: string | null,
+): SubagentChain | null {
+  if (!isSubagent || !run || run.number >= MAX_SUBAGENT_RUNS - 1) return null
+
+  return { runNumber: run.number, anchorPosition: run.anchorPosition, pendingToolResults }
+}
+
+// How many calls the turns since the run's anchor make in all: 50 for each run a subagent's chain
+// has taken, its runs numbered from 0 on one anchor, and 50 for any other run
+function readMaxCalls({ conversationRuns: [run] }: ConversationRunContext, isSubagent: boolean) {
+  return MAX_TOOL_CALLS_PER_RUN * (isSubagent ? (run?.number ?? 0) + 1 : 1)
 }
 
 /*
@@ -715,12 +791,14 @@ async function isWaitingForMember(fence: ConversationRunFence, calls: { id: stri
 /*
   What becomes of each call the run's replies made to Strategy Dance's own tools, by its id, as
   `planConversationToolCalls` plans it, counting each reply's calls after those of the replies
-  before it. A subagent's questions are refused, since nobody answers them
+  before it, within the run's budget (`readMaxCalls`). A subagent's questions are refused, since
+  nobody answers them
 */
 function planCalls(
   parts: { blocks: ConversationContentBlock[] }[],
   runners: ConversationToolRunner[],
   isSubagent: boolean,
+  maxCalls: number,
 ) {
   const plans = new Map<string, ConversationToolCallPlan>()
   const runnerNames = runners.map(({ name }) => name)
@@ -729,7 +807,12 @@ function planCalls(
   for (const { blocks } of parts) {
     const calls = readConversationToolCalls(blocks)
 
-    for (const plan of planConversationToolCalls(calls, { callsBefore, runnerNames, asksQuestions: !isSubagent })) {
+    for (const plan of planConversationToolCalls(calls, {
+      callsBefore,
+      runnerNames,
+      asksQuestions: !isSubagent,
+      maxCalls,
+    })) {
       plans.set(plan.call.id, plan)
     }
 

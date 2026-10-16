@@ -33,17 +33,21 @@ type Options = {
   // Whether anybody answers a question, which nobody does a subagent's: its `ask_user`, a tool it is
   // never sent, is then refused as one nobody runs
   asksQuestions?: boolean
+  // How many calls the turns since the anchor run in all: 50 for a run, and for a subagent's 50 for
+  // each run its chain has taken, since its runs share their anchor
+  maxCalls?: number
 }
 
 /*
   What becomes of each of a turn's calls, from the transcript alone, so a worker taking over after a
   crash plans the same. A question past its bounds is never drawn, whatever else holds. A turn runs
-  at most 10 calls, and the turns answering one member's entry 50, questions included: a call past
-  either is drawn as failed and answered as not run. A call to a tool nobody runs is drawn as failed
+  at most 10 calls, and the turns answering one member's entry 50, questions included, or as many as
+  `maxCalls` says for a subagent's chain: a call past either is drawn as failed and answered as not
+  run. A call to a tool nobody runs is drawn as failed
 */
 function planConversationToolCalls(
   calls: ConversationToolCall[],
-  { callsBefore, runnerNames, asksQuestions = true }: Options,
+  { callsBefore, runnerNames, asksQuestions = true, maxCalls = MAX_TOOL_CALLS_PER_RUN }: Options,
 ): ConversationToolCallPlan[] {
   return calls.map((call, index) => {
     // Checked before the limits, so a question past its bounds never reaches the thread
@@ -58,11 +62,8 @@ function planConversationToolCalls(
       )
     }
 
-    if (callsBefore + index >= MAX_TOOL_CALLS_PER_RUN) {
-      return refuse(
-        call,
-        `Not run: a response runs at most ${MAX_TOOL_CALLS_PER_RUN} calls. Answer with what you have.`,
-      )
+    if (callsBefore + index >= maxCalls) {
+      return refuse(call, `Not run: a response runs at most ${maxCalls} calls. Answer with what you have.`)
     }
 
     if (checked?.outcome === 'valid') return { kind: 'question', call, question: checked.question }

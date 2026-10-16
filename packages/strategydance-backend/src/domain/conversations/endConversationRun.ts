@@ -1,12 +1,14 @@
 import { type ConversationPreview, buildConversationPreview } from 'strategydance-core'
 import {
   ConversationNoteKind,
-  type ConversationRunStatus,
+  ConversationRunStatus,
+  chainSubagentRun,
   finishConversationRun,
   finishConversationRunWaiting,
   finishConversationRunWithNote,
   finishSubagentRun,
   finishSubagentRunWithNote,
+  getConversationRunStop,
   interruptConversationRun,
   interruptSubagentRun,
 } from 'strategydance-database/backend'
@@ -22,6 +24,7 @@ import type { ConversationRunLease } from '~domain/conversations/createConversat
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import buildSubagentReport from '~domain/subagents/buildSubagentReport'
+import deriveChainedRunId from '~domain/subagents/deriveChainedRunId'
 import promoteSubagentRuns from '~domain/subagents/promoteSubagentRuns'
 
 /*
@@ -57,6 +60,17 @@ export type ConversationRunEnding =
   | { kind: 'waiting'; usage?: ConversationRunUsage; preview?: ConversationPreview | null }
   | { kind: 'interrupted'; reference: ConversationRunReference; attempts: number; failure: string }
 
+/*
+  What a subagent's run hands on to when it reaches one of its limits before its fourth run: its
+  number and its anchor, which the next run carries on from, and the results its turn's calls kept,
+  when the ten minutes came between them
+*/
+export type SubagentChain = {
+  runNumber: number
+  anchorPosition: number
+  pendingToolResults: string | null
+}
+
 type EndConversationRunInput = {
   ending: ConversationRunEnding
   // The worker's fence and its lease, which a worker that has not claimed its run yet has neither of
@@ -66,6 +80,8 @@ type EndConversationRunInput = {
   position: number
   // Whether the conversation is a subagent, whose run ends with its report
   isSubagent: boolean
+  // What a subagent's run hands on to at its limits, null for its fourth run and every other run
+  chain?: SubagentChain | null
 }
 
 /*
@@ -77,16 +93,24 @@ type EndConversationRunInput = {
   A subagent's run ends through the subagent's own endings, which write its report in the same
   write, however it ends (`buildSubagentReport`), read from its transcript as it stands. A subagent
   never waits, since nobody answers it. Its run held one of its member's five slots, so the oldest
-  run waiting for one is promoted once it has ended
+  run waiting for one is promoted once it has ended.
+
+  A subagent's run at one of its limits before its fourth run chains instead (`chain`): it ends
+  `CHAINED` and the next run is queued in the same write, holding its slot, so nothing is promoted,
+  and its member's stop, read first, ends it stopped rather than lost on a run it never named.
+  Answers `chained` then, for the worker to queue the next run, and `ended` otherwise
 */
-async function endConversationRun({ ending, fence, lease, position, isSubagent }: EndConversationRunInput) {
+async function endConversationRun({
+  ending,
+  fence,
+  lease,
+  position,
+  isSubagent,
+  chain = null,
+}: EndConversationRunInput): Promise<'ended' | 'chained'> {
   const write = <T>(operation: () => Promise<T>) => (lease ? lease.write(operation) : operation())
 
-  if (isSubagent) {
-    await endSubagentRun({ ending, fence, position, write })
-
-    return
-  }
+  if (isSubagent) return endSubagentRun({ ending, fence, position, write, chain })
 
   if (ending.kind === 'interrupted') {
     await write(() =>
@@ -100,7 +124,7 @@ async function endConversationRun({ ending, fence, lease, position, isSubagent }
       }),
     )
 
-    return
+    return 'ended'
   }
 
   if (!fence) throw new Error('A run ends as its worker decides only once it is claimed')
@@ -114,7 +138,7 @@ async function endConversationRun({ ending, fence, lease, position, isSubagent }
       }),
     )
 
-    return
+    return 'ended'
   }
 
   if (ending.kind === 'finished') {
@@ -126,7 +150,7 @@ async function endConversationRun({ ending, fence, lease, position, isSubagent }
       }),
     )
 
-    return
+    return 'ended'
   }
 
   await write(() =>
@@ -142,21 +166,61 @@ async function endConversationRun({ ending, fence, lease, position, isSubagent }
       ...(ending.isFull ? { isFull: true } : {}),
     }),
   )
+
+  return 'ended'
 }
 
 type EndSubagentRunInput = Omit<EndConversationRunInput, 'lease' | 'isSubagent'> & {
   write: <T>(operation: () => Promise<T>) => Promise<T>
 }
 
-// Ends a subagent's run as its worker decided, with its report, in one write, then promotes into the
-// slot it held
-async function endSubagentRun(input: EndSubagentRunInput) {
-  await writeSubagentEnding(input)
+/*
+  Ends a subagent's run as its worker decided, with its report, in one write, then promotes into the
+  slot it held, or chains it at its limits, unless its member asked it to stop, when it ends stopped
+*/
+async function endSubagentRun(input: EndSubagentRunInput): Promise<'ended' | 'chained'> {
+  const { ending, fence, chain, write } = input
+
+  if (chain && fence && ending.kind === 'noted' && ending.isAtLimit) {
+    const { data } = await getConversationRunStop(dataConnect, toReference(fence))
+
+    if (!data.conversationRuns[0]?.stopRequestedAt) {
+      await write(() =>
+        chainSubagentRun(dataConnect, {
+          ...fence,
+          runNumber: chain.runNumber,
+          anchorPosition: chain.anchorPosition,
+          nextRunId: deriveChainedRunId(fence.runId),
+          nextRunNumber: chain.runNumber + 1,
+          failure: ending.failure,
+          ...(ending.usage ? { usage: ending.usage } : {}),
+          ...(chain.pendingToolResults ? { pendingToolResults: chain.pendingToolResults } : {}),
+        }),
+      )
+
+      return 'chained'
+    }
+
+    await writeSubagentEnding({
+      ...input,
+      ending: {
+        kind: 'noted',
+        status: ConversationRunStatus.STOPPED,
+        noteKind: ConversationNoteKind.STOPPED,
+        failure: `Its member asked it to stop as it reached a limit: ${ending.failure}`,
+        usage: ending.usage,
+      },
+    })
+  } else {
+    await writeSubagentEnding(input)
+  }
 
   // The ending needs one of the two, without which it throws before
-  const run = input.ending.kind === 'interrupted' ? input.ending.reference : input.fence
+  const run = ending.kind === 'interrupted' ? ending.reference : fence
 
   if (run) await promoteFreedSlot(run)
+
+  return 'ended'
 }
 
 async function writeSubagentEnding({ ending, fence, position, write }: EndSubagentRunInput) {
@@ -213,6 +277,11 @@ async function writeSubagentEnding({ ending, fence, position, write }: EndSubage
       report,
     }),
   )
+}
+
+// The run's keys alone, which a read takes
+function toReference({ organizationId, userId, conversationId, runId }: ConversationRunReference) {
+  return { organizationId, userId, conversationId, runId }
 }
 
 // Promotes into the slot a subagent's run held until it ended. A promotion that fails leaves the

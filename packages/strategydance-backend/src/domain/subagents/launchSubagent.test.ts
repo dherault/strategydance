@@ -296,6 +296,33 @@ describe('launchSubagent', () => {
     expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: launchedNow.runId }), 'subagent-runs')
   })
 
+  test('promotes its own run when its pending launch’s answer was lost and a slot freed meanwhile', async () => {
+    const other = await kit.start()
+    const subagents = []
+
+    for (let index = 0; index < MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER; index++) subagents.push(await kit.launch(other))
+
+    const [ending] = subagents
+
+    // The launch lands, a run ends and its promotion finds nothing waiting yet, and the answer is lost
+    fake.afterOperation = async name => {
+      if (name !== 'LaunchPendingSubagent' || !ending) return
+
+      fake.afterOperation = async () => {}
+
+      await kit.call('finishSubagentRun', { ...(await kit.claim(ending)), status: 'COMPLETED', report: 'Done.' })
+
+      throw new Error('The connection closed before the answer')
+    }
+
+    const parent = await kit.start()
+    const launchedNow = await launched(parent.conversationId)
+
+    expect(launchedNow.isPending).toBe(false)
+    expect(fake.runs.get(launchedNow.runId)?.status).toBe('QUEUED')
+    expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: launchedNow.runId }), 'subagent-runs')
+  })
+
   test('refuses a parent holding its hundred subagents', async () => {
     const parent = await kit.start()
     const conversation = fake.conversations.get(parent.conversationId)

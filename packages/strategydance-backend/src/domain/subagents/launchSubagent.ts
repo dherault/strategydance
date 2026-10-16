@@ -82,7 +82,8 @@ export type LaunchSubagentResult =
   the run is sent on its way, as a send's is. Each round reads where things stand first:
 
   - the subagent at the id the launch derives exists: the launch went through already, and is
-    answered with it, its run queued again while it waits in the queue
+    answered with it, its run queued again while it waits in the queue, or promoted while it waits
+    for a slot, as the launch that left it pending would have
   - the parent has to be the caller's, not deleted and no subagent, under its 100 subagents, and
     under 10 on its latest anchor, the member's action the launch carries out, those a retry deleted
     left out
@@ -151,7 +152,14 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
         return { outcome: 'unavailable', subagentId, runId }
       }
 
-      return { outcome: 'launched', subagentId, runId, isPending: run?.status === ConversationRunStatus.PENDING }
+      // A pending launch whose answer was lost has not promoted yet, as the launch it repeats would
+      if (run?.status === ConversationRunStatus.PENDING) {
+        const promoted = await promote(input)
+
+        return { outcome: 'launched', subagentId, runId, isPending: !promoted.some(queued => queued.runId === runId) }
+      }
+
+      return { outcome: 'launched', subagentId, runId, isPending: false }
     }
 
     if (

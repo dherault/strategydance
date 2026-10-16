@@ -2,17 +2,20 @@ import { ConversationRunStatus } from 'strategydance-database/web'
 
 import type { ConversationRun } from '~types'
 
-// How far a run has come: a status only ever moves to one further on
+// How far a run has come: a status only ever moves to one further on. A subagent's run waits
+// pending before it is queued, and one that chained has ended as the others have
 const STATUS_RANKS = {
-  [ConversationRunStatus.QUEUED]: 0,
-  [ConversationRunStatus.RUNNING]: 1,
-  [ConversationRunStatus.WAITING]: 2,
-  [ConversationRunStatus.COMPLETED]: 3,
-  [ConversationRunStatus.STOPPED]: 3,
-  [ConversationRunStatus.FAILED]: 3,
-  [ConversationRunStatus.REFUSED]: 3,
-  [ConversationRunStatus.INTERRUPTED]: 3,
-  [ConversationRunStatus.CONTINUED]: 4,
+  [ConversationRunStatus.PENDING]: 0,
+  [ConversationRunStatus.QUEUED]: 1,
+  [ConversationRunStatus.RUNNING]: 2,
+  [ConversationRunStatus.WAITING]: 3,
+  [ConversationRunStatus.COMPLETED]: 4,
+  [ConversationRunStatus.STOPPED]: 4,
+  [ConversationRunStatus.FAILED]: 4,
+  [ConversationRunStatus.REFUSED]: 4,
+  [ConversationRunStatus.INTERRUPTED]: 4,
+  [ConversationRunStatus.CHAINED]: 4,
+  [ConversationRunStatus.CONTINUED]: 5,
 } satisfies Record<ConversationRunStatus, number>
 
 /*

@@ -61,8 +61,9 @@ left for the recorded usage taken (see Release gate); a run stops at $10 of esti
 account has ceilings across its organizations, and what finishes work under way passes a cap only up
 to one and a half times it (see Usage caps); subagents delete nothing, saying in their report
 what they would delete, and one briefed on a task moves it to `ONGOING` as it starts, and their
-model and effort are chosen from what M33 measures (see Subagents). When a decision changes, change
-it here first.
+model and effort are chosen from what M33 measures (see Subagents); and M36 is written again against
+M29 as it was built, the parent hearing of every integration call a subagent made. When a decision
+changes, change it here first.
 
 ## The design
 
@@ -1575,7 +1576,7 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
 | Tool | What it does | Scope |
 | --- | --- | --- |
 | `list_subagents` | `{ cursor? }`: the subagents the calling conversation launched and a Retry did not delete, newest first, 20 a page, with a `cursor` while more remain. Each has its id, its title, its status (queued, waiting for a slot, working, reported, stopped, failed or interrupted), when it started and ended, whether it reported and whether its report was delivered | read |
-| `read_subagent` | `{ id, cursor? }`: one of them, with its status and its step, how many runs it took, its report once written, and what it wrote: the documents and tasks its successful module writes named, each with its tool, oldest first, 50 a page, with `total` and a `cursor` while more remain, since a chain can make 200 calls. The cursor pages the writes alone, the rest coming with every page. Refused for a subagent of another conversation, or one a Retry deleted, whose launch the transcript no longer holds, as for one that does not exist | read |
+| `read_subagent` | `{ id, cursor? }`: one of them, with its status and its step, how many runs it took, its report once written, and what it wrote: the documents and tasks its successful module writes named, each with its tool, and from M36 the integration calls it made, each with its server, its tool and how it ended, oldest first, 50 a page, with `total` and a `cursor` while more remain, since a chain can make 200 calls. The cursor pages the writes alone, the rest coming with every page. Refused for a subagent of another conversation, or one a Retry deleted, whose launch the transcript no longer holds, as for one that does not exist | read |
 | `launch_subagent` | `{ title, brief, attachments? }`: a new subagent of the calling conversation. The title is one line of at most 120 characters, the brief at most 20000 (`MAX_SUBAGENT_BRIEF_LENGTH`), and `attachments` the ids of at most ten files the conversation has sent, as the member's entries name them. Answers its id and whether it is queued or waiting for a slot. Refused from a subagent, from a parent's reaction (a `REPORTS` run), from a run that has ended or was asked to stop, past ten on the launching run's anchor (`MAX_SUBAGENTS_PER_ACTION`), those a Retry deleted left out, past 100 in the conversation (`MAX_CONVERSATION_SUBAGENTS`), for a file the conversation has not sent, and for a first request, measured whole when it carries files, past a send's budget, `MAX_CONVERSATION_SEND_INPUT_TOKENS` | write |
 | `stop_subagent` | `{ id }`: asks it to stop, as its row's Stop does. One already ended is answered as such, and changes nothing | write |
 
@@ -2180,6 +2181,11 @@ way (see The orchestrator).
   an administrator lets run without approval, as David chose, since nobody can approve a call for a
   subagent. Any other call is refused with a sentence asking it to say in its report what it would
   call and why, and the parent proposes the call in its own thread, where M29's approval applies.
+  The decision is M29's, made once when the call is drawn, a call that would wait drawn failed
+  instead, and a started call is never made again, a `CONTINUE` run's included. `read_subagent` and a
+  reaction's entry list the calls a subagent made, server, tool and ending, since a call to another
+  company's server is what no restore undoes, and the switch that lets a tool run without approval
+  says it runs in subagents too, with nobody watching.
 - **Cost.** A subagent's run costs what a conversation's does, about $0.15 for three cached requests
   (see Cost), but a subagent may take four runs of 25 requests over a context that grows with what it
   reads, some $1.50 a full run over a modest context: a fan-out of ten subagents that each use their

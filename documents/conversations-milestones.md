@@ -87,7 +87,7 @@ nothing, rather than leave the daily sweep their only recovery.
 | M33 | Subagents in conversations | backend, database, root | M11, M32 | |
 | M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | |
 | M35 | Usage caps | core, database, backend, web, root | M33 | |
-| M36 | Integrations in subagents | backend | M29, M33 | |
+| M36 | Integrations in subagents | backend, web | M29, M33 | |
 | M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | |
 | M38 | Launch | all | all | |
 
@@ -2357,22 +2357,51 @@ he added on 2026-10-16.
 
 ### M36: Integrations in subagents
 
-Written on 2026-10-12, as David chose, before M29 was built: read it against M29 as it merged (#171).
+As David chose on 2026-10-12, written again on 2026-10-16 against M29 as it merged (#171).
 
-- A subagent's tools gain the three integration tools, as the parent's do in M29, acting as its
-  member, with their connections and the organization's keys. Its pinned tools list moves.
-- Only the tools an administrator lets run without approval run. Any other call is refused with "This
-  call needs the member's approval, which nobody can give a subagent. Say in your report what you
-  would call, with which arguments, and why.", drawn as a failed call, and the parent proposes the
-  call in its own thread, where M29's approval applies. A subagent never ends waiting.
-- An integration call interrupted by a crash recovers as M29's do: marked failed, its result saying it
-  may have run.
+- **The tools.** `buildSubagentTools` gains `list_integrations`, `describe_integration_tool` and
+  `call_integration_tool` after web search, in `CONVERSATION_TOOLS`' order less `ask_user`, so every
+  subagent still sends one list; its pinned bytes move, and so do the subagent's prompt's, which says
+  that only the tools `list_integrations` marks `runsWithoutApproval` run, and to say in its report
+  what it would call with any other. Their runners are `createConversationIntegrationRunners`', closed
+  over the subagent run's fence as a parent's are over its own, acting as the member, with their
+  connections and the organization's keys, 30 seconds a call, a 401 alone marking the member's
+  connection.
+- **The decision**, made once, when the call is drawn, as M29 makes it
+  (`decideConversationIntegrationCall`), from the server as it is then: refused, drawn failed with
+  the server it named; run at once, when an administrator lets its tool run without approval, drawn
+  running with its binding, checked again right before the call; and, for a subagent alone, a call
+  that would wait for an approval drawn failed instead, never as an `APPROVAL`, its output "This call
+  needs the member's approval, which nobody can give a subagent. Say in your report what you would
+  call, with which arguments, and why." The decision takes whether the run is a subagent's, so a
+  subagent never ends waiting, and the parent proposes the call in its own thread, where M29's
+  approval applies.
+- **Recovery** as M29's: a call that started is never made again, a `CONTINUE` run included, which
+  answers it as interrupted, its result saying it may have run; a call drawn running that never
+  started is made by the run that carries the subagent on, its binding checked again first, so a
+  server changed while a chain waited refuses it.
+- **What the parent hears.** `read_subagent` and a reaction's entry list a subagent's integration
+  calls beside its module writes, each with its server, its tool and how it ended, since a call to
+  another company's server is the one thing a subagent does that no restore undoes and nothing in
+  the team's knowledge or board shows.
+- **The switch's warning** on the Integrations page, `integration.toolsApprovalWarning`, says a tool
+  that runs without approval also runs in subagents, which work with nobody watching, with `bun run
+  translate`. Every approval given before M36 is staff's own, since everything stays staff only until
+  M38, so none needs giving again.
+- The viewer draws a subagent's failed call with M29's warning strip when its server is missing, off
+  or not connected for the reader, its links leading to the Integrations page.
 - **Tests**:
-  - An auto-approved call running.
-  - Another refused with its sentence.
-  - A definition changed since an administrator allowed it refused, as M29 refuses it.
-- **Verify**: a subagent reading through an auto-approved tool, and one reporting a call it could not
-  make, which the parent proposes and the member allows.
+  - An auto-approved call running from a subagent, with its binding.
+  - A call that would wait for approval drawn failed with its sentence, and the subagent completing.
+  - A definition changed, a key replaced or a reconnect since it was drawn refused at the call, as
+    M29 refuses it.
+  - A started call answered as interrupted by the `CONTINUE` run, never made again.
+  - Five subagents calling one OAuth server at once refreshing the member's token once, under the
+    connection's lease.
+  - `read_subagent` and a reaction's entry listing the calls made.
+- **Verify** with the real model and DeepWiki added by its address: a subagent reading through a tool
+  an administrator let run without approval, and one reporting a call it could not make, which the
+  reaction proposes and the member allows.
 
 ### M37: Launch readiness
 

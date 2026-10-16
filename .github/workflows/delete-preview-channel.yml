@@ -1,15 +1,17 @@
 # Deletes a pull request's Hosting preview channel once the pull request closes, merged or not.
-# firebase-hosting-pull-request.yml opens one per pull request, `pr<number>-<branch>`, and Hosting
-# caps how many channels a site holds. Left to their seven-day expiry, a busy week fills the quota
-# and every preview after it fails with a 429, "channel quota reached"
+# firebase-hosting-pull-request.yml, run by hand, opens one for a pull request,
+# `pr<number>-<branch>`, and Hosting caps how many channels a site holds. Left to their seven-day
+# expiry, a busy week fills the quota and every preview after it fails with a 429, "channel quota
+# reached"
 #
 # Run by hand from the Actions tab, it deletes every channel but `live` instead, open pull
-# requests' included, which is the way out once the quota is full. A pull request's next push
-# opens its channel again
+# requests' included, which is the way out once the quota is full. Running the preview again opens
+# a pull request's channel again
 #
 # It holds the preview's key, but runs on `pull_request_target`, which GitHub always runs from the
 # default branch: the file as it stands on `main`, whatever the pull request's base. A pull
-# request cannot edit it to print the key, unlike the preview, and neither can a push to `dev`.
+# request cannot edit it to print the key, unlike the preview, which runs the copy of whichever
+# branch it is run from, and neither can a push to `dev`.
 # The checkout is `main`'s tip too. Never point it at the pull request's head, which would run the
 # pull request's code with the key in reach
 #

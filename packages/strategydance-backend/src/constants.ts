@@ -97,7 +97,7 @@ export const APP_URL = IS_PRODUCTION ? PRODUCTION_APP_URL : DEVELOPMENT_APP_URL
 
 /*
   Which pages may call this server from a browser: the app's own domain, the two Firebase Hosting
-  gives every site, and the preview channel each pull request deploys, which is a production build
+  gives every site, and the preview channel deployed for a pull request, which is a production build
   and so calls the production server.
 
   Development answers any origin, which covers the dev server on 5173 and `bun run preview` on

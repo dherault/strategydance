@@ -3502,6 +3502,84 @@ mutation InterruptSubagentRun(
   )
 }
 
+# Hands a subagent's run that reached one of its limits, its 25 requests, its 10 minutes or its 100
+# entries, before its fourth run (`MAX_SUBAGENT_RUNS` in strategydance-core), on to the next, in one
+# write: the run ends `CHAINED`, settling its usage, and the next run, `CONTINUE`, on the same anchor,
+# is queued with a twenty minutes' lease and takes its conversation's `activeRunId` at once, so the
+# chain never frees the slot it holds and nothing is promoted after it. The next run carries on as a
+# resumed run does, without a note: it runs the calls that never started, the results of those that
+# did carried over (`$pendingToolResults`), then sends its context and the request. The calls running
+# are left `RUNNING`, since the next run runs them.
+#
+# Fenced as `RenewConversationRunLease` is, on a subagent's run not deleted, at the number and anchor
+# the worker read, and not asked to stop, so a stop that committed first ends the run stopped rather
+# than lost on a run it never named. `$nextRunId` derives from the run, so a worker that lost the
+# write's answer finds the run chained and queues the same next run. `$nextRunNumber` is the run's
+# own plus one, which a subagent's runs, made by its launch and its chain alone, always are
+mutation ChainSubagentRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $runNumber: Int!
+  $anchorPosition: Int!
+  $nextRunId: UUID!
+  $nextRunNumber: Int!
+  $usage: Any
+  $failure: String
+  $pendingToolResults: String
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      number: { eq: $runNumber }
+      anchorPosition: { eq: $anchorPosition }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+        deletedAt: { isNull: true }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { status: CHAINED, usage: $usage, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "vars.runNumber < 3 && vars.nextRunNumber == vars.runNumber + 1"
+      message: "A subagent's run chains to the run right after it, before its fourth"
+    )
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, activeRunId: { eq: $runId }, nextRunNumber: { eq: $nextRunNumber } }
+    data: { activeRunId: $nextRunId, nextRunNumber_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "The subagent could not take the run its run chains to")
+  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  conversationRun_insert(
+    data: {
+      id: $nextRunId
+      conversationId: $conversationId
+      number: $nextRunNumber
+      trigger: CONTINUE
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $anchorPosition
+      pendingToolResults: $pendingToolResults
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+}
+
 # Promotes one of the member's subagent runs waiting for a slot into one that is free: `PENDING` to
 # `QUEUED`, with a twenty minutes' lease and its `createdAt` set again from the database's clock, so
 # the twenty minutes a run is queued again within count from its promotion, not its launch. The

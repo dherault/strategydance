@@ -905,15 +905,16 @@ query GetSubagentLaunchContext(
   }
 }
 
-# Where a member's subagent runs stand in an organization, across all their conversations, as a
-# promotion and the reconcile read it before they write:
+# Where a member's subagent runs stand in an organization, across all their conversations, as the
+# launch's count and the reconcile read it first:
 #
-# - the membership's `createdAt`, which a pending run has to have been launched under to be promoted
+# - the membership's `createdAt`, which a pending run has to have been launched under to be promoted,
+#   and which `GetSubagentPendingRuns` then reads the runs waiting by
 # - the runs holding one of the member's five slots (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`), queued
 #   or running, with their lease, which says whether one died
-# - the runs waiting for a slot, oldest first, as they are promoted, with what says whether one may
-#   be: the membership it was launched under, whether it was asked to stop, and whether its subagent
-#   was deleted. Those that may not wait for the reconcile or the sweep to end them
+# - the runs waiting for a slot, oldest first, a hundred at a time, which a reconcile ends once the
+#   member is no member any more, each with the membership it was launched under, whether it was
+#   asked to stop and whether its subagent was deleted
 #
 # `$userId` is the uid the backend verified, or the author a sweep found
 query GetSubagentSlots($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
@@ -944,6 +945,81 @@ query GetSubagentSlots($organizationId: UUID!, $userId: String!) @auth(level: NO
   ) {
     id
     createdAt
+    membershipCreatedAt
+    stopRequestedAt
+    conversation {
+      id
+      deletedAt
+    }
+  }
+}
+
+# A member's subagent runs waiting for a slot in an organization, read by the membership they are as
+# `GetSubagentSlots` read it, so no number of runs a promotion skips ever hides one it may promote:
+#
+# - the runs holding one of the member's five slots, as `GetSubagentSlots` reads them
+# - the oldest runs a promotion may promote, as many as there are slots: launched under that
+#   membership, not asked to stop, and their subagent not deleted
+# - the runs it skips, a hundred at a time, which the reconcile ends and reads again until none is
+#   left: asked to stop, their subagent deleted, or launched under another membership
+#
+# `$userId` is the uid the backend verified, or the author a sweep found
+query GetSubagentPendingRuns($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
+@auth(level: NO_ACCESS) {
+  activeRuns: conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+    }
+    limit: 5
+  ) {
+    id
+  }
+  promotableRuns: conversationRuns(
+    where: {
+      status: { eq: PENDING }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+        deletedAt: { isNull: true }
+      }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 5
+  ) {
+    id
+    conversation {
+      id
+    }
+  }
+  skippedRuns: conversationRuns(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { status: { eq: PENDING } }
+        {
+          conversation: {
+            userId: { eq: $userId }
+            organizationId: { eq: $organizationId }
+            parentId: { isNull: false }
+          }
+        }
+        {
+          _or: [
+            { stopRequestedAt: { isNull: false } }
+            { conversation: { deletedAt: { isNull: false } } }
+            { membershipCreatedAt: { ne: $membershipCreatedAt } }
+          ]
+        }
+      ]
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
     membershipCreatedAt
     stopRequestedAt
     conversation {

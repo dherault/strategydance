@@ -2439,8 +2439,8 @@ worker's claim checks the role again, so a queued run stops too:
   address is verified (`ERROR_CODE_EMAIL_NOT_VERIFIED`), since an account costs nothing to make and
   the caps' allowance is an account's, and staff can suspend an account or an organization
   (`conversationsSuspendedAt`, `bun run suspend:conversations`), which every route, a launch and the
-  worker's claim refuse, the one lever short of the workspace's spend limit, which stops every
-  customer at once.
+  worker's claim refuse, and whose script asks the runs in flight to stop, the one lever short of the
+  workspace's spend limit, which stops every customer at once.
 
 ### Setup
 

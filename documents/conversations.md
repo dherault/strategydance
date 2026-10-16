@@ -57,8 +57,9 @@ integrations in conversations settled, in The transcript and the milestone. Revi
 after an adversarial review of M30 to M37, as David chose: a milestone of launch readiness, M37,
 comes before Launch, which moved to M38: a verified email to start runs, staff's suspension of an
 account or an organization, the micromark risk closed, capacity and alerts checked, and the decisions
-left for the recorded usage taken (see Release gate). When a decision changes, change it here
-first.
+left for the recorded usage taken (see Release gate); a run stops at $10 of estimated cost, an
+account has ceilings across its organizations, and what finishes work under way passes a cap only up
+to one and a half times it (see Usage caps). When a decision changes, change it here first.
 
 ## The design
 
@@ -94,7 +95,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Replies | Whole messages, as designed. The thinking indicator shows live progress. No token streaming to the browser |
 | Modules (MCP) | Strategy Dance's own capabilities as MCP servers, one per module, which its agent uses and which a member can add to an external agent (claude.ai, ChatGPT, Claude Code, Cursor). Knowledge first, from M14, then the team's tasks, from M15, then Subagents, from M32, which only Strategy Dance's agents reach until a later plan serves it; budget, software solutions, directories and marketing tactics later. The agent reaches a module in process, over MCP; an external agent reaches it at `https://api.strategydance.com/mcp/<module>`, through Strategy Dance's own OAuth authorization server, acting as one member in the one organization they chose. The AI permissions hold for every agent. Members decide which agents they connect: no organization setting governs it |
 | Integrations (MCP) | Other companies' MCP servers, which the agent calls; the reverse of modules. The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it. A subagent calls only those, since nobody can approve a call for it (M36) |
-| Usage limits | Daily caps from M35, over a rolling 24 hours, as David chose on 2026-10-13: 20 conversations and 100 runs a member in each organization, 100 conversations and 500 runs an organization, and 30 subagents a member in each organization (see Usage caps), until a credit system replaces them. Above them the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage. Subagents have bounds of their own (ten per member action, five at once per member, four runs each, twenty dispatches on their own queue), as David chose on 2026-10-12 |
+| Usage limits | Daily caps from M35, over a rolling 24 hours, as David chose on 2026-10-13: 20 conversations and 100 runs a member in each organization, 100 conversations and 500 runs an organization, and 30 subagents a member in each organization (see Usage caps), until a credit system replaces them. From the same milestone, as David chose on 2026-10-16: an account's ceilings across every organization it is in, 40 conversations, 200 runs and 60 subagents a day, since an account creates organizations at will; a run stops at $10 of estimated cost, priced from its ledger, since a cap on starts bounds nothing a single run spends; and what finishes work under way, an answer's continuation, an Allow's and a reaction, passes a cap only up to one and a half times it. Above them the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage. Subagents have bounds of their own (ten per member action, five at once per member, four runs each, twenty dispatches on their own queue), as David chose on 2026-10-12 |
 | Conversation size | One safety cap of 2000 entries, which refuses a send and stops a run, and the measured request, which marks a conversation full before its context window does. No room is reserved ahead |
 | Subagents | Strategy Dance's agent hands work off to subagents, runs of its own that carry out a brief it writes, in parallel, and report back, as David chose on 2026-10-12: through the Subagents module, an MCP server of Strategy Dance's that only its own agents reach, in process (M30 to M34). A subagent acts as the member, is one level deep, has every tool the agent has but `ask_user` and the Subagents module's own, and takes up to four chained runs. The parent reacts to their reports in a run of its own, the first run no member starts, and never launches from it (see Subagents) |
 | The orchestrator | Later, with no milestones yet: once a day in each organization that turns it on, a run acting as the organization, through an agent membership, reads its documents and tasks, launches subagents, reorganizes what it finds and keeps a log (see The orchestrator). Until then nothing starts without a member, except a parent's reaction to its subagents |
@@ -740,8 +741,9 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
     not only those its run drew, since only the run in flight has any and a resumed run runs calls
     the run it carries on drew (M11).
 - **Limits.** At most 25 requests to Claude and 10 minutes per run (the task's dispatch deadline and
-  the worker service's timeout are 15 minutes); at most 60 seconds per tool call. A run that hits one fails
-  with a note. The 10 minutes count from the run's first claim, so a worker taking it over has what
+  the worker service's timeout are 15 minutes); at most 60 seconds per tool call; and from M35 at
+  most $10 of estimated cost per run, priced from its ledger (see Usage caps). A run that hits one
+  fails with a note. The 10 minutes count from the run's first claim, so a worker taking it over has what
   is left: no request starts past them, and a stream still going 14 minutes after the claim is cut,
   charged as one that failed partway, so the run ends with its note inside the task's delivery
   (M10). Every run that ends with a note says why in its `failure`, for the logs.
@@ -782,8 +784,8 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   organization, so crashes elsewhere never lock them out. Subagents' runs count toward an allowance
   of their own, five per member in each organization, on a queue of their own, and a parent's
   reaction to its subagents toward the member's three, as any run of theirs (see Subagents). From
-  M35, daily caps bound how many conversations and runs a member and an organization start, beside
-  how many go at once (see Usage caps).
+  M35, daily caps bound how many conversations and runs a member, an account and an organization
+  start, beside how many go at once, and a run's cost (see Usage caps).
 - **The loop.** A manual loop rather than the SDK's tool runner, because a run stops for answers and
   carries on in another request, and every step is written as it happens. Each turn: read the stop
   flag; build the request from the transcript and check it (see The transcript); stream it, writing
@@ -1944,8 +1946,9 @@ way (see The orchestrator).
 - **Chained runs.** A subagent's run has a conversation run's limits, 25 requests, 10 minutes and
   100 entries drawn (the backend's `CONVERSATION_RUN_MAX_REQUESTS` and
   `CONVERSATION_RUN_MAX_DURATION_MS`, core's `MAX_CONVERSATION_RUN_ENTRIES`), but a subagent takes up
-  to four runs (`MAX_SUBAGENT_RUNS`), some 40 minutes and 100 requests, as David chose. A run that
-  reaches any of the three before its fourth ends `CHAINED` and inserts the next run,
+  to four runs (`MAX_SUBAGENT_RUNS`), some 40 minutes and 100 requests, as David chose. From M35 a
+  run's cost, $10, is a fourth such limit, so a subagent costs $40 at most. A run that
+  reaches any of them before its fourth ends `CHAINED` and inserts the next run,
   triggered `CONTINUE` on the same anchor, in one mutation, and queues it. The next carries on as
   Resume does (see The transcript), without a note to delete: it runs the calls that never started,
   then sends its context and the request. At the ten minutes, the calls running finish, no other
@@ -2070,8 +2073,9 @@ way (see The orchestrator).
   they are pruned (`MAX_CONVERSATION_SUBAGENTS`), each refused with a sentence the model can act on.
   From M35, at most 30 a member in each organization in a rolling 24 hours
   (`MAX_DAILY_SUBAGENTS_PER_MEMBER`), as David
-  chose on 2026-10-13, counted on the caps' ledger, which a deleted subagent leaves as it was (see
-  Usage caps). The
+  chose on 2026-10-13, and 60 an account across its organizations
+  (`MAX_DAILY_SUBAGENTS_PER_ACCOUNT`), as he chose on 2026-10-16, counted on the caps' ledger, which
+  a deleted subagent leaves as it was (see Usage caps). The
   workspace's spend limit and the budget alert stay the guard above it.
 - **Stop.** The parent's Stop asks the live subagents launched on the stopped run's anchor to stop
   too, as David chose on 2026-10-13: they are the action the member stops, and a fan-out an earlier
@@ -2146,10 +2150,13 @@ way (see The orchestrator).
   call and why, and the parent proposes the call in its own thread, where M29's approval applies.
 - **Cost.** A subagent's run costs what a conversation's does, about $0.15 for three cached requests
   (see Cost), but a subagent may take four runs of 25 requests over a context that grows with what it
-  reads, some $1.50 a full run: a fan-out of ten subagents that each use their whole budget comes to
-  some $60, where five short ones come to a few dollars, and the thirty a member may launch in an organization a day
-  from M35 some $180 at most. Each request is in its run's ledger, which the credit system will
-  read.
+  reads, some $1.50 a full run over a modest context: a fan-out of ten subagents that each use their
+  whole budget so comes to some $60, where five short ones come to a few dollars. Those are typical
+  figures, not bounds: a request may write 64000 tokens over a context of up to 800000, and a brief
+  can ask for that. The bound is M35's $10 a run, $40 a subagent, so the thirty a member may launch
+  in an organization a day come to $1200 at most and an account's sixty to $2400. Its web searches
+  cost $0.01 each, up to $2 for one that searches at every call. Each request is in its run's ledger,
+  which the cost limit prices and the credit system will read.
 
 ### The orchestrator (later)
 
@@ -2501,18 +2508,41 @@ calendar day, so no time zone decides when it frees. A member's caps count in ea
 apart, as every bound of a member's does, `MAX_ACTIVE_RUNS_PER_MEMBER` and `MAX_CONVERSATIONS` among
 them: the membership lock serializes that scope, and the organization's caps bound what each
 organization spends, which the credits will be counted by. A member of two organizations has each
-one's allowance, and an account-wide cap would take a lock on the account's row besides.
+one's allowance, so an account has ceilings of its own across all of them, as David chose on
+2026-10-16: an account makes as many organizations as it likes, and the member's caps alone would
+multiply with them.
 
-| Cap | Per member in each organization | Per organization |
-| --- | --- | --- |
-| Conversations started (`MAX_DAILY_CONVERSATIONS_PER_MEMBER`, `MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION`) | 20 | 100 |
-| Runs started (`MAX_DAILY_RUNS_PER_MEMBER`, `MAX_DAILY_RUNS_PER_ORGANIZATION`) | 100 | 500 |
-| Subagents launched (`MAX_DAILY_SUBAGENTS_PER_MEMBER`) | 30 | none |
+| Cap | Per member in each organization | Per account, across its organizations | Per organization |
+| --- | --- | --- | --- |
+| Conversations started (`MAX_DAILY_CONVERSATIONS_PER_MEMBER`, `_PER_ACCOUNT`, `_PER_ORGANIZATION`) | 20 | 40 | 100 |
+| Runs started (`MAX_DAILY_RUNS_PER_MEMBER`, `_PER_ACCOUNT`, `_PER_ORGANIZATION`) | 100 | 200 | 500 |
+| Subagents launched (`MAX_DAILY_SUBAGENTS_PER_MEMBER`, `_PER_ACCOUNT`) | 30 | 60 | none |
+
+Beside them, a run stops at $10 of estimated cost, which is what bounds what each start can spend.
 
 - **Runs as well as conversations.** Spend follows runs: one conversation holds 2000 entries and its
   member three runs at once, so conversations alone would leave a member who never starts another
   unbounded. A hundred runs come to some $15 at the typical $0.15 a run (see Cost), and to some $150
-  if every one used its 25 requests.
+  if every one used its 25 requests over a modest context.
+- **A cost limit per run**, as David chose on 2026-10-16, since counting starts bounds nothing one
+  start spends: a request may write 64000 tokens over a context of up to 800000, some $1.40 even
+  when that context is cached, and a member can ask for that at every request. Before each request,
+  the worker prices the run's ledger, every request settled or charged at its estimate, at list
+  prices from a table in the backend (`CLAUDE_MODEL_PRICES`, beside `CONVERSATION_MAX_TOKENS`), web
+  searches at $0.01 each, and adds the request about to be reserved: what the last request read or
+  wrote at the cache-read rate, what was appended since at the cache-write rate, and its output at
+  the full `max_tokens`. A run whose total would pass $10 (`CONVERSATION_RUN_MAX_COST_MICRODOLLARS`)
+  sends nothing more and ends `FAILED` with its limits' note, as at its other limits, and a
+  subagent's run chains instead, so a subagent costs $40 at most. A run's side request is priced
+  with it. The check is the worker's alone, on the ledger it already writes before each request, so
+  no table and no lock join it; what one run ends, a Resume or a Retry starts again under the
+  daily caps.
+- **An account's ceilings** read the same `CappedStart` rows by the account, the kind and
+  `createdAt`, indexed so, without a lock, as the organization's counts are: two starts at once in
+  two organizations can each pass one by one, which a ceiling on spend can afford, and no account
+  row is locked, so no mutation's lock order changes. They refuse with
+  `ERROR_CODE_ACCOUNT_DAILY_CONVERSATIONS_REACHED` and `ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED`, and a
+  launch past sixty with its sentence.
 - **Counted on a ledger of their own**, `CappedStart`, as the search allowance counts
   `ConversationSearch` rows: an `id` made by `uuidV4()`, the member, the organization, the `kind`
   (`CONVERSATION`, `RUN` or `SUBAGENT`) and `createdAt`, indexed on the member, the organization, the kind and `createdAt`, on
@@ -2526,14 +2556,20 @@ one's allowance, and an account-wide cap would take a lock on the account's row 
   them. A row outlives what it counts, so deleting a conversation or retrying a run gets round
   nothing. Each count reads the newest rows, as many as its cap, ordered by `createdAt` descending,
   under `@check`, as `GetConversationSearchQuota` reads the searches: a count can pass its cap, since
-  a continuation and a reaction are never refused and the organization's counts race, so only the
-  newest say when it frees.
+  a continuation and a reaction pass it up to one and a half times and the organization's and the
+  account's counts race, so only the newest say when it frees.
 - **What refuses.** Starting a conversation, a send, Resume and Retry are refused past a cap, by
   their route before anything is stored, and again in their mutation, where the member's count runs
   under the membership lock the mutation already takes, so two sends at once cannot both pass it.
-  An answer's continuation and a reaction finish what is under way: they count toward the cap and
-  are never refused, so a member at a cap can still answer a question waiting, and a fan-out's
-  reports still come back. A launch past thirty is refused with a sentence the model can act on,
+  An answer's continuation, an Allow's and a reaction finish what is under way: they count toward the
+  cap and pass it, so a member at a cap can still answer a question waiting, and a fan-out's reports
+  still come back, but only up to one and a half times each cap that counts them, the member's, the
+  account's and the organization's, as David chose on 2026-10-16: a member who tells the agent to
+  ask a question every turn would otherwise run without end past the cap. Past it, the answer or the
+  Allow is recorded and its run is not started, as when the member's three runs are taken: the
+  route answers 202 with no run, and the page's reconcile starts it once the window frees, as a
+  reaction waits undelivered for the next run end, reconcile or sweep that finds room. A count that
+  can pass its cap so reads as many rows as one and a half times it. A launch past thirty is refused with a sentence the model can act on,
   saying when the member can launch again and to do the work itself meanwhile. A route recognizes
   an action sent again before it counts, as it answers a retried send or Resume with the run the
   first try started (see Queueing), so a retry whose first try was stored is answered as it was,
@@ -2556,6 +2592,11 @@ one's allowance, and an account-wide cap would take a lock on the account's row 
 - **Staff are capped too**: the caps guard spend, not a release. The development backend lifts them,
   as it lifts the gates (`IS_USAGE_CAPPED`), since placeholder runs cost nothing and a developer
   starts dozens; the tests and `check:conversation-runs` turn them on.
+- **The worst cases they leave**, each the spend limit stays above: a member's day in an
+  organization at 150 runs and thirty subagents, $1500 and $1200 at the cost limits; an account's
+  across its organizations at 300 runs and sixty subagents, $3000 and $2400; an organization's at
+  750 runs, $7500, beside its members' subagents. The typical day stays near $15 a member. M37 reads
+  the recorded usage against them, and David sets them again from it.
 - The spend limit and the budget alert stay the guard above them, across organizations.
 
 ### Cost
@@ -2566,8 +2607,14 @@ cached 15000-token conversation, writing 2000 tokens each, costs about $0.15, pl
 web search. A member running ten a day costs about $1.50 a day, two orders of magnitude more than
 the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M37
 adds a section on it to `operations-costs.md`. Subagents multiply it: a fan-out of ten that each use
-their whole budget comes to some $60 (see Subagents). From M35 the daily caps bound a member's day in an organization:
-a hundred runs, some $15 at this cost, and thirty subagents, some $180 at most (see Usage caps).
+their whole budget over a modest context comes to some $60 (see Subagents). Those figures are
+typical, not bounds: a request may write 64000 tokens over up to 800000 of context, some $1.40 even
+when cached. From M35 a run stops at $10 and a subagent at $40, and the daily caps bound a member's
+day in an organization at 150 runs and thirty subagents, an account's across its organizations at
+300 runs and sixty subagents (see Usage caps): typically some $15 a member, at worst some $2700 in
+an organization and $5400 for an account, which the spend limit stays above. A parent's reaction
+comes once its subagents have reported, minutes after it last ran and past the cache's five
+minutes, so it writes the parent's whole context to the cache again: some $1 for 200000 tokens.
 
 That figure assumes the cache holds between requests, which it does within a run: in M1's probe,
 the replay of a first turn read 8080 tokens from the cache and wrote 164. Between a
@@ -2580,15 +2627,18 @@ the lifetime is chosen from what members' pauses turn out to be.
 ## Risks and open questions
 
 - **Spend**: until M35 nothing caps usage, and the budget alert is the guard. From M35 the daily
-  caps bound each member and organization (see Usage caps), and the alert still watches the total,
-  which many organizations at their caps add up to.
+  caps bound each member, account and organization, and a run stops at $10 (see Usage caps), and the
+  alert still watches the total, which many accounts at their ceilings add up to. Accounts cost
+  nothing to make: a verified email from M37 makes each cost an address, and staff's suspension
+  stops one that abuses its allowance (see Release gate).
 - **Rate limits**: a new Anthropic organization starts on a low usage tier, which rises with what
   it has spent. The tier bounds how many runs go at once before the queue's own limits do, so it is
   checked before staff use and raised in M37. Subagents add up to five runs per member beside
   their three, twenty at once across their queue, which the tier has to hold too.
 - **Fan-out spend**: one member action can launch ten subagents of four runs each, some $60 when
-  each uses its whole budget, and from M35 a member launches at most thirty a day in each organization, some $180, as
-  David chose on 2026-10-13. The spend limit and the budget alert stay the guard above that, and the
+  each uses its whole budget over a modest context and $400 at the cost limit, and from M35 a
+  member launches at most thirty a day in each organization, as David chose on 2026-10-13, and an
+  account sixty, as he chose on 2026-10-16, $2400 at the cost limit. The spend limit and the budget alert stay the guard above that, and the
   bounds per action, at once and per subagent keep each fan-out finite.
 - **Subagents hold every write**, as David chose over tools granted per launch: injected text that
   reaches a subagent, from the web or a document, can do what the parent could, with nobody watching

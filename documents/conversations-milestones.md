@@ -2220,34 +2220,56 @@ Not in the design: built from the design system's components, as Connected agent
 
 ### M35: Usage caps
 
-What the caps are, and why each rule below holds, is in Usage caps, as David chose on 2026-10-13.
+What the caps are, and why each rule below holds, is in Usage caps, as David chose on 2026-10-13,
+with the account's ceilings, the cost limit a run and the ceiling on what finishes work under way
+he added on 2026-10-16.
 
-- `MAX_DAILY_CONVERSATIONS_PER_MEMBER` (20), `MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION` (100),
-  `MAX_DAILY_RUNS_PER_MEMBER` (100), `MAX_DAILY_RUNS_PER_ORGANIZATION` (500) and
-  `MAX_DAILY_SUBAGENTS_PER_MEMBER` (30) in strategydance-core, with the four error codes.
+- `MAX_DAILY_CONVERSATIONS_PER_MEMBER` (20), `MAX_DAILY_CONVERSATIONS_PER_ACCOUNT` (40),
+  `MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION` (100), `MAX_DAILY_RUNS_PER_MEMBER` (100),
+  `MAX_DAILY_RUNS_PER_ACCOUNT` (200), `MAX_DAILY_RUNS_PER_ORGANIZATION` (500),
+  `MAX_DAILY_SUBAGENTS_PER_MEMBER` (30), `MAX_DAILY_SUBAGENTS_PER_ACCOUNT` (60) and
+  `DAILY_CAP_OVERRUN_FACTOR` (1.5) in strategydance-core, with the six error codes, the member's, the
+  account's and the organization's for conversations and for runs.
 - **The schema change**, additive: `CappedStart`, its `id`, a UUID made by `uuidV4()` as
   `ConversationSearch`'s is, since no other field is unique, the member, the organization, its `kind`
   (`CONVERSATION`, `RUN`, `SUBAGENT`) and `createdAt`, indexed on the member, the organization, the
-  kind and `createdAt`, on the organization, the kind and `createdAt`, and on `createdAt` for the
-  sweep, which deletes the rows over a day old beside the conversation searches.
+  kind and `createdAt`, on the member, the kind and `createdAt` for the account's counts, on the
+  organization, the kind and `createdAt`, and on `createdAt` for the sweep, which deletes the rows
+  over a day old beside the conversation searches.
+- **The cost limit a run**, on the worker alone: `CLAUDE_MODEL_PRICES`, the list prices of each
+  model a request can name, per million input, output, cache-read and cache-write tokens, beside
+  `CONVERSATION_MAX_TOKENS`, and `priceConversationUsage`, which prices a run's ledger, each request
+  settled or charged at its estimate, its web searches at $0.01, and its side requests with it.
+  Before each request, where the lease's write reserves it, the run's price plus the request about to
+  be reserved, its prefix at the cache-read rate, what was appended at the cache-write rate and its
+  output at the full `max_tokens`, is held to `CONVERSATION_RUN_MAX_COST_MICRODOLLARS` ($10): past
+  it, the run sends nothing more and ends `FAILED` with its limits' note, `isAtLimit` as at its
+  other limits, and a subagent's run before its fourth chains, as M31 chains it at the other three.
+  A model the table lacks fails the tests, rather than being priced at nothing.
 - **The rows**: each mutation that starts what a cap counts inserts its `CappedStart`, a `RUN` row
   for every run triggered `MESSAGE`, `ANSWER`, `RESUME`, `RETRY` or `REPORTS`, `ContinueConversationRun`
   and a reaction's start among them.
-- **The counts**, each reading the newest `CappedStart` rows, as many as its cap, ordered by
-  `createdAt` descending as `GetConversationSearchQuota` reads, the member's under the membership
-  lock the mutation already takes and the organization's without one:
+- **The counts**, each reading the newest `CappedStart` rows, as many as one and a half times its
+  cap, ordered by `createdAt` descending as `GetConversationSearchQuota` reads, the member's under the
+  membership lock the mutation already takes, and the account's and the organization's without one:
   - `StartConversation`, the conversations and the runs;
   - `SendConversationMessage`, `SendConversationMessageAnsweringCalls`, `ResumeConversationRun` and
     `RetryConversationRun`, the runs;
-  - the launch's mutation, the subagents, `launch_subagent` refusing past thirty with a sentence
-    saying when the member can launch again and to do the work itself meanwhile.
+  - the launch's mutation, the subagents, `launch_subagent` refusing past thirty, or the account's
+    sixty, with a sentence saying when the member can launch again and to do the work itself
+    meanwhile;
+  - `ContinueConversationRun`, `ContinueConversationRunWithCalls` and a reaction's start, the runs,
+    past one and a half times a cap alone.
 
   Each route counts first, so a refusal stores nothing, and answers 429 with `Retry-After`. A
   mutation a count refused reads the counts again, as `recordConversationSearch` does, to say which
   cap and when it frees.
-  `ContinueConversationRun` and a reaction's start check no cap. A route recognizes an action sent
-  again before it counts, as it answers a retried send with the run its first try started, so a
-  retry of a stored start is never refused.
+  A continuation past one and a half times a cap is not refused: its answer or its Allow is recorded
+  and the route answers 202 with no run, as when the member's three runs are taken, and the page's
+  reconcile starts it once the window frees; a reaction past it waits undelivered for the next run
+  end, reconcile or sweep that finds room. A route recognizes an action sent again before it counts,
+  as it answers a retried send with the run its first try started, so a retry of a stored start is
+  never refused.
 - `IS_USAGE_CAPPED`, off on the development backend and on everywhere else, as
   `IS_CONVERSATIONS_RELEASE_GATED` is; the tests and the check script turn it on.
 - The backend's `cors` exposes `Retry-After`, which a page of another origin cannot read otherwise,
@@ -2255,19 +2277,28 @@ What the caps are, and why each rule below holds, is in Usage caps, as David cho
 - **The web**: `ApiError` carries `Retry-After`, and the composer and Resume's and Retry's note say
   which cap was reached and when it frees, keeping the draft, the composer's map of failures taking
   the new ones. Strings in the `conversation` catalogue, and `bun run translate`.
-- `CLAUDE.md`: the caps, and that a new way to start a conversation or a run counts toward them.
+- `CLAUDE.md`: the caps, the cost limit, and that a new way to start a conversation or a run counts
+  toward them, and a new model a request names joins `CLAUDE_MODEL_PRICES`.
 - **Tests**:
-  - Each cap refusing at its value and passing below it, the member's and the organization's, and a
-    member of two organizations counted in each apart.
+  - Each cap refusing at its value and passing below it, the member's, the account's and the
+    organization's, a member of two organizations counted in each apart, and an account at its
+    ceiling across two organizations refused in a third.
+  - A run priced past $10 by its next request ending with its limits' note before that request, its
+    ledger's estimated requests counted, a subagent's run chaining there, and its fourth ending.
+  - An answer loop stopped at one and a half times the cap: the answer recorded, no run started,
+    and the reconcile starting it once the oldest row turns 24 hours old; an Allow the same; a
+    reaction waiting past it and started by the next run end that finds room.
   - A deleted conversation and a retried run still counted.
   - A send retried at the cap after its first try was stored, answered with its run, not refused.
   - A subagent's runs counted toward no run cap.
-  - An answer's continuation and a reaction starting past the cap.
-  - A launch refused past thirty, with its sentence.
+  - An answer's continuation and a reaction starting past the cap, below one and a half times it.
+  - A launch refused past thirty, and past the account's sixty across organizations, with its
+    sentence.
   - `Retry-After` when the oldest of the newest rows, as many as the cap, turns 24 hours old, with
     the count past its cap.
   - A mutation refused after its route's count passed, reading the counts again for its refusal.
-- `check:conversation-runs` gains the caps: two sends at once at the member's cap, one refused.
+- `check:conversation-runs` gains the caps: two sends at once at the member's cap, one refused, and
+  the account's count read across two organizations of one account.
 - **Verify**: with the caps on locally and lowered, start conversations and send past them, and read
   each refusal in the composer and in Resume's and Retry's note, at desktop and phone widths.
 

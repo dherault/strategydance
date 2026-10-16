@@ -2135,7 +2135,7 @@ way (see The orchestrator).
   Retry whose cut runs launched subagents asks first, naming how many it stops and discards, since
   their reports are lost while what they wrote stays: a parent that failed at its limits after a
   fan-out offers Retry alone, which would otherwise end the fan-out without a word.
-- **Integrations** (M36, written now and built after M29): a subagent reaches the three integration
+- **Integrations** (M36): a subagent reaches the three integration
   tools as its member, with their connections and the organization's keys, and calls only the tools
   an administrator lets run without approval, as David chose, since nobody can approve a call for a
   subagent. Any other call is refused with a sentence asking it to say in its report what it would

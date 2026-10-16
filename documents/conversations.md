@@ -2598,12 +2598,24 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
     attempts. The reservation covers both, the second at the costliest model the default fallback
     can route to, which `CLAUDE_MODEL_PRICES` lists. A request whose one attempt fits the limit and
     whose two do not is sent without `fallbacks`, so a refusal near the limit ends the run with the
-    refused note rather than passing $10. A run's side request is priced
+    refused note rather than passing $10.
+  - **What a search brings back is reserved by measure.** Web search bills what it retrieves as
+    input within the same request, which `measureConversationRequest` cannot count beforehand and no
+    setting caps. Each of the five searches is reserved as one more reading of the whole input and
+    an allowance for its results, `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`, the largest M35 measures with
+    `probe:claude` and a margin. The tools list cannot drop search for one request without costing
+    every conversation its cache, so a run whose next request cannot hold the allowance ends with
+    its limits' note. Here alone the bound rests on a measure rather than a proof: `report:usage`
+    (M37) shows any request that passed its reservation, and the allowance is raised from it. A run's side request is priced
   with it. The check is the worker's alone, on the ledger it already writes before each request, so
   no table and no lock join it; what one run ends, a Resume or a Retry starts again under the
   daily caps.
 - **An account's ceilings** read the same `CappedStart` rows by the account, the kind and
-  `createdAt`, indexed so, without a lock, as the organization's counts are: two starts at once in
+  `createdAt`, indexed so, without a lock, as the organization's counts are. A row holds its
+  organization as a plain UUID, `organizationId`, never a reference, unlike `ConversationSearch`'s,
+  which cascades: deleting an organization would otherwise delete its rows, and an administrator
+  could spend the account's allowance, delete the organization and start again in another. The rows
+  stay until the sweep deletes them a day old, whatever became of their organization. two starts at once in
   two organizations can each pass one by one, which a ceiling on spend can afford, and no account
   row is locked, so no mutation's lock order changes. They refuse with
   `ERROR_CODE_ACCOUNT_DAILY_CONVERSATIONS_REACHED` and `ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED`, and a

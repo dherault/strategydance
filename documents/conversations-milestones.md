@@ -2293,7 +2293,9 @@ he added on 2026-10-16.
   `DAILY_CAP_OVERRUN_FACTOR` (1.5) in strategydance-core, with the six error codes, the member's, the
   account's and the organization's for conversations and for runs.
 - **The schema change**, additive: `CappedStart`, its `id`, a UUID made by `uuidV4()` as
-  `ConversationSearch`'s is, since no other field is unique, the member, the organization, its `kind`
+  `ConversationSearch`'s is, since no other field is unique, the member, the organization as a plain
+  `organizationId: UUID!` rather than a reference, so deleting an organization keeps its rows for
+  the account's counts until the sweep, its `kind`
   (`CONVERSATION`, `RUN`, `SUBAGENT`) and `createdAt`, indexed on the member, the organization, the
   kind and `createdAt`, on the member, the kind and `createdAt` for the account's counts, on the
   organization, the kind and `createdAt`, and on `createdAt` for the sweep, which deletes the rows
@@ -2309,7 +2311,10 @@ he added on 2026-10-16.
   that reserves it and standing for every request whose billed usage is unknown, a takeover's
   included, rather than the estimate `chargeUnsettledRequests` charges for the credits, and covering
   a refusal's fallback, the second attempt at the costliest model the default fallback can route to,
-  a request whose one attempt fits and whose two do not sent without `fallbacks`: past
+  a request whose one attempt fits and whose two do not sent without `fallbacks`, and each of its
+  five searches reserved as one more reading of the whole input and `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`
+  for its results, the largest `probe:claude` measures with a margin, since what a search retrieves is
+  billed as input within the request and nothing counts or caps it beforehand: past
   it, the run sends nothing more and ends `FAILED` with its limits' note, `isAtLimit` as at its
   other limits, and a subagent's run before its fourth chains, as M31 chains it at the other three.
   A model the table lacks fails the tests, rather than being priced at nothing.
@@ -2360,6 +2365,10 @@ he added on 2026-10-16.
     that worst case leaves no room for.
   - A request near the limit whose fallback would pass it sent without `fallbacks`, its refusal
     ending the run with the refused note, and one with room for both sent with them.
+  - A request whose input fits but whose five searches' allowance does not, refused before it is
+    sent, which its retrieved input would otherwise have taken past $10.
+  - An organization deleted after its member spent the account's allowance, and another created:
+    the account still refused, its rows kept by their plain `organizationId`.
   - An answer loop stopped at one and a half times the cap: the answer recorded, no run started,
     and the reconcile starting it once the oldest row turns 24 hours old; an Allow the same; a
     reaction waiting past it and started by the next run end that finds room.

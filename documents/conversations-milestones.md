@@ -44,10 +44,10 @@ merges, write its pull request number in the table below.
 
 A milestone starts once the ones it depends on have merged, so several can be under way at once:
 M3 from the start, M13 as soon as M1 has merged, M15 and M18 as soon as M14 has, M30 as soon as M17
-and M25 have, M35 as soon as M33 has, and M12, M24 and M27 well before their neighbours. M36 is
-written now and built only once M29 has merged. M33 and M34 reach production in one release: M33
-lets the agent launch, and only M34 has the page reconcile a parent's subagents and Retry ask before
-it discards them, so a release cut between the two would leave the daily sweep their only recovery.
+and M25 have, M35 and M36 as soon as M33 has, and M12, M24 and M27 well before their neighbours. M33
+and M34 reach production in one release: M33 lets the agent launch, and only M34 has the page
+reconcile a parent's subagents and Retry ask before it discards them, so a release cut between the
+two would leave the daily sweep their only recovery.
 
 | # | Milestone | Packages | Depends on | PR |
 | --- | --- | --- | --- | --- |
@@ -86,7 +86,7 @@ it discards them, so a release cut between the two would leave the daily sweep t
 | M33 | Subagents in conversations | backend, database, root | M11, M32 | |
 | M34 | Subagents in the thread | web, database | M24, M26, M33 | |
 | M35 | Usage caps | core, database, backend, web, root | M33 | |
-| M36 | Integrations in subagents (written, not to build yet) | backend | M29, M33 | |
+| M36 | Integrations in subagents | backend | M29, M33 | |
 | M37 | Launch | all | all | |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
@@ -2271,7 +2271,7 @@ What the caps are, and why each rule below holds, is in Usage caps, as David cho
 
 ### M36: Integrations in subagents
 
-Written on 2026-10-12, as David chose, to build once M29 has merged and not before.
+Written on 2026-10-12, as David chose, before M29 was built: read it against M29 as it merged (#171).
 
 - A subagent's tools gain the three integration tools, as the parent's do in M29, acting as its
   member, with their connections and the organization's keys. Its pinned tools list moves.

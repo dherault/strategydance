@@ -485,6 +485,17 @@ function createConversationDatabaseFake() {
       .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0))
   }
 
+  // The subagent runs no page may reconcile, past their lease or waiting for a slot, with their
+  // subagent, as the sweep's reads find their members
+  function sweptRuns() {
+    return [...runs.values()].flatMap(run => {
+      const conversation = conversations.get(run.conversationId)
+      const isDue = run.status === 'PENDING' || (RUN_IN_FLIGHT.includes(run.status) && isPast(run.leaseExpiresAt))
+
+      return conversation?.parentId != null && isDue ? [{ run, conversation }] : []
+    })
+  }
+
   // The caller's conversations in the organization, deleted ones and subagents aside
   function keptConversations(variables: AnyVariables) {
     return [...conversations.values()].filter(
@@ -3202,25 +3213,25 @@ function createConversationDatabaseFake() {
       }
     },
 
-    GetSubagentRunsToSweep: () => {
-      const authorOf = ({ conversationId }: FakeRun) => {
-        const conversation = conversations.get(conversationId)
+    GetSubagentSweepMembers: variables => ({
+      users: [...new Set(sweptRuns().map(({ conversation }) => conversation.userId))]
+        .filter(userId => userId > variables.afterUserId)
+        .sort()
+        .slice(0, 100)
+        .map(userId => ({ id: userId })),
+    }),
 
-        return { conversation: { userId: conversation?.userId, organizationId: conversation?.organizationId } }
-      }
-      const subagentsRuns = [...runs.values()].filter(run => conversations.get(run.conversationId)?.parentId != null)
-
-      return {
-        deadRuns: subagentsRuns
-          .filter(run => RUN_IN_FLIGHT.includes(run.status) && isPast(run.leaseExpiresAt))
-          .slice(0, 1000)
-          .map(authorOf),
-        pendingRuns: subagentsRuns
-          .filter(run => run.status === 'PENDING')
-          .slice(0, 1000)
-          .map(authorOf),
-      }
-    },
+    GetSubagentSweepOrganizations: variables => ({
+      organizations: [
+        ...new Set(
+          sweptRuns()
+            .filter(({ conversation }) => conversation.userId === variables.userId)
+            .map(({ conversation }) => conversation.organizationId),
+        ),
+      ]
+        .slice(0, 1000)
+        .map(organizationId => ({ id: organizationId })),
+    }),
 
     ChainSubagentRun: variables => {
       const run = requireSubagentRun(variables)

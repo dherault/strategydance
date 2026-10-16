@@ -21,6 +21,8 @@ import {
   getConversationSendContext,
   getSubagentPendingRuns,
   getSubagentSlots,
+  getSubagentSweepMembers,
+  getSubagentSweepOrganizations,
   interruptDeadConversationRun,
   interruptDeadSubagentRun,
   interruptPendingSubagentRun,
@@ -1189,6 +1191,19 @@ async function checkSlots() {
   if (!dying || !holding) throw new Error('No subagent launched')
 
   await updateRun(dying.runId, 'leaseExpiresAt_expr: "request.time"')
+
+  // The sweep finds the author by their runs waiting and the one past its lease, and nobody else
+  const swept = (await getSubagentSweepMembers(dataConnect, { afterUserId: '' })).data.users.map(({ id }) => id)
+  const after = (await getSubagentSweepMembers(dataConnect, { afterUserId: userIds.author })).data.users
+  const { data: sweptOrganizations } = await getSubagentSweepOrganizations(dataConnect, { userId: userIds.author })
+
+  check(
+    'the sweep finds the member with subagent runs to reconcile, by account and organization',
+    swept.includes(userIds.author)
+      && !swept.includes(userIds.other)
+      && !after.some(({ id }) => id === userIds.author)
+      && sweptOrganizations.organizations.some(({ id }) => id === organizationId),
+  )
 
   check(
     'a subagent run whose lease holds is not interrupted as dead',

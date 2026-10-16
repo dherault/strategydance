@@ -1029,31 +1029,58 @@ query GetSubagentPendingRuns($organizationId: UUID!, $userId: String!, $membersh
   }
 }
 
-# The daily sweep's for subagents: who has a subagent run that no page may reconcile, in every
-# organization, a run past its lease or one waiting for a slot, so the sweep reconciles each of
-# those members' subagent runs as the parent's page would
-query GetSubagentRunsToSweep @auth(level: NO_ACCESS) {
-  deadRuns: conversationRuns(
+# The daily sweep's for subagents: who has a subagent run no page may reconcile, past its lease or
+# waiting for a slot, in any organization, a hundred accounts at a time, after the last one read, so
+# however many runs one member holds, nobody after them is hidden. The sweep reads each one's
+# organizations with `GetSubagentSweepOrganizations`, then reconciles each member there
+query GetSubagentSweepMembers($afterUserId: String!) @auth(level: NO_ACCESS) {
+  users(
     where: {
-      status: { in: [QUEUED, RUNNING] }
-      leaseExpiresAt: { lt_time: { now: true } }
-      conversation: { parentId: { isNull: false } }
+      id: { gt: $afterUserId }
+      conversations_on_user: {
+        exist: {
+          parentId: { isNull: false }
+          conversationRuns_on_conversation: {
+            exist: {
+              _or: [
+                { status: { eq: PENDING } }
+                { _and: [{ status: { in: [QUEUED, RUNNING] } }, { leaseExpiresAt: { lt_time: { now: true } } }] }
+              ]
+            }
+          }
+        }
+      }
     }
-    limit: 1000
+    orderBy: [{ id: ASC }]
+    limit: 100
   ) {
-    conversation {
-      userId
-      organizationId
-    }
+    id
   }
-  pendingRuns: conversationRuns(
-    where: { status: { eq: PENDING }, conversation: { parentId: { isNull: false } } }
+}
+
+# The organizations in which an account the sweep found has a subagent run no page may reconcile,
+# as `GetSubagentSweepMembers` finds them, whether they are still a member there or not
+query GetSubagentSweepOrganizations($userId: String!) @auth(level: NO_ACCESS) {
+  organizations(
+    where: {
+      conversations_on_organization: {
+        exist: {
+          userId: { eq: $userId }
+          parentId: { isNull: false }
+          conversationRuns_on_conversation: {
+            exist: {
+              _or: [
+                { status: { eq: PENDING } }
+                { _and: [{ status: { in: [QUEUED, RUNNING] } }, { leaseExpiresAt: { lt_time: { now: true } } }] }
+              ]
+            }
+          }
+        }
+      }
+    }
     limit: 1000
   ) {
-    conversation {
-      userId
-      organizationId
-    }
+    id
   }
 }
 

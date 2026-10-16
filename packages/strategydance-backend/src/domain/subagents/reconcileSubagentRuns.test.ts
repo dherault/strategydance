@@ -205,6 +205,47 @@ describe('reconcileSubagentRuns', () => {
   })
 })
 
+describe('sweepSubagentRuns', () => {
+  test('reaches every member past the first hundred accounts, behind one holding over a hundred runs', async () => {
+    // Five of the author's own go, so those launched after wait
+    await fillSlots(0)
+
+    const skipped: ConversationRunReference[] = []
+
+    // The author holds over a hundred runs waiting, each asked to stop, ten a parent's anchor at most
+    for (let parentIndex = 0; parentIndex < 11; parentIndex++) {
+      const parent = await startParent()
+
+      for (let index = 0; index < 10; index++) skipped.push(await kit.launch(parent))
+    }
+
+    for (const reference of skipped) {
+      const run = kit.readRun(reference)
+
+      if (run) run.stopRequestedAt = new Date().toISOString()
+    }
+
+    // And a hundred and one other members each hold a run that died with its worker
+    const dead: ConversationRunReference[] = []
+
+    for (let index = 0; index <= 100; index++) {
+      const author = `member-${String(index).padStart(3, '0')}`
+      const memberKit = createConversationTestKit(fake, { author })
+
+      fake.addMember(author, ORGANIZATION_ID)
+
+      const subagent = await memberKit.launch(await memberKit.start())
+
+      memberKit.expireLease(subagent)
+      dead.push(subagent)
+    }
+
+    expect(await sweepSubagentRuns()).toEqual({ reconciled: 102 })
+    expect(readStatuses(skipped).every(status => status === 'STOPPED')).toBe(true)
+    expect(dead.every(reference => fake.runs.get(reference.runId)?.status === 'INTERRUPTED')).toBe(true)
+  })
+})
+
 describe('reconcileConversationSubagents', () => {
   test('reconciles for the member’s conversation, and refuses a subagent, another member’s and a deleted one', async () => {
     const { parent, running } = await fillSlots(0)

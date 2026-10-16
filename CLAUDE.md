@@ -343,11 +343,11 @@ so the `DEV` check cannot carry it, and `VITE_USE_FIREBASE_EMULATORS=true` is wh
 local preview that signs people into the real project and writes real rows would be a trap
 rather than a preview.
 
-**The Hosting preview channel on each pull request is the exception, and it writes real
-data.** There is one Firebase project, so a preview build talks to it: signing in on a
-preview URL creates a real account, and anything it stores is a real row. Use a preview to
-look at what renders, not to exercise sign-up. Isolating it means a second project with its
-own Cloud SQL instance, which is a deliberate decision nobody has taken yet. The App Check debug token prints to the console on first run and has to be
+**A Hosting preview channel, which a pull request gets only when somebody deploys one by hand,
+is the exception, and it writes real data.** There is one Firebase project, so a preview build
+talks to it: signing in on a preview URL creates a real account, and anything it stores is a
+real row. Use a preview to look at what renders, not to exercise sign-up. Isolating it means a
+second project with its own Cloud SQL instance, which is a deliberate decision nobody has taken yet. The App Check debug token prints to the console on first run and has to be
 registered in the Firebase console before a browser can reach the real project; the emulators
 do not enforce App Check, so the usual loop never needs it.
 
@@ -1669,11 +1669,12 @@ log printed, run `bun run deploy:database` by hand if it is what the release mea
 the deploy of `main`'s tip. A re-run keeps the commit its run started on, so a run `main` has
 moved past refuses to deploy rather than put an older release over a newer one.
 
-Pull requests still deploy a Hosting preview, with the one key the repository holds, which
-`firebase-hosting-pull-request.yml` explains. `delete-preview-channel.yml` deletes a pull
-request's channel when it closes, since Hosting caps the channels a site holds and a preview past
-the cap fails with a 429. Run by hand from the Actions tab, it deletes every channel but `live`,
-which is the way out once the quota is full. Both triggers run the copy on `main`, whatever a pull
-request's base: `pull_request_target` always runs the default branch's workflow, and GitHub
-offers a workflow to run by hand only once the default branch holds it. A change to it takes
-effect with the release, not with its merge into `dev`.
+A pull request gets a Hosting preview only when somebody runs `firebase-hosting-pull-request.yml`
+by hand from the Actions tab with its number, since a preview takes a production build and one of
+the channels Hosting caps a site at. It holds the one key the repository holds, which its header
+explains. `delete-preview-channel.yml` deletes a pull request's channel when it closes, since a
+preview past the cap fails with a 429. Run by hand from the Actions tab, it deletes every channel
+but `live`, which is the way out once the quota is full. Both triggers run the copy on `main`,
+whatever a pull request's base: `pull_request_target` always runs the default branch's workflow,
+and GitHub offers a workflow to run by hand only once the default branch holds it, the preview's
+included. A change to either takes effect with the release, not with its merge into `dev`.

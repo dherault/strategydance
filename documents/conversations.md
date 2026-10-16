@@ -2196,7 +2196,8 @@ way (see The orchestrator).
   reads, some $1.50 a full run over a modest context: a fan-out of ten subagents that each use their
   whole budget so comes to some $60, where five short ones come to a few dollars. Those are typical
   figures, not bounds: a request may write 64000 tokens over a context of up to 800000, and a brief
-  can ask for that. The bound is M35's $10 a run, $40 a subagent, so the thirty a member may launch
+  can ask for that. The bound is M35's $10 a run, $40 a subagent, short only of what a search
+  retrieves past its measured allowance (see Usage caps), so the thirty a member may launch
   in an organization a day come to $1200 at most and an account's sixty to $2400. Its web searches
   cost $0.01 each, five a request at most (`max_uses`), outside the fifty tool calls a run counts,
   so up to $5 for one that searches five times at every request, which the cost limit prices with
@@ -2585,9 +2586,11 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
   searches one request may make. A run whose total would pass $10
   (`CONVERSATION_RUN_MAX_COST_MICRODOLLARS`) sends nothing more and ends `FAILED` with its limits'
   note, as at its other limits, and a subagent's run chains instead, so $10 a run and $40 a
-  subagent are bounds rather than estimates. Reserving for a cold cache stops a run over a very
-  large context sooner, some $5 into a run at 700000 tokens, which is the price of a true bound.
-  Two things keep it one:
+  subagent hold for everything a request is billed for but what a search retrieves, which is
+  reserved by measure (below) and can pass its allowance within the request that retrieves it. The
+  figures that follow from them, a subagent's, a fan-out's and a day's, are bounds in the same sense.
+  Reserving for a cold cache stops a run over a very large context sooner, some $5 into a run at
+  700000 tokens, which is the price of that bound. Three things keep it:
   - **The reservation is stored, and stands while what was billed is unknown.** The lease's write
     that reserves a request records its worst case in the ledger beside its estimate, and the cost
     limit prices a request that has no settled usage at that worst case, never at the estimate a

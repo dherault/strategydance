@@ -643,18 +643,18 @@ A conversation is kept twice, once for Claude and once for the page, and
   the author on it, `mutation.variables.userId == request.auth.uid`, since the backend's
   mutations, run through the Admin SDK, carry no `mutation.auth.uid` and take the verified
   `$userId` anyway
-- A run is `QUEUED` or `RUNNING` exactly while its conversation's `activeRunId` names it. Every
-  write that ends a run lets go of it in the same mutation, matching `activeRunId` on the run and
-  never filtering on `deletedAt`, or a conversation restored later stays busy for good. A run's
-  lease is set from the database's clock (`leaseExpiresAt_time`), the clock the filters that find
-  it dead read: twenty minutes while it is queued, then a minute, which every write of its worker
-  renews. A claimed run past its lease is dead, and a route finalizes it as interrupted before it
-  counts or starts another, as the page's reconcile does. A queued run's lease only says when to
-  ask Cloud Tasks whether it is still coming (`finalizeDeadConversationRun`): its task there, the
-  lease is pushed back; gone, the run is queued again while it is under twenty minutes old, and
-  finalized once older. A run whose task could not be queued has its lease brought in to now, so
-  its page reconciles it at once. Development has no queue, and a queued run past its lease is dead
-  there
+- A run is `QUEUED`, `RUNNING` or, a subagent's, `PENDING` exactly while its conversation's
+  `activeRunId` names it, a `PENDING` run with no lease and no task. Every write that ends a run
+  lets go of it in the same mutation, matching `activeRunId` on the run and never filtering on
+  `deletedAt`, or a conversation restored later stays busy for good. A run's lease is set from the
+  database's clock (`leaseExpiresAt_time`), the clock the filters that find it dead read: twenty
+  minutes while it is queued, then a minute, which every write of its worker renews. A claimed run
+  past its lease is dead, and a route finalizes it as interrupted before it counts or starts
+  another, as the page's reconcile does. A queued run's lease only says when to ask Cloud Tasks
+  whether it is still coming (`finalizeDeadConversationRun`): its task there, the lease is pushed
+  back; gone, the run is queued again while it is under twenty minutes old, and finalized once
+  older. A run whose task could not be queued has its lease brought in to now, so its page
+  reconciles it at once. Development has no queue, and a queued run past its lease is dead there
 - Every write of a worker is fenced: its first step is the run's own update, matching the run
   `RUNNING`, the attempt its worker claimed and its author's membership by the `createdAt` the run
   recorded, as `RenewConversationRunLease` does alone. It is the run's only write in the mutation,
@@ -703,9 +703,38 @@ A conversation is kept twice, once for Claude and once for the page, and
   their bytes, asks nothing, tags nothing, draws its text with no unread count
   (`DrawSubagentAgentText`), and ends only through `FinishSubagentRun`, `FinishSubagentRunWithNote`
   and `InterruptSubagentRun`, which write its `report` in the write that ends it, however it ends:
-  every other ending's fence matches a conversation that is no subagent, and
-  `finalizeDeadConversationRun` answers `missing` for a subagent's run. `bun run
-  check:subagent-runs`, in the backend's package, checks the operations against the emulators
+  every other ending's fence matches a conversation that is no subagent, and a dead one only through
+  `InterruptDeadSubagentRun`, which `finalizeDeadConversationRun` writes when told of a run on the
+  subagents' queue, answering `missing` for a subagent's run on the conversations' and the reverse.
+  `bun run check:subagent-runs`, in the backend's package, checks the operations against the
+  emulators
+- A subagent's run at one of its limits, its 25 requests, 10 minutes or 100 entries, before its
+  fourth run (`MAX_SUBAGENT_RUNS`) chains: `ChainSubagentRun` ends it `CHAINED` and queues the next,
+  `CONTINUE` on the same anchor, in one write, the next run's id derived from it
+  (`deriveChainedRunId`), carrying on as Resume does without a note. A run asked to stop as it
+  reaches a limit stops instead. The worker queues the next run once its lease has stopped, and a
+  run whose next could not be queued answers `held`, so its delivery comes back to queue it, as a
+  delivery finding the run `CHAINED` does. The calls count 50 for each run of the chain
+  (`planConversationToolCalls`' `maxCalls`), and the fourth run's last request, after a turn's
+  results, ends that entry asking for the report (`SUBAGENT_REPORT_REQUEST`). Only the last run
+  writes the report
+- A member has five subagent runs at once in an organization
+  (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`), `QUEUED` or `RUNNING` across all their conversations,
+  apart from their own three. A launch first finalizes their dead subagent runs, then takes a free
+  slot (`LaunchSubagent`, whose check refuses the sixth) or waits `PENDING`
+  (`LaunchPendingSubagent`), and a pending launch promotes right after, so a slot freed while it
+  counted goes to the oldest run waiting. The promotion is a mutation of its own, one run at a time
+  (`PromoteSubagentRun`, looped by `promoteSubagentRuns`), taking the membership's lock after
+  whatever freed the slot, never inside it: after every end of a subagent's run that held a slot and
+  every dead one finalized, never after a chain, which keeps its slot, nor after a `PENDING` run's
+  end, which held none. It skips a run asked to stop, one whose subagent is deleted and one launched
+  under a membership since replaced (`decidePendingSubagentRun`), which the reconcile and the sweep
+  end through `StopPendingSubagentRun` and `InterruptPendingSubagentRun`, each fenced on its reason.
+  A promotion sets the run's `createdAt` again, so its twenty minutes to be queued again count from
+  there. A new way to end a subagent's run that held a slot promotes after it. `POST
+  …/:conversationId/subagents/reconcile`, which a parent's page calls, and the daily sweep
+  (`sweepSubagentRuns`) reconcile a member's subagent runs (`reconcileSubagentRuns`): the dead ones
+  finalized or queued again, the skipped ones ended, then a promotion
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under an organization's `conversations/` sits behind the bouncer its layout route
@@ -1007,6 +1036,12 @@ in `utils/`, one concern per file.
   `/internal/conversation-runs`, whose request stays open for the whole run, since Cloud Run
   throttles the CPU once a response is sent. Queueing it twice queues it once (`ALREADY_EXISTS`),
   and a run that could not be queued stays queued while the send answers 503
+- A subagent's run goes through a queue of its own, `subagent-runs` (`SUBAGENT_RUN_QUEUE_PATH`, 20
+  deliveries at once), to the same worker route, so a fan-out never holds the deliveries every
+  member's reply waits on. Cloud Tasks takes a task's name only under the queue it was created in,
+  so a run's queue (`ConversationRunQueue`) is a required argument of everything that touches its
+  task, `enqueueRun`, `queueConversationRun`, `buildConversationRunTaskName`,
+  `findConversationRunTask` and `finalizeDeadConversationRun(s)`, and a new one takes it too
 - An organization's MCP servers are its administrators' to change, through `routes/integrations.ts`,
   mounted at `/organizations/:organizationId/integrations`, each route running
   `organizationAdministratorMiddleware`, then `staffOnlyMiddleware` until conversations launch, and
@@ -1064,7 +1099,9 @@ in `utils/`, one concern per file.
   ago (`PruneIntegrationAuthorizations`), the conversation searches over a day old, which
   no count reads any more, the module call results past their expiry, and the authorization
   server's requests expired over a day ago, its tokens past their expiry and the registrations
-  nobody uses (`domain/oauth/prune…`). A milestone that keeps
+  nobody uses (`domain/oauth/prune…`). Before all of them, it reconciles the subagent runs no page
+  reconciled, every member's with one past its lease or waiting for a slot (`sweepSubagentRuns`),
+  logging rather than throwing, so the prunes run whatever it meets. A milestone that keeps
   something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
   sweep that failed is finished by the next
 - The worker's `POST /internal/directories-check`, which Cloud Scheduler calls once a day, checks

@@ -2209,6 +2209,17 @@ own.
   time, so the order itself is checked by reading the mutations: no mutation writes the membership
   after a run, or a `QUEUED`, `RUNNING` or `PENDING` run after its conversation's row. A read takes
   no lock, and the launch's read of its run after the parent's row is what lets it see a Stop.
+- **The subagents' model, measured**, as David chose on 2026-10-16: the same three briefs, a piece
+  of web research, a task taken up from the board and a document written from what the knowledge
+  holds, each run as a subagent on Opus 5.5 at medium effort, as today, Opus 5.5 at low effort and
+  Sonnet 5.5 at medium, each with and without a `task_budget` (beta `task-budgets-2026-03-13`, read
+  in the `claude-api` skill before it is written), eighteen subagents in all, some $50, which David
+  approves before they run. Each records its tokens from its ledger, priced at list prices, its
+  requests, how many runs it chained and whether its last run asked for the report, and its report
+  is read for what it did, found and changed. The numbers go into the pull request and § Cost, and
+  David chooses the model and effort from them, Opus 5.5 at medium staying until he does. A choice
+  other than today's is a change of the subagent's request alone, its own constants beside
+  `buildSubagentTools`, and M35's price table names the model it chose.
 - **Verify** with the real model:
   - Ask the agent to take up three tasks assigned to Strategy Dance, one already `ONGOING`, and read
     the board, each task taken up moved to `ONGOING`, and the reaction.

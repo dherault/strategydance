@@ -60,8 +60,9 @@ account or an organization, the micromark risk closed, capacity and alerts check
 left for the recorded usage taken (see Release gate); a run stops at $10 of estimated cost, an
 account has ceilings across its organizations, and what finishes work under way passes a cap only up
 to one and a half times it (see Usage caps); subagents delete nothing, saying in their report
-what they would delete, and one briefed on a task moves it to `ONGOING` as it starts (see
-Subagents). When a decision changes, change it here first.
+what they would delete, and one briefed on a task moves it to `ONGOING` as it starts, and their
+model and effort are chosen from what M33 measures (see Subagents). When a decision changes, change
+it here first.
 
 ## The design
 
@@ -86,7 +87,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 
 | Topic | Decision |
 | --- | --- |
-| Model | Claude Opus 5.5, `claude-opus-5-5` |
+| Model | Claude Opus 5.5, `claude-opus-5-5`. A subagent's model and effort are chosen by David from what M33 measures, as he chose on 2026-10-16, Opus 5.5 at medium effort until then |
 | Where it runs | Anthropic's Claude API, directly, through `@anthropic-ai/sdk`. Its key is the `anthropic-api-key` secret, read through `retrieveSecret`, and the workspace it belongs to has a spend limit. Vertex was the first choice, for credentials nothing stores and one bill, until Google gave the project no Claude quota and refused one. The API also has what Vertex lacks: server-side refusal fallbacks, the Files API and the newer web search |
 | How a run executes | In the background. The backend queues a Cloud Tasks task, and the task's request runs the agent loop on a private worker service, the backend's image deployed a second time, writing each step to Data Connect. Locally it runs in the backend's process |
 | What the agent reads | Knowledge, through the Knowledge module, every task on the team's board, through the Tasks module, the organization's profile (name, brief) and the member's own (name, job title, role, bio), never a document the team keeps from AI (`isAiReadable` off), which search leaves out and reading refuses. A task carries no such permission. Not the rest of the team's profiles, the log or top priorities, as David chose on 2026-10-10, nor the checklist, which is going away |
@@ -1914,7 +1915,14 @@ way (see The orchestrator).
   chain or its report. Tests call each of those directly with a subagent's id.
 - **One level.** A subagent gets no subagent tools, and the module refuses a launch from one anyway,
   so nothing launches past one level, as David chose.
-- **Its request** is a conversation's, Opus 5.5 with the same settings, but for three things:
+- **Its request** is a conversation's, Opus 5.5 with the same settings, but for three things. Its
+  model and effort are its own to choose, though: a subagent's thinking blocks are bound to its own
+  conversation, so a subagent on another model changes nothing of its parent's, and its requests
+  share their cached prefix only with other subagents'. Sonnet 5.5 costs half of Opus 5.5 ($2 and $10
+  a million input and output tokens against $4 and $20, cache reads $0.20 alike), a lower effort
+  writes fewer tokens, and a task budget (`output_config.task_budget`, beta) lets the model pace a
+  loop rather than be asked for its report at its last request. M33 measures them on the same briefs
+  and David chooses from the numbers, as he chose on 2026-10-16. The three things:
   - Its own system prompt (`domain/agent/subagentSystemPrompt.ts`, pinned by its hash, as the
     conversation's is): it works for Strategy Dance's agent on one brief, with no member to ask; it
     reads before relying and writes within its brief; it deletes nothing, and says in its report

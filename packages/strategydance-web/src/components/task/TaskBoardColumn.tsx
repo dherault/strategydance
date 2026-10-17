@@ -51,7 +51,8 @@ function DropLine() {
   tints while one is held over it
 
   A column grows with its cards, but for Done, which only ever grows: its size is contained, so the
-  board's row is as tall as the tallest of the other columns, and Done stretches to it and scrolls
+  board's row is as tall as the tallest of the other columns, or as the board's own height when that
+  is taller, and Done stretches to it and scrolls
   its cards. Its list starts higher by the room a focused card's outline and the drop line take
   above the first card, which a scrolling list would otherwise clip, so its cards line up with the
   other columns'. Nothing in it shrinks, since an overflowing list would otherwise squeeze the drop

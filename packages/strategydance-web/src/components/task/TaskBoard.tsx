@@ -51,7 +51,11 @@ import taskMessages from '~data/intl/messages/task'
 
   Four columns want the width the page column keeps clear on its right, to center other pages, so
   the board takes the page's whole width up to 1600px, with the page column's gutters: its left edge
-  stays where every page's is until the screen is wide enough to center it
+  stays where every page's is until the screen is wide enough to center it.
+
+  The columns reach down to the page's bottom padding at least, however few cards they hold: the
+  page, its body and the board each grow into the height the app's frame leaves them, and the
+  board's one row stretches to it
 */
 function TaskBoard() {
   const { formatMessage } = useIntl()
@@ -114,7 +118,7 @@ function TaskBoard() {
 
     return (
       <>
-        <div className="grid grid-cols-[repeat(4,minmax(216px,1fr))] items-stretch gap-3 overflow-x-auto pb-1">
+        <div className="grid grow grid-cols-[repeat(4,minmax(216px,1fr))] items-stretch gap-3 overflow-x-auto pb-1">
           {TASK_STATUSES.map(status => {
             const column = columns.get(status) ?? []
 
@@ -160,7 +164,7 @@ function TaskBoard() {
     }
 
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex grow flex-col gap-4">
         <PageToolbar
           actions={
             <>
@@ -195,7 +199,7 @@ function TaskBoard() {
   }
 
   return (
-    <div className="mx-auto box-border flex w-full max-w-[calc(1600px+4rem)] flex-col gap-8 px-2 pt-6 pb-12 md:px-8">
+    <div className="mx-auto box-border flex w-full max-w-[calc(1600px+4rem)] grow flex-col gap-8 px-2 pt-6 pb-12 md:px-8">
       <PageHeader
         eyebrow={formatMessage(taskMessages.eyebrow)}
         title={formatMessage(navigationMessages.tasks)}

@@ -29,6 +29,7 @@ import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
 import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead'
 import useReconcileConversationRun from '~hooks/conversation/useReconcileConversationRun'
+import useReconcileConversationSubagents from '~hooks/conversation/useReconcileConversationSubagents'
 import useIntegrationConnections from '~hooks/integration/useIntegrationConnections'
 import useOrganizationIntegrations from '~hooks/integration/useOrganizationIntegrations'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
@@ -142,7 +143,9 @@ function ConversationThread({
   const tasks = useConversationTasks(needsConversationTasks(entries, bodies))
   const deletedItems = useConversationDeletedItems(conversation.id, readConversationDeletedCallIds(entries))
   // Read only once the conversation launched one, which every launch's row and the page then share
-  const subagents = useConversationSubagents(conversation.id, { isEnabled: conversation.subagentCount > 0 })
+  const subagents = useConversationSubagents(conversation.id, {
+    isEnabled: !isReadOnly && conversation.subagentCount > 0,
+  })
   // One clock for every row that offers Restore until its day is up
   const now = useNow()
 
@@ -191,6 +194,9 @@ function ConversationThread({
   useMarkConversationRead(conversation, isLatestShown)
   // A subagent's runs are reconciled through its parent's page, whose route its own refuses
   useReconcileConversationRun(conversation.id, isReadOnly ? null : run, !waitingEntries.length)
+  useReconcileConversationSubagents(conversation, run, subagents.data, {
+    isEnabled: !isReadOnly && !subagents.initialLoading && !subagents.hasFailed,
+  })
 
   useEffect(() => {
     const sentinel = sentinelRef.current

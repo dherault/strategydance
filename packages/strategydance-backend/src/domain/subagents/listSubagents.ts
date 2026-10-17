@@ -8,6 +8,7 @@ import { dataConnect } from '~firebase'
 import decodeCursor from '~utils/decodeCursor'
 import encodeCursor from '~utils/encodeCursor'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
+import toSortableInstant from '~utils/toSortableInstant'
 
 import readSubagentLauncher from '~domain/subagents/readSubagentLauncher'
 import toSubagentStatus from '~domain/subagents/toSubagentStatus'
@@ -55,11 +56,14 @@ async function listSubagents(caller: ModuleCaller, { cursor }: { cursor?: string
 
   if (data.membership.length === 0) return { outcome: 'notMember' }
 
+  // Instants compared to the microsecond, however many digits each was written with
+  const cursorAt = after && toSortableInstant(after.createdAt)
   const remaining = after
-    ? data.subagents.filter(
-        ({ createdAt, id }) =>
-          createdAt < after.createdAt || (createdAt === after.createdAt && toCanonicalUuid(id) > after.id),
-      )
+    ? data.subagents.filter(({ createdAt, id }) => {
+        const at = toSortableInstant(createdAt)
+
+        return at < cursorAt! || (at === cursorAt && toCanonicalUuid(id) > after.id)
+      })
     : data.subagents
   const page = remaining.slice(0, PAGE_SIZE)
   const last = page.at(-1)

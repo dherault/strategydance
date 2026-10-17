@@ -15,6 +15,7 @@ import {
 } from 'strategydance-core'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
+import toSortableInstant from '~utils/toSortableInstant'
 
 import createIntegrationDatabaseFake from '~domain/integrations/testing/createIntegrationDatabaseFake'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
@@ -880,7 +881,8 @@ function createConversationDatabaseFake() {
           && conversation.deletedAt === null,
       )
       .sort((a, b) => {
-        const [first, second] = [a.createdAt ?? '', b.createdAt ?? '']
+        // In time, as Postgres orders them, however many digits each fraction was written with
+        const [first, second] = [toSortableInstant(a.createdAt ?? ''), toSortableInstant(b.createdAt ?? '')]
 
         return first > second ? -1 : first < second ? 1 : a.id < b.id ? -1 : 1
       })

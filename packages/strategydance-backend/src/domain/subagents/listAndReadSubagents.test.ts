@@ -100,6 +100,33 @@ describe('listSubagents', () => {
     expect(second.cursor).toBeUndefined()
   })
 
+  test('pages across instants written with fractions of different lengths, as they fall in time', async () => {
+    const parent = await startRunning()
+    const subagents = await launchMany(parent, 21)
+
+    // The first page ends at …00.870168Z, and the next starts at …00.87Z, earlier though it sorts
+    // after it as written
+    subagents.forEach(({ conversationId }, index) => {
+      fake.conversations.get(conversationId)!.createdAt =
+        index === 0
+          ? '2026-10-17T10:00:00.87Z'
+          : index === 1
+            ? '2026-10-17T10:00:00.870168Z'
+            : `2026-10-17T10:00:${String(index).padStart(2, '0')}.000000Z`
+    })
+
+    const caller = createSubagentsCaller(fake, parent)
+    const first = await listSubagents(caller, {})
+
+    if (first.outcome !== 'listed') throw new Error(first.outcome)
+
+    expect(first.subagents.at(-1)?.id).toBe(subagents[1]!.conversationId)
+
+    const second = await listSubagents(caller, { cursor: first.cursor })
+
+    expect(second).toMatchObject({ outcome: 'listed', subagents: [{ id: subagents[0]!.conversationId }] })
+  })
+
   test('leaves out the subagents a retry deleted, and those of other conversations', async () => {
     const parent = await startRunning()
     const other = await startRunning()

@@ -1928,6 +1928,10 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
     messageCount
     historyRevision
     isFull
+    # A subagent's parent, whose page draws it, and how many subagents a conversation holds until they
+    # are pruned, which says whether its page reads them
+    parentId
+    subagentCount
     createdAt
     updatedAt
     # `CONVERSATION_TAIL_LENGTH` in the web package
@@ -2504,6 +2508,280 @@ query GetConversationToolCall($organizationId: UUID!, $messageId: UUID!) @auth(l
     toolStartedAt
     toolDurationMs
     createdAt
+  }
+}
+
+# The subagents a conversation launched, as its page draws them, oldest first, the order they were
+# launched in: each one's title; the call that launched it, Claude's id for it, which its row in the
+# thread is found by; the anchor it was launched on, by which a retry discards it; whether it is busy,
+# and its latest run, whose status and stop say where it stands; and whether its report is written
+# and delivered. Never the report, which its row's output reads as it opens. Those a retry deleted
+# are left out, as is every subagent of a deleted conversation. Read up to 100, as many as a
+# conversation holds until they are pruned (`MAX_CONVERSATION_SUBAGENTS` in strategydance-core), so
+# the list is never cut short.
+#
+# A live query. A subagent's runs are written under its own id, never its parent's, so the writes of
+# a subagent's run that change its status wake every list of its member's in the organization, as a
+# run starting or ending wakes their conversations' list. Those that name the parent wake its list
+# alone: its launches and its agent's stop by `parentId`; its stops, its retry and every write that
+# delivers its reports by `conversationId`; its delete and its restore by `id`. A write added later
+# that changes what it selects names itself here. Removing a member empties theirs, and deleting the
+# organization empties everybody's
+query GetConversationSubagents($organizationId: UUID!, $conversationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "LaunchSubagent"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.parentId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "LaunchPendingSubagent"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.parentId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "LaunchSubagentForAgent"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.parentId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "LaunchPendingSubagentForAgent"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.parentId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RequestSubagentRunStopForAgent"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.parentId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "PromoteSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ClaimQueuedConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ChainSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishSubagentRunWithNote"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptDeadSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopPendingSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopQueuedSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptPendingSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RequestConversationSubagentsStop"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RequestConversationRunStopWithSubagents"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopQueuedConversationRunWithSubagents"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RetryConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StartSubagentReaction"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "MarkSubagentReportsDelivered"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "FinishConversationRunFull"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessage"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SendConversationMessageAnsweringCalls"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ContinueConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StoreConversationToolResults"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.id == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreConversation"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.id == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  conversations(
+    where: {
+      parentId: { eq: $conversationId }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    # `id` breaks the tie between two subagents launched in the same instant
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    title
+    launchToolUseId
+    launchAnchorPosition
+    activeRunId
+    reportedAt
+    reportDeliveredAt
+    latestRuns: conversationRuns_on_conversation(orderBy: [{ number: DESC }], limit: 1) {
+      id
+      number
+      status
+      trigger
+      stopRequestedAt
+    }
+  }
+}
+
+# One subagent's report, as its row's output shows it once written, read each time that opens. Only a
+# subagent of the caller's own conversation comes back, so an id from anywhere else reads nothing
+query GetConversationSubagentReport($organizationId: UUID!, $conversationId: UUID!, $subagentId: UUID!)
+@auth(level: USER) {
+  conversations(
+    where: {
+      id: { eq: $subagentId }
+      parentId: { eq: $conversationId }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    id
+    report
+    reportedAt
+  }
+}
+
+# The files a subagent's brief hands over, by the ids its message keeps (`attachmentIds`), each its
+# name, type and size, as the brief draws them. They are its parent's files, which the parent's
+# messages sent, so they are read among the parent's alone, matched with the caller and the
+# organization as every lookup of a file is: a file still waiting in a draft, or anybody else's, reads
+# nothing. Read once, since a sent file never changes, at most the 10 a brief hands over. `$ids` is
+# required, since a filter on a list left out matches every row
+query GetConversationBriefAttachments($organizationId: UUID!, $conversationId: UUID!, $ids: [UUID!]!)
+@auth(level: USER) {
+  conversationAttachments(
+    where: {
+      id: { in: $ids }
+      conversationId: { eq: $conversationId }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      messageId: { isNull: false }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 10
+  ) {
+    id
+    name
+    contentType
+    size
   }
 }
 

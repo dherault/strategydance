@@ -9,6 +9,11 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import reactToSubagentReports from '~domain/subagents/reactToSubagentReports'
 
+// How many conversations a run's end tries, the oldest first: one whose latest run did not complete
+// stays a candidate until the member writes to it, so the sweep, which tries every one, finds a
+// reaction due behind more of them than this
+const MAX_TRIES = 20
+
 type Options = {
   // A conversation tried first, the parent whose run or subagent just ended
   first?: string | null
@@ -22,7 +27,8 @@ type Options = {
   Starts a member's reactions due in an organization, oldest first: in each of their conversations,
   live and idle, waiting on no answer, in which a report waits (`GetDueSubagentReactions`), whether
   one is due is read in turn (`reactToSubagentReports`). A run of theirs ending frees one of their 3,
-  so it starts the first due, and stops at the 3 taken; the sweep goes through every one. A read or a
+  so it starts the first due among the oldest 20, and stops at the 3 taken; the sweep goes through
+  every one. A read or a
   reaction that fails is logged and left to the next, never failing what it follows. Answers how many
   started
 */
@@ -43,7 +49,7 @@ async function startDueSubagentReactions(
 
   const conversationIds = [
     ...new Set([...(first ? [toCanonicalUuid(first)] : []), ...due.map(({ id }) => toCanonicalUuid(id))]),
-  ]
+  ].slice(0, isThorough ? undefined : MAX_TRIES)
 
   for (const conversationId of conversationIds) {
     try {

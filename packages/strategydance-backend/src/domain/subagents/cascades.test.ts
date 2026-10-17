@@ -309,6 +309,30 @@ describe('the sweep', () => {
     expect(await kit.launch(parent)).toBeDefined()
   })
 
+  test('finds a reaction due behind more than a hundred conversations whose latest run did not complete', async () => {
+    const stalled: ConversationRunReference[] = []
+
+    for (let index = 0; index < 101; index++) {
+      const parent = await startParent()
+
+      await report(await kit.launch(parent))
+      fake.runs.get(parent.runId)!.status = 'STOPPED'
+      fake.conversations.get(parent.conversationId)!.updatedAt = new Date(
+        Date.UTC(2026, 0, 1, 0, 0, index),
+      ).toISOString()
+      stalled.push(parent)
+    }
+
+    const due = await startParent()
+
+    await report(await kit.launch(due))
+    fake.conversations.get(due.conversationId)!.updatedAt = new Date(Date.UTC(2026, 1, 1)).toISOString()
+
+    expect(await sweepSubagentReactions()).toEqual({ started: 1 })
+    expect(readReactions(due)).toHaveLength(1)
+    expect(stalled.flatMap(readReactions)).toEqual([])
+  })
+
   test('starts a reaction the member’s runs held back with no page open', async () => {
     const parent = await startParent()
     const subagent = await kit.launch(parent)

@@ -3341,7 +3341,7 @@ function createConversationDatabaseFake() {
           conversation =>
             conversation.userId === variables.userId && conversation.organizationId === id(variables.organizationId),
         )
-        .slice(0, 100)
+        .slice(0, 1000)
         .map(({ id: conversationId }) => ({ id: conversationId })),
     }),
 

@@ -5,8 +5,9 @@ import {
 } from '@modelcontextprotocol/express'
 import { toNodeHandler } from '@modelcontextprotocol/node'
 import express, { type NextFunction, type Request, type Response, Router } from 'express'
+import { SERVED_MODULES } from 'strategydance-core'
 
-import { APP_URL, MAX_MODULE_REQUEST_BYTES, MODULES_PATH, OAUTH_ISSUER, SERVED_MODULES } from '~constants'
+import { APP_URL, MAX_MODULE_REQUEST_BYTES, MODULES_PATH, OAUTH_ISSUER } from '~constants'
 
 import logger from '~utils/logger'
 import parseClientErrorStatus from '~utils/parseClientErrorStatus'

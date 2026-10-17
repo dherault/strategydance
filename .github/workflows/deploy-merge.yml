@@ -8,7 +8,7 @@
 # worker's previous revision, whose tasks Cloud Tasks retries until the worker is there
 #
 # It holds no key. The organization forbids creating service account keys, and a key in the
-# repository's secrets is one a pull request's workflow could print, as
+# repository's secrets is one a branch's copy of a workflow could print, as
 # firebase-hosting-pull-request.yml explains. Instead the job trades GitHub's OIDC token for a
 # short-lived one of `deployer@strategydance.iam.gserviceaccount.com`, through Workload Identity
 # Federation:

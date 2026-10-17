@@ -24,6 +24,7 @@ import pruneModuleCallResults from '~domain/modules/pruneModuleCallResults'
 import pruneAgentConnectionTokens from '~domain/oauth/pruneAgentConnectionTokens'
 import pruneOAuthAuthorizationRequests from '~domain/oauth/pruneOAuthAuthorizationRequests'
 import pruneOAuthClients from '~domain/oauth/pruneOAuthClients'
+import sweepSubagentRuns from '~domain/subagents/sweepSubagentRuns'
 import pruneDeletedTasks from '~domain/tasks/pruneDeletedTasks'
 
 /*
@@ -88,18 +89,21 @@ function createInternalRouter() {
   --- */
 
   /*
-    Removes what is still deleted past its Undo window, whether or not anybody comes back, as Cloud
-    Scheduler asks once a day: the conversations, with their files, the board's tasks, the
-    documents and the organizations' MCP servers, with their keys and members' connections, deleted
-    over a day ago, and the files uploaded to conversations and never sent. A milestone that keeps
-    something else deleted for a while adds its prune here. So does one that keeps a count or a
-    record for a while, as the conversation searches over a day old go, the module call results past
-    their expiry, members' Connects to MCP servers expired over an hour ago, and the authorization
-    server's requests expired over a day ago, its tokens past their expiry and the registrations
-    nobody uses. Every step is idempotent, so a sweep that failed is finished by the next. Takes no
-    body
+    Reconciles first the subagent runs no page reconciled, a run past its lease or one waiting for a
+    slot, for every member with one, as a parent's page would, and logs rather than throws, so the
+    prunes after it run whatever it meets. Then removes what is still deleted past its Undo window,
+    whether or not anybody comes back, as Cloud Scheduler asks once a day: the conversations, with
+    their files, the board's tasks, the documents and the organizations' MCP servers, with their keys
+    and members' connections, deleted over a day ago, and the files uploaded to conversations and
+    never sent. A milestone that keeps something else deleted for a while adds its prune here. So
+    does one that keeps a count or a record for a while, as the conversation searches over a day old
+    go, the module call results past their expiry, members' Connects to MCP servers expired over an
+    hour ago, and the authorization server's requests expired over a day ago, its tokens past their
+    expiry and the registrations nobody uses. Every step is idempotent, so a sweep that failed is
+    finished by the next. Takes no body
   */
   router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
+    await sweepSubagentRuns()
     await pruneDeletedConversations()
     await pruneConversationAttachments()
     await pruneConversationSearches()

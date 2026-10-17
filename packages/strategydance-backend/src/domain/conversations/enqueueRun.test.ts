@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
 import * as constants from '~constants'
 
@@ -9,9 +9,11 @@ import createConversationDatabaseFake from './testing/createConversationDatabase
 const fake = createConversationDatabaseFake()
 
 // What queueing a run's task answers, which here reaches no Cloud Tasks
-const queueConversationRun = mock(async (_reference: ConversationRunReference): Promise<'queued' | 'unavailable'> => {
-  return 'queued'
-})
+const queueConversationRun = mock(
+  async (_reference: ConversationRunReference, _queue: ConversationRunQueue): Promise<'queued' | 'unavailable'> => {
+    return 'queued'
+  },
+)
 
 // Production's way, where runs go through the queue rather than in the process
 mock.module('~constants', () => ({ ...constants, ARE_CONVERSATION_RUNS_IN_PROCESS: false }))
@@ -75,9 +77,16 @@ describe('enqueueRun, where runs go through the queue', () => {
     const reference = await start()
     const lease = readLease(reference)
 
-    expect(await enqueueRun(reference)).toBe(true)
-    expect(queueConversationRun).toHaveBeenCalledWith(reference)
+    expect(await enqueueRun(reference, 'conversation-runs')).toBe(true)
+    expect(queueConversationRun).toHaveBeenCalledWith(reference, 'conversation-runs')
     expect(readLease(reference)).toBe(lease)
+  })
+
+  test('queues a subagent’s run on the subagents’ own queue', async () => {
+    const reference = await start()
+
+    expect(await enqueueRun(reference, 'subagent-runs')).toBe(true)
+    expect(queueConversationRun).toHaveBeenCalledWith(reference, 'subagent-runs')
   })
 
   test('brings a run’s lease in to now when its task could not be queued, so its page reconciles it', async () => {
@@ -85,7 +94,7 @@ describe('enqueueRun, where runs go through the queue', () => {
 
     queueConversationRun.mockResolvedValueOnce('unavailable')
 
-    expect(await enqueueRun(reference)).toBe(false)
+    expect(await enqueueRun(reference, 'conversation-runs')).toBe(false)
     expect(fake.runs.get(reference.runId)?.status).toBe('QUEUED')
     expect(readLease(reference)).toBeLessThanOrEqual(Date.now())
   })
@@ -102,7 +111,7 @@ describe('enqueueRun, where runs go through the queue', () => {
 
     queueConversationRun.mockResolvedValueOnce('unavailable')
 
-    expect(await enqueueRun(reference)).toBe(false)
+    expect(await enqueueRun(reference, 'conversation-runs')).toBe(false)
     expect(readLease(reference)).toBe(lease)
   })
 
@@ -114,6 +123,6 @@ describe('enqueueRun, where runs go through the queue', () => {
       if (name === 'ExpireQueuedConversationRunLease') throw new Error('The database is unreachable')
     }
 
-    expect(await enqueueRun(reference)).toBe(false)
+    expect(await enqueueRun(reference, 'conversation-runs')).toBe(false)
   })
 })

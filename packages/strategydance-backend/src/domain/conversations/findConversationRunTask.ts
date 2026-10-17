@@ -1,5 +1,7 @@
 import { Status } from 'google-gax'
 
+import type { ConversationRunQueue } from '~types'
+
 import getCloudTasksClient from '~utils/getCloudTasksClient'
 import logger from '~utils/logger'
 import readGrpcCode from '~utils/readGrpcCode'
@@ -11,14 +13,18 @@ import buildConversationRunTaskName from '~domain/conversations/buildConversatio
 const CALL_TIMEOUT_MS = 10 * 1000
 
 /*
-  Whether the task that delivers a run is still in Cloud Tasks' queue: `queued` while it waits or
+  Whether the task that delivers a run is still in its Cloud Tasks queue, a subagent's own or the
+  conversations': `queued` while it waits or
   is being delivered, `gone` once it is not, delivered or given up on after its last attempt or never
   queued, and `unknown` when Cloud Tasks could not say, which the caller answers by changing nothing
 */
-async function findConversationRunTask(runId: string): Promise<'queued' | 'gone' | 'unknown'> {
+async function findConversationRunTask(
+  runId: string,
+  queue: ConversationRunQueue,
+): Promise<'queued' | 'gone' | 'unknown'> {
   try {
     await getCloudTasksClient().getTask(
-      { name: buildConversationRunTaskName(runId) },
+      { name: buildConversationRunTaskName(runId, queue) },
       { timeout: CALL_TIMEOUT_MS, retry: null },
     )
 

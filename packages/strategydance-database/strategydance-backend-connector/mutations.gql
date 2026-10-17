@@ -2945,8 +2945,11 @@ mutation InterruptConversationRun(
 # (`MAX_CONVERSATION_SUBAGENTS` in strategydance-core), which its `subagentCount`, moved on here,
 # counts. Then, read after both locks: the membership the backend read, the subagent's id free,
 # fewer than 10 live subagents launched on `$anchorPosition` (`MAX_SUBAGENTS_PER_ACTION`), those a
-# retry deleted left out, and every file it hands over the parent's, stored and sent by one of its
-# messages, never one waiting in a draft, whose prune would delete it under the subagent.
+# retry deleted left out, every file it hands over the parent's, stored and sent by one of its
+# messages, never one waiting in a draft, whose prune would delete it under the subagent, and one of
+# the member's five subagent slots free in the organization (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`),
+# counted on their queued and running subagent runs, whatever conversation launched them. A launch
+# that finds them taken is `LaunchPendingSubagent`.
 #
 # The brief holds at most 20000 characters (`MAX_SUBAGENT_BRIEF_LENGTH`), its title one line of at
 # most 120, and its files at most 10. `$text` is the brief as the thread draws it, without U+0000,
@@ -2958,6 +2961,142 @@ mutation InterruptConversationRun(
 # `$userId` is the uid the backend verified. `$conversationId` is the subagent's, which its live
 # queries refresh on, and `$parentId` its parent's
 mutation LaunchSubagent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $parentId: UUID!
+  $anchorPosition: Int!
+  $launchRunId: UUID
+  $launchToolUseId: String
+  $conversationId: UUID!
+  $title: String!
+  $runId: UUID!
+  $messageId: UUID!
+  $text: String!
+  $content: String!
+  $attachmentIds: [UUID!]!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can launch subagents in it")
+    @check(
+      expr: "size(vars.title) <= 120 && size(vars.text) <= 20000 && size(vars.attachmentIds) <= 10"
+      message: "A subagent's title holds at most 120 characters, its brief 20000, and its files 10"
+    )
+  conversation_updateMany(
+    where: {
+      id: { eq: $parentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      parentId: { isNull: true }
+      subagentCount: { lt: 100 }
+    }
+    data: { subagentCount_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "The parent launches no more subagents: it is gone, a subagent, or holds 100")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the launch read it") {
+      userId
+    }
+    existing: conversations(where: { id: { eq: $conversationId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The subagent exists already") {
+      id
+    }
+    onAnchor: conversations(
+      where: { parentId: { eq: $parentId }, launchAnchorPosition: { eq: $anchorPosition }, deletedAt: { isNull: true } }
+      limit: 10
+    ) @check(expr: "size(this) < 10", message: "A parent launches at most 10 subagents on one anchor") {
+      id
+    }
+    files: conversationAttachments(
+      where: {
+        id: { in: $attachmentIds }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        conversationId: { eq: $parentId }
+        status: { eq: READY }
+        messageId: { isNull: false }
+      }
+      limit: 10
+    )
+      @check(
+        expr: "size(this) == size(vars.attachmentIds)"
+        message: "A subagent is handed only files its parent sent"
+      ) {
+      id
+    }
+    slots: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+      }
+      limit: 5
+    ) @check(expr: "size(this) < 5", message: "Every one of the member's 5 subagent slots is taken") {
+      id
+    }
+  }
+  conversation_insert(
+    data: {
+      id: $conversationId
+      userId: $userId
+      organizationId: $organizationId
+      parentId: $parentId
+      title: $title
+      activeRunId: $runId
+      nextRunNumber: 1
+      nextMessagePosition: 1
+      messageCount: 1
+      launchRunId: $launchRunId
+      launchToolUseId: $launchToolUseId
+      launchAnchorPosition: $anchorPosition
+    }
+  )
+  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: 0
+      trigger: LAUNCH
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: 0
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: BRIEF
+      text: $text
+      attachmentIds: $attachmentIds
+      position: 0
+    }
+  )
+  conversationTranscriptEntry_insert(
+    data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: $content }
+  )
+}
+
+# Launches a subagent as `LaunchSubagent` does, when the member's five subagent slots in the
+# organization were taken as the launch read them: the same checks, but for the slots, and its first
+# run `PENDING`, with no lease and no task, its subagent busy since `activeRunId` names it, until a
+# promotion queues it (`PromoteSubagentRun`). The backend promotes right after, so a slot freed
+# between its read and this write goes to the oldest run waiting, this one or an older one: a
+# promotion that ran meanwhile could not see this run yet
+mutation LaunchPendingSubagent(
   $organizationId: UUID!
   $userId: String!
   $membershipCreatedAt: Timestamp!
@@ -3049,17 +3188,16 @@ mutation LaunchSubagent(
       launchAnchorPosition: $anchorPosition
     }
   )
-  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  # No lease, since nothing delivers it until a promotion queues it
   conversationRun_insert(
     data: {
       id: $runId
       conversationId: $conversationId
       number: 0
       trigger: LAUNCH
-      status: QUEUED
+      status: PENDING
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: 0
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
     }
   )
   conversationMessage_insert(
@@ -3327,6 +3465,429 @@ mutation InterruptSubagentRun(
     data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
   )
     @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
+  conversationMessage_updateMany(
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+      report: $report
+      reportedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: INTERRUPTED
+      position: $position
+    }
+  )
+}
+
+# Hands a subagent's run that reached one of its limits, its 25 requests, its 10 minutes or its 100
+# entries, before its fourth run (`MAX_SUBAGENT_RUNS` in strategydance-core), on to the next, in one
+# write: the run ends `CHAINED`, settling its usage, and the next run, `CONTINUE`, on the same anchor,
+# is queued with a twenty minutes' lease and takes its conversation's `activeRunId` at once, so the
+# chain never frees the slot it holds and nothing is promoted after it. The next run carries on as a
+# resumed run does, without a note: it runs the calls that never started, the results of those that
+# did carried over (`$pendingToolResults`), then sends its context and the request. The calls running
+# are left `RUNNING`, since the next run runs them.
+#
+# Fenced as `RenewConversationRunLease` is, on a subagent's run not deleted, at the number and anchor
+# the worker read, and not asked to stop, so a stop that committed first ends the run stopped rather
+# than lost on a run it never named. `$nextRunId` derives from the run, so a worker that lost the
+# write's answer finds the run chained and queues the same next run. `$nextRunNumber` is the run's
+# own plus one, which a subagent's runs, made by its launch and its chain alone, always are
+mutation ChainSubagentRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $runNumber: Int!
+  $anchorPosition: Int!
+  $nextRunId: UUID!
+  $nextRunNumber: Int!
+  $usage: Any
+  $failure: String
+  $pendingToolResults: String
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      number: { eq: $runNumber }
+      anchorPosition: { eq: $anchorPosition }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+        deletedAt: { isNull: true }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { status: CHAINED, usage: $usage, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run is no longer this worker's")
+    @check(
+      expr: "vars.runNumber < 3 && vars.nextRunNumber == vars.runNumber + 1"
+      message: "A subagent's run chains to the run right after it, before its fourth"
+    )
+  conversation_updateMany(
+    where: { id: { eq: $conversationId }, activeRunId: { eq: $runId }, nextRunNumber: { eq: $nextRunNumber } }
+    data: { activeRunId: $nextRunId, nextRunNumber_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "The subagent could not take the run its run chains to")
+  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  conversationRun_insert(
+    data: {
+      id: $nextRunId
+      conversationId: $conversationId
+      number: $nextRunNumber
+      trigger: CONTINUE
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $anchorPosition
+      pendingToolResults: $pendingToolResults
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+}
+
+# Promotes one of the member's subagent runs waiting for a slot into one that is free: `PENDING` to
+# `QUEUED`, with a twenty minutes' lease and its `createdAt` set again from the database's clock, so
+# the twenty minutes a run is queued again within count from its promotion, not its launch. The
+# backend queues it right after, and promotes the next while slots stay free, oldest first.
+#
+# The first step writes the member's membership, the lock every launch takes, so a promotion and a
+# launch never count the slots at once, then the membership has to be the one the backend read, and
+# fewer than 5 of the member's subagent runs hold a slot (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`), as
+# committed before the lock. Only then the run: still `PENDING`, launched under that membership, not
+# asked to stop, and its subagent not deleted. A run the promotion skips so is ended by the
+# reconcile or the sweep. A run promoted meanwhile is refused, so two ends at once promote it once.
+#
+# `$conversationId` is the subagent's, which its live run refreshes on. A promotion is its own
+# mutation, following whatever freed the slot rather than joining it, so the membership is always
+# taken before a run, as every run start takes it
+mutation PromoteSubagentRun(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $conversationId: UUID!
+  $runId: UUID!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization has subagents in it")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the promotion read it") {
+      userId
+    }
+    slots: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+      }
+      limit: 5
+    ) @check(expr: "size(this) < 5", message: "Every one of the member's 5 subagent slots is taken") {
+      id
+    }
+  }
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: PENDING }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+        deletedAt: { isNull: true }
+      }
+    }
+    data: { status: QUEUED, createdAt_expr: "request.time", leaseExpiresAt_time: { now: true, add: { minutes: 20 } } }
+  ) @check(expr: "this == 1", message: "The run is no longer waiting for a slot")
+}
+
+# Ends a subagent's run waiting for a slot that a promotion skips because it was asked to stop or its
+# subagent was deleted, `STOPPED`, with its note and its report, which says it was stopped, in the
+# write that lets go of `activeRunId`. Only while the run still waits and still has a reason to
+# stop, so a stale read never ends a run that could be promoted. It held no slot, so nothing is
+# promoted after it. `$failure` says why, for the logs
+mutation StopPendingSubagentRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+  $failure: String
+  $report: String!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $runId }, status: { eq: PENDING } }
+        {
+          conversation: {
+            id: { eq: $conversationId }
+            userId: { eq: $userId }
+            organizationId: { eq: $organizationId }
+            parentId: { isNull: false }
+          }
+        }
+        { _or: [{ stopRequestedAt: { isNull: false } }, { conversation: { deletedAt: { isNull: false } } }] }
+      ]
+    }
+    data: { status: STOPPED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run no longer waits to be stopped")
+    @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+      report: $report
+      reportedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: STOPPED
+      position: $position
+    }
+  )
+}
+
+# Ends a subagent's run still waiting in the queue that its parent's agent asked to stop
+# (`RequestSubagentRunStopForAgent`), `STOPPED`, at once rather than when a worker claims it, with
+# its note and its report, which says it was stopped, in the write that lets go of `activeRunId`.
+# Only while the run is still queued and asked to stop, so one a worker claimed meanwhile is left to
+# stop at its next step, and a task delivered later finds it ended and does nothing. It held one of
+# the member's five slots, so the backend promotes after it. `$failure` says why, for the logs
+mutation StopQueuedSubagentRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+  $failure: String
+  $report: String!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: QUEUED }
+      stopRequestedAt: { isNull: false }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+      }
+    }
+    data: { status: STOPPED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run is no longer queued to be stopped")
+    @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+      report: $report
+      reportedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: STOPPED
+      position: $position
+    }
+  )
+}
+
+# Ends a subagent's run waiting for a slot that a promotion skips because no membership has the
+# `createdAt` it was launched under any more, its author removed or invited back since,
+# `INTERRUPTED`, with its note and its report, which says it was interrupted, in the write that lets
+# go of `activeRunId`. Only while the run still waits and no such membership exists, so it never
+# ends a run that could be promoted. It held no slot, so nothing is promoted after it. `$failure`
+# says why, for the logs
+mutation InterruptPendingSubagentRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+  $failure: String
+  $report: String!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    # One `_and`, because a filter cannot put `_not` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $runId }, status: { eq: PENDING }, membershipCreatedAt: { eq: $membershipCreatedAt } }
+        {
+          conversation: {
+            id: { eq: $conversationId }
+            userId: { eq: $userId }
+            organizationId: { eq: $organizationId }
+            parentId: { isNull: false }
+          }
+        }
+        {
+          _not: {
+            conversation: {
+              organization: {
+                userOrganizations_on_organization: {
+                  exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+    data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run no longer waits to be interrupted")
+    @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+      report: $report
+      reportedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: INTERRUPTED
+      position: $position
+    }
+  )
+}
+
+# Ends a subagent's run that died with its worker, as `InterruptDeadConversationRun` ends a
+# conversation's, `INTERRUPTED` with its note, and writes its report, saying it was interrupted, in
+# the write that takes the note: queued or claimed, past its lease. Only while the run is still past
+# its lease, so a worker that renewed it meanwhile keeps it
+mutation InterruptDeadSubagentRun(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+  $failure: String
+  $report: String!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { in: [QUEUED, RUNNING] }
+      leaseExpiresAt: { lt_time: { now: true } }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+      }
+    }
+    data: { status: INTERRUPTED, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
+  )
+    @check(expr: "this == 1", message: "The run is not dead")
     @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
   conversationMessage_updateMany(
     where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
@@ -4746,6 +5307,437 @@ mutation IndexTaskText($id: UUID!, $updatedAt: Timestamp!, $descriptionText: Str
 # finish meanwhile would. Its `updatedAt` stays, since the task did not change
 mutation DateDoneTask($id: UUID!, $doneAt: Timestamp!) @auth(level: NO_ACCESS) {
   task_updateMany(where: { id: { eq: $id }, status: { eq: DONE }, doneAt: { isNull: true } }, data: { doneAt: $doneAt })
+}
+
+# The Subagents module's writes follow, named `…ForAgent`, as its reads are: see `queries.gql`.
+#
+# Each checks the membership the module read and the run calling the module, its launcher, still
+# running and not asked to stop, then, when the call carries an idempotency key (`$isKeyed`), inserts
+# its `ModuleCallResult` first, `$result` being what the module answers, as the other modules' writes
+# do, and only then writes. Each is named in the refreshes of the live queries whose rows it changes,
+# as the operations it mirrors are
+
+# Launches a subagent as `LaunchSubagent` does, for the Subagents module's `launch_subagent`: the
+# same locks, checks and rows, and besides, its call's key stored after the membership's lock, and
+# the run launching it, `$launchRunId`, read after the parent's row, still running, not asked to stop
+# and on `$anchorPosition`, the anchor the launch counts the 10 on, so a Stop or a delete of the
+# parent that committed first refuses it. The subagent's id derives from the parent's and the key,
+# so a launch called again finds both taken, and the module answers with what the key keeps.
+# `$launchToolUseId` is the call's key, Claude's id for it, null for a call without one
+mutation LaunchSubagentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $parentId: UUID!
+  $anchorPosition: Int!
+  $launchRunId: UUID!
+  $launchToolUseId: String
+  $conversationId: UUID!
+  $title: String!
+  $runId: UUID!
+  $messageId: UUID!
+  $text: String!
+  $content: String!
+  $attachmentIds: [UUID!]!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can launch subagents in it")
+    @check(
+      expr: "size(vars.title) <= 120 && size(vars.text) <= 20000 && size(vars.attachmentIds) <= 10"
+      message: "A subagent's title holds at most 120 characters, its brief 20000, and its files 10"
+    )
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  conversation_updateMany(
+    where: {
+      id: { eq: $parentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      parentId: { isNull: true }
+      subagentCount: { lt: 100 }
+    }
+    data: { subagentCount_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "The parent launches no more subagents: it is gone, a subagent, or holds 100")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the launch read it") {
+      userId
+    }
+    # The run launching it, read after the parent's row, so a Stop or a delete of the parent that
+    # committed first is seen: still running, not asked to stop, and on the anchor the launch counts
+    launcher: conversationRuns(
+      where: {
+        id: { eq: $launchRunId }
+        status: { eq: RUNNING }
+        stopRequestedAt: { isNull: true }
+        anchorPosition: { eq: $anchorPosition }
+        conversation: { id: { eq: $parentId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The run launching the subagent has ended or was asked to stop") {
+      id
+    }
+    existing: conversations(where: { id: { eq: $conversationId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The subagent exists already") {
+      id
+    }
+    onAnchor: conversations(
+      where: { parentId: { eq: $parentId }, launchAnchorPosition: { eq: $anchorPosition }, deletedAt: { isNull: true } }
+      limit: 10
+    ) @check(expr: "size(this) < 10", message: "A parent launches at most 10 subagents on one anchor") {
+      id
+    }
+    files: conversationAttachments(
+      where: {
+        id: { in: $attachmentIds }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        conversationId: { eq: $parentId }
+        status: { eq: READY }
+        messageId: { isNull: false }
+      }
+      limit: 10
+    )
+      @check(
+        expr: "size(this) == size(vars.attachmentIds)"
+        message: "A subagent is handed only files its parent sent"
+      ) {
+      id
+    }
+    slots: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+      }
+      limit: 5
+    ) @check(expr: "size(this) < 5", message: "Every one of the member's 5 subagent slots is taken") {
+      id
+    }
+  }
+  conversation_insert(
+    data: {
+      id: $conversationId
+      userId: $userId
+      organizationId: $organizationId
+      parentId: $parentId
+      title: $title
+      activeRunId: $runId
+      nextRunNumber: 1
+      nextMessagePosition: 1
+      messageCount: 1
+      launchRunId: $launchRunId
+      launchToolUseId: $launchToolUseId
+      launchAnchorPosition: $anchorPosition
+    }
+  )
+  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: 0
+      trigger: LAUNCH
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: 0
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: BRIEF
+      text: $text
+      attachmentIds: $attachmentIds
+      position: 0
+    }
+  )
+  conversationTranscriptEntry_insert(
+    data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: $content }
+  )
+}
+
+# Launches a subagent as `LaunchSubagentForAgent` does, when the member's five subagent slots in the
+# organization were taken as the launch read them, its first run `PENDING`, as
+# `LaunchPendingSubagent` inserts it, and the backend promotes right after
+mutation LaunchPendingSubagentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $parentId: UUID!
+  $anchorPosition: Int!
+  $launchRunId: UUID!
+  $launchToolUseId: String
+  $conversationId: UUID!
+  $title: String!
+  $runId: UUID!
+  $messageId: UUID!
+  $text: String!
+  $content: String!
+  $attachmentIds: [UUID!]!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can launch subagents in it")
+    @check(
+      expr: "size(vars.title) <= 120 && size(vars.text) <= 20000 && size(vars.attachmentIds) <= 10"
+      message: "A subagent's title holds at most 120 characters, its brief 20000, and its files 10"
+    )
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  conversation_updateMany(
+    where: {
+      id: { eq: $parentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      parentId: { isNull: true }
+      subagentCount: { lt: 100 }
+    }
+    data: { subagentCount_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "The parent launches no more subagents: it is gone, a subagent, or holds 100")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the launch read it") {
+      userId
+    }
+    # The run launching it, read after the parent's row, so a Stop or a delete of the parent that
+    # committed first is seen: still running, not asked to stop, and on the anchor the launch counts
+    launcher: conversationRuns(
+      where: {
+        id: { eq: $launchRunId }
+        status: { eq: RUNNING }
+        stopRequestedAt: { isNull: true }
+        anchorPosition: { eq: $anchorPosition }
+        conversation: { id: { eq: $parentId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The run launching the subagent has ended or was asked to stop") {
+      id
+    }
+    existing: conversations(where: { id: { eq: $conversationId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "The subagent exists already") {
+      id
+    }
+    onAnchor: conversations(
+      where: { parentId: { eq: $parentId }, launchAnchorPosition: { eq: $anchorPosition }, deletedAt: { isNull: true } }
+      limit: 10
+    ) @check(expr: "size(this) < 10", message: "A parent launches at most 10 subagents on one anchor") {
+      id
+    }
+    files: conversationAttachments(
+      where: {
+        id: { in: $attachmentIds }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        conversationId: { eq: $parentId }
+        status: { eq: READY }
+        messageId: { isNull: false }
+      }
+      limit: 10
+    )
+      @check(
+        expr: "size(this) == size(vars.attachmentIds)"
+        message: "A subagent is handed only files its parent sent"
+      ) {
+      id
+    }
+  }
+  conversation_insert(
+    data: {
+      id: $conversationId
+      userId: $userId
+      organizationId: $organizationId
+      parentId: $parentId
+      title: $title
+      activeRunId: $runId
+      nextRunNumber: 1
+      nextMessagePosition: 1
+      messageCount: 1
+      launchRunId: $launchRunId
+      launchToolUseId: $launchToolUseId
+      launchAnchorPosition: $anchorPosition
+    }
+  )
+  # No lease, since nothing delivers it until a promotion queues it
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: 0
+      trigger: LAUNCH
+      status: PENDING
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: 0
+    }
+  )
+  conversationMessage_insert(
+    data: {
+      id: $messageId
+      conversationId: $conversationId
+      runId: $runId
+      kind: BRIEF
+      text: $text
+      attachmentIds: $attachmentIds
+      position: 0
+    }
+  )
+  conversationTranscriptEntry_insert(
+    data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: $content }
+  )
+}
+
+# Asks a subagent's run to stop, for the Subagents module's `stop_subagent`, as its row's Stop will:
+# `stopRequestedAt` set on the run its subagent is busy with, `$runId`, the subagent's `activeRunId`
+# as the module read it, queued, running or waiting for a slot. Its worker stops a running one at its
+# next step, and the backend ends a queued or waiting one at once (`StopQueuedSubagentRun`,
+# `StopPendingSubagentRun`). A run that chained since is `CHAINED`, which the filter passes over, so
+# the refusal sends the module back to read the run its subagent is busy with now. The subagent has
+# to be one of the caller's, live, launched by the conversation calling, `$parentId`, whose run
+# `$launchRunId` is still running and not asked to stop.
+#
+# `$conversationId` is the subagent's, which its live queries refresh on
+mutation RequestSubagentRunStopForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $parentId: UUID!
+  $launchRunId: UUID!
+  $conversationId: UUID!
+  $runId: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+    }
+    launcher: conversationRuns(
+      where: {
+        id: { eq: $launchRunId }
+        status: { eq: RUNNING }
+        stopRequestedAt: { isNull: true }
+        conversation: {
+          id: { eq: $parentId }
+          userId: { eq: $userId }
+          organizationId: { eq: $organizationId }
+          parentId: { isNull: true }
+          deletedAt: { isNull: true }
+        }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The run stopping the subagent has ended or was asked to stop") {
+      id
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { in: [QUEUED, RUNNING, PENDING] }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        id: { eq: $conversationId }
+        parentId: { eq: $parentId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+      }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The subagent's run is no longer the one to stop")
 }
 
 # The authorization server's writes follow. Most of them run before any `$userId` has been

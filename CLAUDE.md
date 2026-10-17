@@ -136,9 +136,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. Each `--file`, an image, a PDF or a text file, a relative path read from the repository's root, is uploaded first and sent with it, the text then optional. `--organization <id or slug>` names the organization when the account is in several |
-| `bun run launch:subagent <email> --conversation <id> [--file <attachment id>]… <brief>` | Launches a subagent of one of that account's conversations, as Strategy Dance's agent will once the Subagents module does, handing it each file named, one the conversation sent, runs it in its own process, and prints its transcript and its report once it reports. It answers with the stand-in reply under `CONVERSATION_AGENT=placeholder`, and asks Claude otherwise, which costs money. It refuses to run anywhere but against the emulators |
+| `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches a subagent of one of that account's conversations, or `--count` of them at once, up to 10, as Strategy Dance's agent will once the Subagents module does, handing each file named, one the conversation sent, runs them in its own process, past the account's five slots waiting for one, and prints each transcript and report once all have reported. A promotion runs the subagent it promotes in the process that freed the slot, so launch an account's subagents from one script, never from two side by side. It answers with the stand-in reply under `CONVERSATION_AGENT=placeholder`, and asks Claude otherwise, which costs money. It refuses to run anywhere but against the emulators |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
-| `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's |
+| `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's and `check:subagents-module` the Subagents module's |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
@@ -343,11 +343,11 @@ so the `DEV` check cannot carry it, and `VITE_USE_FIREBASE_EMULATORS=true` is wh
 local preview that signs people into the real project and writes real rows would be a trap
 rather than a preview.
 
-**The Hosting preview channel on each pull request is the exception, and it writes real
-data.** There is one Firebase project, so a preview build talks to it: signing in on a
-preview URL creates a real account, and anything it stores is a real row. Use a preview to
-look at what renders, not to exercise sign-up. Isolating it means a second project with its
-own Cloud SQL instance, which is a deliberate decision nobody has taken yet. The App Check debug token prints to the console on first run and has to be
+**A Hosting preview channel, which a pull request gets only when somebody deploys one by hand,
+is the exception, and it writes real data.** There is one Firebase project, so a preview build
+talks to it: signing in on a preview URL creates a real account, and anything it stores is a
+real row. Use a preview to look at what renders, not to exercise sign-up. Isolating it means a
+second project with its own Cloud SQL instance, which is a deliberate decision nobody has taken yet. The App Check debug token prints to the console on first run and has to be
 registered in the Firebase console before a browser can reach the real project; the emulators
 do not enforce App Check, so the usual loop never needs it.
 
@@ -643,18 +643,18 @@ A conversation is kept twice, once for Claude and once for the page, and
   the author on it, `mutation.variables.userId == request.auth.uid`, since the backend's
   mutations, run through the Admin SDK, carry no `mutation.auth.uid` and take the verified
   `$userId` anyway
-- A run is `QUEUED` or `RUNNING` exactly while its conversation's `activeRunId` names it. Every
-  write that ends a run lets go of it in the same mutation, matching `activeRunId` on the run and
-  never filtering on `deletedAt`, or a conversation restored later stays busy for good. A run's
-  lease is set from the database's clock (`leaseExpiresAt_time`), the clock the filters that find
-  it dead read: twenty minutes while it is queued, then a minute, which every write of its worker
-  renews. A claimed run past its lease is dead, and a route finalizes it as interrupted before it
-  counts or starts another, as the page's reconcile does. A queued run's lease only says when to
-  ask Cloud Tasks whether it is still coming (`finalizeDeadConversationRun`): its task there, the
-  lease is pushed back; gone, the run is queued again while it is under twenty minutes old, and
-  finalized once older. A run whose task could not be queued has its lease brought in to now, so
-  its page reconciles it at once. Development has no queue, and a queued run past its lease is dead
-  there
+- A run is `QUEUED`, `RUNNING` or, a subagent's, `PENDING` exactly while its conversation's
+  `activeRunId` names it, a `PENDING` run with no lease and no task. Every write that ends a run
+  lets go of it in the same mutation, matching `activeRunId` on the run and never filtering on
+  `deletedAt`, or a conversation restored later stays busy for good. A run's lease is set from the
+  database's clock (`leaseExpiresAt_time`), the clock the filters that find it dead read: twenty
+  minutes while it is queued, then a minute, which every write of its worker renews. A claimed run
+  past its lease is dead, and a route finalizes it as interrupted before it counts or starts
+  another, as the page's reconcile does. A queued run's lease only says when to ask Cloud Tasks
+  whether it is still coming (`finalizeDeadConversationRun`): its task there, the lease is pushed
+  back; gone, the run is queued again while it is under twenty minutes old, and finalized once
+  older. A run whose task could not be queued has its lease brought in to now, so its page
+  reconciles it at once. Development has no queue, and a queued run past its lease is dead there
 - Every write of a worker is fenced: its first step is the run's own update, matching the run
   `RUNNING`, the attempt its worker claimed and its author's membership by the `createdAt` the run
   recorded, as `RenewConversationRunLease` does alone. It is the run's only write in the mutation,
@@ -703,9 +703,42 @@ A conversation is kept twice, once for Claude and once for the page, and
   their bytes, asks nothing, tags nothing, draws its text with no unread count
   (`DrawSubagentAgentText`), and ends only through `FinishSubagentRun`, `FinishSubagentRunWithNote`
   and `InterruptSubagentRun`, which write its `report` in the write that ends it, however it ends:
-  every other ending's fence matches a conversation that is no subagent, and
-  `finalizeDeadConversationRun` answers `missing` for a subagent's run. `bun run
-  check:subagent-runs`, in the backend's package, checks the operations against the emulators
+  every other ending's fence matches a conversation that is no subagent, and a dead one only through
+  `InterruptDeadSubagentRun`, which `finalizeDeadConversationRun` writes when told of a run on the
+  subagents' queue, answering `missing` for a subagent's run on the conversations' and the reverse.
+  `bun run check:subagent-runs`, in the backend's package, checks the operations against the
+  emulators
+- A subagent's run at one of its limits, its 25 requests, 10 minutes or 100 entries, before its
+  fourth run (`MAX_SUBAGENT_RUNS`) chains: `ChainSubagentRun` ends it `CHAINED` and queues the next,
+  `CONTINUE` on the same anchor, in one write, the next run's id derived from it
+  (`deriveChainedRunId`), carrying on as Resume does without a note. A run asked to stop as it
+  reaches a limit stops instead. The worker queues the next run once its lease has stopped, and a
+  run whose next could not be queued answers `held`, so its delivery comes back to queue it, as a
+  delivery finding the run `CHAINED` does. The calls count 50 for each run of the chain
+  (`planConversationToolCalls`' `maxCalls`), and the fourth run's last request, after a turn's
+  results, ends that entry asking for the report (`SUBAGENT_REPORT_REQUEST`). Only the last run
+  writes the report
+- A member has five subagent runs at once in an organization
+  (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`), `QUEUED` or `RUNNING` across all their conversations,
+  apart from their own three. A launch first finalizes their dead subagent runs, then takes a free
+  slot (`LaunchSubagent`, whose check refuses the sixth) or waits `PENDING`
+  (`LaunchPendingSubagent`), and a pending launch promotes right after, so a slot freed while it
+  counted goes to the oldest run waiting. The promotion is a mutation of its own, one run at a time
+  (`PromoteSubagentRun`, looped by `promoteSubagentRuns`), taking the membership's lock after
+  whatever freed the slot, never inside it: after every end of a subagent's run that held a slot and
+  every dead one finalized, never after a chain, which keeps its slot, nor after a `PENDING` run's
+  end, which held none. It skips a run asked to stop, one whose subagent is deleted and one launched
+  under a membership since replaced, which the reconcile and the sweep end through
+  `StopPendingSubagentRun` and `InterruptPendingSubagentRun`, each fenced on its reason:
+  `GetSubagentPendingRuns` reads the runs it may promote apart from those it skips, filtered in the
+  query, so no number of runs skipped hides one it may promote, and a read of runs waiting filtered
+  in code would. A promotion refused is read again, and a run found queued is queued, since its
+  answer may be what was lost. A promotion sets the run's `createdAt` again, so its twenty minutes
+  to be queued again count from there. A new way to end a subagent's run that held a slot promotes
+  after it. `POST …/:conversationId/subagents/reconcile`, which a parent's page calls, and the daily
+  sweep (`sweepSubagentRuns`) reconcile a member's subagent runs (`reconcileSubagentRuns`): the dead
+  ones finalized or queued again, the skipped ones ended, a hundred at a time until none is left,
+  then a promotion
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under an organization's `conversations/` sits behind the bouncer its layout route
@@ -1007,6 +1040,12 @@ in `utils/`, one concern per file.
   `/internal/conversation-runs`, whose request stays open for the whole run, since Cloud Run
   throttles the CPU once a response is sent. Queueing it twice queues it once (`ALREADY_EXISTS`),
   and a run that could not be queued stays queued while the send answers 503
+- A subagent's run goes through a queue of its own, `subagent-runs` (`SUBAGENT_RUN_QUEUE_PATH`, 20
+  deliveries at once), to the same worker route, so a fan-out never holds the deliveries every
+  member's reply waits on. Cloud Tasks takes a task's name only under the queue it was created in,
+  so a run's queue (`ConversationRunQueue`) is a required argument of everything that touches its
+  task, `enqueueRun`, `queueConversationRun`, `buildConversationRunTaskName`,
+  `findConversationRunTask` and `finalizeDeadConversationRun(s)`, and a new one takes it too
 - An organization's MCP servers are its administrators' to change, through `routes/integrations.ts`,
   mounted at `/organizations/:organizationId/integrations`, each route running
   `organizationAdministratorMiddleware`, then `staffOnlyMiddleware` until conversations launch, and
@@ -1064,7 +1103,9 @@ in `utils/`, one concern per file.
   ago (`PruneIntegrationAuthorizations`), the conversation searches over a day old, which
   no count reads any more, the module call results past their expiry, and the authorization
   server's requests expired over a day ago, its tokens past their expiry and the registrations
-  nobody uses (`domain/oauth/prune…`). A milestone that keeps
+  nobody uses (`domain/oauth/prune…`). Before all of them, it reconciles the subagent runs no page
+  reconciled, every member's with one past its lease or waiting for a slot (`sweepSubagentRuns`),
+  logging rather than throwing, so the prunes run whatever it meets. A milestone that keeps
   something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
   sweep that failed is finished by the next
 - The worker's `POST /internal/directories-check`, which Cloud Scheduler calls once a day, checks
@@ -1094,7 +1135,7 @@ in `utils/`, one concern per file.
   against the local backend at `API_URL`, both modules' endpoints included, and checks the
   operations against the emulators: an operation changed is changed in both
 - The modules' endpoints, `routes/modules.ts` mounted at `/mcp` (`MODULES_PATH`) on the public
-  backend alone, serve each module `SERVED_MODULES` lists at its `MODULES` path, `POST` alone,
+  backend alone, serve each module strategydance-core's `SERVED_MODULES` lists at its `MODULES` path, `POST` alone,
   through the SDK's `toNodeHandler` around the module's handler. They answer MCP's JSON-RPC, never
   `ApiResponse` (`respondJsonRpcError` for what they refuse before the handler), and carry no App
   Check, which no external agent can carry: the bearer token is the guard. In order: any other
@@ -1181,9 +1222,10 @@ in `utils/`, one concern per file.
 
 A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
 agent uses in its own process and which a member can add to an agent of their own: Knowledge and the
-team's tasks first, the rest later. `MODULES` in strategydance-core lists each one's name, path,
-title and scopes, and [conversations.md](documents/conversations.md) § Modules says what each does
-and why.
+team's tasks first, then Subagents, which Strategy Dance's own agents alone reach, the rest later.
+`MODULES` in strategydance-core lists each one's name, path, title and scopes, `SERVED_MODULE_NAMES`
+beside it those served to external agents, and [conversations.md](documents/conversations.md) §
+Modules says what each does and why.
 
 - A module's server lives in `src/modules/<name>/`, built by its `create<Name>Server(caller)` for one
   caller, one file per tool registering it, which only validates, calls `domain/<name>/` and shapes
@@ -1203,7 +1245,11 @@ and why.
   the SDK's `AuthInfo`, which `toModuleAuthInfo` writes and `readModuleCaller` reads back, refusing a
   request that carries none. Nothing in it comes from a tool's arguments. Every operation a tool runs
   matches the membership on the `membershipCreatedAt` the caller carries, so a member removed, or
-  removed and invited back, stops every agent acting as them at its next call
+  removed and invited back, stops every agent acting as them at its next call. Its `launcher`, the
+  run calling, `{ conversationId, runId }`, is filled only by a worker that has claimed a run, from
+  that run, and every Subagents tool refuses a caller without one, before anything is read, though
+  the module lists its tools to it. `readModuleCaller`'s schema is strict: a field the caller gains
+  joins it, or every call carrying it is refused
 - A tool's name is snake_case, as Claude takes a tool name (`^[a-zA-Z0-9_-]{1,128}$`, no dot,
   though MCP allows one), and unique across the modules and the agent's own tools, since the agent
   puts them all in one list: `moduleServers.test.ts` fails on a clash between modules. The order a
@@ -1253,9 +1299,13 @@ and why.
   tables in memory: one base holding the memberships and the call results, to which each module's
   fake, `createKnowledgeDatabaseFake` and `createTasksDatabaseFake`, adds its own, since a module's
   handler loads every module's server and Bun refuses an import the mock does not hold. A new
-  module's fake joins it. `bun run check:knowledge-module` and `bun run check:tasks-module`, in the
-  backend's package, check those conditions against the emulators: an operation changed is changed
-  in both
+  module's fake joins it. The Subagents module is the exception: its domain is the conversation
+  runtime, so each of its tools imports `domain/subagents/` inside its handler (`await import`),
+  which no other module's server, nor the modules' fake, then loads, and its tests run against
+  `createConversationDatabaseFake`, which holds the modules' fake and every subagent operation. A
+  module whose domain needs the conversation runtime does the same. `bun run check:knowledge-module`,
+  `bun run check:tasks-module` and `bun run check:subagents-module`, in the backend's package, check
+  those conditions against the emulators: an operation changed is changed in both
 - An external agent reaches a module at its address, `https://api.strategydance.com/mcp/<name>`,
   `/mcp/knowledge` and `/mcp/tasks` today, each its own OAuth resource, so one module's token never
   opens the other, once a member allowed it on the consent page, through the modules' endpoints (see [Backend
@@ -1275,12 +1325,15 @@ and why.
   (`recordModuleSearch`, in `domain/modules/`), which their conversation searches use too, since no
   run bounds it, and one past it is answered with a result saying when to search again
   (`toTooManySearchesSentence`) and which read still works
-- A module joins the external agents with its name in `SERVED_MODULES`, which mounts its endpoint and
-  its metadata and lets the metadata answer any origin; `requireModuleWriteScope` on every write
-  tool; its searches on the member's allowance; the agents button on its page, `ModuleAgentsButton`,
-  an icon after the page's own action, which takes its name and opens the dialog worded from the
-  `module` catalogue;
-  and its endpoint in `check:oauth`. Knowledge joined in M20 and Tasks in M21
+- A module joins the external agents with its name in strategydance-core's `SERVED_MODULE_NAMES`,
+  which mounts its endpoint and its metadata, lets the metadata answer any origin, and lets the
+  authorization server and the consent page take it: `parseModuleResource`, the metadata's
+  `scopes_supported` and the consent page read the served modules alone, so a module in `MODULES`
+  but served to nobody, as Subagents is, is refused as an address no module has. It takes besides
+  `requireModuleWriteScope` on every write tool; its searches on the member's allowance; the agents
+  button on its page, `ModuleAgentsButton`, an icon after the page's own action, which takes its
+  name and opens the dialog worded from the `module` catalogue; and its endpoint in `check:oauth`.
+  Knowledge joined in M20 and Tasks in M21
 - `bun run mcp:knowledge <email>` and `bun run mcp:tasks <email>` serve a module over stdio for a
   client on this machine, against the emulators only, through one script, `serveModule.ts`, which
   takes the module's name. stdout is the protocol's there, so the script points the logger's info
@@ -1669,11 +1722,12 @@ log printed, run `bun run deploy:database` by hand if it is what the release mea
 the deploy of `main`'s tip. A re-run keeps the commit its run started on, so a run `main` has
 moved past refuses to deploy rather than put an older release over a newer one.
 
-Pull requests still deploy a Hosting preview, with the one key the repository holds, which
-`firebase-hosting-pull-request.yml` explains. `delete-preview-channel.yml` deletes a pull
-request's channel when it closes, since Hosting caps the channels a site holds and a preview past
-the cap fails with a 429. Run by hand from the Actions tab, it deletes every channel but `live`,
-which is the way out once the quota is full. Both triggers run the copy on `main`, whatever a pull
-request's base: `pull_request_target` always runs the default branch's workflow, and GitHub
-offers a workflow to run by hand only once the default branch holds it. A change to it takes
-effect with the release, not with its merge into `dev`.
+A pull request gets a Hosting preview only when somebody runs `firebase-hosting-pull-request.yml`
+by hand from the Actions tab with its number, since a preview takes a production build and one of
+the channels Hosting caps a site at. It holds the one key the repository holds, which its header
+explains. `delete-preview-channel.yml` deletes a pull request's channel when it closes, since a
+preview past the cap fails with a 429. Run by hand from the Actions tab, it deletes every channel
+but `live`, which is the way out once the quota is full. Both triggers run the copy on `main`,
+whatever a pull request's base: `pull_request_target` always runs the default branch's workflow,
+and GitHub offers a workflow to run by hand only once the default branch holds it, the preview's
+included. A change to either takes effect with the release, not with its merge into `dev`.

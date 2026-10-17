@@ -1,5 +1,5 @@
 import { Locale } from './enums'
-import type { ModuleDefinition, OrganizationImageKind } from './types'
+import type { ModuleDefinition, ModuleName, OrganizationImageKind } from './types'
 
 /*
   Bound through a local rather than exported straight off the call.
@@ -582,6 +582,17 @@ export const MAX_CONVERSATION_SUBAGENTS = 100
 export const MAX_SUBAGENT_BRIEF_LENGTH = 20000
 export const MAX_SUBAGENT_REPORT_LENGTH = 8000
 
+/*
+  How many subagent runs go at once per member in an organization, across all their conversations
+  and apart from their own three runs, which a fan-out never blocks: a launch past them waits
+  `PENDING` for a slot, which a promotion gives it once a run ends. And how many runs a subagent
+  takes, each run at a limit before the last handing on to the next. `LaunchSubagent`,
+  `LaunchPendingSubagent` and `PromoteSubagentRun` write out the five, and `ChainSubagentRun` the
+  four: change them together
+*/
+export const MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER = 5
+export const MAX_SUBAGENT_RUNS = 4
+
 /* ---
   MODULES
 --- */
@@ -609,7 +620,28 @@ export const MODULES = [
     title: 'Strategy Dance Tasks',
     scopes: { read: 'tasks:read', write: 'tasks:write' },
   },
+  // Strategy Dance's own agents' alone, served to no external agent: its address is reserved until a
+  // later plan serves it, and the authorization server refuses it meanwhile
+  {
+    name: 'subagents',
+    path: '/mcp/subagents',
+    title: 'Strategy Dance Subagents',
+    scopes: { read: 'subagents:read', write: 'subagents:write' },
+  },
 ] as const satisfies readonly ModuleDefinition[]
+
+/*
+  The modules the public backend serves to external agents, each at its own address under its
+  `/mcp` path, behind the bearer check, with its protected resource metadata at the app's root:
+  Knowledge and Tasks, in `MODULES`' order. The authorization server reads them alone, its
+  resources and `scopes_supported`, and so does the consent page, so a client asking for a module
+  served to nobody is refused as for an address no module has, and no consent makes a connection
+  that no endpoint serves. A module added to `MODULES` later joins them by its name here, once its
+  write tools are challenged and its searches counted
+*/
+export const SERVED_MODULE_NAMES: readonly ModuleName[] = ['knowledge', 'tasks']
+
+export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.includes(module.name))
 
 /*
   The modules reach external agents for Strategy Dance's own administrators (`User.isAdministrator`)

@@ -5,10 +5,9 @@ import {
   DEVELOPMENT_API_URL,
   DEVELOPMENT_APP_URL,
   INTEGRATION_CONNECTED_PATH,
-  MODULES,
-  type ModuleName,
   PRODUCTION_API_URL,
   PRODUCTION_APP_URL,
+  SERVED_MODULES,
 } from 'strategydance-core'
 import type { TaskStatus } from 'strategydance-database/backend'
 
@@ -79,6 +78,14 @@ export const WORKER_URL = `https://strategydance-worker-${GOOGLE_CLOUD_PROJECT_N
 */
 export const CONVERSATION_RUN_QUEUE_PATH = `projects/${FIREBASE_PROJECT_ID}/locations/${GOOGLE_CLOUD_REGION}/queues/conversation-runs`
 
+/*
+  The Cloud Tasks queue a subagent's run is delivered through instead, to the same worker route,
+  created by hand (Setup 11 in `documents/conversations.md`): 5 attempts at most, 90 seconds' backoff
+  at least, 20 deliveries at once, so a few fan-outs of forty minutes never hold the deliveries every
+  member's reply waits on
+*/
+export const SUBAGENT_RUN_QUEUE_PATH = `projects/${FIREBASE_PROJECT_ID}/locations/${GOOGLE_CLOUD_REGION}/queues/subagent-runs`
+
 // Who Cloud Tasks and Cloud Scheduler call the worker as, the one account granted the invoker role
 // on it. The project's owners and `deployer` can call it too, as they can any service there
 export const CONVERSATION_TASKS_SERVICE_ACCOUNT = 'conversation-tasks@strategydance.iam.gserviceaccount.com'
@@ -97,7 +104,7 @@ export const APP_URL = IS_PRODUCTION ? PRODUCTION_APP_URL : DEVELOPMENT_APP_URL
 
 /*
   Which pages may call this server from a browser: the app's own domain, the two Firebase Hosting
-  gives every site, and the preview channel each pull request deploys, which is a production build
+  gives every site, and the preview channel deployed for a pull request, which is a production build
   and so calls the production server.
 
   Development answers any origin, which covers the dev server on 5173 and `bun run preview` on
@@ -216,15 +223,8 @@ export const MODULE_PROTOCOL_VERSION = '2026-07-28'
 export const MODULE_IDEMPOTENCY_KEY_META = 'com.strategydance/idempotencyKey'
 export const MAX_MODULE_IDEMPOTENCY_KEY_LENGTH = 200
 
-/*
-  The modules the public backend serves to external agents, each at its own address under
-  `MODULES_PATH`, behind the bearer check, with its protected resource metadata at the app's root:
-  Knowledge and Tasks, in `MODULES`' order. A module added to `MODULES` later joins them by its name
-  here, once its write tools are challenged and its searches counted
-*/
-const SERVED_MODULE_NAMES: readonly ModuleName[] = ['knowledge', 'tasks']
-
-export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.includes(module.name))
+// Where the public backend serves the modules strategydance-core's `SERVED_MODULES` lists, each at
+// its `MODULES` path
 export const MODULES_PATH = '/mcp'
 
 /*

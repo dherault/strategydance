@@ -147,9 +147,15 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
 
       // A run past its lease that is still coming, its task found or queued again, is alive too, and
       // is queued again like any other still waiting, which answers whether it is
-      const state = isDeadConversationRun(sent.run) ? await finalizeDeadConversationRun(reference) : 'alive'
+      const state = isDeadConversationRun(sent.run)
+        ? await finalizeDeadConversationRun(reference, 'conversation-runs')
+        : 'alive'
 
-      if (state === 'alive' && sent.run.status === ConversationRunStatus.QUEUED && !(await enqueueRun(reference))) {
+      if (
+        state === 'alive'
+        && sent.run.status === ConversationRunStatus.QUEUED
+        && !(await enqueueRun(reference, 'conversation-runs'))
+      ) {
         return { outcome: 'unavailable' }
       }
 
@@ -157,7 +163,8 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
     }
 
     // Read again once one has ended, which freed its conversation and the caller's allowance
-    if ((await finalizeDeadConversationRuns(input, data.conversationRuns)) && round < MAX_ROUNDS) continue
+    if ((await finalizeDeadConversationRuns(input, data.conversationRuns, 'conversation-runs')) && round < MAX_ROUNDS)
+      continue
 
     if (conversation && (conversation.userId !== userId || conversation.organizationId !== organizationId)) {
       return { outcome: 'missing' }
@@ -170,7 +177,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       const activeRun = data.conversationRuns.find(run => run.id === conversation.activeRunId)
 
       if (activeRun?.status === ConversationRunStatus.QUEUED) {
-        await enqueueRun({ organizationId, userId, conversationId, runId: activeRun.id })
+        await enqueueRun({ organizationId, userId, conversationId, runId: activeRun.id }, 'conversation-runs')
       }
 
       return { outcome: 'busy' }
@@ -294,7 +301,8 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       continue
     }
 
-    if (!(await enqueueRun({ organizationId, userId, conversationId, runId }))) return { outcome: 'unavailable' }
+    if (!(await enqueueRun({ organizationId, userId, conversationId, runId }, 'conversation-runs')))
+      return { outcome: 'unavailable' }
 
     return { outcome: 'sent', runId }
   }

@@ -81,12 +81,10 @@ describe('sendConversationMessage, where runs go through the queue', () => {
     const conversationId = createId()
     const runId = await sent(conversationId)
 
-    expect(queueConversationRun).toHaveBeenCalledWith({
-      organizationId: ORGANIZATION_ID,
-      userId: AUTHOR,
-      conversationId,
-      runId,
-    })
+    expect(queueConversationRun).toHaveBeenCalledWith(
+      { organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId, runId },
+      'conversation-runs',
+    )
   })
 
   test('answers unavailable when the task cannot be queued, the run kept queued and due at once', async () => {

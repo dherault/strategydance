@@ -8,6 +8,7 @@ import {
   ConversationNoteKind,
   ConversationRunStatus,
   type LaunchSubagentVariables,
+  chainSubagentRun,
   claimQueuedConversationRun,
   connectorConfig,
   drawSubagentAgentText,
@@ -18,9 +19,17 @@ import {
   getConversationRunContext,
   getConversationSearchCorpus,
   getConversationSendContext,
+  getSubagentPendingRuns,
+  getSubagentSlots,
+  getSubagentSweepMembers,
+  getSubagentSweepOrganizations,
   interruptDeadConversationRun,
+  interruptDeadSubagentRun,
+  interruptPendingSubagentRun,
   interruptSubagentRun,
+  launchPendingSubagent,
   launchSubagent,
+  promoteSubagentRun,
   requestConversationRunStop,
   reserveConversationAttachment,
   retryConversationRun,
@@ -29,6 +38,7 @@ import {
   searchConversationsBySubstring,
   sendConversationMessage,
   startConversation,
+  stopPendingSubagentRun,
   stopQueuedConversationRun,
 } from 'strategydance-database/backend'
 
@@ -43,9 +53,10 @@ import { dataConnect } from '~firebase'
     bun run check:subagent-runs
 
   It makes a throwaway organization with two members, starts a conversation, launches subagents of
-  it through the backend connector's own operations, as `launchSubagent` calls them, and ends their
-  runs as a worker does, then checks that every read and count of a member's conversations leaves
-  them out, that every way a member acts on a conversation refuses one, and that the reads of one
+  it through the backend connector's own operations, as `launchSubagent` calls them, into the
+  author's five slots or waiting for one, and ends their runs as a worker does, chains them at their
+  limits and promotes those waiting into slots freed, then checks that every read and count of a
+  member's conversations leaves them out, that every way a member acts on a conversation refuses one, and that the reads of one
   conversation by its id still read one, the web connector's run as its member through the Admin
   SDK's impersonation. It removes everything it made, then exits non-zero naming each check that
   failed. The domain's tests run against a fake of these operations: this is what says the fake's
@@ -159,12 +170,60 @@ async function readConversation(id: string) {
   return data.conversation
 }
 
+type StoredRun = {
+  status: string
+  trigger: string
+  number: number
+  anchorPosition: number
+  stopRequestedAt: string | null
+  leaseExpiresAt: string | null
+  createdAt: string
+  pendingToolResults: string | null
+  failure: string | null
+}
+
 async function readRun(id: string) {
-  const data = await read<{
-    conversationRun: { status: string; trigger: string; stopRequestedAt: string | null } | null
-  }>(`query ReadRun($id: UUID!) { conversationRun(id: $id) { status trigger stopRequestedAt } }`, { id })
+  const data = await read<{ conversationRun: StoredRun | null }>(
+    `query ReadRun($id: UUID!) {
+      conversationRun(id: $id) {
+        status trigger number anchorPosition stopRequestedAt leaseExpiresAt createdAt pendingToolResults failure
+      }
+    }`,
+    { id },
+  )
 
   return data.conversationRun
+}
+
+// Writes a run's columns as a test needs them, which no operation writes so
+async function updateRun(id: string, data: string) {
+  await write(`mutation UpdateRun($id: UUID!) { conversationRun_update(id: $id, data: { ${data} }) }`, { id })
+}
+
+// The author's subagent runs holding a slot, and those waiting for one
+async function readSlots() {
+  const { data } = await getSubagentSlots(dataConnect, { organizationId, userId: userIds.author })
+
+  return data
+}
+
+/*
+  Ends every subagent run of the author's that holds a slot or waits for one, which no check after
+  reads, so a section launches into free slots whatever the ones before it left going
+*/
+async function settleSubagentRuns() {
+  await write(
+    `mutation Settle($organizationId: UUID!, $userId: String!) {
+      conversationRun_updateMany(
+        where: {
+          status: { in: [QUEUED, RUNNING, PENDING] }
+          conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+        }
+        data: { status: COMPLETED, leaseExpiresAt: null }
+      )
+    }`,
+    { organizationId, userId: userIds.author },
+  )
 }
 
 async function readMembershipCreatedAt(userId: string) {
@@ -277,10 +336,13 @@ function launchVariables(parent: Parent, overrides: Partial<LaunchSubagentVariab
   }
 }
 
+// Launches a subagent as `launchSubagent` does, its run queued into a free slot, or waiting for one
+// once the author's five are taken
 async function launch(parent: Parent, overrides: Partial<LaunchSubagentVariables> = {}) {
   const { subagent, variables } = launchVariables(parent, overrides)
+  const { activeRuns } = await readSlots()
 
-  await launchSubagent(dataConnect, variables)
+  await (activeRuns.length >= 5 ? launchPendingSubagent : launchSubagent)(dataConnect, variables)
 
   return subagent
 }
@@ -910,16 +972,379 @@ async function checkRunContexts({ parent, failed }: { parent: Parent; failed: Su
   check('a conversation’s request context reads no parent’s files', parentRequest.parentAttachments.length === 0)
 }
 
+// The note and report a pending or dead run's ending writes
+function endingVariables(subagent: Subagent, noteKind: ConversationNoteKind) {
+  return {
+    organizationId,
+    userId: userIds.author,
+    conversationId: subagent.conversationId,
+    runId: subagent.runId,
+    noteId: createId(),
+    preview: { kind: 'NOTE', noteKind },
+    failure: 'Checked',
+    report: 'Checked report',
+  }
+}
+
+// An ending's variables for a conversation's operation, which writes no report
+function withoutReport<Variables extends { report: string }>({ report: _report, ...variables }: Variables) {
+  return variables
+}
+
+async function readPosition(subagent: Subagent) {
+  return (await readConversation(subagent.conversationId))?.nextMessagePosition ?? 0
+}
+
+async function checkSlots() {
+  const parent = await startParent()
+  const running: Subagent[] = []
+
+  for (let index = 0; index < 5; index++) running.push(await launch(parent))
+
+  check(
+    'five launches take the author’s five slots, their runs queued',
+    (await readSlots()).activeRuns.length === 5
+      && (await Promise.all(running.map(({ runId }) => readRun(runId)))).every(run => run?.status === 'QUEUED'),
+  )
+  check(
+    'a sixth launch into a slot is refused while five go',
+    await isRefused(
+      launchSubagent(dataConnect, launchVariables(parent).variables),
+      "Every one of the member's 5 subagent slots is taken",
+    ),
+  )
+
+  const { subagent: pending, variables } = launchVariables(parent)
+
+  await launchPendingSubagent(dataConnect, variables)
+
+  const pendingRun = await readRun(pending.runId)
+
+  check(
+    'a launch past the slots waits pending, with no lease, its subagent busy',
+    pendingRun?.status === 'PENDING'
+      && pendingRun.leaseExpiresAt === null
+      && pendingRun.trigger === 'LAUNCH'
+      && (await readConversation(pending.conversationId))?.activeRunId === pending.runId,
+  )
+  check(
+    'the slots read the five going and the run waiting',
+    (await readSlots()).activeRuns.length === 5
+      && (await readSlots()).pendingRuns.some(({ id }) => id === pending.runId),
+  )
+
+  const promotion = (subagent: Subagent, membershipCreatedAt = parent.membershipCreatedAt) =>
+    promoteSubagentRun(dataConnect, {
+      organizationId,
+      userId: userIds.author,
+      membershipCreatedAt,
+      conversationId: subagent.conversationId,
+      runId: subagent.runId,
+    })
+
+  check(
+    'a promotion while five go is refused',
+    await isRefused(promotion(pending), "Every one of the member's 5 subagent slots is taken"),
+  )
+
+  // Launched while the five go, so each waits: those the promotion skips, asked to stop, deleted and
+  // launched under a membership since replaced, and one that may be promoted
+  const stopped = await launch(parent)
+  const deleted = await launch(parent)
+  const ofBefore = await launch(parent)
+  const waiting = await launch(parent, { anchorPosition: 1 })
+
+  await updateRun(stopped.runId, 'stopRequestedAt_expr: "request.time"')
+  await write(
+    `mutation Delete($id: UUID!) { conversation_update(id: $id, data: { deletedAt_expr: "request.time" }) }`,
+    {
+      id: deleted.conversationId,
+    },
+  )
+  await updateRun(ofBefore.runId, 'membershipCreatedAt: "2026-01-01T00:00:00.000000Z"')
+
+  // One ends, and frees a slot
+  const [ending] = running
+
+  if (!ending) throw new Error('No subagent launched')
+
+  await claimQueuedConversationRun(dataConnect, { ...subagentFence(parent, ending, 0) })
+  await finishSubagentRun(dataConnect, {
+    ...subagentFence(parent, ending, 1),
+    status: ConversationRunStatus.COMPLETED,
+    report: 'Done',
+  })
+
+  check(
+    'a promotion under a membership since replaced is refused',
+    await isRefused(promotion(pending, new Date().toISOString()), 'The membership changed since the promotion read it'),
+  )
+
+  const { data: waitingRuns } = await getSubagentPendingRuns(dataConnect, {
+    organizationId,
+    userId: userIds.author,
+    membershipCreatedAt: parent.membershipCreatedAt,
+  })
+  const promotableIds = waitingRuns.promotableRuns.map(({ id }) => id)
+  const skippedIds = waitingRuns.skippedRuns.map(({ id }) => id)
+
+  check(
+    'the runs a promotion may promote are read oldest first, and those it skips apart',
+    promotableIds.join() === [pending.runId, waiting.runId].join()
+      && [stopped, deleted, ofBefore].every(({ runId }) => skippedIds.includes(runId) && !promotableIds.includes(runId))
+      && !skippedIds.includes(pending.runId),
+  )
+
+  for (const [name, subagent] of [
+    ['asked to stop', stopped],
+    ['whose subagent is deleted', deleted],
+    ['of a membership since replaced', ofBefore],
+  ] as const) {
+    check(
+      `a promotion of a run ${name} is refused`,
+      await isRefused(promotion(subagent), 'The run is no longer waiting for a slot'),
+    )
+  }
+
+  const before = await readRun(pending.runId)
+
+  await promotion(pending)
+
+  const promoted = await readRun(pending.runId)
+
+  check(
+    'a promotion queues the run waiting, with a lease, its time queued moved on',
+    promoted?.status === 'QUEUED'
+      && promoted.leaseExpiresAt !== null
+      && Date.parse(promoted.createdAt) > Date.parse(before?.createdAt ?? ''),
+  )
+
+  // Another ends, so the slots no longer refuse what follows
+  const [, second] = running
+
+  if (!second) throw new Error('No subagent launched')
+
+  await claimQueuedConversationRun(dataConnect, { ...subagentFence(parent, second, 0) })
+  await finishSubagentRun(dataConnect, {
+    ...subagentFence(parent, second, 1),
+    status: ConversationRunStatus.COMPLETED,
+    report: 'Done',
+  })
+
+  check(
+    'a promotion of a run promoted already is refused',
+    await isRefused(promotion(pending), 'The run is no longer waiting for a slot'),
+  )
+
+  // The pending endings, each only for its own reason
+  check(
+    'stopping a pending run nobody asked to stop is refused',
+    await isRefused(
+      stopPendingSubagentRun(dataConnect, {
+        ...endingVariables(waiting, ConversationNoteKind.STOPPED),
+        position: await readPosition(waiting),
+      }),
+      'The run no longer waits to be stopped',
+    ),
+  )
+  check(
+    'interrupting a pending run of the membership as it is is refused',
+    await isRefused(
+      interruptPendingSubagentRun(dataConnect, {
+        ...endingVariables(waiting, ConversationNoteKind.INTERRUPTED),
+        membershipCreatedAt: parent.membershipCreatedAt,
+        position: await readPosition(waiting),
+      }),
+      'The run no longer waits to be interrupted',
+    ),
+  )
+
+  for (const subagent of [stopped, deleted]) {
+    await stopPendingSubagentRun(dataConnect, {
+      ...endingVariables(subagent, ConversationNoteKind.STOPPED),
+      position: await readPosition(subagent),
+    })
+  }
+
+  await interruptPendingSubagentRun(dataConnect, {
+    ...endingVariables(ofBefore, ConversationNoteKind.INTERRUPTED),
+    membershipCreatedAt: '2026-01-01T00:00:00.000000Z',
+    position: await readPosition(ofBefore),
+  })
+
+  check(
+    'a pending run asked to stop, or whose subagent is deleted, ends stopped with its report',
+    (await readRun(stopped.runId))?.status === 'STOPPED'
+      && (await readRun(deleted.runId))?.status === 'STOPPED'
+      && (await readConversation(stopped.conversationId))?.report === 'Checked report'
+      && (await readConversation(stopped.conversationId))?.activeRunId === null,
+  )
+  check(
+    'a pending run of a membership since replaced ends interrupted with its report',
+    (await readRun(ofBefore.runId))?.status === 'INTERRUPTED'
+      && (await readConversation(ofBefore.conversationId))?.report === 'Checked report',
+  )
+
+  // A run that died with its worker, past its lease
+  const [, , dying, holding] = running
+
+  if (!dying || !holding) throw new Error('No subagent launched')
+
+  await updateRun(dying.runId, 'leaseExpiresAt_expr: "request.time"')
+
+  // The sweep finds the author by their runs waiting and the one past its lease, and nobody else
+  const swept = (await getSubagentSweepMembers(dataConnect, { afterUserId: '' })).data.users.map(({ id }) => id)
+  const after = (await getSubagentSweepMembers(dataConnect, { afterUserId: userIds.author })).data.users
+  const { data: sweptOrganizations } = await getSubagentSweepOrganizations(dataConnect, { userId: userIds.author })
+
+  check(
+    'the sweep finds the member with subagent runs to reconcile, by account and organization',
+    swept.includes(userIds.author)
+      && !swept.includes(userIds.other)
+      && !after.some(({ id }) => id === userIds.author)
+      && sweptOrganizations.organizations.some(({ id }) => id === organizationId),
+  )
+
+  check(
+    'a subagent run whose lease holds is not interrupted as dead',
+    await isRefused(
+      interruptDeadSubagentRun(dataConnect, {
+        ...endingVariables(holding, ConversationNoteKind.INTERRUPTED),
+        position: await readPosition(holding),
+      }),
+      'The run is not dead',
+    ),
+  )
+  check(
+    'a conversation’s dead run interrupt refuses a subagent’s run',
+    await isRefused(
+      interruptDeadConversationRun(dataConnect, {
+        ...withoutReport(endingVariables(dying, ConversationNoteKind.INTERRUPTED)),
+        position: await readPosition(dying),
+      }),
+      'The run is not dead',
+    ),
+  )
+
+  await interruptDeadSubagentRun(dataConnect, {
+    ...endingVariables(dying, ConversationNoteKind.INTERRUPTED),
+    position: await readPosition(dying),
+  })
+
+  check(
+    'a subagent run that died with its worker ends interrupted, with its report and its note',
+    (await readRun(dying.runId))?.status === 'INTERRUPTED'
+      && (await readConversation(dying.conversationId))?.report === 'Checked report'
+      && (await readConversation(dying.conversationId))?.nextMessagePosition === 2,
+  )
+
+  // The web's run, read by its member, for a subagent waiting for a slot
+  const author = asMember(userIds.author)
+  const webRun = await author.read<{ conversationRuns: { status: string }[] }>('GetConversationRun', {
+    organizationId,
+    conversationId: waiting.conversationId,
+  })
+
+  check('the web reads a subagent’s run waiting for a slot', webRun.conversationRuns[0]?.status === 'PENDING')
+}
+
+async function checkChain() {
+  const parent = await startParent()
+  const subagent = await launch(parent)
+  const next = { conversationId: subagent.conversationId, runId: createId() }
+
+  await claimQueuedConversationRun(dataConnect, { ...subagentFence(parent, subagent, 0) })
+
+  const chain = (overrides: Record<string, unknown> = {}) =>
+    chainSubagentRun(dataConnect, {
+      ...subagentFence(parent, subagent, 1),
+      runNumber: 0,
+      anchorPosition: 0,
+      nextRunId: next.runId,
+      nextRunNumber: 1,
+      failure: 'The run sent its 25 requests',
+      pendingToolResults: '[{"type":"tool_result","tool_use_id":"toolu_checked","content":"null"}]',
+      ...overrides,
+    })
+
+  check(
+    'a chain at another attempt is refused',
+    await isRefused(chain({ attempts: 2 }), "The run is no longer this worker's"),
+  )
+  check(
+    'a chain at another anchor or number is refused',
+    (await isRefused(chain({ anchorPosition: 3 }), "The run is no longer this worker's"))
+      && (await isRefused(chain({ runNumber: 1, nextRunNumber: 2 }), "The run is no longer this worker's")),
+  )
+
+  await updateRun(subagent.runId, 'stopRequestedAt_expr: "request.time"')
+
+  check('a chain of a run asked to stop is refused', await isRefused(chain(), "The run is no longer this worker's"))
+
+  await updateRun(subagent.runId, 'stopRequestedAt: null, number: 3')
+
+  check(
+    'a fourth run’s chain is refused',
+    await isRefused(chain({ runNumber: 3, nextRunNumber: 4 }), "A subagent's run chains to the run right after it"),
+  )
+
+  await updateRun(subagent.runId, 'number: 0')
+  await chain()
+
+  const chained = await readRun(subagent.runId)
+  const continued = await readRun(next.runId)
+  const stored = await readConversation(subagent.conversationId)
+
+  check(
+    'a chain ends the run chained, with no lease',
+    chained?.status === 'CHAINED'
+      && chained.leaseExpiresAt === null
+      && chained.failure === 'The run sent its 25 requests',
+  )
+  check(
+    'a chain queues the next run on the same anchor, its results carried, holding the subagent',
+    continued?.trigger === 'CONTINUE'
+      && continued.status === 'QUEUED'
+      && continued.number === 1
+      && continued.anchorPosition === 0
+      && continued.leaseExpiresAt !== null
+      && continued.pendingToolResults?.includes('toolu_checked') === true
+      && stored?.activeRunId === next.runId,
+  )
+  // Postgres reports the next run's number, which the insert after the fence violates, before the
+  // fence's own check: either way the chain is refused whole
+  check(
+    'a chain is not written twice',
+    (await refusal(chain({ nextRunId: createId() }))) !== null
+      && (await readConversation(subagent.conversationId))?.activeRunId === next.runId,
+  )
+
+  const author = asMember(userIds.author)
+  const webRun = await author.read<{ conversationRuns: { id: string }[] }>('GetConversationRun', {
+    organizationId,
+    conversationId: subagent.conversationId,
+  })
+
+  check('the web reads the run a chain queued as the subagent’s latest', webRun.conversationRuns[0]?.id === next.runId)
+}
+
 try {
   await setUp()
   await checkLaunching()
+  await settleSubagentRuns()
 
   const ended = await checkEnding()
 
   await checkReading(ended)
+  await settleSubagentRuns()
   await checkMemberActions()
+  await settleSubagentRuns()
   await checkCounts()
   await checkRunContexts(ended)
+  await settleSubagentRuns()
+  await checkSlots()
+  await settleSubagentRuns()
+  await checkChain()
 } finally {
   await tearDown()
 }

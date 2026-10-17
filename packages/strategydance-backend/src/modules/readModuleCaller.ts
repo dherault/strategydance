@@ -6,19 +6,20 @@ import type { ModuleCaller } from '~types'
 
 const MODULE_SCOPES = MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write])
 
-const callerSchema = z.object({
+const callerSchema = z.strictObject({
   kind: z.enum(['agent', 'external']),
   userId: z.string().min(1),
   organizationId: z.string().min(1),
   membershipCreatedAt: z.string().min(1),
   scopes: z.array(z.enum(MODULE_SCOPES)),
   idempotencyScope: z.string().min(1),
+  launcher: z.strictObject({ conversationId: z.string().min(1), runId: z.string().min(1) }).optional(),
 })
 
 /*
   The caller a module's server is built for, read back out of the `AuthInfo` that `toModuleAuthInfo`
   wrote. A request that carries none is refused before any server exists: nothing in it may come
-  from what the client sent
+  from what the client sent. Strict, so a field it does not know is refused rather than dropped
 */
 function readModuleCaller(authInfo: AuthInfo | undefined): ModuleCaller {
   const parsed = callerSchema.safeParse(authInfo?.extra?.caller)

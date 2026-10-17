@@ -63,6 +63,7 @@ import searchConversations from '~domain/conversations/searchConversations'
 import sendConversationMessage from '~domain/conversations/sendConversationMessage'
 import stopConversationRun from '~domain/conversations/stopConversationRun'
 import uploadConversationAttachment from '~domain/conversations/uploadConversationAttachment'
+import reconcileConversationSubagents from '~domain/subagents/reconcileConversationSubagents'
 
 import { aspectsSchema } from '~modules/moduleSchemas'
 
@@ -393,6 +394,41 @@ function createConversationsRouter() {
 
       if (result.outcome === 'missing') {
         respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This run is not in one of your conversations')
+
+        return
+      }
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  /*
+    Asked by a conversation's page every two minutes while one of its subagents is live: the
+    member's subagent runs in the organization are reconciled, those of every conversation of theirs,
+    since any holds one of their five slots. A run that died with its worker ends interrupted with its
+    report, a queued one whose task is gone is queued again while it is young, a run waiting for a
+    slot that may not have one ends, and the oldest runs waiting take the slots free. Refused with a
+    404 unless the conversation is the caller's and no subagent. Takes no body
+  */
+  router.post(
+    '/:conversationId/subagents/reconcile',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: messagesParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (
+      request: Request<z.infer<typeof messagesParamsSchema>, ApiResponse, unknown>,
+      response: Response<ApiResponse>,
+    ) => {
+      const result = await reconcileConversationSubagents({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        conversationId: toCanonicalUuid(request.params.conversationId),
+      })
+
+      if (result.outcome === 'missing') {
+        respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This conversation is not one of yours')
 
         return
       }

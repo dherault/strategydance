@@ -2,19 +2,15 @@ import { setTimeout as wait } from 'node:timers/promises'
 
 import { Status } from 'google-gax'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
-import {
-  CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS,
-  CONVERSATION_RUN_QUEUE_PATH,
-  CONVERSATION_TASKS_SERVICE_ACCOUNT,
-  WORKER_URL,
-} from '~constants'
+import { CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS, CONVERSATION_TASKS_SERVICE_ACCOUNT, WORKER_URL } from '~constants'
 
 import getCloudTasksClient from '~utils/getCloudTasksClient'
 import logger from '~utils/logger'
 import readGrpcCode from '~utils/readGrpcCode'
 
+import buildConversationRunQueuePath from '~domain/conversations/buildConversationRunQueuePath'
 import buildConversationRunTaskName from '~domain/conversations/buildConversationRunTaskName'
 
 // How many times a run's task is asked for when the answer leaves it unclear whether it exists
@@ -39,8 +35,8 @@ type Options = {
 }
 
 /*
-  Queues the Cloud Tasks task that delivers a run to the worker: a POST of the run to
-  `/internal/conversation-runs`, signed with an OIDC token for `conversation-tasks`, whose audience
+  Queues the Cloud Tasks task that delivers a run to the worker, on the run's queue, a subagent's
+  own or the conversations': a POST of the run to `/internal/conversation-runs`, signed with an OIDC token for `conversation-tasks`, whose audience
   is the worker's address, which Cloud Run checks. Answers `queued` once the task exists, and
   `unavailable` when it could not be queued, which the caller answers with a 503.
 
@@ -54,12 +50,13 @@ type Options = {
 */
 async function queueConversationRun(
   { organizationId, userId, conversationId, runId }: ConversationRunReference,
+  queue: ConversationRunQueue,
   { retryDelayMs = 250 }: Options = {},
 ): Promise<'queued' | 'unavailable'> {
   const request = {
-    parent: CONVERSATION_RUN_QUEUE_PATH,
+    parent: buildConversationRunQueuePath(queue),
     task: {
-      name: buildConversationRunTaskName(runId),
+      name: buildConversationRunTaskName(runId, queue),
       dispatchDeadline: { seconds: CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS },
       httpRequest: {
         httpMethod: 'POST' as const,

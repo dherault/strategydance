@@ -887,6 +887,201 @@ query GetSubagentLaunchContext(
     status
     leaseExpiresAt
   }
+  # The member's subagent runs holding one of their five slots in the organization, whatever
+  # conversation launched them: those past their lease are finalized before a launch counts
+  activeSubagentRuns: conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+    }
+    limit: 5
+  ) {
+    id
+    status
+    leaseExpiresAt
+    conversation {
+      id
+    }
+  }
+}
+
+# Where a member's subagent runs stand in an organization, across all their conversations, as the
+# launch's count and the reconcile read it first:
+#
+# - the membership's `createdAt`, which a pending run has to have been launched under to be promoted,
+#   and which `GetSubagentPendingRuns` then reads the runs waiting by
+# - the runs holding one of the member's five slots (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`), queued
+#   or running, with their lease, which says whether one died
+# - the runs waiting for a slot, oldest first, a hundred at a time, which a reconcile ends once the
+#   member is no member any more, each with the membership it was launched under, whether it was
+#   asked to stop and whether its subagent was deleted
+#
+# `$userId` is the uid the backend verified, or the author a sweep found
+query GetSubagentSlots($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    createdAt
+  }
+  activeRuns: conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+    }
+    limit: 5
+  ) {
+    id
+    status
+    leaseExpiresAt
+    conversation {
+      id
+    }
+  }
+  pendingRuns: conversationRuns(
+    where: {
+      status: { eq: PENDING }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    createdAt
+    membershipCreatedAt
+    stopRequestedAt
+    conversation {
+      id
+      deletedAt
+    }
+  }
+}
+
+# A member's subagent runs waiting for a slot in an organization, read by the membership they are as
+# `GetSubagentSlots` read it, so no number of runs a promotion skips ever hides one it may promote:
+#
+# - the runs holding one of the member's five slots, as `GetSubagentSlots` reads them
+# - the oldest runs a promotion may promote, as many as there are slots: launched under that
+#   membership, not asked to stop, and their subagent not deleted
+# - the runs it skips, a hundred at a time, which the reconcile ends and reads again until none is
+#   left: asked to stop, their subagent deleted, or launched under another membership
+#
+# `$userId` is the uid the backend verified, or the author a sweep found
+query GetSubagentPendingRuns($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
+@auth(level: NO_ACCESS) {
+  activeRuns: conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+    }
+    limit: 5
+  ) {
+    id
+  }
+  promotableRuns: conversationRuns(
+    where: {
+      status: { eq: PENDING }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+        deletedAt: { isNull: true }
+      }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 5
+  ) {
+    id
+    conversation {
+      id
+    }
+  }
+  skippedRuns: conversationRuns(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { status: { eq: PENDING } }
+        {
+          conversation: {
+            userId: { eq: $userId }
+            organizationId: { eq: $organizationId }
+            parentId: { isNull: false }
+          }
+        }
+        {
+          _or: [
+            { stopRequestedAt: { isNull: false } }
+            { conversation: { deletedAt: { isNull: false } } }
+            { membershipCreatedAt: { ne: $membershipCreatedAt } }
+          ]
+        }
+      ]
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    membershipCreatedAt
+    stopRequestedAt
+    conversation {
+      id
+      deletedAt
+    }
+  }
+}
+
+# The daily sweep's for subagents: who has a subagent run no page may reconcile, past its lease or
+# waiting for a slot, in any organization, a hundred accounts at a time, after the last one read, so
+# however many runs one member holds, nobody after them is hidden. The sweep reads each one's
+# organizations with `GetSubagentSweepOrganizations`, then reconciles each member there
+query GetSubagentSweepMembers($afterUserId: String!) @auth(level: NO_ACCESS) {
+  users(
+    where: {
+      id: { gt: $afterUserId }
+      conversations_on_user: {
+        exist: {
+          parentId: { isNull: false }
+          conversationRuns_on_conversation: {
+            exist: {
+              _or: [
+                { status: { eq: PENDING } }
+                { _and: [{ status: { in: [QUEUED, RUNNING] } }, { leaseExpiresAt: { lt_time: { now: true } } }] }
+              ]
+            }
+          }
+        }
+      }
+    }
+    orderBy: [{ id: ASC }]
+    limit: 100
+  ) {
+    id
+  }
+}
+
+# The organizations in which an account the sweep found has a subagent run no page may reconcile,
+# as `GetSubagentSweepMembers` finds them, whether they are still a member there or not
+query GetSubagentSweepOrganizations($userId: String!) @auth(level: NO_ACCESS) {
+  organizations(
+    where: {
+      conversations_on_organization: {
+        exist: {
+          userId: { eq: $userId }
+          parentId: { isNull: false }
+          conversationRuns_on_conversation: {
+            exist: {
+              _or: [
+                { status: { eq: PENDING } }
+                { _and: [{ status: { in: [QUEUED, RUNNING] } }, { leaseExpiresAt: { lt_time: { now: true } } }] }
+              ]
+            }
+          }
+        }
+      }
+    }
+    limit: 1000
+  ) {
+    id
+  }
 }
 
 # Why `RecordConversationSearch` refused a search: whether the caller is still a member, and their
@@ -1806,6 +2001,181 @@ query GetUndatedDoneTasks($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
   tasks(where: { status: { eq: DONE }, doneAt: { isNull: true }, id: { nin: $skippedIds } }, limit: 100) {
     id
     updatedAt
+  }
+}
+
+# The Subagents module's operations follow, named `…ForAgent`: what a conversation's agent reads of
+# the subagents it launched, and how it launches and stops them, through the module. Each takes the
+# member the backend verified, `$userId`, and the `createdAt` of the membership it read,
+# `$membershipCreatedAt`, as the other modules' operations do, and each read answers that membership
+# beside its rows. The module reaches nobody but Strategy Dance's own agents, whose caller names the
+# run that is calling, its launcher
+
+# The run calling the Subagents module, its launcher, as every tool of the module reads it first:
+# whether it is still running and not asked to stop, the anchor a launch from it is made on, and
+# whether its conversation is a subagent, which launches none, or deleted. Read on the member, so a
+# run of somebody else's reads as none
+query GetSubagentLauncherForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $conversationId: UUID!
+  $runId: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  runs: conversationRuns(
+    where: {
+      id: { eq: $runId }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 1
+  ) {
+    status
+    trigger
+    stopRequestedAt
+    anchorPosition
+    conversation {
+      parentId
+      deletedAt
+    }
+  }
+}
+
+# The live subagents a conversation launched, those a retry deleted left out, newest first and then
+# by id, each with its latest run, whose status says where it stands, and when it ended, which its
+# report is written at however it ends. A conversation holds at most 100 subagents until they are
+# pruned (`MAX_CONVERSATION_SUBAGENTS` in strategydance-core), so every one is read and the backend
+# pages them
+query ListSubagentsForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $parentId: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  subagents: conversations(
+    where: {
+      parentId: { eq: $parentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
+    orderBy: [{ createdAt: DESC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    title
+    createdAt
+    reportedAt
+    latestRuns: conversationRuns_on_conversation(orderBy: [{ number: DESC }], limit: 1) {
+      status
+    }
+  }
+}
+
+# One live subagent of a conversation, with its report once written, the run it is busy with, if
+# any, its latest run's status, step and stop, and how many runs it took. Nothing for a subagent of
+# another conversation, somebody else's, or one a retry deleted, whose launch the transcript no
+# longer holds
+query GetSubagentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $parentId: UUID!
+  $id: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  subagents: conversations(
+    where: {
+      id: { eq: $id }
+      parentId: { eq: $parentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
+    limit: 1
+  ) {
+    id
+    title
+    createdAt
+    activeRunId
+    nextMessagePosition
+    report
+    reportedAt
+    latestRuns: conversationRuns_on_conversation(orderBy: [{ number: DESC }], limit: 1) {
+      id
+      number
+      status
+      step
+      stopRequestedAt
+    }
+    runCount: conversationRuns_on_conversation {
+      _count
+    }
+  }
+}
+
+# A page of what a subagent wrote through the modules, oldest first: the results its successful
+# writes kept under its idempotency scope, `$scope`, `conversation:<subagent id>`, since every write
+# of an agent carries a key and only a write that went through keeps one. Each with its tool and what
+# it answered. Read past `$afterCreatedAt` and `$afterKey`, the last of the page before, the first
+# page naming an instant before any, up to 51 for a page of 50, so the backend knows whether more
+# remain, and how many there are in all. The backend reads the subagent first, as the caller's and
+# its parent's
+query GetSubagentWritesForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $scope: String!
+  $afterCreatedAt: Timestamp!
+  $afterKey: String!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  writes: moduleCallResults(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { idempotencyScope: { eq: $scope }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+        {
+          _or: [
+            { createdAt: { gt: $afterCreatedAt } }
+            { createdAt: { eq: $afterCreatedAt }, idempotencyKey: { gt: $afterKey } }
+          ]
+        }
+      ]
+    }
+    orderBy: [{ createdAt: ASC }, { idempotencyKey: ASC }]
+    limit: 51
+  ) {
+    idempotencyKey
+    tool
+    result
+    createdAt
+  }
+  total: moduleCallResults(
+    where: { idempotencyScope: { eq: $scope }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+  ) {
+    _count
   }
 }
 

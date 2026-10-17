@@ -8,10 +8,11 @@ import {
   getConversationCalls,
   getConversationRunContext,
   interruptDeadConversationRun,
+  interruptDeadSubagentRun,
   renewQueuedConversationRunLease,
 } from 'strategydance-database/backend'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
 import { ARE_CONVERSATION_RUNS_IN_PROCESS, CONVERSATION_RUN_REQUEUE_WINDOW_MS } from '~constants'
 
@@ -25,7 +26,9 @@ import deriveConversationMessageId from '~domain/conversations/deriveConversatio
 import findConversationRunTask from '~domain/conversations/findConversationRunTask'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import queueConversationRun from '~domain/conversations/queueConversationRun'
+import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import settleConversationModuleWrites from '~domain/conversations/settleConversationModuleWrites'
+import buildSubagentReport from '~domain/subagents/buildSubagentReport'
 
 // How many times a run is read and finalized before the caller is told it could not be
 const MAX_TRIES = 4
@@ -44,11 +47,16 @@ type Options = {
   organization.
 
   A queued run's lease only says when to ask again whether it is still coming, so where runs go
-  through the queue, Cloud Tasks is asked first, and a queued run past its lease is kept while its
+  through the queue, Cloud Tasks is asked first, on the run's own queue, and a queued run past its lease is kept while its
   task is there. Its task gone, the run is queued again while it is young (see
   `CONVERSATION_RUN_REQUEUE_WINDOW_MS`), and finalized once it is older. A claimed run past its
   lease is dead whatever the queue holds, and so is a queued one in development, which has no queue.
-  A subagent's run is answered `missing`, since its endings write its report, which this does not.
+
+  The queue says which kind of run it is told of: a subagent's goes through its own, and is answered
+  `missing` when the conversation is no subagent, as a conversation's run is when it is one, so the
+  member's reconcile never reaches a subagent's. A subagent's ends with its report, saying it was
+  interrupted, in the write that takes the note, and whoever finalizes it promotes into the slot it
+  held.
 
   Once the run has ended, a call to a module's write it left started is answered by what the module
   stored under its key, when it stored anything (`settleConversationModuleWrites`): the write
@@ -61,14 +69,15 @@ type Options = {
 */
 async function finalizeDeadConversationRun(
   reference: ConversationRunReference,
+  queue: ConversationRunQueue,
   { retryDelayMs = 200 }: Options = {},
 ): Promise<'missing' | 'ended' | 'alive'> {
   for (let tries = 1; ; tries++) {
     const { data } = await getConversationRunContext(dataConnect, reference)
     const [run] = data.conversationRuns
+    const isSubagent = Boolean(data.conversation?.parentId)
 
-    // A subagent's run ends through its own endings, which write its report, and never here
-    if (!run || data.conversation?.parentId) return 'missing'
+    if (!run || isSubagent !== (queue === 'subagent-runs')) return 'missing'
 
     if (run.status !== ConversationRunStatus.QUEUED && run.status !== ConversationRunStatus.RUNNING) return 'ended'
 
@@ -77,19 +86,31 @@ async function finalizeDeadConversationRun(
     if (
       run.status === ConversationRunStatus.QUEUED
       && !ARE_CONVERSATION_RUNS_IN_PROCESS
-      && (await isStillComing(reference, run.createdAt))
+      && (await isStillComing(reference, queue, run.createdAt))
     ) {
       return 'alive'
     }
 
+    const interruption = {
+      ...reference,
+      noteId: deriveConversationMessageId(reference.runId, 'note'),
+      position: data.conversation?.nextMessagePosition ?? 0,
+      preview: buildConversationPreview({ kind: 'NOTE', noteKind: ConversationNoteKind.INTERRUPTED }),
+      failure: describeDeath(run.status),
+    }
+
     try {
-      await interruptDeadConversationRun(dataConnect, {
-        ...reference,
-        noteId: deriveConversationMessageId(reference.runId, 'note'),
-        position: data.conversation?.nextMessagePosition ?? 0,
-        preview: buildConversationPreview({ kind: 'NOTE', noteKind: ConversationNoteKind.INTERRUPTED }),
-        failure: describeDeath(run.status),
-      })
+      if (isSubagent) {
+        await interruptDeadSubagentRun(dataConnect, {
+          ...interruption,
+          report: buildSubagentReport(
+            { kind: 'interrupted', reference, attempts: run.attempts, failure: interruption.failure },
+            await readConversationTranscript(reference),
+          ),
+        })
+      } else {
+        await interruptDeadConversationRun(dataConnect, interruption)
+      }
     } catch (error) {
       if (tries === MAX_TRIES) throw error
 
@@ -157,17 +178,18 @@ function describeDeath(status: ConversationRunStatus) {
 */
 async function isStillComing(
   { organizationId, userId, conversationId, runId }: ConversationRunReference,
+  queue: ConversationRunQueue,
   createdAt: string,
 ) {
   const reference = { organizationId, userId, conversationId, runId }
-  const task = await findConversationRunTask(runId)
+  const task = await findConversationRunTask(runId, queue)
 
   if (task === 'unknown') return true
 
   if (task === 'gone') {
     if (Date.parse(createdAt) + CONVERSATION_RUN_REQUEUE_WINDOW_MS <= Date.now()) return false
 
-    if ((await queueConversationRun(reference)) === 'unavailable') return true
+    if ((await queueConversationRun(reference, queue)) === 'unavailable') return true
   }
 
   await renewQueuedConversationRunLease(dataConnect, reference)

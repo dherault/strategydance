@@ -46,7 +46,7 @@ function failure(code: number) {
 }
 
 function queue() {
-  return queueConversationRun(REFERENCE, { retryDelayMs: 0 })
+  return queueConversationRun(REFERENCE, 'conversation-runs', { retryDelayMs: 0 })
 }
 
 function readNames() {
@@ -85,8 +85,24 @@ describe('queueConversationRun', () => {
     expect(options).toMatchObject({ retry: null })
   })
 
+  test('queues a subagent’s run on the subagents’ own queue, its task named under it', async () => {
+    expect(await queueConversationRun(REFERENCE, 'subagent-runs', { retryDelayMs: 0 })).toBe('queued')
+
+    const [request] = createTask.mock.calls[0] ?? []
+
+    expect(request?.parent).toBe('projects/strategydance/locations/us-central1/queues/subagent-runs')
+    expect(request?.task.name).toBe(
+      `projects/strategydance/locations/us-central1/queues/subagent-runs/tasks/run-${REFERENCE.runId}`,
+    )
+    expect(request?.task.httpRequest.url).toBe(
+      'https://strategydance-worker-995028545701.us-central1.run.app/internal/conversation-runs',
+    )
+  })
+
   test('sends the run’s keys alone, whatever else the reference carries', async () => {
-    await queueConversationRun({ ...REFERENCE, attempts: 1 } as typeof REFERENCE, { retryDelayMs: 0 })
+    await queueConversationRun({ ...REFERENCE, attempts: 1 } as typeof REFERENCE, 'conversation-runs', {
+      retryDelayMs: 0,
+    })
 
     const [request] = createTask.mock.calls[0] ?? []
 

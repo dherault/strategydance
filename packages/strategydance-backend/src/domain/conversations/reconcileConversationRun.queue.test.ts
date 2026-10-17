@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
 import * as constants from '~constants'
 
@@ -9,10 +9,14 @@ import createConversationDatabaseFake from './testing/createConversationDatabase
 const fake = createConversationDatabaseFake()
 
 // What Cloud Tasks says of a run's task, and what queueing it again answers
-const findConversationRunTask = mock(async (_runId: string): Promise<'queued' | 'gone' | 'unknown'> => 'queued')
-const queueConversationRun = mock(async (_reference: ConversationRunReference): Promise<'queued' | 'unavailable'> => {
-  return 'queued'
-})
+const findConversationRunTask = mock(
+  async (_runId: string, _queue: ConversationRunQueue): Promise<'queued' | 'gone' | 'unknown'> => 'queued',
+)
+const queueConversationRun = mock(
+  async (_reference: ConversationRunReference, _queue: ConversationRunQueue): Promise<'queued' | 'unavailable'> => {
+    return 'queued'
+  },
+)
 
 // Production's way, where runs go through the queue: `reconcileConversationRun.test.ts` covers
 // development's, where a queued run past its lease is dead
@@ -102,7 +106,7 @@ describe('reconcileConversationRun, where runs go through the queue', () => {
     const reference = await startPastLease()
 
     expect(await reconcileConversationRun(reference)).toEqual({ outcome: 'reconciled' })
-    expect(findConversationRunTask).toHaveBeenCalledWith(reference.runId)
+    expect(findConversationRunTask).toHaveBeenCalledWith(reference.runId, 'conversation-runs')
     expect(readRun(reference)?.status).toBe('QUEUED')
     expect(isPushedBack(reference)).toBe(true)
     expect(queueConversationRun).not.toHaveBeenCalled()
@@ -127,7 +131,7 @@ describe('reconcileConversationRun, where runs go through the queue', () => {
     findConversationRunTask.mockResolvedValueOnce('gone')
 
     expect(await reconcileConversationRun(reference)).toEqual({ outcome: 'reconciled' })
-    expect(queueConversationRun).toHaveBeenCalledWith(reference)
+    expect(queueConversationRun).toHaveBeenCalledWith(reference, 'conversation-runs')
     expect(readRun(reference)?.status).toBe('QUEUED')
     expect(isPushedBack(reference)).toBe(true)
     expect(readNotes(reference)).toEqual([])

@@ -47,16 +47,6 @@ export const IS_CONVERSATIONS_RELEASE_GATED = ARE_CONVERSATIONS_STAFF_ONLY && !I
 */
 export const IS_MODULES_RELEASE_GATED = ARE_MODULES_STAFF_ONLY && !IS_DEVELOPMENT
 
-/*
-  Whether Strategy Dance's agent is kept from launching subagents in this process, everywhere but the
-  development backend, until M34, whose page reconciles a parent's subagents and has Retry ask before
-  it discards them: without it the daily sweep would be their only recovery. Under it
-  `launch_subagent` refuses, telling the agent to do the work itself, its tools list unchanged, so a
-  release cut between the two launches nothing. M34 removes it. The tests keep it but where they turn
-  it off
-*/
-export const IS_SUBAGENT_LAUNCH_GATED = !IS_DEVELOPMENT
-
 /* ---
   ARCHITECTURE
 --- */

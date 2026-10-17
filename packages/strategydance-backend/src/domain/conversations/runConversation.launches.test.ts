@@ -4,8 +4,6 @@ import type { BetaContentBlock } from '@anthropic-ai/sdk/resources/beta/messages
 
 import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
-import * as constants from '~constants'
-
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
 import createConversationTestKit, {
   ORGANIZATION_ID,
@@ -23,8 +21,6 @@ const counter = kit.createClient()
 const enqueueRun = mock(async (_reference: ConversationRunReference, _queue: ConversationRunQueue) => true)
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
-// Launches are closed outside development until M34, and open here
-mock.module('~constants', () => ({ ...constants, IS_SUBAGENT_LAUNCH_GATED: false }))
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 mock.module('strategydance-database/backend', () => fake.sdk)
 mock.module('~domain/agent/conversationClaudeClient', () => ({ default: counter.client }))

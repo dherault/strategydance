@@ -1,15 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
-import * as constants from '~constants'
-
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
 import { ORGANIZATION_ID } from '~domain/conversations/testing/createConversationTestKit'
 
 const fake = createConversationDatabaseFake()
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
-// Launches are closed outside development until M34, and open here: one test keeps them closed
-mock.module('~constants', () => ({ ...constants, IS_SUBAGENT_LAUNCH_GATED: false }))
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 mock.module('strategydance-database/backend', () => fake.sdk)
 mock.module('~domain/conversations/enqueueRun', () => ({ default: async () => true }))

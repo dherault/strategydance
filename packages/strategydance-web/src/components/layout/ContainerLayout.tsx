@@ -12,7 +12,7 @@ import { cn } from 'strategydance-design-system/lib/utils'
 function ContainerLayout({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn('page-column flex flex-col pt-6 pb-12', className)}
+      className={cn('page-column flex flex-col py-6', className)}
       {...props}
     />
   )

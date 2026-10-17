@@ -2484,6 +2484,50 @@ Not in the design: built from the design system's components, as Connected agent
 - **Verify** in a browser, on the conversation page and in a docked window, at desktop and phone
   widths: a fan-out of three, one stopped from its row, the others reported, and the reaction drawn;
   and a parent stopped while two report, the strip saying they wait, and a send delivering them.
+- Built with these settled, on 2026-10-17:
+  - **The reads**: `GetConversationSubagents`, live, its refreshes matching each write on the
+    narrowest variable it carries, the subagent's own on the member and the organization, the
+    parent's on its id; `GetConversationSubagentReport`, read as View output opens;
+    `GetConversationBriefAttachments`, a brief's files among the parent's sent ones, its `$ids`
+    required; `GetConversation`'s `parentId` and `subagentCount`, the bodies' and the history's
+    `toolUseId` and `attachmentIds`, and `GetConversationRun`'s `anchorPosition`, all additive.
+    `GetConversationRun` now wakes on the parent's stops of its subagents under the member's
+    condition, a gap M33 left, since they name the parent. `check:subagent-runs` reads each as the
+    member and as another.
+  - **The row** (`ConversationSubagentCall`) is found by the call's `toolUseId`
+    (`findConversationSubagent`), says where the subagent stands
+    (`getConversationSubagentStatus`, following the backend's `toSubagentStatus`), its run's
+    progress line while it works, through `useConversationRun` in a child mounted only then, and
+    opens View output once it reported, however it ended.
+  - **The viewer** (`ConversationSubagentViewer` on the page and in a dock's window, then
+    `ConversationSubagentDialog`, `ConversationSubagentWorkWait` and
+    `ConversationSubagentWorkBouncer`) draws the subagent's own thread, read only by its
+    `parentId`. A subagent's address is sent on by `ConversationSubagentBouncer`, and
+    `parseConversationSearch` reads `?subagent=`.
+  - **The strip** (`ConversationSubagentsStrip`, from `getConversationSubagentsSummary`) is the
+    composer form's first child, so it sticks with it, on the page and in the dock.
+  - **The reconcile** (`useReconcileConversationSubagents`, from
+    `getConversationSubagentsReconcileDelay`) asks after `CONVERSATION_REACTION_RECONCILE_DELAY_MS`
+    once a batch, the subagents of one anchor, has reported whole while the parent could react, and
+    every `CONVERSATION_SUBAGENTS_RECONCILE_INTERVAL_MS` while any is busy.
+  - **Retry's question** (`ConversationRetryDialog`, from `countRetriedSubagents`) counts every
+    subagent on the retried run's anchor, reported or not, as `RetryConversationRun` deletes them.
+  - **Labels** for the four Subagents tools, and notes worded for a subagent in its thread.
+  - Verified: the four checks; `check:subagent-runs` against an emulator of the branch's schema,
+    every check passing; and in a browser against it, with the real model, some $1.23 at list
+    prices for 22 runs, 31 requests and 24 searches. A fan-out of three, the Asana subagent stopped
+    from its row and reported stopped, the Linear and Notion ones reported, the strip saying three
+    at work with Stop all, and the reaction comparing both and saying the third was stopped. View
+    output showing the launch's input and the report with its links; View work
+    showing the brief, both searches and the reply, its address `?subagent=`, a search's output
+    stacked over it and closed by one Escape, the viewer by a second, the address restored; a
+    subagent's own address landing on its parent's page with its work open. The same on a phone, and
+    in a docked window, where Escape closed the viewer and left the window. A parent stopped while
+    its two subagents worked on an earlier message, which they went on with, the strip then saying
+    one report waits, and the next send delivering it, the second subagent's reaction following.
+    Retry after a launch stopped with its parent asking first, naming the subagent it discards, and
+    the row gone once it retried. A brief handed a text file and an image, both drawn above it from
+    the parent's files.
 
 ### M35: Usage caps
 

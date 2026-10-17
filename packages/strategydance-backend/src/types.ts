@@ -216,7 +216,8 @@ export type KnowledgeDocumentEdit =
   own. `membershipCreatedAt` is the membership's as it was verified, so a member removed, or removed
   and invited back, stops every agent acting as them at its next call. `idempotencyScope` is what
   their keys are kept under, `conversation:<id>` for the agent and `connection:<id>` for an external
-  one, so two clients choosing the same key never meet
+  one, so two clients choosing the same key never meet. `launcher` is the run calling, for the
+  Subagents module, which only a worker that has claimed a run fills, from the run it claimed
 */
 export type ModuleCaller = {
   kind: 'agent' | 'external'
@@ -225,6 +226,17 @@ export type ModuleCaller = {
   membershipCreatedAt: string
   scopes: ModuleScope[]
   idempotencyScope: string
+  launcher?: ModuleLauncher
+}
+
+/*
+  The run calling a module, for Strategy Dance's agent alone: its conversation, the parent of any
+  subagent it launches, and the run itself, which the Subagents module checks is still running and
+  not asked to stop before it does anything. Canonical, as `toCanonicalUuid` writes them
+*/
+export type ModuleLauncher = {
+  conversationId: string
+  runId: string
 }
 
 // A write a module was called for under an idempotency key: the key, the tool, and a hash of its

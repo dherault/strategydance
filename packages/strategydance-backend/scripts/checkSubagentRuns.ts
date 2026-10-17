@@ -1780,6 +1780,153 @@ async function checkCascades() {
   await settleSubagentRuns()
 }
 
+/*
+  A launch against what else starts or carries a run on its parent, in both orders: a send, an
+  answer, Resume and Retry each find the parent busy while the run launching goes, and a launch
+  finds its run no longer running once any of them carried the conversation on, so whichever
+  commits second sees the first
+*/
+async function checkLaunchOrders() {
+  const parent = await startParent({ isIdle: false })
+  const fence = {
+    organizationId,
+    userId: userIds.author,
+    conversationId: parent.conversationId,
+    runId: parent.runId,
+    membershipCreatedAt: parent.membershipCreatedAt,
+  }
+  const launchFrom = (runId: string) => {
+    const { variables } = launchVariables(parent, { launchRunId: runId })
+
+    return launchSubagentForAgent(dataConnect, {
+      ...variables,
+      launchRunId: runId,
+      isKeyed: false,
+      idempotencyScope: '',
+      idempotencyKey: '',
+      tool: 'launch_subagent',
+      argumentsHash: '',
+      result: '',
+    })
+  }
+  const send = (runId: string) =>
+    sendConversationMessage(dataConnect, {
+      organizationId,
+      userId: userIds.author,
+      conversationId: parent.conversationId,
+      membershipCreatedAt: parent.membershipCreatedAt,
+      messageId: createId(),
+      text: 'And?',
+      preview: { kind: 'MEMBER_TEXT', text: 'And?' },
+      position: 1,
+      runId,
+      runNumber: 1,
+      content: JSON.stringify([{ type: 'text', text: 'And?' }]),
+      transcriptPosition: 1,
+      attachmentIds: [],
+      deliveredSubagentIds: [],
+    })
+  const retry = () =>
+    retryConversationRun(dataConnect, {
+      organizationId,
+      userId: userIds.author,
+      conversationId: parent.conversationId,
+      membershipCreatedAt: parent.membershipCreatedAt,
+      retriedRunId: parent.runId,
+      retriedRunNumber: 0,
+      anchorPosition: 0,
+      historyRevision: 0,
+      deletedCount: 0,
+      runId: createId(),
+      runNumber: 1,
+    })
+
+  await claimQueuedConversationRun(dataConnect, { ...fence, attempts: 0 })
+
+  // The run launching goes: a launch first, then the rest find the parent busy
+  await launchFrom(parent.runId)
+
+  check(
+    'a send while the run that launched goes finds the parent busy',
+    await isRefused(send(createId()), 'The conversation could not take the message'),
+  )
+  check(
+    'a retry while the run that launched goes is refused',
+    await isRefused(retry(), 'Only a run that ended with a note is retried'),
+  )
+
+  // The run waits on a question: a launch from it is refused, as an answer's continuation follows
+  await updateRun(parent.runId, 'status: WAITING')
+
+  check(
+    'a launch from a run waiting on its member is refused',
+    await isRefused(launchFrom(parent.runId), 'The run launching the subagent has ended or was asked to stop'),
+  )
+
+  // The run failed: a Retry first, then a launch from it is refused, and the Retry took its subagents
+  await updateRun(parent.runId, 'status: FAILED')
+  await write(`mutation Idle($id: UUID!) { conversation_update(id: $id, data: { activeRunId: null }) }`, {
+    id: parent.conversationId,
+  })
+  await retry()
+
+  check(
+    'a launch from a run a retry took over is refused, and the retry deleted what it launched',
+    (await isRefused(launchFrom(parent.runId), 'The run launching the subagent has ended or was asked to stop'))
+      && (
+        await read<{ conversations: { deletedAt: string | null }[] }>(
+          `query Launched($parentId: UUID!) { conversations(where: { parentId: { eq: $parentId } }) { deletedAt } }`,
+          { parentId: parent.conversationId },
+        )
+      ).conversations.every(({ deletedAt }) => deletedAt !== null),
+  )
+
+  await settleConversationRuns()
+  await settleSubagentRuns()
+
+  // A send first: the launch from the run before it is refused
+  const sent = await startParent()
+
+  await sendConversationMessage(dataConnect, {
+    organizationId,
+    userId: userIds.author,
+    conversationId: sent.conversationId,
+    membershipCreatedAt: sent.membershipCreatedAt,
+    messageId: createId(),
+    text: 'And?',
+    preview: { kind: 'MEMBER_TEXT', text: 'And?' },
+    position: 1,
+    runId: createId(),
+    runNumber: 1,
+    content: JSON.stringify([{ type: 'text', text: 'And?' }]),
+    transcriptPosition: 1,
+    attachmentIds: [],
+    deliveredSubagentIds: [],
+  })
+
+  const { variables } = launchVariables(sent, { launchRunId: sent.runId })
+
+  check(
+    'a launch from the run a send came after is refused',
+    await isRefused(
+      launchSubagentForAgent(dataConnect, {
+        ...variables,
+        launchRunId: sent.runId,
+        isKeyed: false,
+        idempotencyScope: '',
+        idempotencyKey: '',
+        tool: 'launch_subagent',
+        argumentsHash: '',
+        result: '',
+      }),
+      'The run launching the subagent has ended or was asked to stop',
+    ),
+  )
+
+  await settleConversationRuns()
+  await settleSubagentRuns()
+}
+
 try {
   await setUp()
   await checkLaunching()
@@ -1800,6 +1947,7 @@ try {
   await settleSubagentRuns()
   await checkReactions()
   await checkCascades()
+  await checkLaunchOrders()
 } finally {
   await tearDown()
 }

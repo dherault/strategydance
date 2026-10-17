@@ -169,6 +169,7 @@
   "conversation.showInDockLabel": "{title}をドックで表示",
   "conversation.sources": "情報源",
   "conversation.stopping": "停止中",
+  "conversation.subagent.brief": "指示",
   "conversation.taskGone": "（チームのボードにはもうありません）",
   "conversation.thinking": "考え中",
   "conversation.threadEmpty": "自社に関することや意思決定、次に取るべき行動について質問できます。@を入力するとナレッジをメンションできます。",

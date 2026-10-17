@@ -169,6 +169,7 @@
   "conversation.showInDockLabel": "在停靠栏中显示 {title}",
   "conversation.sources": "来源",
   "conversation.stopping": "正在停止",
+  "conversation.subagent.brief": "任务简报",
   "conversation.taskGone": "（已不在团队看板上）",
   "conversation.thinking": "思考中",
   "conversation.threadEmpty": "询问关于公司、决策或下一步行动的问题。输入 @ 可提及知识。",

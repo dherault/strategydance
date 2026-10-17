@@ -30,6 +30,15 @@ describe('needsConversationDocuments', () => {
     ).toBe(true)
   })
 
+  it('needs them once a subagent’s brief links one', () => {
+    expect(
+      needsConversationDocuments(
+        [entry('a', 'BRIEF')],
+        bodies({ a: 'Start from [Pricing](doc:9f8e7d6c5b4a43219f8e7d6c5b4a4321).' }),
+      ),
+    ).toBe(true)
+  })
+
   it('needs them for a row that deleted one, whatever the replies say', () => {
     expect(needsConversationDocuments([entry('a', 'TOOL_CALL', 'delete_document')], new Map())).toBe(true)
   })

@@ -2053,6 +2053,10 @@
         "hash": "d1718c83e5d1df00",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.subagent.brief": {
+        "hash": "abc91b95e233df17",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.taskGone": {
         "hash": "73d92a185150775a",
         "locales": "DE,ES,FR,JA,PT,ZH"

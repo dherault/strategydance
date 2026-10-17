@@ -50,6 +50,7 @@ import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
 import ConversationApproval from '~components/conversation/ConversationApproval'
 import ConversationAspectsNote from '~components/conversation/ConversationAspectsNote'
+import ConversationBrief from '~components/conversation/ConversationBrief'
 import ConversationDocumentRestore from '~components/conversation/ConversationDocumentRestore'
 import ConversationIntegrationIssue from '~components/conversation/ConversationIntegrationIssue'
 import ConversationMemberMessage from '~components/conversation/ConversationMemberMessage'
@@ -412,6 +413,19 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
             aspects={entry.aspects ?? []}
             setBy={entry.aspectsSetBy ?? null}
           />
+        )
+      case ConversationMessageKind.BRIEF:
+        return body ? (
+          <ConversationBrief
+            parentId={conversation.parentId ?? null}
+            text={body.text ?? ''}
+            attachmentIds={body.attachmentIds ?? []}
+            documents={documents}
+            tasks={tasks}
+            size={size}
+          />
+        ) : (
+          <ConversationMessagePlaceholder />
         )
       case ConversationMessageKind.NOTE:
         return entry.noteKind ? (

@@ -169,6 +169,7 @@
   "conversation.showInDockLabel": "{title} im Dock anzeigen",
   "conversation.sources": "Quellen",
   "conversation.stopping": "Wird angehalten",
+  "conversation.subagent.brief": "Briefing",
   "conversation.taskGone": "(nicht mehr auf dem Team-Board)",
   "conversation.thinking": "Nachdenken",
   "conversation.threadEmpty": "Frage nach deinem Unternehmen, einer Entscheidung oder nächsten Schritten. Gib @ ein, um Wissen zu erwähnen.",

@@ -169,6 +169,7 @@
   "conversation.showInDockLabel": "Afficher {title} dans le dock",
   "conversation.sources": "Sources",
   "conversation.stopping": "Arrêt en cours",
+  "conversation.subagent.brief": "Brief",
   "conversation.taskGone": "(ne figure plus sur le tableau de l'équipe)",
   "conversation.thinking": "Réflexion",
   "conversation.threadEmpty": "Posez une question sur votre entreprise, une décision ou la marche à suivre. Tapez @ pour mentionner des connaissances.",

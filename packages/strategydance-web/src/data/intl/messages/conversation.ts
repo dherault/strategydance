@@ -1136,6 +1136,18 @@ const conversationMessages = defineMessages({
   },
 
   /* ---
+    SUBAGENTS: the helpers Strategy Dance hands pieces of work to, each working on its own and
+    reporting back, which the thread draws and the reader can follow and stop
+  --- */
+
+  briefLabel: {
+    id: 'conversation.subagent.brief',
+    defaultMessage: 'Brief',
+    description:
+      'Label above the instructions Strategy Dance, the AI, wrote for one of its subagents, a helper it hands one piece of work to, at the top of that helper’s work.',
+  },
+
+  /* ---
     COMPOSER: the field at the foot of a conversation where the reader writes to Strategy Dance
   --- */
   composerLabel: {

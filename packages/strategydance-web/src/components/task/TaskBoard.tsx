@@ -199,7 +199,7 @@ function TaskBoard() {
   }
 
   return (
-    <div className="mx-auto box-border flex w-full max-w-[calc(1600px+4rem)] grow flex-col gap-8 px-2 pt-6 pb-12 md:px-8">
+    <div className="mx-auto box-border flex w-full max-w-[calc(1600px+4rem)] grow flex-col gap-8 px-2 py-6 md:px-8">
       <PageHeader
         eyebrow={formatMessage(taskMessages.eyebrow)}
         title={formatMessage(navigationMessages.tasks)}

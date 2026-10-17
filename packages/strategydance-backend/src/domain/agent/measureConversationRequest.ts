@@ -3,7 +3,7 @@ import type { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages
 import type { ClaudeClient } from '~types'
 
 import type { ConversationRequestConfig } from '~domain/agent/buildConversationRequest'
-import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
+import { CONVERSATION_REQUEST_SETTINGS } from '~domain/agent/conversationRequestSettings'
 import replaceConversationFiles, { type ConversationFileTokens } from '~domain/agent/replaceConversationFiles'
 import type { ConversationRequestUsage, ConversationRunUsage } from '~domain/conversations/conversationRunUsage'
 
@@ -66,7 +66,7 @@ async function measureConversationRequest({
   if (!start || following[0]?.role !== 'user' || opensWithResults(following[0])) {
     const counted = replaceConversationFiles(messages, fileTokens)
     const inputTokens = await client.countTokens({
-      model: CONVERSATION_MODEL,
+      model: (requestConfig.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
       system: requestConfig.system,
       tools: requestConfig.tools,
       messages: counted.messages,
@@ -76,7 +76,10 @@ async function measureConversationRequest({
   }
 
   const counted = replaceConversationFiles(following, fileTokens)
-  const followingTokens = await client.countTokens({ model: CONVERSATION_MODEL, messages: counted.messages })
+  const followingTokens = await client.countTokens({
+    model: (requestConfig.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
+    messages: counted.messages,
+  })
 
   return {
     inputTokens: sumRequest(start.request) + followingTokens + counted.fileTokens + config - start.request.configTokens,
@@ -112,8 +115,12 @@ export function sumRequest(request: ConversationRequestUsage) {
 }
 
 // The system prompt's and tools' share of a request: a request holding them, less one without
-export function countConfigTokens(client: ClaudeClient, { system, tools }: ConversationRequestConfig) {
-  const key = JSON.stringify({ system, tools })
+export function countConfigTokens(
+  client: ClaudeClient,
+  { system, tools, settings = CONVERSATION_REQUEST_SETTINGS }: ConversationRequestConfig,
+) {
+  const { model } = settings
+  const key = JSON.stringify({ model, system, tools })
   let counts = configTokens.get(client)
 
   if (!counts) {
@@ -127,13 +134,8 @@ export function countConfigTokens(client: ClaudeClient, { system, tools }: Conve
     const messages: BetaMessageParam[] = [{ role: 'user', content: '.' }]
 
     count = Promise.all([
-      client.countTokens({
-        model: CONVERSATION_MODEL,
-        system,
-        tools,
-        messages,
-      }),
-      client.countTokens({ model: CONVERSATION_MODEL, messages }),
+      client.countTokens({ model, system, tools, messages }),
+      client.countTokens({ model, messages }),
     ]).then(([withConfig, without]) => withConfig - without)
 
     const kept = counts

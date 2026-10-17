@@ -61,6 +61,7 @@ import createConversationIntegrationRunners from '~domain/agent/createConversati
 import planConversationToolCalls, { type ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
 import SUBAGENT_REPORT_REQUEST from '~domain/agent/subagentReportRequest'
+import readSubagentRequestSettings from '~domain/agent/subagentRequestSettings'
 import SUBAGENT_SYSTEM_PROMPT from '~domain/agent/subagentSystemPrompt'
 import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import buildConversationToolResults from '~domain/conversations/buildConversationToolResults'
@@ -249,7 +250,11 @@ async function runConversation(
       limits: { ...LIMITS, ...limits },
       stopCheckIntervalMs,
       config: isSubagent
-        ? { system: SUBAGENT_SYSTEM_PROMPT, tools: buildSubagentTools(modules.tools) }
+        ? {
+            system: SUBAGENT_SYSTEM_PROMPT,
+            tools: buildSubagentTools(modules.tools),
+            settings: readSubagentRequestSettings(),
+          }
         : { system: CONVERSATION_SYSTEM_PROMPT, tools: buildConversationTools(modules.tools) },
       // The integration tools' runners always, whatever the organization added, so a turn is planned
       // the same by whoever takes it over. A subagent is sent none of their tools, nor the module

@@ -33,7 +33,7 @@ type Member = { organizationId: string; userId: string; membershipCreatedAt: str
   what those writes keep under its own scope (`buildSubagentReportBlock`)
 */
 async function readSubagentReportBlocks(
-  member: Member,
+  { organizationId, userId, membershipCreatedAt }: Member,
   subagents: readonly ReportedSubagent[],
 ): Promise<ConversationTextBlock[]> {
   const blocks: ConversationTextBlock[] = []
@@ -41,7 +41,9 @@ async function readSubagentReportBlocks(
   for (const subagent of subagents) {
     const id = toCanonicalUuid(subagent.id)
     const { data } = await getSubagentWritesForAgent(dataConnect, {
-      ...member,
+      organizationId,
+      userId,
+      membershipCreatedAt,
       scope: toConversationModuleScope(id),
       afterCreatedAt: FIRST_WRITE_AFTER,
       afterKey: '',

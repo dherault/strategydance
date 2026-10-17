@@ -93,7 +93,7 @@ async function stopConversationSubagents(
 
     if (hasFreed) {
       try {
-        await promoteSubagentRuns(parent)
+        await promoteSubagentRuns({ organizationId: parent.organizationId, userId: parent.userId })
       } catch (error) {
         logger.warn(`Subagent runs of ${parent.userId}: a stop could not promote into the slots it freed`, error)
       }

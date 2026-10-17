@@ -27,9 +27,11 @@ type Options = {
   started
 */
 async function startDueSubagentReactions(
-  member: Pick<ConversationRunReference, 'organizationId' | 'userId'>,
+  { organizationId, userId }: Pick<ConversationRunReference, 'organizationId' | 'userId'>,
   { first = null, isThorough = false }: Options = {},
 ) {
+  // The member alone, since an operation refuses a variable it does not take
+  const member = { organizationId, userId }
   let started = 0
   let due: { id: string }[] = []
 

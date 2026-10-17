@@ -2179,6 +2179,193 @@ query GetSubagentWritesForAgent(
   }
 }
 
+# What a parent's reaction to its subagents' reports reads before it starts, and what a send, an
+# answer and a full ending read of the reports waiting:
+#
+# - the caller's membership, whose `createdAt` the reaction's run records
+# - the parent: whether it is the caller's, live and idle, waiting on no answer, and its next run
+# - its latest run, whose status and note say whether it completed, or ended full
+# - the transcript's last entry, after which the reaction's goes
+# - its live subagents, at most 100 (`MAX_CONVERSATION_SUBAGENTS`), oldest first, each with its batch,
+#   the anchor it was launched on, its report and whether it was delivered, and its latest run, whose
+#   status says how it ended
+# - the caller's runs in flight in the organization, which a dead one among is finalized before they
+#   are counted
+#
+# Only the caller's conversation in that organization
+query GetSubagentReactionContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
+@auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    createdAt
+  }
+  conversation(id: $conversationId) {
+    userId
+    organizationId
+    deletedAt
+    parentId
+    activeRunId
+    isAwaitingAnswer
+    nextRunNumber
+  }
+  latestRuns: conversationRuns(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ number: DESC }]
+    limit: 1
+  ) {
+    id
+    number
+    status
+    notes: conversationMessages_on_run(where: { kind: { eq: NOTE } }, limit: 1) {
+      noteKind
+    }
+  }
+  lastEntries: conversationTranscriptEntries(
+    where: {
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    orderBy: [{ position: DESC }]
+    limit: 1
+  ) {
+    position
+  }
+  subagents: conversations(
+    where: {
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    title
+    launchAnchorPosition
+    report
+    reportedAt
+    reportDeliveredAt
+    latestRuns: conversationRuns_on_conversation(orderBy: [{ number: DESC }], limit: 1) {
+      status
+    }
+  }
+  conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
+    }
+    limit: 3
+  ) {
+    id
+    status
+    leaseExpiresAt
+    conversation {
+      id
+    }
+  }
+}
+
+# The caller's conversations in an organization a reaction may be due in: live and idle, waiting on
+# no answer, with a report of a live subagent waiting, the longest idle first, at most 100. Whether
+# one is due, its latest run completed and a batch reported whole, the backend reads of each in turn
+# (`GetSubagentReactionContext`), which a run of theirs ending, freeing one of their 3, asks
+query GetDueSubagentReactions($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  conversations(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      parentId: { isNull: true }
+      deletedAt: { isNull: true }
+      activeRunId: { isNull: true }
+      isAwaitingAnswer: { eq: false }
+      conversations_on_parent: {
+        exist: { deletedAt: { isNull: true }, reportedAt: { isNull: false }, reportDeliveredAt: { isNull: true } }
+      }
+    }
+    orderBy: [{ updatedAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+  }
+}
+
+# The daily sweep's backstop for reactions no run's end or page started: the accounts with a
+# conversation in which a report of a live subagent waits while it is live and idle, waiting on no
+# answer, a hundred at a time after the last one read, whose reactions it starts or, in a
+# conversation that is full, whose reports it marks delivered
+query GetSubagentReactionSweepMembers($afterUserId: String!) @auth(level: NO_ACCESS) {
+  users(
+    where: {
+      id: { gt: $afterUserId }
+      conversations_on_user: {
+        exist: {
+          parentId: { isNull: true }
+          deletedAt: { isNull: true }
+          activeRunId: { isNull: true }
+          isAwaitingAnswer: { eq: false }
+          conversations_on_parent: {
+            exist: { deletedAt: { isNull: true }, reportedAt: { isNull: false }, reportDeliveredAt: { isNull: true } }
+          }
+        }
+      }
+    }
+    orderBy: [{ id: ASC }]
+    limit: 100
+  ) {
+    id
+  }
+}
+
+# The organizations in which an account the sweep found has such a conversation, as
+# `GetSubagentReactionSweepMembers` finds them
+query GetSubagentReactionSweepOrganizations($userId: String!) @auth(level: NO_ACCESS) {
+  organizations(
+    where: {
+      conversations_on_organization: {
+        exist: {
+          userId: { eq: $userId }
+          parentId: { isNull: true }
+          deletedAt: { isNull: true }
+          activeRunId: { isNull: true }
+          isAwaitingAnswer: { eq: false }
+          conversations_on_parent: {
+            exist: { deletedAt: { isNull: true }, reportedAt: { isNull: false }, reportDeliveredAt: { isNull: true } }
+          }
+        }
+      }
+    }
+    limit: 1000
+  ) {
+    id
+  }
+}
+
+# The daily sweep's backstop for the runs of members' conversations no page will reconcile, a
+# reaction's above all, whose reports were delivered as it started, so nothing of its parent's page
+# polls for it: those queued or running past their lease, the longest past first, a hundred at a time,
+# each asked of Cloud Tasks and queued again, or finalized once dead
+query GetDeadConversationRunSweep @auth(level: NO_ACCESS) {
+  conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      leaseExpiresAt: { lt_time: { now: true } }
+      conversation: { parentId: { isNull: true } }
+    }
+    orderBy: [{ leaseExpiresAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    status
+    leaseExpiresAt
+    conversation {
+      id
+      userId
+      organizationId
+    }
+  }
+}
+
 # The authorization server's operations follow, which the backend's OAuth endpoints run for the
 # external agents a member connects to a module (`documents/conversations.md`, Modules, External
 # agents).

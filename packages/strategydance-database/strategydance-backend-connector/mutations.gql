@@ -363,6 +363,7 @@ mutation SendConversationMessage(
   $content: String!
   $transcriptPosition: Int!
   $attachmentIds: [UUID!]
+  $deliveredSubagentIds: [UUID!]
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -473,6 +474,25 @@ mutation SendConversationMessage(
       expr: "(!has(vars.attachmentIds) || vars.attachmentIds == null) ? this == 0 : this == size(vars.attachmentIds)"
       message: "The message's files changed since the send read them"
     )
+  # The reports of its subagents the entry carries, after every result of the turn, exactly those
+  # named, `$deliveredSubagentIds`, marked delivered: a report delivered meanwhile refuses the write,
+  # which reads again. Always named, empty when none waits, and a backend from before M33 names none
+  delivered: conversation_updateMany(
+    where: {
+      id: { in: $deliveredSubagentIds }
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      reportedAt: { isNull: false }
+      reportDeliveredAt: { isNull: true }
+    }
+    data: { reportDeliveredAt_expr: "request.time" }
+  )
+    @check(
+      expr: "(!has(vars.deliveredSubagentIds) || vars.deliveredSubagentIds == null) ? this == 0 : this == size(vars.deliveredSubagentIds)"
+      message: "The reports changed since the backend read them"
+    )
 }
 
 # Sends a message to one of the caller's conversations whose last turn left calls open, a question
@@ -512,6 +532,7 @@ mutation SendConversationMessageAnsweringCalls(
   $deniedApprovalOutput: String
   $closedApprovalIds: [UUID!]
   $closedApprovalOutput: String
+  $deliveredSubagentIds: [UUID!]
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -676,6 +697,25 @@ mutation SendConversationMessageAnsweringCalls(
     @check(
       expr: "(!has(vars.attachmentIds) || vars.attachmentIds == null) ? this == 0 : this == size(vars.attachmentIds)"
       message: "The message's files changed since the send read them"
+    )
+  # The reports of its subagents the entry carries, after every result of the turn, exactly those
+  # named, `$deliveredSubagentIds`, marked delivered: a report delivered meanwhile refuses the write,
+  # which reads again. Always named, empty when none waits, and a backend from before M33 names none
+  delivered: conversation_updateMany(
+    where: {
+      id: { in: $deliveredSubagentIds }
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      reportedAt: { isNull: false }
+      reportDeliveredAt: { isNull: true }
+    }
+    data: { reportDeliveredAt_expr: "request.time" }
+  )
+    @check(
+      expr: "(!has(vars.deliveredSubagentIds) || vars.deliveredSubagentIds == null) ? this == 0 : this == size(vars.deliveredSubagentIds)"
+      message: "The reports changed since the backend read them"
     )
 }
 
@@ -872,6 +912,7 @@ mutation ContinueConversationRun(
   $runNumber: Int!
   $content: String!
   $transcriptPosition: Int!
+  $deliveredSubagentIds: [UUID!]
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -967,6 +1008,25 @@ mutation ContinueConversationRun(
       content: $content
     }
   )
+  # The reports of its subagents the entry carries, after every result of the turn, exactly those
+  # named, `$deliveredSubagentIds`, marked delivered: a report delivered meanwhile refuses the write,
+  # which reads again. Always named, empty when none waits, and a backend from before M33 names none
+  delivered: conversation_updateMany(
+    where: {
+      id: { in: $deliveredSubagentIds }
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      reportedAt: { isNull: false }
+      reportDeliveredAt: { isNull: true }
+    }
+    data: { reportDeliveredAt_expr: "request.time" }
+  )
+    @check(
+      expr: "(!has(vars.deliveredSubagentIds) || vars.deliveredSubagentIds == null) ? this == 0 : this == size(vars.deliveredSubagentIds)"
+      message: "The reports changed since the backend read them"
+    )
 }
 
 # Carries a conversation on once every question and approval of the turn it waits on is answered,
@@ -2575,6 +2635,7 @@ mutation StoreConversationToolResults(
   $position: Int!
   $content: String!
   $anchorPosition: Int
+  $deliveredSubagentIds: [UUID!]
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -2614,6 +2675,25 @@ mutation StoreConversationToolResults(
       content: $content
     }
   )
+  # The reports of its subagents the entry carries, after every result of the turn, exactly those
+  # named, `$deliveredSubagentIds`, marked delivered: a report delivered meanwhile refuses the write,
+  # which reads again. Always named, empty when none waits, and a backend from before M33 names none
+  delivered: conversation_updateMany(
+    where: {
+      id: { in: $deliveredSubagentIds }
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      reportedAt: { isNull: false }
+      reportDeliveredAt: { isNull: true }
+    }
+    data: { reportDeliveredAt_expr: "request.time" }
+  )
+    @check(
+      expr: "(!has(vars.deliveredSubagentIds) || vars.deliveredSubagentIds == null) ? this == 0 : this == size(vars.deliveredSubagentIds)"
+      message: "The reports changed since the backend read them"
+    )
 }
 
 # Tags a conversation with the aspects the agent picked from its first exchange, as the agent's,
@@ -2865,6 +2945,93 @@ mutation FinishConversationRunWithNote(
       noteKind: $noteKind
       position: $position
     }
+  )
+}
+
+# Ends a run its worker brought to an end with the full note, failed, as `FinishConversationRunWithNote`
+# ends one, at the conversation's 2000 messages or once its next request would not fit Claude's
+# context, which `$isFull` marks. Then it marks every report of its subagents waiting delivered, with
+# no run, those that came while the run went included, since nothing would ever deliver them: a full
+# conversation can neither react, its latest run not completed, nor be sent to. They stay readable
+# on their rows and through `read_subagent`. The subagents' rows come last, after the parent's, the
+# order every cascade on a parent keeps. Fenced as `RenewConversationRunLease` is
+mutation FinishConversationRunFull(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+  $usage: Any
+  $isFull: Boolean
+  $failure: String
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { status: FAILED, usage: $usage, failure: $failure, endedAt_expr: "request.time", leaseExpiresAt: null }
+  ) @check(expr: "this == 1", message: "The run is no longer this worker's")
+  conversationMessage_updateMany(
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      isFull: $isFull
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: FULL
+      position: $position
+    }
+  )
+  delivered: conversation_updateMany(
+    where: {
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      reportedAt: { isNull: false }
+      reportDeliveredAt: { isNull: true }
+    }
+    data: { reportDeliveredAt_expr: "request.time" }
   )
 }
 
@@ -3922,6 +4089,174 @@ mutation InterruptDeadSubagentRun(
       noteKind: INTERRUPTED
       position: $position
     }
+  )
+}
+
+# --- Reactions to subagents' reports ---
+
+# Starts a parent's reaction to its subagents' reports, the first run no member started: once every
+# subagent of a batch, those its runs launched on one anchor less those a retry deleted, has reported
+# and the parent is idle, its latest run `COMPLETED`, nothing waiting. Its `USER` entry holds one
+# text block per report it delivers, `$content`, which the thread draws as nothing, and the run is
+# queued on it, triggered `REPORTS`, counted toward the member's 3 runs in flight as any of theirs.
+#
+# The first step writes the caller's membership, the lock every run start takes, and the second the
+# parent's row, the lock every cascade on a parent shares, under `@check(this == 1)`: still the
+# caller's, not deleted, no subagent, with no run, no answer waited for and the run number the
+# backend read, which moves on with every run, so two subagents ending at once start one reaction
+# and the second finds the parent busy. Then, read after both locks: the membership the backend read,
+# fewer than 3 runs in flight, and the latest run, still the `COMPLETED` one the backend read. The
+# reports it carries, exactly `$subagentIds`, are marked delivered last, the parent's live subagents
+# that reported and wait, so a report a send delivered meanwhile refuses the reaction, which reads
+# again.
+#
+# `$transcriptPosition` is the entry's, after the transcript's last, where the run is anchored.
+# `$userId` is the uid the backend verified. `$conversationId` is the parent's
+mutation StartSubagentReaction(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $membershipCreatedAt: Timestamp!
+  $runId: UUID!
+  $runNumber: Int!
+  $content: String!
+  $transcriptPosition: Int!
+  $subagentIds: [UUID!]!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
+    @check(
+      expr: "size(vars.subagentIds) >= 1 && size(vars.subagentIds) <= 100"
+      message: "A reaction delivers 1 to 100 reports"
+    )
+  parent: conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      parentId: { isNull: true }
+      activeRunId: { isNull: true }
+      isAwaitingAnswer: { eq: false }
+      nextRunNumber: { eq: $runNumber }
+    }
+    data: { activeRunId: $runId, nextRunNumber_update: { inc: 1 }, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The conversation could not take the reaction")
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The membership changed since the reaction read it") {
+      userId
+    }
+    inFlight: conversationRuns(
+      where: {
+        status: { in: [QUEUED, RUNNING] }
+        conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
+      }
+      limit: 3
+    ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+    # The latest run before this one, which the run number the parent's row matched says is the one
+    # the backend read
+    completed: conversationRuns(
+      where: { conversationId: { eq: $conversationId }, status: { eq: COMPLETED } }
+      orderBy: [{ number: DESC }]
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "A conversation reacts only once its latest run completed") {
+      number
+        @check(expr: "this == vars.runNumber - 1", message: "A conversation reacts only once its latest run completed")
+    }
+  }
+  conversationRun_insert(
+    data: {
+      id: $runId
+      conversationId: $conversationId
+      number: $runNumber
+      trigger: REPORTS
+      status: QUEUED
+      membershipCreatedAt: $membershipCreatedAt
+      anchorPosition: $transcriptPosition
+      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+    }
+  )
+  conversationTranscriptEntry_insert(
+    data: {
+      conversationId: $conversationId
+      runId: $runId
+      position: $transcriptPosition
+      role: USER
+      content: $content
+    }
+  )
+  delivered: conversation_updateMany(
+    where: {
+      id: { in: $subagentIds }
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      reportedAt: { isNull: false }
+      reportDeliveredAt: { isNull: true }
+    }
+    data: { reportDeliveredAt_expr: "request.time" }
+  ) @check(expr: "this == size(vars.subagentIds)", message: "The reports changed since the reaction read them")
+}
+
+# Marks the reports of a full parent's subagents delivered with no run, exactly `$subagentIds`, since
+# nothing would ever deliver them: a parent whose latest run ended with the full note can neither
+# react, its latest run not completed, nor be sent to. What finishes its run marks those waiting then
+# (`FinishConversationRunFull`), and this marks the reports that came after, or that the backend
+# read while it ended. They stay readable on their rows and through `read_subagent`.
+#
+# The parent's row is written first, the lock a parent's cascades share, which changes nothing in
+# it, so the read after it sees a run a retry started meanwhile: no run numbered after
+# `$parentRunNumber`, the full one the backend read, which ends as it is
+mutation MarkSubagentReportsDelivered(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $parentRunNumber: Int!
+  $subagentIds: [UUID!]!
+) @auth(level: NO_ACCESS) @transaction {
+  parent: conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      parentId: { isNull: true }
+    }
+    data: { subagentCount_update: { inc: 0 } }
+  )
+    @check(expr: "this == 1", message: "No such conversation of the caller's")
+    @check(expr: "size(vars.subagentIds) <= 100", message: "A conversation holds at most 100 subagents")
+  query @redact {
+    later: conversationRuns(
+      where: { conversationId: { eq: $conversationId }, number: { gt: $parentRunNumber } }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "The conversation started a run since it was full") {
+      id
+    }
+  }
+  delivered: conversation_updateMany(
+    where: {
+      id: { in: $subagentIds }
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      reportedAt: { isNull: false }
+      reportDeliveredAt: { isNull: true }
+    }
+    data: { reportDeliveredAt_expr: "request.time" }
   )
 }
 

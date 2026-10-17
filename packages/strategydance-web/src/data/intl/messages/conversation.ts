@@ -1291,6 +1291,31 @@ const conversationMessages = defineMessages({
     description:
       'In the window that shows everything a subagent did, a subagent being a helper the AI handed one piece of work to, when it was deleted meanwhile.',
   },
+  subagentsWorking: {
+    id: 'conversation.subagents.working',
+    defaultMessage: '{count, plural, one {# subagent working} other {# subagents working}}',
+    description:
+      'Above the field where the reader writes to the AI, while some of the subagents it launched in this conversation still work, a subagent being a helper the AI hands one piece of work to. {count} is how many.',
+  },
+  subagentsStopAll: {
+    id: 'conversation.subagents.stopAll',
+    defaultMessage: 'Stop all',
+    description:
+      'Button beside the number of subagents still working in a conversation, which stops every one of them, a subagent being a helper the AI hands one piece of work to.',
+  },
+  subagentsStopAllError: {
+    id: 'conversation.subagents.stopAllError',
+    defaultMessage: 'The subagents could not be stopped. Try again.',
+    description:
+      'Shown when stopping every subagent of a conversation, the helpers the AI handed pieces of work to, did not go through.',
+  },
+  subagentsReportsWaiting: {
+    id: 'conversation.subagents.reportsWaiting',
+    defaultMessage:
+      '{count, plural, one {# report waiting. Your next message delivers it.} other {# reports waiting. Your next message delivers them.}}',
+    description:
+      'Above the field where the reader writes to the AI, when subagents, the helpers the AI handed pieces of work to, have reported while the AI stopped, so the AI reads their reports only once the reader writes again. {count} is how many reports.',
+  },
   briefLabel: {
     id: 'conversation.subagent.brief',
     defaultMessage: 'Brief',

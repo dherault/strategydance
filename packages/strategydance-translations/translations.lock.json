@@ -2161,6 +2161,22 @@
         "hash": "c7c0795940bb35c5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.subagents.reportsWaiting": {
+        "hash": "dc2654e989395ac4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagents.stopAll": {
+        "hash": "00cfb78e47214033",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagents.stopAllError": {
+        "hash": "d6724e1056a43793",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagents.working": {
+        "hash": "1627970cf4d770a5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.taskGone": {
         "hash": "73d92a185150775a",
         "locales": "DE,ES,FR,JA,PT,ZH"

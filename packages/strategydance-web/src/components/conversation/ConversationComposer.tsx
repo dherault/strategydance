@@ -54,6 +54,7 @@ import Spinner from '~components/common/Spinner'
 import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
 import ConversationComposerTray from '~components/conversation/ConversationComposerTray'
 import ConversationMentionList from '~components/conversation/ConversationMentionList'
+import ConversationSubagentsStrip from '~components/conversation/ConversationSubagentsStrip'
 
 import type { ConversationAttachmentRefusal } from '~data/conversationComposerDrafts'
 import conversationMessages from '~data/intl/messages/conversation'
@@ -145,7 +146,10 @@ type Props = {
   than in the composer, shared for the life of the tab by every composer that draws the
   conversation: moving it between its page and the dock, or minimizing its window, loses none of it,
   a send going in one is going in all, and a send that failed is sent again under its id from
-  wherever the reader sends it
+  wherever the reader sends it.
+
+  Above it all, the strip that says how many of the conversation's subagents still work, with Stop
+  all, and how many of their reports wait for the next message (`ConversationSubagentsStrip`)
 */
 function ConversationComposer({
   conversationId,
@@ -366,6 +370,13 @@ function ConversationComposer({
       )}
       onSubmit={handleSubmit}
     >
+      {conversation ? (
+        <ConversationSubagentsStrip
+          conversation={conversation}
+          run={run}
+          variant={variant}
+        />
+      ) : null}
       {mentions.isListShown ? (
         <ConversationMentionList
           listId={mentions.listId}

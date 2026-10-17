@@ -412,6 +412,70 @@ export type TasksToolContext = {
 }
 
 /* ---
+  SUBAGENTS MODULE
+--- */
+
+// Where a subagent stands, as the Subagents module answers it, from its latest run: queued, waiting
+// for one of the member's five slots, working, or ended, its report written whichever way it ended
+export type SubagentStatus =
+  | 'QUEUED'
+  | 'WAITING_FOR_SLOT'
+  | 'WORKING'
+  | 'REPORTED'
+  | 'STOPPED'
+  | 'FAILED'
+  | 'INTERRUPTED'
+
+/*
+  Why the Subagents module refused a call, which its tool words for the model: each is something the
+  model can act on, by telling the member, carrying on without a subagent, or changing what it sent
+*/
+export type SubagentsRefusal =
+  /** The caller carries no run calling, as only a worker that claimed one fills it */
+  | { outcome: 'noLauncher' }
+  /** The caller is no longer the member the module was built for */
+  | { outcome: 'notMember' }
+  /** The caller may read but not write */
+  | { outcome: 'readOnly' }
+  /** The run calling is a subagent's, which launches none */
+  | { outcome: 'fromSubagent' }
+  /** The run calling has ended or was asked to stop, its conversation deleted included */
+  | { outcome: 'launcherEnded' }
+  /** No live subagent of the calling conversation by that id */
+  | { outcome: 'notFound' }
+  /** A launch whose title or brief is past its bounds, or whose files are named twice */
+  | { outcome: 'invalid'; reason: string }
+  /** A launch past the 10 on the calling run's anchor, or past the 100 a conversation holds */
+  | { outcome: 'tooManyOnAnchor' }
+  | { outcome: 'tooMany' }
+  /** A file the conversation has not sent */
+  | { outcome: 'attachmentsInvalid' }
+  /** A launch whose first request, measured whole, would pass a send's budget */
+  | { outcome: 'overBudget'; reason: string }
+  /** A launch stored whose run could not be queued, which the same call sent again queues */
+  | { outcome: 'unavailable' }
+  /** A stop other writes kept landing before, every time it was read again */
+  | { outcome: 'busy' }
+  /** An idempotency key sent before with another call */
+  | { outcome: 'keyConflict' }
+  /** A cursor no list gave */
+  | { outcome: 'invalidCursor' }
+
+// What a write of the Subagents module answers: its result, the one stored under its key when the
+// call was sent before, or why it was refused. A stop of a subagent that has ended, or was asked to
+// stop already, writes nothing, and answers so
+export type SubagentsWriteResult<Result> =
+  | { outcome: 'written' | 'unchanged'; result: Result }
+  | { outcome: 'answered'; result: unknown }
+  | SubagentsRefusal
+
+// What each of the Subagents module's tools is registered with: who calls it. Its results carry no
+// web address, since a subagent is reached from its parent's thread, not from a page of its own
+export type SubagentsToolContext = {
+  caller: ModuleCaller
+}
+
+/* ---
   DIRECTORIES
 
   The daily check of the directories package's lists, `domain/directories/`

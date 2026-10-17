@@ -12,10 +12,12 @@ import {
   ConversationRunStatus,
   getSubagentLaunchContext,
   launchPendingSubagent,
+  launchPendingSubagentForAgent,
+  launchSubagentForAgent,
   launchSubagent as launchSubagentMutation,
 } from 'strategydance-database/backend'
 
-import type { ConversationContentBlock } from '~types'
+import type { ConversationContentBlock, ModuleCall, ModuleCaller, SubagentStatus } from '~types'
 
 import { dataConnect } from '~firebase'
 
@@ -26,8 +28,12 @@ import buildConversationAttachmentBlock from '~domain/agent/buildConversationAtt
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
+import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
+import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
+import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
 import measureSubagentLaunch from '~domain/subagents/measureSubagentLaunch'
 import promoteSubagentRuns from '~domain/subagents/promoteSubagentRuns'
+import readSubagentLauncher from '~domain/subagents/readSubagentLauncher'
 
 // How many times a launch reads where its parent stands and tries, before it gives up
 const MAX_ROUNDS = 4
@@ -47,9 +53,18 @@ type LaunchSubagentInput = {
   // The files of the parent's it hands over, canonical and each once, at most 10, in the order the
   // subagent reads them
   attachmentIds: string[]
-  // The run and the call that launched it, which a launch from a script has neither of
-  launchRunId?: string | null
-  launchToolUseId?: string | null
+  // A launch through the Subagents module: its caller, whose launcher is the run launching it, which
+  // the launch is made on the anchor of and checks is still running, and its call, whose key keeps
+  // what it answered and is the call's id the subagent records. A launch from a script has none,
+  // and is made on its parent's latest anchor
+  module?: { caller: ModuleCaller; call: ModuleCall | null }
+}
+
+// What a launch through the Subagents module keeps under its key, and answers when called again
+export type LaunchedSubagent = {
+  id: string
+  title: string
+  status: Extract<SubagentStatus, 'QUEUED' | 'WAITING_FOR_SLOT'>
 }
 
 export type LaunchSubagentResult =
@@ -74,6 +89,16 @@ export type LaunchSubagentResult =
   // The subagent and its run are stored, but the run could not be queued: it stays queued, and the
   // same launch sent again queues it again
   | { outcome: 'unavailable'; subagentId: string; runId: string }
+  // A launch through the module that its key made before, answered with what it answered then, or
+  // a key sent before with another call, or by a caller who is no longer the member
+  | { outcome: 'answered'; result: unknown }
+  | { outcome: 'keyConflict' }
+  | { outcome: 'notMember' }
+  // A launch through the module from a subagent's run, which launches none, or from a run that has
+  // ended or was asked to stop
+  | { outcome: 'fromSubagent' }
+  | { outcome: 'launcherEnded' }
+  | { outcome: 'noLauncher' }
 
 /*
   Launches a subagent of one of the caller's conversations, its parent: a conversation of its own,
@@ -95,8 +120,14 @@ export type LaunchSubagentResult =
     one of their five slots: it is finalized first, with its report, the oldest run waiting
     promoted into its slot, and the slots read again
 
+  A launch through the Subagents module reads besides what its key keeps, answering a launch called
+  again with what it answered then, once its subagent is queued again as above, and launching
+  nothing when its subagent was pruned since, and the run launching it, which has to be still
+  running, not asked to stop and no subagent's, and whose anchor it is made on.
+
   The launch is one mutation, which takes the member's lock, then the parent's, and counts again
-  under them. Its run is queued into one of the member's five subagent slots in the organization, or,
+  under them, the module's checking the run launching it again after both, and storing what its key
+  keeps. Its run is queued into one of the member's five subagent slots in the organization, or,
   with all five taken as the launch read them, waits pending for one, and the launch promotes right
   after, so a slot freed meanwhile goes to the oldest run waiting. A write refused anyway, because a
   launch, an end or a cascade got there in between, starts another round
@@ -141,6 +172,10 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
 
     if (!membership) return { outcome: 'forbidden' }
 
+    const stored = input.module ? await answerFromModuleCall(input.module.caller, input.module.call) : null
+
+    if (stored && stored.outcome !== 'answered') return stored
+
     if (subagent) {
       if (subagent.userId !== userId || subagent.organizationId !== organizationId || subagent.parentId !== parentId) {
         return { outcome: 'conflict' }
@@ -156,11 +191,22 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
       if (run?.status === ConversationRunStatus.PENDING) {
         const promoted = await promote(input)
 
+        if (stored) return stored
+
         return { outcome: 'launched', subagentId, runId, isPending: !promoted.some(queued => queued.runId === runId) }
       }
 
+      if (stored) return stored
+
       return { outcome: 'launched', subagentId, runId, isPending: false }
     }
+
+    // Its subagent was pruned since, which a launch called again never makes anew
+    if (stored) return stored
+
+    const launcher = input.module ? await readSubagentLauncher(input.module.caller) : null
+
+    if (launcher && launcher.outcome !== 'running') return launcher
 
     if (
       !parent
@@ -182,7 +228,7 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
     }
 
     // A launch from no run, as a script makes one, carries out the member's latest action
-    const anchorPosition = data.latestRuns[0]?.anchorPosition ?? 0
+    const anchorPosition = launcher?.anchorPosition ?? data.latestRuns[0]?.anchorPosition ?? 0
 
     if (
       data.subagents.filter(({ launchAnchorPosition }) => launchAnchorPosition === anchorPosition).length
@@ -234,26 +280,44 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
     }
 
     const isPending = data.activeSubagentRuns.length >= MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER
+    const variables = {
+      organizationId,
+      userId,
+      membershipCreatedAt: membership.createdAt,
+      parentId,
+      anchorPosition,
+      conversationId: subagentId,
+      title,
+      runId,
+      messageId: deriveUuid(subagentId, 'brief'),
+      text,
+      content: serializeTranscriptContent(content),
+      attachmentIds,
+    }
 
     try {
-      await (isPending ? launchPendingSubagent : launchSubagentMutation)(dataConnect, {
-        organizationId,
-        userId,
-        membershipCreatedAt: membership.createdAt,
-        parentId,
-        anchorPosition,
-        launchRunId: input.launchRunId ?? null,
-        launchToolUseId: input.launchToolUseId ?? null,
-        conversationId: subagentId,
-        title,
-        runId,
-        messageId: deriveUuid(subagentId, 'brief'),
-        text,
-        content: serializeTranscriptContent(content),
-        attachmentIds,
-      })
+      if (input.module && launcher) {
+        const { caller, call } = input.module
+        const result: LaunchedSubagent = { id: subagentId, title, status: isPending ? 'WAITING_FOR_SLOT' : 'QUEUED' }
+
+        await (isPending ? launchPendingSubagentForAgent : launchSubagentForAgent)(dataConnect, {
+          ...variables,
+          launchRunId: launcher.runId,
+          launchToolUseId: call?.key ?? null,
+          ...toModuleCallVariables(caller, call, result),
+        })
+      } else {
+        await (isPending ? launchPendingSubagent : launchSubagentMutation)(dataConnect, {
+          ...variables,
+          launchRunId: null,
+          launchToolUseId: null,
+        })
+      }
     } catch (error) {
-      if (round === MAX_ROUNDS) throw error
+      // A key taken meanwhile is answered from it at the next round, one past the last if need be
+      const isKeyTaken = Boolean(input.module) && isModuleCallKeyTaken(error)
+
+      if (round > MAX_ROUNDS || (round === MAX_ROUNDS && !isKeyTaken)) throw error
 
       continue
     }

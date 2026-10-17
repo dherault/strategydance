@@ -91,6 +91,31 @@ describe('stopSubagent', () => {
     expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: waiting.runId }), 'subagent-runs')
   })
 
+  test('promotes into the slot a queued run freed when ending it landed but its answer was lost', async () => {
+    const parent = await startRunning()
+    const subagents: ConversationRunReference[] = []
+
+    for (let index = 0; index <= MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER; index++) subagents.push(await kit.launch(parent))
+
+    const [queued] = subagents
+    const waiting = subagents.at(-1)!
+    let isLost = false
+
+    fake.afterOperation = async name => {
+      if (name !== 'StopQueuedSubagentRun' || isLost) return
+
+      isLost = true
+
+      throw new Error('The answer was lost')
+    }
+
+    await stop(parent, queued!.conversationId)
+
+    expect(isLost).toBe(true)
+    expect(kit.readRun(queued!)?.status).toBe('STOPPED')
+    expect(kit.readRun(waiting)?.status).toBe('QUEUED')
+  })
+
   test('ends a subagent waiting for a slot at once, which held none, so nothing is promoted', async () => {
     const parent = await startRunning()
     const subagents: ConversationRunReference[] = []

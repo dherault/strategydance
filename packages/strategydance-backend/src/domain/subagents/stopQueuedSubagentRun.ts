@@ -30,9 +30,10 @@ type Options = {
 /*
   Ends a subagent's run still waiting in the queue that its parent's agent asked to stop, at once
   rather than when a worker claims it, with its note and its report, read from the subagent's
-  transcript as it stands, which a run its chain queued carries on from. Answers whether it ended it:
-  a run a worker claimed meanwhile is left to stop at its next step, and one something else ended is
-  left as it is. It held one of the member's five slots, which the caller promotes into.
+  transcript as it stands, which a run its chain queued carries on from. Answers whether the run has
+  ended stopped, by this or by a write of this whose answer was lost, so the slot it held is free and
+  the caller promotes into it: a run a worker claimed meanwhile is left to stop at its next step, and
+  ends by its worker, whose ending promotes, and one that ended otherwise is left as it is.
 
   A refusal is read again, since a note can find the counter moved. Throws once the counter keeps
   moving
@@ -45,6 +46,8 @@ async function stopQueuedSubagentRun(
     const { data } = await getConversationRunContext(dataConnect, reference)
     const [run] = data.conversationRuns
 
+    // Ended stopped, which a write whose answer was lost leaves: promoting once more fills no slot twice
+    if (run?.status === ConversationRunStatus.STOPPED && run.stopRequestedAt) return true
     if (run?.status !== ConversationRunStatus.QUEUED || !run.stopRequestedAt) return false
 
     const entries = await readConversationTranscript(reference)

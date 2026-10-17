@@ -91,6 +91,27 @@ query GetConversationSendContext($organizationId: UUID!, $userId: String!, $conv
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     createdAt
   }
+  # The reports of its live subagents waiting to be delivered, oldest first, which the entry carries
+  # after every result of the turn, those of a batch still working included
+  waitingReports: conversations(
+    where: {
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      reportedAt: { isNull: false }
+      reportDeliveredAt: { isNull: true }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    title
+    report
+    latestRuns: conversationRuns_on_conversation(orderBy: [{ number: DESC }], limit: 1) {
+      status
+    }
+  }
   conversation(id: $conversationId) {
     userId
     organizationId
@@ -543,6 +564,27 @@ query GetConversationTurnContext($organizationId: UUID!, $userId: String!, $conv
 @auth(level: NO_ACCESS) {
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     createdAt
+  }
+  # The reports of its live subagents waiting to be delivered, oldest first, which the entry carries
+  # after every result of the turn, those of a batch still working included
+  waitingReports: conversations(
+    where: {
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      reportedAt: { isNull: false }
+      reportDeliveredAt: { isNull: true }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    title
+    report
+    latestRuns: conversationRuns_on_conversation(orderBy: [{ number: DESC }], limit: 1) {
+      status
+    }
   }
   conversation(id: $conversationId) {
     userId

@@ -163,7 +163,7 @@
   "conversation.retryDialog.cancel": "Cancelar",
   "conversation.retryDialog.confirm": "Tentar novamente",
   "conversation.retryDialog.discarded": "{total, plural, one {Tentar novamente descarta o subagente iniciado por esta resposta e seu relatório.} other {Tentar novamente descarta os # subagentes iniciados por esta resposta e seus relatórios.}}",
-  "conversation.retryDialog.kept": "O que eles alteraram no seu conhecimento e nas suas tarefas permanece como está.",
+  "conversation.retryDialog.kept": "{total, plural, one {O que ele alterou no seu conhecimento e nas suas tarefas permanece como está.} other {O que eles alteraram no seu conhecimento e nas suas tarefas permanece como está.}}",
   "conversation.retryDialog.someWorking": "{working, plural, one {Um deles ainda está trabalhando e será interrompido primeiro.} other {# deles ainda estão trabalhando e serão interrompidos primeiro.}}",
   "conversation.retryDialog.title": "Repetir esta resposta?",
   "conversation.save": "Salvar",

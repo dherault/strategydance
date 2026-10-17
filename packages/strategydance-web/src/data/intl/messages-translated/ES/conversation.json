@@ -163,7 +163,7 @@
   "conversation.retryDialog.cancel": "Cancelar",
   "conversation.retryDialog.confirm": "Reintentar",
   "conversation.retryDialog.discarded": "{total, plural, one {Al reintentar se descarta el subagente que inició esta respuesta y su informe.} other {Al reintentar se descartan los # subagentes que inició esta respuesta y sus informes.}}",
-  "conversation.retryDialog.kept": "Lo que cambiaron en tus conocimientos y tareas se mantendrá tal como está.",
+  "conversation.retryDialog.kept": "{total, plural, one {Lo que cambió en tus conocimientos y tareas se mantiene tal como está.} other {Lo que cambiaron en tus conocimientos y tareas se mantiene tal como está.}}",
   "conversation.retryDialog.someWorking": "{working, plural, one {Uno de ellos sigue trabajando y se detendrá primero.} other {# de ellos siguen trabajando y se detendrán primero.}}",
   "conversation.retryDialog.title": "¿Reintentar esta respuesta?",
   "conversation.save": "Guardar",

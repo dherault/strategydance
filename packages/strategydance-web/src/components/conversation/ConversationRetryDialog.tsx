@@ -51,7 +51,7 @@ function ConversationRetryDialog({ retriedSubagents: { total, working }, onConfi
                     { working },
                   )
                 : null,
-              formatMessage(conversationMessages.retryDialogKept),
+              formatMessage(conversationMessages.retryDialogKept, { total }),
             ]
               .filter(Boolean)
               .join(' ')}

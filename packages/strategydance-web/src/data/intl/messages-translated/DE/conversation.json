@@ -163,7 +163,7 @@
   "conversation.retryDialog.cancel": "Abbrechen",
   "conversation.retryDialog.confirm": "Wiederholen",
   "conversation.retryDialog.discarded": "{total, plural, one {Ein erneuter Versuch verwirft den von dieser Antwort gestarteten Subagenten und dessen Bericht.} other {Ein erneuter Versuch verwirft die # von dieser Antwort gestarteten Subagenten und deren Berichte.}}",
-  "conversation.retryDialog.kept": "Was sie an deinem Wissen und deinen Aufgaben geändert haben, bleibt so, wie es ist.",
+  "conversation.retryDialog.kept": "{total, plural, one {Was es an deinem Wissen und deinen Aufgaben geändert hat, bleibt so, wie es ist.} other {Was sie an deinem Wissen und deinen Aufgaben geändert haben, bleibt so, wie es ist.}}",
   "conversation.retryDialog.someWorking": "{working, plural, one {Einer von ihnen arbeitet noch und wird zuerst gestoppt.} other {# von ihnen arbeiten noch und werden zuerst gestoppt.}}",
   "conversation.retryDialog.title": "Diese Antwort wiederholen?",
   "conversation.save": "Speichern",

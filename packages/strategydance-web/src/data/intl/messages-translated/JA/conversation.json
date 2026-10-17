@@ -163,7 +163,7 @@
   "conversation.retryDialog.cancel": "キャンセル",
   "conversation.retryDialog.confirm": "再試行",
   "conversation.retryDialog.discarded": "{total, plural, one {再試行すると、この回答によって起動されたサブエージェントとそのレポートが破棄されます。} other {再試行すると、この回答によって起動された#個のサブエージェントとそのレポートが破棄されます。}}",
-  "conversation.retryDialog.kept": "ナレッジやタスクに加えられた変更はそのまま保持されます。",
+  "conversation.retryDialog.kept": "{total, plural, one {ナレッジやタスクに加えられた変更はそのまま保持されます。} other {ナレッジやタスクに加えられた変更はそのまま保持されます。}}",
   "conversation.retryDialog.someWorking": "{working, plural, one {そのうち1個は現在も実行中のため、まず停止されます。} other {そのうち#個は現在も実行中のため、まず停止されます。}}",
   "conversation.retryDialog.title": "この回答を再試行しますか？",
   "conversation.save": "保存",

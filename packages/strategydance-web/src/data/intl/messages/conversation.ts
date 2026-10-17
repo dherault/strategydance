@@ -370,9 +370,10 @@ const conversationMessages = defineMessages({
   },
   retryDialogKept: {
     id: 'conversation.retryDialog.kept',
-    defaultMessage: 'What they changed in your knowledge and tasks stays as it is.',
+    defaultMessage:
+      '{total, plural, one {What it changed in your knowledge and tasks stays as it is.} other {What they changed in your knowledge and tasks stays as it is.}}',
     description:
-      'In the dialog that asks before the AI answers the reader’s last message again: the documents and tasks the discarded subagents created or changed are not undone.',
+      'In the dialog that asks before the AI answers the reader’s last message again: the documents and tasks the discarded subagents created or changed are not undone. {total} is how many subagents.',
   },
   retryDialogConfirm: {
     id: 'conversation.retryDialog.confirm',

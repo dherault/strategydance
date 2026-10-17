@@ -163,7 +163,7 @@
   "conversation.retryDialog.cancel": "Annuler",
   "conversation.retryDialog.confirm": "Réessayer",
   "conversation.retryDialog.discarded": "{total, plural, one {Réessayer supprime le sous-agent lancé par cette réponse et son rapport.} other {Réessayer supprime les # sous-agents lancés par cette réponse et leurs rapports.}}",
-  "conversation.retryDialog.kept": "Ce qu'ils ont modifié dans vos connaissances et vos tâches reste inchangé.",
+  "conversation.retryDialog.kept": "{total, plural, one {Ce qu'il a modifié dans vos connaissances et vos tâches reste inchangé.} other {Ce qu'ils ont modifié dans vos connaissances et vos tâches reste inchangé.}}",
   "conversation.retryDialog.someWorking": "{working, plural, one {L'un d'eux est toujours en cours et s'arrête d'abord.} other {# d'entre eux sont toujours en cours et s'arrêtent d'abord.}}",
   "conversation.retryDialog.title": "Réessayer cette réponse ?",
   "conversation.save": "Enregistrer",

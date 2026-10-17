@@ -64,6 +64,7 @@ import sendConversationMessage from '~domain/conversations/sendConversationMessa
 import stopConversationRun from '~domain/conversations/stopConversationRun'
 import uploadConversationAttachment from '~domain/conversations/uploadConversationAttachment'
 import reconcileConversationSubagents from '~domain/subagents/reconcileConversationSubagents'
+import stopConversationSubagents from '~domain/subagents/stopConversationSubagents'
 
 import { aspectsSchema } from '~modules/moduleSchemas'
 
@@ -426,6 +427,81 @@ function createConversationsRouter() {
         userId: readViewer(request).id,
         conversationId: toCanonicalUuid(request.params.conversationId),
       })
+
+      if (result.outcome === 'missing') {
+        respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This conversation is not one of yours')
+
+        return
+      }
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  /*
+    Stops every live subagent of a conversation, as the strip above its composer's Stop all does:
+    each run they are busy with is asked to stop, a queued one, or one waiting for a slot, ends at
+    once with its report, and a working one at its worker's next step, reporting what it had. Refused
+    with a 404 unless the conversation is the caller's, not deleted and no subagent. Takes no body
+  */
+  router.post(
+    '/:conversationId/subagents/stop',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: messagesParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (
+      request: Request<z.infer<typeof messagesParamsSchema>, ApiResponse, unknown>,
+      response: Response<ApiResponse>,
+    ) => {
+      const result = await stopConversationSubagents({
+        organizationId: toCanonicalUuid(request.params.organizationId),
+        userId: readViewer(request).id,
+        conversationId: toCanonicalUuid(request.params.conversationId),
+      })
+
+      if (result.outcome === 'missing') {
+        respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This conversation is not one of yours')
+
+        return
+      }
+
+      response.json({ status: 'success' })
+    },
+  )
+
+  const subagentParamsSchema = z.object({
+    organizationId: z.string().regex(UUID_PATTERN),
+    conversationId: z.string().regex(UUID_PATTERN),
+    subagentId: z.string().regex(UUID_PATTERN),
+  })
+
+  /*
+    Stops one subagent of a conversation, as its row's Stop does, the conversation naming it, so a
+    subagent is never acted on but through its parent. One that has ended, or is not the
+    conversation's, changes nothing, and a stop sent twice answers the same. Refused with a 404
+    unless the conversation is the caller's, not deleted and no subagent. Takes no body
+  */
+  router.post(
+    '/:conversationId/subagents/:subagentId/stop',
+    appCheckMiddleware,
+    authenticationMiddleware,
+    validateMiddleware({ params: subagentParamsSchema }),
+    organizationMemberMiddleware,
+    staffOnlyMiddleware,
+    async (
+      request: Request<z.infer<typeof subagentParamsSchema>, ApiResponse, unknown>,
+      response: Response<ApiResponse>,
+    ) => {
+      const result = await stopConversationSubagents(
+        {
+          organizationId: toCanonicalUuid(request.params.organizationId),
+          userId: readViewer(request).id,
+          conversationId: toCanonicalUuid(request.params.conversationId),
+        },
+        { subagentIds: [toCanonicalUuid(request.params.subagentId)] },
+      )
 
       if (result.outcome === 'missing') {
         respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This conversation is not one of yours')

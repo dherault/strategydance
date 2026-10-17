@@ -407,6 +407,79 @@ function createConversationDatabaseFake() {
   }
 
   /*
+    Asks a parent's subagents' runs to stop, queued, running or waiting for a slot and not asked yet,
+    those launched on an anchor or named when either is given, and answers how many, as the cascades'
+    operations ask them after the parent's row
+  */
+  function askSubagentRunsToStop(
+    parentId: string,
+    {
+      anchorPosition,
+      subagentIds,
+      isLiveOnly = false,
+    }: { anchorPosition?: number; subagentIds?: string[]; isLiveOnly?: boolean },
+  ) {
+    let asked = 0
+
+    for (const run of runs.values()) {
+      const subagent = conversations.get(run.conversationId)
+
+      if (
+        subagent?.parentId === parentId
+        && ['QUEUED', 'RUNNING', 'PENDING'].includes(run.status)
+        && run.stopRequestedAt === null
+        && (anchorPosition === undefined || subagent.launchAnchorPosition === anchorPosition)
+        && (subagentIds === undefined || subagentIds.map(id).includes(subagent.id))
+        && (!isLiveOnly || subagent.deletedAt === null)
+      ) {
+        run.stopRequestedAt = now()
+        asked++
+      }
+    }
+
+    return asked
+  }
+
+  /*
+    The web connector's `DeleteConversation`: the caller's conversation deleted, its runs asked to
+    stop, and its live subagents deleted at its own instant, their runs asked to stop. A subagent's id
+    changes nothing
+  */
+  function deleteAsMember(conversationId: string, userId: string, organizationId: string) {
+    const conversation = conversations.get(id(conversationId))
+
+    if (
+      !conversation
+      || conversation.userId !== userId
+      || conversation.organizationId !== id(organizationId)
+      || conversation.deletedAt !== null
+      || conversation.parentId != null
+    ) {
+      return
+    }
+
+    // Postgres stamps it to the microsecond, which no other delete shares
+    const deletedAt = stamp()
+
+    for (const run of runs.values()) {
+      if (
+        run.conversationId === conversation.id
+        && RUN_IN_FLIGHT.includes(run.status)
+        && run.stopRequestedAt === null
+      ) {
+        run.stopRequestedAt = deletedAt
+      }
+    }
+
+    conversation.deletedAt = deletedAt
+    askSubagentRunsToStop(conversation.id, { isLiveOnly: true })
+
+    for (const subagent of conversations.values()) {
+      if (subagent.parentId === conversation.id && subagent.deletedAt === null) subagent.deletedAt = deletedAt
+    }
+  }
+
+  /*
     The web connector's `RestoreConversation`, as far as a sweep meets it: a deleted conversation of
     the caller's comes back only within a day of its delete and while no sweep has claimed it, and is
     refused as the connector refuses it otherwise. The membership's lock and the count of 1000 are
@@ -427,7 +500,20 @@ function createConversationDatabaseFake() {
       refuse('The conversation is gone for good')
     }
 
+    const { deletedAt } = conversation
+
     conversation.deletedAt = null
+
+    // Its subagents its delete took, at its own instant, and none a retry deleted at another
+    for (const subagent of conversations.values()) {
+      if (
+        subagent.parentId === conversation.id
+        && subagent.pruneClaimedAt === null
+        && subagent.deletedAt === deletedAt
+      ) {
+        subagent.deletedAt = null
+      }
+    }
   }
 
   // The web's `MarkConversationRead`: nothing unread, only while the preview the page rendered is
@@ -2284,6 +2370,78 @@ function createConversationDatabaseFake() {
       return { conversationRun_updateMany: 1 }
     },
 
+    RequestConversationRunStopWithSubagents: variables => {
+      const run = findOwnedRun(variables, 'RUNNING')
+
+      if (run && !run.stopRequestedAt && conversations.get(run.conversationId)?.parentId == null) {
+        run.stopRequestedAt = now()
+      }
+
+      askSubagentRunsToStop(id(variables.conversationId), { anchorPosition: variables.anchorPosition })
+
+      return { conversationRun_updateMany: run ? 1 : 0 }
+    },
+
+    StopQueuedConversationRunWithSubagents: variables => {
+      const run = findQueuedRun(variables)
+
+      if (!run || conversations.get(run.conversationId)?.parentId != null) refuse('The run is no longer queued')
+
+      const conversation = requireNoteConversation(variables)
+
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      end(run, 'STOPPED')
+      run.failure = 'Its member stopped it while it was queued'
+      writeNote(conversation, variables, 'STOPPED')
+      askSubagentRunsToStop(conversation.id, { anchorPosition: variables.anchorPosition })
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    RequestConversationSubagentsStop: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+
+      if (
+        !conversation
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.parentId != null
+        || conversation.deletedAt !== null
+      ) {
+        refuse("No such conversation of the caller's")
+      }
+
+      return {
+        parent: 1,
+        subagentRuns: askSubagentRunsToStop(conversation.id, {
+          anchorPosition: variables.anchorPosition ?? undefined,
+          subagentIds: variables.subagentIds ?? undefined,
+        }),
+      }
+    },
+
+    GetSubagentsToStop: variables => ({
+      conversations: [...conversations.values()]
+        .filter(
+          subagent =>
+            subagent.parentId === id(variables.conversationId)
+            && subagent.userId === variables.userId
+            && subagent.organizationId === id(variables.organizationId)
+            && subagent.activeRunId !== null
+            && (variables.anchorPosition == null || subagent.launchAnchorPosition === variables.anchorPosition)
+            && (variables.subagentIds == null || (variables.subagentIds as string[]).map(id).includes(subagent.id)),
+        )
+        .slice(0, 100)
+        .map(subagent => ({
+          id: subagent.id,
+          activeRunId: subagent.activeRunId,
+          latestRuns: latestRuns(subagent.id)
+            .slice(0, 1)
+            .map(({ id: runId, status, stopRequestedAt }) => ({ id: runId, status, stopRequestedAt })),
+        })),
+    }),
+
     StopQueuedConversationRun: variables => {
       const run = findQueuedRun(variables)
 
@@ -2480,6 +2638,20 @@ function createConversationDatabaseFake() {
         startedAt: null,
         endedAt: null,
       })
+
+      // The live subagents the runs it cuts launched, asked to stop and deleted at an instant of
+      // their own, a moment after any delete before it
+      askSubagentRunsToStop(conversation.id, { anchorPosition: variables.anchorPosition, isLiveOnly: true })
+
+      for (const subagent of conversations.values()) {
+        if (
+          subagent.parentId === conversation.id
+          && subagent.launchAnchorPosition === variables.anchorPosition
+          && subagent.deletedAt === null
+        ) {
+          subagent.deletedAt = stamp()
+        }
+      }
 
       return { conversation_updateMany: 1 }
     },
@@ -3321,7 +3493,11 @@ function createConversationDatabaseFake() {
       let claimed = 0
 
       for (const conversation of conversations.values()) {
-        if (isPastUndo(conversation) && conversation.pruneClaimedAt === null) {
+        if (
+          isPastUndo(conversation)
+          && conversation.pruneClaimedAt === null
+          && (conversation.parentId == null || conversation.activeRunId === null)
+        ) {
           conversation.pruneClaimedAt = now()
           claimed++
         }
@@ -3332,10 +3508,60 @@ function createConversationDatabaseFake() {
 
     GetClaimedConversations: () => ({
       conversations: [...conversations.values()]
-        .filter(conversation => conversation.pruneClaimedAt !== null && isPastUndo(conversation))
+        .filter(
+          conversation =>
+            conversation.pruneClaimedAt !== null && isPastUndo(conversation) && conversation.parentId == null,
+        )
         .slice(0, 20)
         .map(({ id: conversationId, userId, organizationId }) => ({ id: conversationId, userId, organizationId })),
     }),
+
+    GetClaimedSubagents: () => ({
+      conversations: [...conversations.values()]
+        .filter(
+          conversation =>
+            conversation.pruneClaimedAt !== null && isPastUndo(conversation) && conversation.parentId != null,
+        )
+        .sort((a, b) => (a.parentId ?? '').localeCompare(b.parentId ?? '') || a.id.localeCompare(b.id))
+        .slice(0, 100)
+        .map(({ id: conversationId, parentId }) => ({ id: conversationId, parentId })),
+    }),
+
+    GetConversationsWithSubagents: ({ ids }) => ({
+      conversations: [...conversations.values()]
+        .filter(
+          conversation => conversation.parentId != null && (ids as string[]).map(id).includes(conversation.parentId),
+        )
+        .slice(0, 1000)
+        .map(({ parentId }) => ({ parentId })),
+    }),
+
+    PruneClaimedSubagents: variables => {
+      const ids = (variables.ids as string[]).map(id)
+
+      if (variables.count !== ids.length || variables.count > 100) refuse('A prune names each subagent it counts')
+
+      const pruned = ids.filter(subagentId => {
+        const subagent = conversations.get(subagentId)
+
+        return (
+          subagent !== undefined
+          && subagent.parentId === id(variables.parentId)
+          && subagent.pruneClaimedAt !== null
+          && isPastUndo(subagent)
+        )
+      })
+
+      if (pruned.length !== variables.count) refuse('The subagents changed since the prune read them')
+
+      const parent = conversations.get(id(variables.parentId))
+
+      if (parent) parent.subagentCount = (parent.subagentCount ?? 0) - variables.count
+
+      for (const subagentId of pruned) deleteConversation(subagentId)
+
+      return { parent: parent ? 1 : 0, subagents: pruned.length }
+    },
 
     DeleteClaimedConversations: ({ ids }) => {
       let deleted = 0
@@ -4344,7 +4570,7 @@ function createConversationDatabaseFake() {
     integrations.reset()
   }
 
-  return Object.assign(fake, { sdk, addMember, removeMember, restore, markRead, reset })
+  return Object.assign(fake, { sdk, addMember, removeMember, deleteAsMember, restore, markRead, reset })
 }
 
 export type ConversationDatabaseFake = ReturnType<typeof createConversationDatabaseFake>

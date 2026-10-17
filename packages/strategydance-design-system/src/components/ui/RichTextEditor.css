@@ -584,18 +584,28 @@
 }
 
 /*
-  The block menu's "Turn into" list, as wide as its longest block's name, with the `md` shadow of
-  the other menus rather than the `lg` one BlockNote gives a submenu
+  A menu as wide as its longest row, each row on one line: the block menu and its "Turn into" list,
+  and a table's row, column and cell menus. BlockNote portals a menu into a zero-width anchor beside
+  the handle that opens it, as it does a tooltip, so a menu fitted to the room the anchor leaves is
+  shadcn's 128px minimum, which wraps "Add column left" in English and three lines in French
 */
-.rich-text-editor.bn-root [data-slot='dropdown-menu-sub-content'] {
-  --tw-shadow: 0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a);
+.rich-text-editor.bn-root :is([data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-sub-content']) {
   width: max-content;
 }
 
 .rich-text-editor.bn-root
-  [data-slot='dropdown-menu-sub-content']
-  :is([data-slot='dropdown-menu-item'], [data-slot='dropdown-menu-checkbox-item']) {
+  :is([data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-sub-content'])
+  :is(
+    [data-slot='dropdown-menu-item'],
+    [data-slot='dropdown-menu-checkbox-item'],
+    [data-slot='dropdown-menu-sub-trigger']
+  ) {
   white-space: nowrap;
+}
+
+/* The "Turn into" list, with the `md` shadow of the other menus rather than the `lg` one BlockNote gives a submenu */
+.rich-text-editor.bn-root [data-slot='dropdown-menu-sub-content'] {
+  --tw-shadow: 0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a);
 }
 
 /* As wide as its longest block's name, which in French outgrows the trigger it would match */

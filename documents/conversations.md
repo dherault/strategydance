@@ -2503,7 +2503,8 @@ account, and until both exist every send in production answers 503.
 7. For M25: the bucket's lifecycle rule deleting objects under `pending/` older than two days,
    `storage.lifecycle.json` (`gcloud storage buckets update gs://strategydance.firebasestorage.app
    --lifecycle-file=storage.lifecycle.json`), before M25's release reaches production. Done on
-   2026-10-17, after that release: until then, a draft's files never sent stayed in Storage.
+   2026-10-17, after that release: until then, the prunes of unsent files deleted each pending
+   object with its row, and only an object no row names, as one whose row was refused, stayed.
 8. Guards on spend, since nothing caps usage yet, and staff runs in production and every
    development run cost money from the first request: the workspace's spend limit (step 1), and a
    budget alert on Google Cloud, "Strategy Dance monthly", €50 a month on the whole project, alerting

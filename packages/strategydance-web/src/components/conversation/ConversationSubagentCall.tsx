@@ -4,9 +4,10 @@ import { Badge } from 'strategydance-design-system/components/ui/Badge'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { cn } from 'strategydance-design-system/lib/utils'
 
-import type { ConversationSubagent, ConversationSubagentStatus } from '~types'
+import type { ConversationSubagent } from '~types'
 
 import getConversationSubagentStatus from '~utils/conversation/getConversationSubagentStatus'
+import getConversationSubagentStatusText from '~utils/conversation/getConversationSubagentStatusText'
 import { LAUNCH_SUBAGENT_TOOL_NAME } from '~utils/conversation/hasConversationMessageBody'
 
 import Spinner from '~components/common/Spinner'
@@ -14,17 +15,6 @@ import ConversationSubagentStep from '~components/conversation/ConversationSubag
 import ConversationSubagentStop from '~components/conversation/ConversationSubagentStop'
 
 import conversationMessages from '~data/intl/messages/conversation'
-
-const STATUS_MESSAGES = {
-  queued: conversationMessages.subagentStatusQueued,
-  waitingForSlot: conversationMessages.subagentStatusWaitingForSlot,
-  working: conversationMessages.subagentStatusWorking,
-  stopping: conversationMessages.subagentStatusStopping,
-  reported: conversationMessages.subagentStatusReported,
-  stopped: conversationMessages.subagentStatusStopped,
-  failed: conversationMessages.subagentStatusFailed,
-  interrupted: conversationMessages.subagentStatusInterrupted,
-} satisfies Record<ConversationSubagentStatus, unknown>
 
 type Props = {
   // The conversation that launched it, through which it is stopped
@@ -45,7 +35,8 @@ type Props = {
   opens its output
 */
 function ConversationSubagentCall({ conversationId, subagent, onOpen, onView }: Props) {
-  const { formatMessage } = useIntl()
+  const intl = useIntl()
+  const { formatMessage } = intl
   const status = getConversationSubagentStatus(subagent)
   const isFailed = status === 'failed'
   const isReported = subagent.reportedAt !== null
@@ -71,7 +62,7 @@ function ConversationSubagentCall({ conversationId, subagent, onOpen, onView }: 
   }
 
   function renderStatus() {
-    const text = formatMessage(STATUS_MESSAGES[status])
+    const text = getConversationSubagentStatusText(intl, status)
 
     if (status !== 'working') return text
 

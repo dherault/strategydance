@@ -79,9 +79,12 @@ type Props = {
   conversation: Conversation
   // The conversation's latest run, or null before its first
   run: ConversationRun | null
-  // The run the reader last started from the page, and what records it
-  startedRun: StartedConversationRun | null
-  onRunStart: (startedRun: StartedConversationRun) => void
+  // The run the reader last started from the page, and what records it, which a subagent's thread,
+  // read only, has none of
+  startedRun?: StartedConversationRun | null
+  onRunStart?: (startedRun: StartedConversationRun) => void
+  // Opens a subagent's work, where the thread is drawn somewhere that can show it
+  onViewSubagent?: (subagentId: string) => void
   // The box the thread scrolls in, in a dock's window, or none on the page, where the window scrolls
   scrollerRef?: RefObject<HTMLElement | null>
   // Small in a dock's window, which is narrow
@@ -100,7 +103,9 @@ type Props = {
   server, with the strip under it when that server does not work for the reader now, the
   organization's servers and the reader's accounts read only while the thread holds such a call. A
   launch is drawn as the subagent it launched, live, once the conversation's subagents and the
-  call's body are read, and as the call it was until then. The
+  call's body are read, and as the call it was until then. A subagent's own thread, which its viewer
+  draws, is read only: its run is reconciled through its parent's page, it offers no Resume or Retry,
+  and its notes speak of a subagent. The
   note that ends the latest response, when it is the last entry and nothing goes,
   offers Resume and Retry as its kind allows. Older entries load as the reader scrolls up
   to them, and each message's words land after its row, a placeholder line standing in meanwhile.
@@ -110,8 +115,18 @@ type Props = {
   the top still showing, the next one is asked for here. That reads where the top is rather than
   what the observer said last, which it says after the page has moved the top away
 */
-function ConversationThread({ conversation, run, startedRun, onRunStart, scrollerRef, size = 'md' }: Props) {
+function ConversationThread({
+  conversation,
+  run,
+  startedRun = null,
+  onRunStart = () => {},
+  onViewSubagent,
+  scrollerRef,
+  size = 'md',
+}: Props) {
   const intl = useIntl()
+  // A subagent's, which the reader follows and never acts in
+  const isReadOnly = conversation.parentId !== null
   const { formatMessage } = intl
   const { entries, bodies, hasOlder, olderStatus, isFilling, loadOlder, dropRuns } = useConversationThread(conversation)
   const listRef = useRef<HTMLDivElement>(null)
@@ -174,7 +189,8 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
 
   useConversationThreadScroll(listRef, scrollerRef)
   useMarkConversationRead(conversation, isLatestShown)
-  useReconcileConversationRun(conversation.id, run, !waitingEntries.length)
+  // A subagent's runs are reconciled through its parent's page, whose route its own refuses
+  useReconcileConversationRun(conversation.id, isReadOnly ? null : run, !waitingEntries.length)
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -275,7 +291,8 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
     const runId = entry.run?.id
 
     if (
-      !runId
+      isReadOnly
+      || !runId
       || runId !== run?.id
       || entry.id !== entries.at(-1)?.id
       || shownPendingMessages.length
@@ -376,6 +393,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
               conversationId={conversation.id}
               subagent={subagent}
               onOpen={() => setOpenToolCall(entry)}
+              onView={onViewSubagent ? () => onViewSubagent(subagent.id) : undefined}
             />
           )
         }
@@ -463,6 +481,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
           <ConversationNote
             noteKind={entry.noteKind}
             actions={renderNoteActions(entry)}
+            subject={isReadOnly ? 'subagent' : 'conversation'}
           />
         ) : null
       default:

@@ -299,6 +299,36 @@ const conversationMessages = defineMessages({
     defaultMessage: 'This conversation is full. Start a new one to go on.',
     description: 'Note in a conversation that holds as much as it can, so it takes no more messages.',
   },
+  subagentNoteStopped: {
+    id: 'conversation.note.subagentStopped',
+    defaultMessage: 'This subagent was stopped.',
+    description:
+      'Note in the work of a subagent, a helper the AI handed one piece of work to, where it was stopped before it finished, by the reader or by the AI.',
+  },
+  subagentNoteFailed: {
+    id: 'conversation.note.subagentFailed',
+    defaultMessage: 'Something went wrong, and this subagent stopped.',
+    description:
+      'Note in the work of a subagent, a helper the AI handed one piece of work to, where it could not finish because of an error.',
+  },
+  subagentNoteRefused: {
+    id: 'conversation.note.subagentRefused',
+    defaultMessage: 'Strategy Dance could not do this work.',
+    description:
+      "Note in the work of a subagent, a helper the AI handed one piece of work to, where the AI declined to do it. Strategy Dance is the AI's name.",
+  },
+  subagentNoteInterrupted: {
+    id: 'conversation.note.subagentInterrupted',
+    defaultMessage: 'This subagent was interrupted.',
+    description:
+      'Note in the work of a subagent, a helper the AI handed one piece of work to, where its work was cut off, for example because the server restarted.',
+  },
+  subagentNoteFull: {
+    id: 'conversation.note.subagentFull',
+    defaultMessage: 'This subagent’s work grew as large as it can, and it stopped.',
+    description:
+      'Note in the work of a subagent, a helper the AI handed one piece of work to, where it held as much as it can, so it went no further.',
+  },
   noteResume: {
     id: 'conversation.note.resume',
     defaultMessage: 'Resume',
@@ -1242,6 +1272,24 @@ const conversationMessages = defineMessages({
     defaultMessage: 'This report could not be loaded. Check your connection and try again.',
     description:
       'Where the report of a subagent, a helper the AI handed one piece of work to, would be, when it could not be read.',
+  },
+  subagentWorkDescription: {
+    id: 'conversation.subagent.workDescription',
+    defaultMessage: 'Subagent · {status}',
+    description:
+      'Line under the title of the window that shows everything a subagent did, a subagent being a helper the AI handed one piece of work to. {status} says where it stands, such as Working or Reported.',
+  },
+  subagentWorkLoadError: {
+    id: 'conversation.subagent.workLoadError',
+    defaultMessage: 'This work could not be loaded. Check your connection and try again.',
+    description:
+      'In the window that shows everything a subagent did, a subagent being a helper the AI handed one piece of work to, when it could not be read.',
+  },
+  subagentWorkMissing: {
+    id: 'conversation.subagent.workMissing',
+    defaultMessage: 'This work is no longer there.',
+    description:
+      'In the window that shows everything a subagent did, a subagent being a helper the AI handed one piece of work to, when it was deleted meanwhile.',
   },
   briefLabel: {
     id: 'conversation.subagent.brief',

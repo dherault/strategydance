@@ -11,6 +11,7 @@ import ConversationComposer from '~components/conversation/ConversationComposer'
 import ConversationDraftThread from '~components/conversation/ConversationDraftThread'
 import ConversationHead from '~components/conversation/ConversationHead'
 import ConversationLayout from '~components/conversation/ConversationLayout'
+import ConversationSubagentViewer from '~components/conversation/ConversationSubagentViewer'
 import ConversationThread from '~components/conversation/ConversationThread'
 
 type Props = {
@@ -40,6 +41,8 @@ function ConversationPage({ conversationId }: Props) {
   const { data: run } = useConversationRun(conversationId)
   const [startedRun, setStartedRun] = useConversationStartedRun(conversationId)
   const [draftAspects, setDraftAspects] = useState<CompanyAspect[]>([])
+  // The subagent whose work is open over the page
+  const [viewedSubagentId, setViewedSubagentId] = useState<string | null>(null)
   const { closeWindow } = useConversationDock()
 
   const leaveDock = useEffectEvent(() => closeWindow(conversationId))
@@ -68,6 +71,7 @@ function ConversationPage({ conversationId }: Props) {
           run={run}
           startedRun={startedRun}
           onRunStart={setStartedRun}
+          onViewSubagent={setViewedSubagentId}
         />
       ) : (
         <ConversationDraftThread
@@ -83,6 +87,11 @@ function ConversationPage({ conversationId }: Props) {
         startedRun={startedRun}
         onRunStart={setStartedRun}
         draftAspects={draftAspects}
+      />
+      <ConversationSubagentViewer
+        conversationId={conversationId}
+        subagentId={viewedSubagentId}
+        onClose={() => setViewedSubagentId(null)}
       />
     </ConversationLayout>
   )

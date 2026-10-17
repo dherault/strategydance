@@ -1140,6 +1140,109 @@ const conversationMessages = defineMessages({
     reporting back, which the thread draws and the reader can follow and stop
   --- */
 
+  subagentBadge: {
+    id: 'conversation.subagent.badge',
+    defaultMessage: 'Subagent',
+    description:
+      'Small label on the row of a subagent in a conversation, a subagent being a helper Strategy Dance, the AI, hands one piece of work to, which works on its own and reports back.',
+  },
+  subagentStatusQueued: {
+    id: 'conversation.subagent.status.queued',
+    defaultMessage: 'Queued',
+    description: 'On the row of a subagent, a helper the AI handed one piece of work to: it is about to start.',
+  },
+  subagentStatusWaitingForSlot: {
+    id: 'conversation.subagent.status.waitingForSlot',
+    defaultMessage: 'Waiting for a slot',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it waits to start, since only a few of the reader’s subagents work at once.',
+  },
+  subagentStatusWorking: {
+    id: 'conversation.subagent.status.working',
+    defaultMessage: 'Working',
+    description: 'On the row of a subagent, a helper the AI handed one piece of work to: it is doing that work.',
+  },
+  subagentStatusStopping: {
+    id: 'conversation.subagent.status.stopping',
+    defaultMessage: 'Stopping',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it was asked to stop and is about to.',
+  },
+  subagentStatusReported: {
+    id: 'conversation.subagent.status.reported',
+    defaultMessage: 'Reported',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it finished and wrote its report of what it did.',
+  },
+  subagentStatusStopped: {
+    id: 'conversation.subagent.status.stopped',
+    defaultMessage: 'Stopped',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it was stopped before it finished, and reported what it had.',
+  },
+  subagentStatusFailed: {
+    id: 'conversation.subagent.status.failed',
+    defaultMessage: 'Failed',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it stopped at an error, and reported what it had.',
+  },
+  subagentStatusInterrupted: {
+    id: 'conversation.subagent.status.interrupted',
+    defaultMessage: 'Interrupted',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it was cut off, by a server stopping say, and reported what it had.',
+  },
+  subagentStop: {
+    id: 'conversation.subagent.stop',
+    defaultMessage: 'Stop',
+    description: 'Button that stops one subagent, a helper the AI handed one piece of work to, while it works.',
+  },
+  subagentStopLabel: {
+    id: 'conversation.subagent.stopLabel',
+    defaultMessage: 'Stop {title}',
+    description:
+      'Accessible name of the button that stops one subagent, a helper the AI handed one piece of work to. {title} is what the AI called that piece of work, such as Research the competitors.',
+  },
+  subagentStopError: {
+    id: 'conversation.subagent.stopError',
+    defaultMessage: 'The subagent could not be stopped. Try again.',
+    description: 'Shown when stopping a subagent, a helper the AI handed one piece of work to, did not go through.',
+  },
+  subagentViewWork: {
+    id: 'conversation.subagent.viewWork',
+    defaultMessage: 'View work',
+    description:
+      'Button that opens everything a subagent, a helper the AI handed one piece of work to, did: its instructions, what it used and what it wrote.',
+  },
+  subagentViewWorkLabel: {
+    id: 'conversation.subagent.viewWorkLabel',
+    defaultMessage: 'View the work of {title}',
+    description:
+      'Accessible name of the button that opens everything a subagent did, a subagent being a helper the AI handed one piece of work to. {title} is what the AI called that piece of work, such as Research the competitors.',
+  },
+  subagentReport: {
+    id: 'conversation.subagent.report',
+    defaultMessage: 'Report',
+    description:
+      'Heading over what a subagent, a helper the AI handed one piece of work to, wrote once it finished: what it did, found and changed.',
+  },
+  subagentReportCopy: {
+    id: 'conversation.subagent.reportCopy',
+    defaultMessage: 'Copy report',
+    description: 'Button that copies the report a subagent, a helper the AI handed one piece of work to, wrote.',
+  },
+  subagentReportEmpty: {
+    id: 'conversation.subagent.reportEmpty',
+    defaultMessage: 'This subagent wrote no report.',
+    description:
+      'Where the report of a subagent, a helper the AI handed one piece of work to, would be, when it has none.',
+  },
+  subagentReportLoadError: {
+    id: 'conversation.subagent.reportLoadError',
+    defaultMessage: 'This report could not be loaded. Check your connection and try again.',
+    description:
+      'Where the report of a subagent, a helper the AI handed one piece of work to, would be, when it could not be read.',
+  },
   briefLabel: {
     id: 'conversation.subagent.brief',
     defaultMessage: 'Brief',

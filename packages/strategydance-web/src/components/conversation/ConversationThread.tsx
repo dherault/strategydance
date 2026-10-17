@@ -23,6 +23,7 @@ import useNow from '~hooks/common/useNow'
 import useConversationDeletedItems from '~hooks/conversation/useConversationDeletedItems'
 import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
 import useConversationPendingMessages from '~hooks/conversation/useConversationPendingMessages'
+import useConversationSubagents from '~hooks/conversation/useConversationSubagents'
 import useConversationTasks from '~hooks/conversation/useConversationTasks'
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
@@ -33,11 +34,15 @@ import useOrganizationIntegrations from '~hooks/integration/useOrganizationInteg
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import canRestoreConversationItem from '~utils/conversation/canRestoreConversationItem'
+import findConversationSubagent from '~utils/conversation/findConversationSubagent'
 import getConversationIntegrationIssue from '~utils/conversation/getConversationIntegrationIssue'
 import getConversationThinkingStart from '~utils/conversation/getConversationThinkingStart'
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
 import groupConversationReplies from '~utils/conversation/groupConversationReplies'
-import hasConversationMessageBody, { CALL_INTEGRATION_TOOL_NAME } from '~utils/conversation/hasConversationMessageBody'
+import hasConversationMessageBody, {
+  CALL_INTEGRATION_TOOL_NAME,
+  LAUNCH_SUBAGENT_TOOL_NAME,
+} from '~utils/conversation/hasConversationMessageBody'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import needsConversationDocuments, { DELETE_DOCUMENT_TOOL_NAME } from '~utils/conversation/needsConversationDocuments'
@@ -59,6 +64,7 @@ import ConversationNote from '~components/conversation/ConversationNote'
 import ConversationNoteActions from '~components/conversation/ConversationNoteActions'
 import ConversationQuestion from '~components/conversation/ConversationQuestion'
 import ConversationSources from '~components/conversation/ConversationSources'
+import ConversationSubagentCall from '~components/conversation/ConversationSubagentCall'
 import ConversationTaskRestore from '~components/conversation/ConversationTaskRestore'
 import ConversationThinking from '~components/conversation/ConversationThinking'
 import ConversationToolCall from '~components/conversation/ConversationToolCall'
@@ -92,7 +98,9 @@ type Props = {
   its calls waiting for the reader's approval, and a run waiting on them all answered is reconciled
   too, in case its last answer could not carry it on. A call to an integration is named by its
   server, with the strip under it when that server does not work for the reader now, the
-  organization's servers and the reader's accounts read only while the thread holds such a call. The
+  organization's servers and the reader's accounts read only while the thread holds such a call. A
+  launch is drawn as the subagent it launched, live, once the conversation's subagents and the
+  call's body are read, and as the call it was until then. The
   note that ends the latest response, when it is the last entry and nothing goes,
   offers Resume and Retry as its kind allows. Older entries load as the reader scrolls up
   to them, and each message's words land after its row, a placeholder line standing in meanwhile.
@@ -118,6 +126,8 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   )
   const tasks = useConversationTasks(needsConversationTasks(entries, bodies))
   const deletedItems = useConversationDeletedItems(conversation.id, readConversationDeletedCallIds(entries))
+  // Read only once the conversation launched one, which every launch's row and the page then share
+  const subagents = useConversationSubagents(conversation.id, { isEnabled: conversation.subagentCount > 0 })
   // One clock for every row that offers Restore until its day is up
   const now = useNow()
 
@@ -195,6 +205,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
   }, [olderStatus, hasOlder, entries, loadOlder, scrollerRef])
 
   const replies = groupConversationReplies(entries, bodies)
+  const openSubagent = openToolCall ? readSubagent(openToolCall) : undefined
   const isWorking = isConversationRunGoing(run)
   const isAwaiting = isAwaitingConversationRun(startedRun, run)
   const runningCall = entries.findLast(
@@ -231,6 +242,13 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
     return body?.integrationName && body.integrationToolName
       ? { name: body.integrationName, toolName: body.integrationToolName }
       : undefined
+  }
+
+  // The subagent a launch's row draws, once its body and the subagents are read
+  function readSubagent(entry: ConversationThreadEntry) {
+    if (entry.toolName !== LAUNCH_SUBAGENT_TOOL_NAME) return undefined
+
+    return findConversationSubagent(subagents.data, bodies.get(entry.id)?.toolUseId)
   }
 
   // The strip under a call to a server that does not work for the reader now
@@ -349,7 +367,19 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
           </>
         )
       }
-      case ConversationMessageKind.TOOL_CALL:
+      case ConversationMessageKind.TOOL_CALL: {
+        const subagent = readSubagent(entry)
+
+        if (subagent) {
+          return (
+            <ConversationSubagentCall
+              conversationId={conversation.id}
+              subagent={subagent}
+              onOpen={() => setOpenToolCall(entry)}
+            />
+          )
+        }
+
         return (
           <ConversationToolCall
             toolName={entry.toolName ?? ''}
@@ -360,6 +390,7 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
             issue={renderIssue(body)}
           />
         )
+      }
       case ConversationMessageKind.APPROVAL:
         if (!body) return <ConversationMessagePlaceholder />
 
@@ -513,6 +544,11 @@ function ConversationThread({ conversation, run, startedRun, onRunStart, scrolle
           toolName={openToolCall.toolName ?? ''}
           status={openToolCall.toolStatus ?? ConversationToolStatus.SUCCEEDED}
           integration={readIntegration(bodies.get(openToolCall.id))}
+          subagent={
+            openSubagent
+              ? { conversationId: conversation.id, id: openSubagent.id, title: openSubagent.title }
+              : undefined
+          }
           onClose={() => setOpenToolCall(null)}
         />
       ) : null}

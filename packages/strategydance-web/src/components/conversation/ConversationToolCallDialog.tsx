@@ -16,6 +16,7 @@ import formatConversationToolJson from '~utils/conversation/formatConversationTo
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
 
 import Spinner from '~components/common/Spinner'
+import ConversationSubagentReport from '~components/conversation/ConversationSubagentReport'
 import ConversationToolCallBlock from '~components/conversation/ConversationToolCallBlock'
 
 import conversationMessages from '~data/intl/messages/conversation'
@@ -27,6 +28,9 @@ type Props = {
   status: ConversationToolStatus
   // A call to an integration's: the server it went to and its tool, which the title names
   integration?: { name: string; toolName: string }
+  // A launch's: the subagent it launched, in the conversation that launched it, which the title
+  // names and whose report stands for the call's output
+  subagent?: { conversationId: string; id: string; title: string }
   onClose: () => void
 }
 
@@ -34,9 +38,10 @@ type Props = {
   What a tool Strategy Dance used was given and gave back, or how it failed, as formatted JSON with
   every control character escaped, so what reads is what ran. The line under the title says which
   tool, when it ran and for how long. Read each time it opens, since a call's output arrives after
-  its row
+  its row. A launch is titled after the subagent it launched, and shows what that subagent reported
+  in place of the launch's own output, which only said it was queued
 */
-function ConversationToolCallDialog({ messageId, toolName, status, integration, onClose }: Props) {
+function ConversationToolCallDialog({ messageId, toolName, status, integration, subagent, onClose }: Props) {
   const intl = useIntl()
   const { formatMessage, formatDate, formatNumber } = intl
   const { data: toolCall, initialLoading, loading, hasFailed, refetch } = useConversationToolCall(messageId)
@@ -95,7 +100,12 @@ function ConversationToolCallDialog({ messageId, toolName, status, integration, 
           label={formatMessage(conversationMessages.toolInput)}
           value={formatConversationToolJson(toolCall.toolInput)}
         />
-        {output ? (
+        {subagent && !isFailed ? (
+          <ConversationSubagentReport
+            conversationId={subagent.conversationId}
+            subagentId={subagent.id}
+          />
+        ) : output ? (
           <ConversationToolCallBlock
             label={formatMessage(isFailed ? conversationMessages.toolError : conversationMessages.toolOutput)}
             value={output}
@@ -121,12 +131,14 @@ function ConversationToolCallDialog({ messageId, toolName, status, integration, 
       >
         <DialogHeader>
           <DialogTitle>
-            {integration
-              ? formatMessage(conversationMessages.integrationToolCallTitle, {
-                  server: integration.name,
-                  tool: integration.toolName,
-                })
-              : getConversationToolLabel(intl, toolName, currentStatus)}
+            {subagent
+              ? subagent.title
+              : integration
+                ? formatMessage(conversationMessages.integrationToolCallTitle, {
+                    server: integration.name,
+                    tool: integration.toolName,
+                  })
+                : getConversationToolLabel(intl, toolName, currentStatus)}
           </DialogTitle>
           <DialogDescription>{getDetails()}</DialogDescription>
         </DialogHeader>

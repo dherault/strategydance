@@ -2053,8 +2053,80 @@
         "hash": "d1718c83e5d1df00",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.subagent.badge": {
+        "hash": "c5993f0642d225c1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.subagent.brief": {
         "hash": "abc91b95e233df17",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.report": {
+        "hash": "c77bca40c4735eba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.reportCopy": {
+        "hash": "008119bd38e86d19",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.reportEmpty": {
+        "hash": "fa4bd4edff07f287",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.reportLoadError": {
+        "hash": "f60c545dd1402c9c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.failed": {
+        "hash": "9701543883b71186",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.interrupted": {
+        "hash": "1f2501366e319000",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.queued": {
+        "hash": "f1e782eb5515f7b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.reported": {
+        "hash": "bc64bbb80c2705e5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.stopped": {
+        "hash": "8da575cfcc68a825",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.stopping": {
+        "hash": "2364fb03bb367a1d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.waitingForSlot": {
+        "hash": "5f01cfbfd959545e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.working": {
+        "hash": "854893bc2ac54363",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.stop": {
+        "hash": "674e0a1808fa350c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.stopError": {
+        "hash": "be6420ea7b0c8217",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.stopLabel": {
+        "hash": "b035a9754ef8089e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.viewWork": {
+        "hash": "a4b029566886cd00",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.viewWorkLabel": {
+        "hash": "7393557f430e011f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.taskGone": {

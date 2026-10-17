@@ -28,4 +28,10 @@ describe('hasConversationMessageBody', () => {
       hasConversationMessageBody({ kind: ConversationMessageKind.TOOL_CALL, toolName: 'call_integration_tool' }),
     ).toBe(true)
   })
+
+  it('reads the body of a launch, whose call’s id finds the subagent it launched', () => {
+    expect(hasConversationMessageBody({ kind: ConversationMessageKind.TOOL_CALL, toolName: 'launch_subagent' })).toBe(
+      true,
+    )
+  })
 })

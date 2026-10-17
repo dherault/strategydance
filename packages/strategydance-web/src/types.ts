@@ -11,6 +11,7 @@ import type {
   GetConversationMessageBodiesData,
   GetConversationMessagesBeforeData,
   GetConversationRunData,
+  GetConversationSubagentsData,
   GetConversationToolCallData,
   GetConversationsData,
   GetCurrentUserOrganizationsData,
@@ -334,6 +335,21 @@ export type ConversationRun = GetConversationRunData['conversationRuns'][number]
 
 // A tool call's input and output, as its dialog shows them
 export type ConversationToolCall = GetConversationToolCallData['conversationMessages'][number]
+
+// A subagent a conversation launched, as its row in the thread draws it: its title, the call that
+// launched it, the anchor it was launched on, its latest run and whether it reported
+export type ConversationSubagent = GetConversationSubagentsData['conversations'][number]
+
+// Where a subagent stands, as its row says it
+export type ConversationSubagentStatus =
+  | 'queued'
+  | 'waitingForSlot'
+  | 'working'
+  | 'stopping'
+  | 'reported'
+  | 'stopped'
+  | 'failed'
+  | 'interrupted'
 
 // One of the reader's conversations as a dock's window shows it in its header: its title, whether a
 // run goes, how many replies are unread and whether a question waits

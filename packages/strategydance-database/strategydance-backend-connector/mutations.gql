@@ -4919,7 +4919,11 @@ mutation CreateTaskForAgent(
 # Refused unless the task is still as the module read it, its `updatedAt` unmoved, which every
 # change of a task's fields moves: the module then reads again and reapplies, so a member's save
 # landing in between is never written over, and a description the agent replaces whole is checked
-# against what it read again
+# against what it read again.
+#
+# `$fromStatus` names the column the agent read the task in, as the page's moves name theirs: the
+# task has to be in it still, so two agents taking up one task never both move it. Optional, and a
+# call that leaves it out drops the filter
 mutation UpdateTaskForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -4936,6 +4940,7 @@ mutation UpdateTaskForAgent(
   $dueDate: Date
   $aspects: [CompanyAspect!]
   $doneAt: Timestamp
+  $fromStatus: TaskStatus
   $isKeyed: Boolean!
   $idempotencyScope: String!
   $idempotencyKey: String!
@@ -5010,6 +5015,7 @@ mutation UpdateTaskForAgent(
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
       updatedAt: { eq: $updatedAt }
+      status: { eq: $fromStatus }
     }
     data: {
       name: $name

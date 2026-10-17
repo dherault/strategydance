@@ -5402,13 +5402,16 @@ mutation LaunchSubagentForAgent(
       userId
     }
     # The run launching it, read after the parent's row, so a Stop or a delete of the parent that
-    # committed first is seen: still running, not asked to stop, and on the anchor the launch counts
+    # committed first is seen: still running, not asked to stop, on the anchor the launch counts, and
+    # no reaction to subagents' reports, which launches nothing, so every fan-out starts from the
+    # member's word
     launcher: conversationRuns(
       where: {
         id: { eq: $launchRunId }
         status: { eq: RUNNING }
         stopRequestedAt: { isNull: true }
         anchorPosition: { eq: $anchorPosition }
+        trigger: { ne: REPORTS }
         conversation: { id: { eq: $parentId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
       }
       limit: 1
@@ -5572,13 +5575,16 @@ mutation LaunchPendingSubagentForAgent(
       userId
     }
     # The run launching it, read after the parent's row, so a Stop or a delete of the parent that
-    # committed first is seen: still running, not asked to stop, and on the anchor the launch counts
+    # committed first is seen: still running, not asked to stop, on the anchor the launch counts, and
+    # no reaction to subagents' reports, which launches nothing, so every fan-out starts from the
+    # member's word
     launcher: conversationRuns(
       where: {
         id: { eq: $launchRunId }
         status: { eq: RUNNING }
         stopRequestedAt: { isNull: true }
         anchorPosition: { eq: $anchorPosition }
+        trigger: { ne: REPORTS }
         conversation: { id: { eq: $parentId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
       }
       limit: 1

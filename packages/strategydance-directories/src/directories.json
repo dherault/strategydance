@@ -996,11 +996,13 @@
     "name": "Aixploria",
     "type": "WEBSITE",
     "rootUrl": "https://www.aixploria.com/",
-    "submissionUrl": "https://www.aixploria.com/en/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://www.aixploria.com/en/add-ai/",
+    "description": "Directory of AI tools sorted into more than 70 categories, with a form where makers can submit their own AI tool.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-17",
     "unreachableSince": null
   },
   {
@@ -1606,10 +1608,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.capterra.com/",
     "submissionUrl": "https://www.capterra.com/vendors/",
-    "description": "",
-    "categories": [],
+    "description": "Software review and comparison site where business buyers evaluate B2B software, and vendors create product listings to collect verified reviews.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-17",
     "unreachableSince": null
   },
   {
@@ -2007,10 +2011,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://domainrating.lol/",
     "submissionUrl": "https://domainrating.lol/submit",
-    "description": "",
-    "categories": [],
+    "description": "Ranking of websites and startups ordered by Ahrefs Domain Rating and sorted into categories, where site owners add their own listings.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-17",
     "unreachableSince": null
   },
   {
@@ -2031,10 +2037,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.dynamite-ai.com/",
     "submissionUrl": "https://www.dynamite-ai.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools organized by category, such as productivity, marketing and image generation, where makers submit their own tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-10-17",
     "unreachableSince": null
   },
   {
@@ -2723,10 +2731,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://huntscreens.com/",
     "submissionUrl": "https://huntscreens.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Daily-updated directory of new AI tools and startup launches, where makers submit their products for listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-17",
     "unreachableSince": null
   },
   {
@@ -3155,10 +3165,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.launchingnext.com/",
     "submissionUrl": "https://www.launchingnext.com/submit/",
-    "description": "",
-    "categories": [],
+    "description": "Daily showcase of new tech startups and side projects, where founders submit their startups for review and publication.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-17",
     "unreachableSince": null
   },
   {
@@ -3893,10 +3905,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://opentools.ai/",
     "submissionUrl": "https://opentools.ai/friends/launch-tool",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools, AI models and MCP servers sorted by category, task and pricing, where makers can list their own AI products and MCP servers.",
+    "categories": [
+      "AI_TOOLS",
+      "MCP_SERVERS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-17",
     "unreachableSince": null
   },
   {
@@ -3967,10 +3982,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://peerlist.io/",
     "submissionUrl": "https://peerlist.io/launchpad",
-    "description": "",
-    "categories": [],
+    "description": "Weekly launch platform on the Peerlist professional network, where builders launch their projects each Monday to collect votes, feedback and early users.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-17",
     "unreachableSince": null
   },
   {
@@ -4744,10 +4761,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.shno.co/",
     "submissionUrl": "https://www.shno.co/",
-    "description": "",
-    "categories": [],
+    "description": "Curated directory of no-code and AI tools for makers, creators and marketers, sorted by category, where tool makers can submit their products.",
+    "categories": [
+      "AI_TOOLS",
+      "NO_CODE"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-17",
     "unreachableSince": null
   },
   {
@@ -4768,10 +4788,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://shipgrowth.dev/",
     "submissionUrl": "https://shipgrowth.dev/submit/free-submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI products sorted by category, showing featured and newly launched tools, where makers submit their own AI products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-17",
     "unreachableSince": null
   },
   {

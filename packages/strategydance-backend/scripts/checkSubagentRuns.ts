@@ -9,28 +9,41 @@ import {
   ConversationRunStatus,
   type LaunchSubagentVariables,
   chainSubagentRun,
+  claimDeletedConversations,
   claimQueuedConversationRun,
   connectorConfig,
   drawSubagentAgentText,
   finishConversationRun,
+  finishConversationRunFull,
   finishSubagentRun,
   finishSubagentRunWithNote,
+  getClaimedConversations,
+  getClaimedSubagents,
   getConversationRequestContext,
   getConversationRunContext,
   getConversationSearchCorpus,
   getConversationSendContext,
+  getConversationsWithSubagents,
+  getDueSubagentReactions,
   getSubagentPendingRuns,
+  getSubagentReactionContext,
   getSubagentSlots,
   getSubagentSweepMembers,
   getSubagentSweepOrganizations,
+  getSubagentsToStop,
   interruptDeadConversationRun,
   interruptDeadSubagentRun,
   interruptPendingSubagentRun,
   interruptSubagentRun,
   launchPendingSubagent,
   launchSubagent,
+  launchSubagentForAgent,
+  markSubagentReportsDelivered,
   promoteSubagentRun,
+  pruneClaimedSubagents,
   requestConversationRunStop,
+  requestConversationRunStopWithSubagents,
+  requestConversationSubagentsStop,
   reserveConversationAttachment,
   retryConversationRun,
   searchConversationMessages,
@@ -38,6 +51,7 @@ import {
   searchConversationsBySubstring,
   sendConversationMessage,
   startConversation,
+  startSubagentReaction,
   stopPendingSubagentRun,
   stopQueuedConversationRun,
 } from 'strategydance-database/backend'
@@ -1328,6 +1342,444 @@ async function checkChain() {
   check('the web reads the run a chain queued as the subagent’s latest', webRun.conversationRuns[0]?.id === next.runId)
 }
 
+// Ends every run of the author's conversations that goes, which no check after reads, so a section
+// starts runs whatever the ones before it left going
+async function settleConversationRuns() {
+  await write(
+    `mutation SettleRuns($organizationId: UUID!, $userId: String!) {
+      conversationRun_updateMany(
+        where: {
+          status: { in: [QUEUED, RUNNING] }
+          conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
+        }
+        data: { status: COMPLETED, leaseExpiresAt: null }
+      )
+      conversation_updateMany(
+        where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: true } }
+        data: { activeRunId: null }
+      )
+    }`,
+    { organizationId, userId: userIds.author },
+  )
+}
+
+// Ends a subagent's run with its report, as its worker does
+async function report(parent: Parent, subagent: Subagent, text = 'Done') {
+  await claimQueuedConversationRun(dataConnect, subagentFence(parent, subagent, 0))
+  await finishSubagentRun(dataConnect, {
+    ...subagentFence(parent, subagent, 1),
+    status: ConversationRunStatus.COMPLETED,
+    report: text,
+  })
+}
+
+async function readDeliveredAt(id: string) {
+  const data = await read<{ conversation: { reportDeliveredAt: string | null } | null }>(
+    `query ReadDelivered($id: UUID!) { conversation(id: $id) { reportDeliveredAt } }`,
+    { id },
+  )
+
+  return data.conversation?.reportDeliveredAt ?? null
+}
+
+async function checkReactions() {
+  const parent = await startParent()
+  const [first, second] = [await launch(parent), await launch(parent)]
+
+  await report(parent, first)
+  await report(parent, second)
+
+  const reaction = {
+    organizationId,
+    userId: userIds.author,
+    conversationId: parent.conversationId,
+    membershipCreatedAt: parent.membershipCreatedAt,
+    runId: createId(),
+    runNumber: 1,
+    content: JSON.stringify([{ type: 'text', text: '{"subagentReport":{}}' }]),
+    transcriptPosition: 1,
+    subagentIds: [first.conversationId, second.conversationId],
+  }
+  const context = await getSubagentReactionContext(dataConnect, {
+    organizationId,
+    userId: userIds.author,
+    conversationId: parent.conversationId,
+  })
+
+  check(
+    'the reaction’s context reads the parent’s latest run, its last entry and its subagents’ reports waiting',
+    context.data.latestRuns[0]?.status === ConversationRunStatus.COMPLETED
+      && context.data.lastEntries[0]?.position === 0
+      && context.data.subagents.filter(({ reportedAt, reportDeliveredAt }) => reportedAt && !reportDeliveredAt).length
+        === 2,
+  )
+  check(
+    'the member’s reactions due read the parent, idle with a report waiting',
+    (await getDueSubagentReactions(dataConnect, { organizationId, userId: userIds.author })).data.conversations.some(
+      ({ id }) => id === parent.conversationId,
+    ),
+  )
+  check(
+    'a reaction naming a report that does not wait is refused',
+    await isRefused(
+      startSubagentReaction(dataConnect, { ...reaction, subagentIds: [first.conversationId, createId()] }),
+      'The reports changed since the reaction read them',
+    ),
+  )
+  check(
+    'a reaction at a run number something moved on is refused',
+    await isRefused(
+      startSubagentReaction(dataConnect, { ...reaction, runNumber: 2 }),
+      'The conversation could not take the reaction',
+    ),
+  )
+
+  await startSubagentReaction(dataConnect, reaction)
+
+  const started = await readRun(reaction.runId)
+
+  check(
+    'a reaction starts a run triggered REPORTS, queued on its entry, and marks the reports it carries delivered',
+    started?.trigger === 'REPORTS'
+      && started.status === ConversationRunStatus.QUEUED
+      && started.anchorPosition === 1
+      && (await readConversation(parent.conversationId))?.activeRunId === reaction.runId
+      && (await readDeliveredAt(first.conversationId)) !== null
+      && (await readDeliveredAt(second.conversationId)) !== null,
+  )
+  check(
+    'a second reaction, as a second subagent ending at once starts, finds the parent busy',
+    await isRefused(
+      startSubagentReaction(dataConnect, {
+        ...reaction,
+        runId: createId(),
+        runNumber: 2,
+        transcriptPosition: 2,
+        subagentIds: [first.conversationId],
+      }),
+      'The conversation could not take the reaction',
+    ),
+  )
+
+  await settleConversationRuns()
+
+  // A parent whose latest run stopped reacts to nothing
+  const stopped = await startParent()
+  const waiting = await launch(stopped)
+
+  await report(stopped, waiting)
+  await updateRun(stopped.runId, 'status: STOPPED')
+
+  check(
+    'a reaction is refused unless the latest run completed',
+    await isRefused(
+      startSubagentReaction(dataConnect, {
+        ...reaction,
+        conversationId: stopped.conversationId,
+        runId: createId(),
+        subagentIds: [waiting.conversationId],
+      }),
+      'A conversation reacts only once its latest run completed',
+    ),
+  )
+
+  // Three runs going, the member's most, hold it back
+  const others = [await startParent({ isIdle: false }), await startParent({ isIdle: false })]
+  const idle = await startParent()
+  const held = await launch(idle)
+
+  await report(idle, held)
+  others.push(await startParent({ isIdle: false }))
+
+  check(
+    'a reaction is refused while the member has 3 runs in flight',
+    await isRefused(
+      startSubagentReaction(dataConnect, {
+        ...reaction,
+        conversationId: idle.conversationId,
+        runId: createId(),
+        subagentIds: [held.conversationId],
+      }),
+      'Somebody has at most 3 runs in flight in an organization',
+    ),
+  )
+
+  await settleConversationRuns()
+
+  // A send names the reports it carries, exactly
+  const sent = await startParent()
+  const reported = await launch(sent)
+
+  await report(sent, reported)
+
+  const send = {
+    organizationId,
+    userId: userIds.author,
+    conversationId: sent.conversationId,
+    membershipCreatedAt: sent.membershipCreatedAt,
+    messageId: createId(),
+    text: 'And?',
+    preview: { kind: 'MEMBER_TEXT', text: 'And?' },
+    position: 1,
+    runId: createId(),
+    runNumber: 1,
+    content: JSON.stringify([{ type: 'text', text: 'And?' }]),
+    transcriptPosition: 1,
+    attachmentIds: [],
+  }
+
+  check(
+    'a send naming no report, from before M33, is refused while one waits',
+    await isRefused(sendConversationMessage(dataConnect, send), 'The reports changed since the backend read them'),
+  )
+  check(
+    'a send naming a report that does not wait is refused',
+    await isRefused(
+      sendConversationMessage(dataConnect, { ...send, deliveredSubagentIds: [createId()] }),
+      'The reports changed since the backend read them',
+    ),
+  )
+
+  await sendConversationMessage(dataConnect, { ...send, deliveredSubagentIds: [reported.conversationId] })
+
+  check('a send marks the reports it carries delivered', (await readDeliveredAt(reported.conversationId)) !== null)
+
+  await settleConversationRuns()
+
+  // A full ending marks every report waiting delivered, and one after is marked with no run
+  const full = await startParent({ isIdle: false })
+  const fullFence = {
+    organizationId,
+    userId: userIds.author,
+    conversationId: full.conversationId,
+    runId: full.runId,
+    membershipCreatedAt: full.membershipCreatedAt,
+  }
+  const [during, after] = [await launch(full), await launch(full)]
+
+  await report(full, during)
+  await claimQueuedConversationRun(dataConnect, { ...fullFence, attempts: 0 })
+  await finishConversationRunFull(dataConnect, {
+    ...fullFence,
+    attempts: 1,
+    noteId: createId(),
+    position: 1,
+    preview: { kind: 'NOTE', noteKind: ConversationNoteKind.FULL },
+    failure: 'Full',
+  })
+
+  check(
+    'a full ending marks the reports waiting delivered, and leaves the conversation with the full note',
+    (await readDeliveredAt(during.conversationId)) !== null
+      && (await readRun(full.runId))?.status === ConversationRunStatus.FAILED,
+  )
+
+  await report(full, after)
+
+  check(
+    'marking a full conversation’s reports is refused once it started a run since',
+    await isRefused(
+      markSubagentReportsDelivered(dataConnect, {
+        organizationId,
+        userId: userIds.author,
+        conversationId: full.conversationId,
+        parentRunNumber: -1,
+        subagentIds: [after.conversationId],
+      }),
+      'The conversation started a run since it was full',
+    ),
+  )
+
+  await markSubagentReportsDelivered(dataConnect, {
+    organizationId,
+    userId: userIds.author,
+    conversationId: full.conversationId,
+    parentRunNumber: 0,
+    subagentIds: [after.conversationId],
+  })
+
+  check(
+    'a full conversation’s report is marked delivered with no run',
+    (await readDeliveredAt(after.conversationId)) !== null,
+  )
+}
+
+async function checkCascades() {
+  const author = asMember(userIds.author)
+
+  // Stop: the run, its anchor's subagents, and none of an earlier anchor's
+  const parent = await startParent()
+  const earlier = await launch(parent)
+
+  await updateRun(parent.runId, 'status: RUNNING, stopRequestedAt: null')
+  await write(
+    `mutation Busy($id: UUID!, $runId: UUID!) { conversation_update(id: $id, data: { activeRunId: $runId }) }`,
+    {
+      id: parent.conversationId,
+      runId: parent.runId,
+    },
+  )
+
+  const onAnchor = await launch(parent, { anchorPosition: 3 })
+
+  await updateRun(parent.runId, 'anchorPosition: 3')
+  await requestConversationRunStopWithSubagents(dataConnect, {
+    organizationId,
+    userId: userIds.author,
+    conversationId: parent.conversationId,
+    runId: parent.runId,
+    anchorPosition: 3,
+  })
+
+  check(
+    'a stop asks its run and its anchor’s subagents to stop, and no subagent an earlier message launched',
+    (await readRun(parent.runId))?.stopRequestedAt !== null
+      && (await readRun(onAnchor.runId))?.stopRequestedAt !== null
+      && (await readRun(earlier.runId))?.stopRequestedAt === null,
+  )
+
+  const toStop = await getSubagentsToStop(dataConnect, {
+    organizationId,
+    userId: userIds.author,
+    conversationId: parent.conversationId,
+    anchorPosition: 3,
+  })
+
+  check(
+    'the subagents a stop reaches are read with the run each is busy with',
+    toStop.data.conversations.length === 1
+      && toStop.data.conversations[0]?.latestRuns[0]?.id === onAnchor.runId
+      && toStop.data.conversations[0]?.latestRuns[0]?.stopRequestedAt !== null,
+  )
+
+  await requestConversationSubagentsStop(dataConnect, {
+    organizationId,
+    userId: userIds.author,
+    conversationId: parent.conversationId,
+  })
+
+  check('Stop all asks every live subagent to stop', (await readRun(earlier.runId))?.stopRequestedAt !== null)
+
+  // A launch after the stop is refused, from the run asked to stop
+  const { variables } = launchVariables(parent, { anchorPosition: 3, launchRunId: parent.runId })
+
+  check(
+    'a launch after its parent’s stop is refused',
+    await isRefused(
+      launchSubagentForAgent(dataConnect, {
+        ...variables,
+        launchRunId: parent.runId,
+        isKeyed: false,
+        idempotencyScope: '',
+        idempotencyKey: '',
+        tool: 'launch_subagent',
+        argumentsHash: '',
+        result: '',
+      }),
+      'The run launching the subagent has ended or was asked to stop',
+    ),
+  )
+
+  await settleConversationRuns()
+  await settleSubagentRuns()
+
+  // The web's delete takes the live subagents at its own instant, and its restore brings back those
+  const deleted = await startParent()
+  const taken = await launch(deleted)
+  const retried = await launch(deleted, { anchorPosition: 1 })
+
+  await write(
+    `mutation RetryDeleted($id: UUID!) { conversation_update(id: $id, data: { deletedAt_time: { now: true, sub: { minutes: 5 } } }) }`,
+    { id: retried.conversationId },
+  )
+  await author.run('DeleteConversation', { organizationId, userId: userIds.author, id: deleted.conversationId })
+
+  const deletedParent = await readConversation(deleted.conversationId)
+  const deletedTaken = await readConversation(taken.conversationId)
+
+  check(
+    'a delete takes its live subagents at its own instant, their runs asked to stop',
+    deletedParent?.deletedAt !== null
+      && deletedTaken?.deletedAt === deletedParent?.deletedAt
+      && (await readRun(taken.runId))?.stopRequestedAt !== null,
+  )
+  check(
+    'a launch on a deleted parent is refused',
+    await isRefused(
+      launchSubagent(dataConnect, launchVariables(deleted).variables),
+      'The parent launches no more subagents',
+    ),
+  )
+
+  await author.run('RestoreConversation', { organizationId, userId: userIds.author, id: deleted.conversationId })
+
+  check(
+    'a restore brings back the subagents its delete took, and none deleted at another instant',
+    (await readConversation(deleted.conversationId))?.deletedAt === null
+      && (await readConversation(taken.conversationId))?.deletedAt === null
+      && (await readConversation(retried.conversationId))?.deletedAt !== null,
+  )
+
+  await settleSubagentRuns()
+
+  // The prune: idle subagents only, before their parent, the parent's count lowered
+  const pruned = await startParent()
+  const [idleSubagent, busySubagent] = [await launch(pruned), await launch(pruned)]
+
+  await report(pruned, idleSubagent)
+  await write(
+    `mutation Age($ids: [UUID!]!) {
+      conversation_updateMany(where: { id: { in: $ids } }, data: { deletedAt_time: { now: true, sub: { days: 2 } } })
+    }`,
+    { ids: [idleSubagent.conversationId, busySubagent.conversationId] },
+  )
+  await claimDeletedConversations(dataConnect)
+
+  const claimed = (await getClaimedSubagents(dataConnect)).data.conversations.map(({ id }) => id)
+
+  check(
+    'a prune claims a subagent only once no run holds it',
+    claimed.includes(idleSubagent.conversationId) && !claimed.includes(busySubagent.conversationId),
+  )
+  check(
+    'the claimed conversations a prune deletes leave the subagents out',
+    !(await getClaimedConversations(dataConnect)).data.conversations.some(
+      ({ id }) => id === idleSubagent.conversationId,
+    ),
+  )
+  check(
+    'a parent still holding a subagent is read as one',
+    (await getConversationsWithSubagents(dataConnect, { ids: [pruned.conversationId] })).data.conversations.length > 0,
+  )
+  check(
+    'a prune counting what it does not delete is refused',
+    await isRefused(
+      pruneClaimedSubagents(dataConnect, {
+        parentId: pruned.conversationId,
+        ids: [idleSubagent.conversationId, busySubagent.conversationId],
+        count: 2,
+      }),
+      'The subagents changed since the prune read them',
+    ),
+  )
+
+  const before = (await readConversation(pruned.conversationId))?.subagentCount ?? 0
+
+  await pruneClaimedSubagents(dataConnect, {
+    parentId: pruned.conversationId,
+    ids: [idleSubagent.conversationId],
+    count: 1,
+  })
+
+  check(
+    'a prune deletes the subagents it names and lowers their parent’s count by as many',
+    (await readConversation(idleSubagent.conversationId)) === null
+      && (await readConversation(pruned.conversationId))?.subagentCount === before - 1,
+  )
+
+  await settleSubagentRuns()
+}
+
 try {
   await setUp()
   await checkLaunching()
@@ -1345,6 +1797,9 @@ try {
   await checkSlots()
   await settleSubagentRuns()
   await checkChain()
+  await settleSubagentRuns()
+  await checkReactions()
+  await checkCascades()
 } finally {
   await tearDown()
 }

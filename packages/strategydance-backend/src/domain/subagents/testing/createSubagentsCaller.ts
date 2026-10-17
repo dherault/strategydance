@@ -21,7 +21,7 @@ function createSubagentsCaller(
     userId: launching.userId,
     organizationId: launching.organizationId,
     membershipCreatedAt: membership.createdAt,
-    scopes: [],
+    scopes: ['subagents:read', 'subagents:write'],
     idempotencyScope: `conversation:${launching.conversationId}`,
     launcher: { conversationId: launching.conversationId, runId: launching.runId },
     ...overrides,

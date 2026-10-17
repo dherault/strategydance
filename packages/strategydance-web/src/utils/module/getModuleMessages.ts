@@ -28,6 +28,13 @@ const MODULE_MESSAGES: Record<ModuleName, ModuleMessages> = {
     writeAccess: moduleMessages.tasksWriteAccess,
     agentsButton: moduleMessages.tasksAgentsButton,
   },
+  // Served to no external agent yet, so no page shows these, but every module is worded
+  subagents: {
+    name: moduleMessages.subagentsName,
+    readAccess: moduleMessages.subagentsReadAccess,
+    writeAccess: moduleMessages.subagentsWriteAccess,
+    agentsButton: moduleMessages.subagentsAgentsButton,
+  },
 }
 
 // What a module is called in the member's words, what its read access, and its write access beside

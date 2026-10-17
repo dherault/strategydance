@@ -18,8 +18,9 @@ type LaunchSubagentForAgentInput = {
   the run calling it, its launcher, as `launchSubagent` launches one: its id derived from the
   conversation's and the call's key, so a launch called again finds the same subagent, and is
   answered with what it answered then. A call without a key, which no agent of Strategy Dance's makes,
-  launches a subagent each time. Answers its id and whether it is queued or waiting for a slot, which
-  a launch that found the five taken and promoted itself at once says it is no longer
+  launches a subagent each time. Answers its id and whether it was queued or left waiting for a slot,
+  as its key keeps it, so a launch that found the five taken and promoted itself at once answers that
+  it waits, the same as a call again: the reads say where it stands since
 */
 async function launchSubagentForAgent(
   caller: ModuleCaller,
@@ -41,14 +42,7 @@ async function launchSubagentForAgent(
 
   switch (launched.outcome) {
     case 'launched':
-      return {
-        outcome: 'written',
-        result: {
-          id: launched.subagentId,
-          title: title.replaceAll('\u0000', ''),
-          status: launched.isPending ? 'WAITING_FOR_SLOT' : 'QUEUED',
-        },
-      }
+      return { outcome: 'written', result: launched.result }
     case 'answered':
     case 'keyConflict':
     case 'notMember':

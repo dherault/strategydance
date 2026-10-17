@@ -33,7 +33,7 @@ function registerLaunchSubagent(server: McpServer, context: SubagentsToolContext
     {
       title: 'Launch a subagent',
       description:
-        "Launches a subagent: a run of Strategy Dance's agent of its own, which carries out `brief` in parallel with you, with your tools but asking the member nothing, and writes a report when it ends. The brief is all it knows of this conversation, so put in it everything it needs. `attachments` hands it files this conversation has sent, by the ids the member's messages name them with. Answers its id and whether it is QUEUED or WAITING_FOR_SLOT, for one of the member's five that run at once. Nothing waits on it: read it, and its report once written, with read_subagent.",
+        "Launches a subagent: a run of Strategy Dance's agent of its own, which carries out `brief` in parallel with you, with your tools but asking the member nothing, and writes a report when it ends. The brief is all it knows of this conversation, so put in it everything it needs. `attachments` hands it files this conversation has sent, by the ids the member's messages name them with. Answers its id and whether it was QUEUED or left WAITING_FOR_SLOT, for one of the member's five that run at once, when it was launched. Nothing waits on it: read where it stands, and its report once written, with read_subagent.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },

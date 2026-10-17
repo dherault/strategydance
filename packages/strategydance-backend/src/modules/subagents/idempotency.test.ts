@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
+import { MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER } from 'strategydance-core'
+
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
 import { ORGANIZATION_ID } from '~domain/conversations/testing/createConversationTestKit'
 
@@ -39,6 +41,35 @@ describe('idempotency', () => {
     expect(fake.conversations.get(parent.conversationId)?.subagentCount).toBe(1)
     // Queued again, as a launch whose answer was lost before its run was queued needs
     expect(enqueueRun).toHaveBeenCalledTimes(2)
+  })
+
+  it('answers a launch that promoted itself at once as its key keeps it, waiting, the first time as again', async () => {
+    const parent = await conversation.startRunning()
+    const kit = await conversation.connect(parent)
+    const running: { id: string }[] = []
+
+    for (let index = 0; index < MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER; index++) {
+      running.push(await kit.answer<{ id: string }>('launch_subagent', LAUNCH, `toolu_${index}`))
+    }
+
+    // One of the five ends between the launch's read and its write, and the launch then promotes
+    // itself into the slot it freed
+    fake.beforeOperation = async name => {
+      if (name !== 'LaunchPendingSubagentForAgent') return
+
+      const ended = fake.conversations.get(running[0]!.id)!
+
+      fake.runs.get(ended.activeRunId!)!.status = 'COMPLETED'
+      ended.activeRunId = null
+    }
+
+    const first = await kit.answer('launch_subagent', LAUNCH, 'toolu_sixth')
+
+    fake.beforeOperation = async () => {}
+
+    expect(first).toMatchObject({ status: 'WAITING_FOR_SLOT' })
+    expect(await kit.answer('launch_subagent', LAUNCH, 'toolu_sixth')).toEqual(first)
+    expect((await kit.answer('read_subagent', { id: first.id })).status).toBe('QUEUED')
   })
 
   it('refuses another tool with that key, and the launch with other arguments', async () => {

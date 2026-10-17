@@ -68,8 +68,10 @@ export type LaunchedSubagent = {
 }
 
 export type LaunchSubagentResult =
-  // Its run queued, or waiting for one of the member's five subagent slots
-  | { outcome: 'launched'; subagentId: string; runId: string; isPending: boolean }
+  // Its run queued, or waiting for one of the member's five subagent slots, and what the launch
+  // answers, its run as it was inserted, which a launch through the module keeps under its key, so
+  // its answer and a call again's agree whatever a promotion did since
+  | { outcome: 'launched'; subagentId: string; runId: string; isPending: boolean; result: LaunchedSubagent }
   // The caller is no member of the organization
   | { outcome: 'forbidden' }
   // The parent is not the caller's, is deleted, or is a subagent, which launches none
@@ -193,12 +195,24 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
 
         if (stored) return stored
 
-        return { outcome: 'launched', subagentId, runId, isPending: !promoted.some(queued => queued.runId === runId) }
+        return {
+          outcome: 'launched',
+          subagentId,
+          runId,
+          isPending: !promoted.some(queued => queued.runId === runId),
+          result: { id: subagentId, title, status: 'WAITING_FOR_SLOT' },
+        }
       }
 
       if (stored) return stored
 
-      return { outcome: 'launched', subagentId, runId, isPending: false }
+      return {
+        outcome: 'launched',
+        subagentId,
+        runId,
+        isPending: false,
+        result: { id: subagentId, title, status: 'QUEUED' },
+      }
     }
 
     // Its subagent was pruned since, which a launch called again never makes anew
@@ -295,10 +309,11 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
       attachmentIds,
     }
 
+    const result: LaunchedSubagent = { id: subagentId, title, status: isPending ? 'WAITING_FOR_SLOT' : 'QUEUED' }
+
     try {
       if (input.module && launcher) {
         const { caller, call } = input.module
-        const result: LaunchedSubagent = { id: subagentId, title, status: isPending ? 'WAITING_FOR_SLOT' : 'QUEUED' }
 
         await (isPending ? launchPendingSubagentForAgent : launchSubagentForAgent)(dataConnect, {
           ...variables,
@@ -325,12 +340,12 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
     if (isPending) {
       const promoted = await promote(input)
 
-      return { outcome: 'launched', subagentId, runId, isPending: !promoted.some(run => run.runId === runId) }
+      return { outcome: 'launched', subagentId, runId, isPending: !promoted.some(run => run.runId === runId), result }
     }
 
     if (!(await enqueueRun(reference, 'subagent-runs'))) return { outcome: 'unavailable', subagentId, runId }
 
-    return { outcome: 'launched', subagentId, runId, isPending: false }
+    return { outcome: 'launched', subagentId, runId, isPending: false, result }
   }
 }
 

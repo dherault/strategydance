@@ -124,6 +124,23 @@ describe('Stop and Stop all', () => {
     expect(kit.readRun(earlier)?.status).toBe('STOPPED')
   })
 
+  test('promotes the run a launch left waiting for a slot into the one a Stop freed', async () => {
+    const parent = await startParent()
+    const running = []
+
+    for (let index = 0; index < MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER; index++) running.push(await kit.launch(parent))
+
+    const pending = await kit.launch(parent)
+
+    expect(kit.readRun(pending)?.status).toBe('PENDING')
+    expect(await stopConversationSubagents(parent, { subagentIds: [running[0]!.conversationId] })).toEqual({
+      outcome: 'stopped',
+    })
+    expect(kit.readRun(running[0]!)?.status).toBe('STOPPED')
+    expect(kit.readRun(pending)?.status).toBe('QUEUED')
+    expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: pending.runId }), 'subagent-runs')
+  })
+
   test('a launch before the parent’s Stop is reached by it, and one after is refused', async () => {
     const parent = await kit.start()
 

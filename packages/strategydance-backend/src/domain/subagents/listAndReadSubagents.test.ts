@@ -63,6 +63,29 @@ beforeEach(() => {
 })
 
 describe('listSubagents', () => {
+  test('says whether each report reached the conversation, or waits', async () => {
+    const parent = await startRunning()
+    const [delivered, waiting] = await launchMany(parent, 2)
+
+    for (const subagent of [delivered!, waiting!]) {
+      Object.assign(fake.conversations.get(subagent.conversationId)!, {
+        report: 'Done.',
+        reportedAt: new Date().toISOString(),
+      })
+    }
+
+    fake.conversations.get(delivered!.conversationId)!.reportDeliveredAt = new Date().toISOString()
+
+    const listed = await listSubagents(createSubagentsCaller(fake, parent), {})
+
+    if (listed.outcome !== 'listed') throw new Error(listed.outcome)
+
+    expect(Object.fromEntries(listed.subagents.map(({ id, isReportDelivered }) => [id, isReportDelivered]))).toEqual({
+      [delivered!.conversationId]: true,
+      [waiting!.conversationId]: false,
+    })
+  })
+
   test('lists the conversation’s live subagents, newest first, 20 a page, with a cursor while more remain', async () => {
     const parent = await startRunning()
     const subagents = await launchMany(parent, 25)
@@ -84,6 +107,7 @@ describe('listSubagents', () => {
       startedAt: expect.any(String),
       endedAt: null,
       hasReport: false,
+      isReportDelivered: false,
     })
 
     const second = await listSubagents(caller, { cursor: first.cursor })

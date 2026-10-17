@@ -3798,6 +3798,7 @@ function createConversationDatabaseFake() {
           title: subagent.title,
           createdAt: subagent.createdAt ?? '',
           reportedAt: subagent.reportedAt ?? null,
+          reportDeliveredAt: subagent.reportDeliveredAt ?? null,
           latestRuns: latestRuns(subagent.id)
             .slice(0, 1)
             .map(({ status }) => ({ status })),

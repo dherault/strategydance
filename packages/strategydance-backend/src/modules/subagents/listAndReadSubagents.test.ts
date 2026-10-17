@@ -45,6 +45,7 @@ describe('list_subagents and read_subagent', () => {
           startedAt: expect.any(String),
           endedAt: null,
           hasReport: false,
+          isReportDelivered: false,
         },
         expect.objectContaining({ id: first.id, title: 'Research the competitors' }),
       ],

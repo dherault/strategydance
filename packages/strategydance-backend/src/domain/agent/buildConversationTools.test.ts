@@ -122,7 +122,7 @@ describe('buildConversationTools', () => {
       'stop_subagent',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '7fffc01b46544c91439a27193874dc1be2289af6477e651e6a1873c5128c3ecf',
+      'b304969129dc9238d99d5a803c9dd7e306ebc9c857949d5089b96303637b449e',
     )
   })
 

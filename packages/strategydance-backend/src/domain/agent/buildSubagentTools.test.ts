@@ -64,8 +64,9 @@ describe('buildSubagentTools', () => {
     )
   })
 
-  // Nobody answers a subagent's question or approves its call, and what it would delete it proposes
-  it('sends every tool of a conversation’s but the agent’s own, web search aside, and the deletes, each as a conversation sends it', async () => {
+  // Nobody answers a subagent's question or approves its call, what it would delete it proposes, and
+  // it is one level deep
+  it('sends every tool of a conversation’s but the agent’s own, web search aside, the deletes and the Subagents module’s, each as a conversation sends it', async () => {
     const moduleTools = await readModuleTools()
     const subagent = buildSubagentTools(moduleTools).map(tool => JSON.stringify(tool))
     const conversation = buildConversationTools(moduleTools).map(tool => JSON.stringify(tool))
@@ -76,6 +77,10 @@ describe('buildSubagentTools', () => {
       ...ownNames,
       'delete_document',
       'delete_task',
+      'list_subagents',
+      'read_subagent',
+      'launch_subagent',
+      'stop_subagent',
     ])
   })
 })

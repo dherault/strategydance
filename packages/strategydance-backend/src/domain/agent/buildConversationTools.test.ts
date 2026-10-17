@@ -91,7 +91,7 @@ describe('buildConversationTools', () => {
     tools changing, or an SDK or zod release writing their schemas otherwise. Change this hash only
     with a release that means to change the tools
   */
-  it('keeps its bytes, the agent’s own tools then the Knowledge module’s and the Tasks module’s', async () => {
+  it('keeps its bytes, the agent’s own tools then the Knowledge module’s, the Tasks module’s and the Subagents module’s', async () => {
     const tools = await readTools()
 
     expect(tools.map(readName)).toEqual([
@@ -116,9 +116,13 @@ describe('buildConversationTools', () => {
       'remove_task_dependency',
       'delete_task',
       'restore_task',
+      'list_subagents',
+      'read_subagent',
+      'launch_subagent',
+      'stop_subagent',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      'dfb42639341e42968c558ed52a18547302b2342470c37ea7ee5a42d36c0a86f9',
+      '7fffc01b46544c91439a27193874dc1be2289af6477e651e6a1873c5128c3ecf',
     )
   })
 

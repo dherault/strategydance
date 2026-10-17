@@ -100,6 +100,7 @@ export const ConversationRunTrigger = {
   RETRY: 'RETRY',
   LAUNCH: 'LAUNCH',
   CONTINUE: 'CONTINUE',
+  REPORTS: 'REPORTS',
 } as const
 
 export const ConversationToolStatus = {
@@ -948,6 +949,7 @@ function createConversationDatabaseFake() {
         || launcher.status !== 'RUNNING'
         || launcher.stopRequestedAt !== null
         || launcher.anchorPosition !== variables.anchorPosition
+        || launcher.trigger === 'REPORTS'
         || launching.id !== parentId
         || launching.userId !== variables.userId
         || launching.organizationId !== id(variables.organizationId)

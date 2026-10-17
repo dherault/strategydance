@@ -53,6 +53,7 @@ async function launchSubagentForAgent(
     case 'keyConflict':
     case 'notMember':
     case 'fromSubagent':
+    case 'fromReaction':
     case 'launcherEnded':
     case 'noLauncher':
     case 'invalid':

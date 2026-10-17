@@ -260,6 +260,8 @@ export type KnowledgeRefusal =
   | { outcome: 'notMember' }
   /** The caller's connection may read but not write */
   | { outcome: 'readOnly' }
+  /** A delete from a parent's reaction to its subagents' reports, which deletes nothing */
+  | { outcome: 'fromReaction' }
   /** No document by that id in the organization, or one deleted */
   | { outcome: 'notFound' }
   /** The team keeps the document from agents */
@@ -362,6 +364,8 @@ export type TasksRefusal =
   | { outcome: 'notMember' }
   /** The caller's connection may read but not write */
   | { outcome: 'readOnly' }
+  /** A delete from a parent's reaction to its subagents' reports, which deletes nothing */
+  | { outcome: 'fromReaction' }
   /** No live task by that id on the board */
   | { outcome: 'notFound' }
   /** A task assigned to somebody who is not a member of the organization */
@@ -441,6 +445,8 @@ export type SubagentsRefusal =
   | { outcome: 'readOnly' }
   /** The run calling is a subagent's, which launches none */
   | { outcome: 'fromSubagent' }
+  /** The run calling reacts to subagents' reports, which launches none */
+  | { outcome: 'fromReaction' }
   /** Launches are kept closed in this process until the page reconciles subagents (M34) */
   | { outcome: 'launchesClosed' }
   /** The run calling has ended or was asked to stop, its conversation deleted included */

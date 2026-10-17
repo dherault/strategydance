@@ -9,6 +9,7 @@ import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 import readTasksWriteCall from '~modules/tasks/readTasksWriteCall'
 import tasksModule from '~modules/tasks/tasksModule'
 import { taskIdSchema } from '~modules/tasks/tasksSchemas'
+import toTasksRefusal from '~modules/tasks/toTasksRefusal'
 import toTasksWriteResult from '~modules/tasks/toTasksWriteResult'
 
 const TOOL = 'delete_task'
@@ -37,6 +38,14 @@ function registerDeleteTask(server: McpServer, context: TasksToolContext) {
       const prepared = readTasksWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result
+
+      // A reaction to subagents' reports deletes nothing: the member's answer starts the run that may.
+      // Read only for a call from a run, whose read loads the conversation runtime
+      if (context.caller.launcher) {
+        const { default: isReactionCaller } = await import('~domain/subagents/isReactionCaller')
+
+        if (await isReactionCaller(context.caller)) return toTasksRefusal({ outcome: 'fromReaction' })
+      }
 
       // A deleted task's dialog shows nothing, so the answer carries no address
       return toTasksWriteResult(await deleteTask(context.caller, args, prepared.call), null)

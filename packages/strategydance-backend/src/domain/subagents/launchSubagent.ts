@@ -96,9 +96,11 @@ export type LaunchSubagentResult =
   | { outcome: 'answered'; result: unknown }
   | { outcome: 'keyConflict' }
   | { outcome: 'notMember' }
-  // A launch through the module from a subagent's run, which launches none, or from a run that has
-  // ended or was asked to stop
+  // A launch through the module from a subagent's run, which launches none, from a parent's reaction
+  // to its subagents' reports, which launches none either, or from a run that has ended or was asked
+  // to stop
   | { outcome: 'fromSubagent' }
+  | { outcome: 'fromReaction' }
   | { outcome: 'launcherEnded' }
   | { outcome: 'noLauncher' }
 
@@ -125,7 +127,8 @@ export type LaunchSubagentResult =
   A launch through the Subagents module reads besides what its key keeps, answering a launch called
   again with what it answered then, once its subagent is queued again as above, and launching
   nothing when its subagent was pruned since, and the run launching it, which has to be still
-  running, not asked to stop and no subagent's, and whose anchor it is made on.
+  running, not asked to stop, no subagent's and no reaction to subagents' reports, and whose anchor it
+  is made on.
 
   The launch is one mutation, which takes the member's lock, then the parent's, and counts again
   under them, the module's checking the run launching it again after both, and storing what its key
@@ -221,6 +224,8 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
     const launcher = input.module ? await readSubagentLauncher(input.module.caller) : null
 
     if (launcher && launcher.outcome !== 'running') return launcher
+    // Checked again inside the mutation, which refuses a reaction's run however it was read
+    if (launcher?.isReaction) return { outcome: 'fromReaction' }
 
     if (
       !parent

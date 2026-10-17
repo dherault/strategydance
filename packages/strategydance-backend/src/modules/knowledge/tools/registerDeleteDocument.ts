@@ -8,6 +8,7 @@ import deleteKnowledgeDocument from '~domain/knowledge/deleteKnowledgeDocument'
 import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
 import readKnowledgeWriteCall from '~modules/knowledge/readKnowledgeWriteCall'
+import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
 import toKnowledgeWriteResult from '~modules/knowledge/toKnowledgeWriteResult'
 import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 
@@ -37,6 +38,14 @@ function registerDeleteDocument(server: McpServer, context: KnowledgeToolContext
       const prepared = readKnowledgeWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result
+
+      // A reaction to subagents' reports deletes nothing: the member's answer starts the run that may.
+      // Read only for a call from a run, whose read loads the conversation runtime
+      if (context.caller.launcher) {
+        const { default: isReactionCaller } = await import('~domain/subagents/isReactionCaller')
+
+        if (await isReactionCaller(context.caller)) return toKnowledgeRefusal({ outcome: 'fromReaction' })
+      }
 
       // A deleted document's page shows nothing, so the answer carries no address
       return toKnowledgeWriteResult(await deleteKnowledgeDocument(context.caller, args, prepared.call), null)

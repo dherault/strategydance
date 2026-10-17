@@ -138,7 +138,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. Each `--file`, an image, a PDF or a text file, a relative path read from the repository's root, is uploaded first and sent with it, the text then optional. `--organization <id or slug>` names the organization when the account is in several |
 | `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches a subagent of one of that account's conversations, or `--count` of them at once, up to 10, as Strategy Dance's agent will once the Subagents module does, handing each file named, one the conversation sent, runs them in its own process, past the account's five slots waiting for one, and prints each transcript and report once all have reported. A promotion runs the subagent it promotes in the process that freed the slot, so launch an account's subagents from one script, never from two side by side. It answers with the stand-in reply under `CONVERSATION_AGENT=placeholder`, and asks Claude otherwise, which costs money. It refuses to run anywhere but against the emulators |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
-| `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's |
+| `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's and `check:subagents-module` the Subagents module's |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
@@ -1135,7 +1135,7 @@ in `utils/`, one concern per file.
   against the local backend at `API_URL`, both modules' endpoints included, and checks the
   operations against the emulators: an operation changed is changed in both
 - The modules' endpoints, `routes/modules.ts` mounted at `/mcp` (`MODULES_PATH`) on the public
-  backend alone, serve each module `SERVED_MODULES` lists at its `MODULES` path, `POST` alone,
+  backend alone, serve each module strategydance-core's `SERVED_MODULES` lists at its `MODULES` path, `POST` alone,
   through the SDK's `toNodeHandler` around the module's handler. They answer MCP's JSON-RPC, never
   `ApiResponse` (`respondJsonRpcError` for what they refuse before the handler), and carry no App
   Check, which no external agent can carry: the bearer token is the guard. In order: any other
@@ -1222,9 +1222,10 @@ in `utils/`, one concern per file.
 
 A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
 agent uses in its own process and which a member can add to an agent of their own: Knowledge and the
-team's tasks first, the rest later. `MODULES` in strategydance-core lists each one's name, path,
-title and scopes, and [conversations.md](documents/conversations.md) § Modules says what each does
-and why.
+team's tasks first, then Subagents, which Strategy Dance's own agents alone reach, the rest later.
+`MODULES` in strategydance-core lists each one's name, path, title and scopes, `SERVED_MODULE_NAMES`
+beside it those served to external agents, and [conversations.md](documents/conversations.md) §
+Modules says what each does and why.
 
 - A module's server lives in `src/modules/<name>/`, built by its `create<Name>Server(caller)` for one
   caller, one file per tool registering it, which only validates, calls `domain/<name>/` and shapes
@@ -1244,7 +1245,11 @@ and why.
   the SDK's `AuthInfo`, which `toModuleAuthInfo` writes and `readModuleCaller` reads back, refusing a
   request that carries none. Nothing in it comes from a tool's arguments. Every operation a tool runs
   matches the membership on the `membershipCreatedAt` the caller carries, so a member removed, or
-  removed and invited back, stops every agent acting as them at its next call
+  removed and invited back, stops every agent acting as them at its next call. Its `launcher`, the
+  run calling, `{ conversationId, runId }`, is filled only by a worker that has claimed a run, from
+  that run, and every Subagents tool refuses a caller without one, before anything is read, though
+  the module lists its tools to it. `readModuleCaller`'s schema is strict: a field the caller gains
+  joins it, or every call carrying it is refused
 - A tool's name is snake_case, as Claude takes a tool name (`^[a-zA-Z0-9_-]{1,128}$`, no dot,
   though MCP allows one), and unique across the modules and the agent's own tools, since the agent
   puts them all in one list: `moduleServers.test.ts` fails on a clash between modules. The order a
@@ -1294,9 +1299,13 @@ and why.
   tables in memory: one base holding the memberships and the call results, to which each module's
   fake, `createKnowledgeDatabaseFake` and `createTasksDatabaseFake`, adds its own, since a module's
   handler loads every module's server and Bun refuses an import the mock does not hold. A new
-  module's fake joins it. `bun run check:knowledge-module` and `bun run check:tasks-module`, in the
-  backend's package, check those conditions against the emulators: an operation changed is changed
-  in both
+  module's fake joins it. The Subagents module is the exception: its domain is the conversation
+  runtime, so each of its tools imports `domain/subagents/` inside its handler (`await import`),
+  which no other module's server, nor the modules' fake, then loads, and its tests run against
+  `createConversationDatabaseFake`, which holds the modules' fake and every subagent operation. A
+  module whose domain needs the conversation runtime does the same. `bun run check:knowledge-module`,
+  `bun run check:tasks-module` and `bun run check:subagents-module`, in the backend's package, check
+  those conditions against the emulators: an operation changed is changed in both
 - An external agent reaches a module at its address, `https://api.strategydance.com/mcp/<name>`,
   `/mcp/knowledge` and `/mcp/tasks` today, each its own OAuth resource, so one module's token never
   opens the other, once a member allowed it on the consent page, through the modules' endpoints (see [Backend
@@ -1316,12 +1325,15 @@ and why.
   (`recordModuleSearch`, in `domain/modules/`), which their conversation searches use too, since no
   run bounds it, and one past it is answered with a result saying when to search again
   (`toTooManySearchesSentence`) and which read still works
-- A module joins the external agents with its name in `SERVED_MODULES`, which mounts its endpoint and
-  its metadata and lets the metadata answer any origin; `requireModuleWriteScope` on every write
-  tool; its searches on the member's allowance; the agents button on its page, `ModuleAgentsButton`,
-  an icon after the page's own action, which takes its name and opens the dialog worded from the
-  `module` catalogue;
-  and its endpoint in `check:oauth`. Knowledge joined in M20 and Tasks in M21
+- A module joins the external agents with its name in strategydance-core's `SERVED_MODULE_NAMES`,
+  which mounts its endpoint and its metadata, lets the metadata answer any origin, and lets the
+  authorization server and the consent page take it: `parseModuleResource`, the metadata's
+  `scopes_supported` and the consent page read the served modules alone, so a module in `MODULES`
+  but served to nobody, as Subagents is, is refused as an address no module has. It takes besides
+  `requireModuleWriteScope` on every write tool; its searches on the member's allowance; the agents
+  button on its page, `ModuleAgentsButton`, an icon after the page's own action, which takes its
+  name and opens the dialog worded from the `module` catalogue; and its endpoint in `check:oauth`.
+  Knowledge joined in M20 and Tasks in M21
 - `bun run mcp:knowledge <email>` and `bun run mcp:tasks <email>` serve a module over stdio for a
   client on this machine, against the emulators only, through one script, `serveModule.ts`, which
   takes the module's name. stdout is the protocol's there, so the script points the logger's info

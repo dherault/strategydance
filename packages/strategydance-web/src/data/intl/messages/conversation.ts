@@ -341,6 +341,51 @@ const conversationMessages = defineMessages({
     description:
       "Button under the note that ends a conversation when the AI's answer stopped, failed or was refused. It removes that answer and has the AI answer the reader's last message again.",
   },
+  retryDialogTitle: {
+    id: 'conversation.retryDialog.title',
+    defaultMessage: 'Retry this response?',
+    description:
+      'Title of the dialog that asks before the AI answers the reader’s last message again, when its answer launched subagents, helpers it handed pieces of work to, which retrying discards.',
+  },
+  retryDialogDiscarded: {
+    id: 'conversation.retryDialog.discarded',
+    defaultMessage:
+      '{total, plural, one {Retrying discards the subagent this response launched, and its report.} other {Retrying discards the # subagents this response launched, and their reports.}}',
+    description:
+      'In the dialog that asks before the AI answers the reader’s last message again: the subagents its answer launched, helpers it handed pieces of work to, go with it. {total} is how many.',
+  },
+  retryDialogAllWorking: {
+    id: 'conversation.retryDialog.allWorking',
+    defaultMessage:
+      '{working, plural, one {It is still working, and stops first.} other {They are all still working, and stop first.}}',
+    description:
+      'In the dialog that asks before the AI answers the reader’s last message again, when every subagent it discards is still working. {working} is how many.',
+  },
+  retryDialogSomeWorking: {
+    id: 'conversation.retryDialog.someWorking',
+    defaultMessage:
+      '{working, plural, one {One of them is still working, and stops first.} other {# of them are still working, and stop first.}}',
+    description:
+      'In the dialog that asks before the AI answers the reader’s last message again, when some of the subagents it discards are still working. {working} is how many.',
+  },
+  retryDialogKept: {
+    id: 'conversation.retryDialog.kept',
+    defaultMessage: 'What they changed in your knowledge and tasks stays as it is.',
+    description:
+      'In the dialog that asks before the AI answers the reader’s last message again: the documents and tasks the discarded subagents created or changed are not undone.',
+  },
+  retryDialogConfirm: {
+    id: 'conversation.retryDialog.confirm',
+    defaultMessage: 'Retry',
+    description:
+      'Button of the dialog that asks before the AI answers the reader’s last message again, which discards the subagents its answer launched and retries.',
+  },
+  retryDialogCancel: {
+    id: 'conversation.retryDialog.cancel',
+    defaultMessage: 'Cancel',
+    description:
+      'Button of the dialog that asks before the AI answers the reader’s last message again, which closes it and leaves the answer and its subagents as they are.',
+  },
   noteActionError: {
     id: 'conversation.note.actionError',
     defaultMessage: 'That did not go through. Check your connection and try again.',

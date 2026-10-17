@@ -2013,6 +2013,34 @@
         "hash": "1f65e210a1787c7c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.retryDialog.allWorking": {
+        "hash": "5179cafd0820a3bc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.cancel": {
+        "hash": "9cf8832040036351",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.confirm": {
+        "hash": "06c90d2d2dd29af3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.discarded": {
+        "hash": "0aa3504512424bf6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.kept": {
+        "hash": "4ffa3366a8adbaa9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.someWorking": {
+        "hash": "502c7eba7fc405c3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.title": {
+        "hash": "1f4ade78010942f7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.save": {
         "hash": "f70380a62bf55317",
         "locales": "DE,ES,FR,JA,PT,ZH"

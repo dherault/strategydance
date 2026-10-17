@@ -35,6 +35,7 @@ import useOrganizationIntegrations from '~hooks/integration/useOrganizationInteg
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import canRestoreConversationItem from '~utils/conversation/canRestoreConversationItem'
+import countRetriedSubagents from '~utils/conversation/countRetriedSubagents'
 import findConversationSubagent from '~utils/conversation/findConversationSubagent'
 import getConversationIntegrationIssue from '~utils/conversation/getConversationIntegrationIssue'
 import getConversationThinkingStart from '~utils/conversation/getConversationThinkingStart'
@@ -318,6 +319,14 @@ function ConversationThread({
         }
         onRunStart={onRunStart}
         onRunsRemove={dropRuns}
+        retriedSubagents={
+          // A conversation that launched none has nothing to read, and so nothing to ask about
+          conversation.subagentCount === 0
+            ? { total: 0, working: 0 }
+            : subagents.initialLoading || subagents.hasFailed || !run
+              ? null
+              : countRetriedSubagents(subagents.data, run.anchorPosition)
+        }
       />
     )
   }

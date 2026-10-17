@@ -6,12 +6,14 @@ import { Button } from 'strategydance-design-system/components/ui/Button'
 import useResumeConversationRun from '~hooks/conversation/useResumeConversationRun'
 import useRetryConversationRun from '~hooks/conversation/useRetryConversationRun'
 
+import type { RetriedSubagents } from '~utils/conversation/countRetriedSubagents'
 import getConversationSendFailure, {
   type ConversationSendFailure,
 } from '~utils/conversation/getConversationSendFailure'
 import type { StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 
 import Spinner from '~components/common/Spinner'
+import ConversationRetryDialog from '~components/conversation/ConversationRetryDialog'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
@@ -24,6 +26,8 @@ type Props = {
   onRunStart: (startedRun: StartedConversationRun) => void
   // Drops from the thread the messages of the runs a Retry deleted
   onRunsRemove: (runIds: string[]) => void
+  // The subagents a Retry discards, which it asks about first, or null while they are not read
+  retriedSubagents: RetriedSubagents | null
 }
 
 /*
@@ -32,14 +36,24 @@ type Props = {
   Retry, which answers the reader's message again, for any run that ended with a note. The run
   either starts counts as going at once, so the note's actions go and the composer offers Stop
   before the page's live read shows it; a Retry's deleted messages leave the thread at once too.
-  A click the server did not take says so, and can be made again, which is the same resume or retry
+  A click the server did not take says so, and can be made again, which is the same resume or retry.
+  A Retry that discards subagents the response launched asks first
+  (`ConversationRetryDialog`)
 */
-function ConversationNoteActions({ conversationId, runId, canResume, onRunStart, onRunsRemove }: Props) {
+function ConversationNoteActions({
+  conversationId,
+  runId,
+  canResume,
+  onRunStart,
+  onRunsRemove,
+  retriedSubagents,
+}: Props) {
   const { formatMessage } = useIntl()
   const resumeConversationRun = useResumeConversationRun()
   const retryConversationRun = useRetryConversationRun()
   const [pendingAction, setPendingAction] = useState<'resume' | 'retry' | null>(null)
   const [failure, setFailure] = useState<ConversationSendFailure | null>(null)
+  const [isRetryAsked, setIsRetryAsked] = useState(false)
 
   async function act(action: 'resume' | 'retry') {
     if (pendingAction) return
@@ -107,12 +121,22 @@ function ConversationNoteActions({ conversationId, runId, canResume, onRunStart,
           size="sm"
           icon={pendingAction === 'retry' ? <Spinner tone="current" /> : <RefreshCwIcon />}
           disabled={pendingAction !== null}
-          onClick={() => act('retry')}
+          onClick={() => (retriedSubagents?.total ? setIsRetryAsked(true) : act('retry'))}
         >
           {formatMessage(conversationMessages.noteRetry)}
         </Button>
       </div>
       {renderFailure()}
+      {isRetryAsked && retriedSubagents ? (
+        <ConversationRetryDialog
+          retriedSubagents={retriedSubagents}
+          onConfirm={() => {
+            setIsRetryAsked(false)
+            act('retry')
+          }}
+          onClose={() => setIsRetryAsked(false)}
+        />
+      ) : null}
     </>
   )
 }

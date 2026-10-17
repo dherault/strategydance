@@ -25,6 +25,7 @@ import { parseConversationRunUsage } from '~domain/conversations/conversationRun
 import stopConversationRun from '~domain/conversations/stopConversationRun'
 import createKnowledgeDocument from '~domain/knowledge/createKnowledgeDocument'
 import launchSubagent from '~domain/subagents/launchSubagent'
+import reconcileSubagentRuns from '~domain/subagents/reconcileSubagentRuns'
 import stopConversationSubagents from '~domain/subagents/stopConversationSubagents'
 import createTask from '~domain/tasks/createTask'
 
@@ -249,7 +250,7 @@ async function startParent(membershipCreatedAt: string) {
 
 type SubagentRead = {
   conversation: { report: string | null; reportedAt: string | null } | null
-  conversationRuns: { number: number; status: string; usage: unknown }[]
+  conversationRuns: { number: number; status: string; usage: unknown; leaseExpiresAt: string | null }[]
   conversationTranscriptEntries: { content: string }[]
 }
 
@@ -261,6 +262,7 @@ async function readSubagent(conversationId: string) {
         number
         status
         usage
+        leaseExpiresAt
       }
       conversationTranscriptEntries(where: { conversationId: { eq: $id }, role: { eq: USER } }, orderBy: [{ position: DESC }], limit: 1) {
         content
@@ -346,6 +348,13 @@ for (const configuration of configurations) {
       await wait(POLL_INTERVAL_MS)
 
       read = await readSubagent(launched.subagentId)
+
+      // A run its worker left past its lease is finalized with its report, as a parent's page would
+      const latest = read.conversationRuns.at(-1)
+
+      if (latest?.leaseExpiresAt && Date.parse(latest.leaseExpiresAt) < Date.now()) {
+        await reconcileSubagentRuns({ organizationId, userId })
+      }
 
       const cost = measure(read.conversationRuns).cost
       const isOverCap = cost > maxSubagent || total + cost > maxTotal

@@ -149,6 +149,8 @@ export type FakeConversation = {
   launchAnchorPosition?: number | null
   report?: string | null
   reportedAt?: string | null
+  // When its report reached its parent's transcript, or was marked so once its parent was full
+  reportDeliveredAt?: string | null
   // A parent's: the subagents it launched and are not pruned, 0 until a launch
   subagentCount?: number
   // When it was made, which a subagent's launch stamps, as the module's list orders them
@@ -500,6 +502,21 @@ function createConversationDatabaseFake() {
     })
   }
 
+  // The conversations, live and idle, waiting on no answer, in which a report of a live subagent
+  // waits, the longest idle first, as the reaction's reads find them
+  function reactingConversations() {
+    return [...conversations.values()]
+      .filter(
+        conversation =>
+          conversation.parentId == null
+          && conversation.deletedAt === null
+          && conversation.activeRunId === null
+          && !conversation.isAwaitingAnswer
+          && waitingReports(conversation.id).length > 0,
+      )
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt) || a.id.localeCompare(b.id))
+  }
+
   // The caller's conversations in the organization, deleted ones and subagents aside
   function keptConversations(variables: AnyVariables) {
     return [...conversations.values()].filter(
@@ -622,6 +639,33 @@ function createConversationDatabaseFake() {
     if (named.length !== (ids?.length ?? 0)) refuse(message)
 
     return () => named.forEach(change)
+  }
+
+  // A parent's live subagents whose report waits to be delivered, oldest first
+  function waitingReports(parentId: string) {
+    return [...conversations.values()]
+      .filter(
+        conversation =>
+          conversation.parentId === parentId
+          && conversation.deletedAt === null
+          && conversation.reportedAt != null
+          && conversation.reportDeliveredAt == null,
+      )
+      .sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? '') || a.id.localeCompare(b.id))
+  }
+
+  /*
+    Marks delivered exactly the reports a write names among a parent's waiting, refused when they
+    changed since they were read, as the operations count them. A write from before M33 names none,
+    which drops the filter: it is refused while any report waits
+  */
+  function deliverNamed(parentId: string, ids: string[] | null | undefined) {
+    const rows = waitingReports(parentId)
+    const named = ids ? rows.filter(row => ids.map(id).includes(row.id)) : rows
+
+    if (named.length !== (ids?.length ?? 0)) refuse('The reports changed since the backend read them')
+
+    return () => named.forEach(row => (row.reportDeliveredAt = now()))
   }
 
   // The server and tool a call to an integration was drawn with, none for any other call
@@ -1825,8 +1869,10 @@ function createConversationDatabaseFake() {
       checkSend(conversation, variables)
 
       const sent = matchSentAttachments(variables)
+      const deliver = deliverNamed(conversation.id, variables.deliveredSubagentIds)
 
       writeSend(conversation, variables)
+      deliver()
 
       for (const attachment of sent) attachment.messageId = id(variables.messageId)
 
@@ -1874,6 +1920,7 @@ function createConversationDatabaseFake() {
       checkSend(conversation, variables)
 
       const sent = matchSentAttachments(variables)
+      const deliver = deliverNamed(conversation.id, variables.deliveredSubagentIds)
 
       if (lastRun && isLastRunWaiting) lastRun.status = 'CONTINUED'
 
@@ -1884,6 +1931,7 @@ function createConversationDatabaseFake() {
 
       conversation.isAwaitingAnswer = false
       writeSend(conversation, variables)
+      deliver()
 
       for (const attachment of sent) attachment.messageId = id(variables.messageId)
 
@@ -2004,6 +2052,8 @@ function createConversationDatabaseFake() {
 
       checkEntry(entry)
 
+      const deliver = deliverNamed(conversationId, variables.deliveredSubagentIds)
+
       waiting.status = 'CONTINUED'
       Object.assign(conversation, {
         activeRunId: runId,
@@ -2013,6 +2063,7 @@ function createConversationDatabaseFake() {
       })
       runs.set(runId, queuedRun(runId, conversationId, variables, 'ANSWER', variables.transcriptPosition))
       insertEntry(entry)
+      deliver()
 
       return { conversation_updateMany: 1 }
     },
@@ -2887,6 +2938,8 @@ function createConversationDatabaseFake() {
         refuse('A run is anchored on the results it stores, or where it was')
       }
 
+      const deliver = deliverNamed(run.conversationId, variables.deliveredSubagentIds)
+
       insertEntry({
         id: id(variables.entryId),
         conversationId: run.conversationId,
@@ -2901,6 +2954,7 @@ function createConversationDatabaseFake() {
         leaseExpiresAt: inSeconds(60),
         ...(anchorPosition === null ? {} : { anchorPosition }),
       })
+      deliver()
 
       return { conversationTranscriptEntry_insert: { id: id(variables.entryId) } }
     },
@@ -3007,6 +3061,234 @@ function createConversationDatabaseFake() {
       assignGiven(conversation, { isFull: variables.isFull })
 
       return { conversationRun_updateMany: 1 }
+    },
+
+    FinishConversationRunFull: variables => {
+      const run = requireParentRun(variables)
+      const conversation = requireNoteConversation(variables)
+
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      end(run, 'FAILED')
+      assignGiven(run, { usage: variables.usage, failure: variables.failure })
+      writeNote(conversation, variables, 'FULL')
+      assignGiven(conversation, { isFull: variables.isFull })
+      for (const subagent of waitingReports(conversation.id)) subagent.reportDeliveredAt = now()
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    GetSubagentReactionContext: variables => {
+      const conversationId = id(variables.conversationId)
+      const conversation = conversations.get(conversationId)
+      const isTheirs =
+        conversation !== undefined
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+      const [latest] = isTheirs ? latestRuns(conversationId) : []
+      const [lastEntry] = isTheirs ? conversationEntries(conversationId) : []
+
+      return {
+        userOrganization: memberships.get(membershipKey(variables.userId, variables.organizationId)) ?? null,
+        conversation: conversation
+          ? { ...conversation, isAwaitingAnswer: conversation.isAwaitingAnswer ?? false }
+          : null,
+        latestRuns: latest
+          ? [
+              {
+                id: latest.id,
+                number: latest.number,
+                status: latest.status,
+                notes: [...messages.values()]
+                  .filter(message => message.runId === latest.id && message.kind === 'NOTE')
+                  .slice(0, 1)
+                  .map(({ noteKind }) => ({ noteKind })),
+              },
+            ]
+          : [],
+        lastEntries: lastEntry ? [{ position: lastEntry.position }] : [],
+        subagents: [...conversations.values()]
+          .filter(
+            subagent =>
+              subagent.parentId === conversationId
+              && subagent.userId === variables.userId
+              && subagent.organizationId === id(variables.organizationId)
+              && subagent.deletedAt === null,
+          )
+          .sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? '') || a.id.localeCompare(b.id))
+          .slice(0, 100)
+          .map(subagent => ({
+            id: subagent.id,
+            title: subagent.title,
+            launchAnchorPosition: subagent.launchAnchorPosition ?? null,
+            report: subagent.report ?? null,
+            reportedAt: subagent.reportedAt ?? null,
+            reportDeliveredAt: subagent.reportDeliveredAt ?? null,
+            latestRuns: latestRuns(subagent.id)
+              .slice(0, 1)
+              .map(({ status }) => ({ status })),
+          })),
+        conversationRuns: runsInFlight(variables.userId, variables.organizationId).map(run => ({
+          id: run.id,
+          status: run.status,
+          leaseExpiresAt: run.leaseExpiresAt,
+          conversation: { id: run.conversationId },
+        })),
+      }
+    },
+
+    GetDueSubagentReactions: variables => ({
+      conversations: reactingConversations()
+        .filter(
+          conversation =>
+            conversation.userId === variables.userId && conversation.organizationId === id(variables.organizationId),
+        )
+        .slice(0, 100)
+        .map(({ id: conversationId }) => ({ id: conversationId })),
+    }),
+
+    GetSubagentReactionSweepMembers: variables => ({
+      users: [...new Set(reactingConversations().map(({ userId }) => userId))]
+        .filter(userId => userId > variables.afterUserId)
+        .sort()
+        .slice(0, 100)
+        .map(userId => ({ id: userId })),
+    }),
+
+    GetSubagentReactionSweepOrganizations: variables => ({
+      organizations: [
+        ...new Set(
+          reactingConversations()
+            .filter(({ userId }) => userId === variables.userId)
+            .map(({ organizationId }) => organizationId),
+        ),
+      ]
+        .slice(0, 1000)
+        .map(organizationId => ({ id: organizationId })),
+    }),
+
+    GetDeadConversationRunSweep: () => ({
+      conversationRuns: [...runs.values()]
+        .filter(run => {
+          const conversation = conversations.get(run.conversationId)
+
+          return RUN_IN_FLIGHT.includes(run.status) && isPast(run.leaseExpiresAt) && conversation?.parentId == null
+        })
+        .sort((a, b) => (a.leaseExpiresAt ?? '').localeCompare(b.leaseExpiresAt ?? '') || a.id.localeCompare(b.id))
+        .slice(0, 100)
+        .flatMap(run => {
+          const conversation = conversations.get(run.conversationId)
+
+          return conversation
+            ? [
+                {
+                  id: run.id,
+                  status: run.status,
+                  leaseExpiresAt: run.leaseExpiresAt,
+                  conversation: {
+                    id: conversation.id,
+                    userId: conversation.userId,
+                    organizationId: conversation.organizationId,
+                  },
+                },
+              ]
+            : []
+        }),
+    }),
+
+    StartSubagentReaction: variables => {
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+      const subagentIds: string[] = (variables.subagentIds as string[]).map(id)
+
+      if (!membership) refuse('Only a member of an organization can keep conversations in it')
+      if (subagentIds.length < 1 || subagentIds.length > 100) refuse('A reaction delivers 1 to 100 reports')
+
+      const conversationId = id(variables.conversationId)
+      const conversation = conversations.get(conversationId)
+
+      if (
+        !conversation
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.deletedAt !== null
+        || conversation.parentId != null
+        || conversation.activeRunId !== null
+        || conversation.isAwaitingAnswer
+        || conversation.nextRunNumber !== variables.runNumber
+      ) {
+        refuse('The conversation could not take the reaction')
+      }
+
+      if (membership.createdAt !== variables.membershipCreatedAt) {
+        refuse('The membership changed since the reaction read it')
+      }
+
+      if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
+        refuse('Somebody has at most 3 runs in flight in an organization')
+      }
+
+      const [completed] = latestRuns(conversationId).filter(run => run.status === 'COMPLETED')
+
+      if (completed?.number !== variables.runNumber - 1)
+        refuse('A conversation reacts only once its latest run completed')
+
+      const runId = id(variables.runId)
+
+      if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+
+      const entry: FakeEntry = {
+        id: crypto.randomUUID().replaceAll('-', ''),
+        conversationId,
+        runId,
+        position: variables.transcriptPosition,
+        role: 'USER',
+        content: variables.content,
+        drawnBlocks: 0,
+      }
+
+      checkEntry(entry)
+
+      const delivered = waitingReports(conversationId).filter(subagent => subagentIds.includes(subagent.id))
+
+      if (delivered.length !== subagentIds.length) refuse('The reports changed since the reaction read them')
+
+      Object.assign(conversation, {
+        activeRunId: runId,
+        nextRunNumber: conversation.nextRunNumber + 1,
+        updatedAt: now(),
+      })
+      runs.set(runId, queuedRun(runId, conversationId, variables, 'REPORTS', variables.transcriptPosition))
+      insertEntry(entry)
+
+      for (const subagent of delivered) subagent.reportDeliveredAt = now()
+
+      return { parent: 1, delivered: delivered.length }
+    },
+
+    MarkSubagentReportsDelivered: variables => {
+      const conversationId = id(variables.conversationId)
+      const conversation = conversations.get(conversationId)
+      const subagentIds: string[] = (variables.subagentIds as string[]).map(id)
+
+      if (
+        !conversation
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.parentId != null
+      ) {
+        refuse("No such conversation of the caller's")
+      }
+
+      if (subagentIds.length > 100) refuse('A conversation holds at most 100 subagents')
+      if (latestRuns(conversationId).some(run => run.number > variables.parentRunNumber)) {
+        refuse('The conversation started a run since it was full')
+      }
+
+      const delivered = waitingReports(conversationId).filter(subagent => subagentIds.includes(subagent.id))
+
+      for (const subagent of delivered) subagent.reportDeliveredAt = now()
+
+      return { parent: 1, delivered: delivered.length }
     },
 
     ClaimDeletedConversations: () => {

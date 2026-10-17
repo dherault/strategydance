@@ -406,6 +406,7 @@ async function takeStep({
       lease,
       position,
       isSubagent,
+      parentId: context.conversation?.parentId ?? null,
       chain: readChain(context, isSubagent, pendingToolResults),
     })
   }
@@ -662,6 +663,7 @@ async function writeOutcome({ outcome, context, fence, lease, isSubagent }: Writ
       lease,
       position: context.conversation?.nextMessagePosition ?? 0,
       isSubagent,
+      parentId: context.conversation?.parentId ?? null,
       chain: readChain(context, isSubagent, null),
     })
   }
@@ -895,6 +897,7 @@ async function interruptBeforeClaiming(
         lease: null,
         position: context.conversation?.nextMessagePosition ?? 0,
         isSubagent,
+        parentId: context.conversation?.parentId ?? null,
       })
 
       return 'finished'

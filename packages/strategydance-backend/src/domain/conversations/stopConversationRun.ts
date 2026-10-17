@@ -16,6 +16,7 @@ import { dataConnect } from '~firebase'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
+import startDueSubagentReactions from '~domain/subagents/startDueSubagentReactions'
 
 // How many times a stop reads where its run stands and tries, before the caller is told it could not
 const MAX_TRIES = 4
@@ -69,6 +70,8 @@ async function stopConversationRun(
           position: data.conversation.nextMessagePosition,
           preview: buildConversationPreview({ kind: 'NOTE', noteKind: ConversationNoteKind.STOPPED }),
         })
+        // One of the member's 3 is free, which a reaction held back by them takes
+        await startDueSubagentReactions(reference)
       } else {
         // Asked already, or ended meanwhile, either of which is as good
         await requestConversationRunStop(dataConnect, reference)

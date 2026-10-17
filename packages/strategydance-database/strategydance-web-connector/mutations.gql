@@ -1787,7 +1787,14 @@ mutation LeaveDocument($organizationId: UUID!, $documentId: UUID!, $sessionId: U
 # was deleted over a day ago.
 #
 # A subagent is no conversation of the member's to delete: its id matches nothing here, neither the
-# row nor its runs, and the delete changes nothing, as for one gone already
+# row nor its runs, and the delete changes nothing, as for one gone already.
+#
+# A parent's live subagents go with it, deleted at its own instant, which `RestoreConversation`
+# restores them by, and their runs asked to stop. A delete is the web's and queues nothing, so it
+# only asks: the workers end the runs queued and running as they read it, and the reconcile and the
+# sweep end those waiting for a slot. The rows go in the order every write on a parent keeps, the
+# parent's runs, the parent's row, its subagents' runs, then theirs, so a launch committing first is
+# reached and one after finds its parent deleted
 mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
@@ -1796,6 +1803,20 @@ mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!
       role
     }
   }
+  conversationRun_updateMany(
+    where: {
+      conversation: {
+        id: { eq: $id }
+        userId: { eq_expr: "auth.uid" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        parentId: { isNull: true }
+      }
+      status: { in: [QUEUED, RUNNING] }
+      stopRequestedAt: { isNull: true }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
   conversation_updateMany(
     where: {
       id: { eq: $id }
@@ -1806,18 +1827,27 @@ mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!
     }
     data: { deletedAt_expr: "request.time" }
   )
-  conversationRun_updateMany(
+  subagentRuns: conversationRun_updateMany(
     where: {
       conversation: {
-        id: { eq: $id }
+        parentId: { eq: $id }
         userId: { eq_expr: "auth.uid" }
         organizationId: { eq: $organizationId }
-        parentId: { isNull: true }
+        deletedAt: { isNull: true }
       }
-      status: { in: [QUEUED, RUNNING] }
+      status: { in: [QUEUED, RUNNING, PENDING] }
       stopRequestedAt: { isNull: true }
     }
     data: { stopRequestedAt_expr: "request.time" }
+  )
+  subagents: conversation_updateMany(
+    where: {
+      parentId: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
+    data: { deletedAt_expr: "request.time" }
   )
 }
 
@@ -1828,7 +1858,11 @@ mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!
 # A conversation brought back counts against the 1000 as a new one does, under the same lock: the
 # first step writes the caller's own membership, as starting a conversation does, so deleting one at
 # the cap, starting another and taking the delete back cannot keep 1001. Subagents count toward
-# neither, and a subagent's id is refused as gone, since only its parent is the member's to restore
+# neither, and a subagent's id is refused as gone, since only its parent is the member's to restore.
+#
+# The parent's subagents its delete took come back with it: those deleted at its own instant, which
+# the step reads before it restores the parent, and a `Timestamp` read back matches to the
+# microsecond. Those a retry deleted, at an instant of their own, stay deleted
 mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID!) @auth(level: USER) @transaction {
   userOrganization_update(
     key: { userId_expr: "auth.uid", organizationId: $organizationId }
@@ -1849,6 +1883,10 @@ mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID
     ) @check(expr: "size(this) < 1000", message: "Somebody keeps at most 1000 conversations in an organization") {
       id
     }
+    # When it was deleted, which its subagents deleted with it were deleted at too
+    deleted: conversation(id: $id) {
+      deletedAt
+    }
   }
   conversation_updateMany(
     where: {
@@ -1861,6 +1899,16 @@ mutation RestoreConversation($organizationId: UUID!, $userId: String!, $id: UUID
     }
     data: { deletedAt: null }
   ) @check(expr: "this == 1", message: "The conversation is gone for good")
+  subagents: conversation_updateMany(
+    where: {
+      parentId: { eq: $id }
+      userId: { eq_expr: "auth.uid" }
+      organizationId: { eq: $organizationId }
+      pruneClaimedAt: { isNull: true }
+      deletedAt: { eq_expr: "response.query.deleted.deletedAt" }
+    }
+    data: { deletedAt: null }
+  )
 }
 
 # Marks the caller's conversation read, setting `unreadCount` back to 0 once its page has shown

@@ -75,6 +75,25 @@ describe('buildConversationRequest', () => {
     ])
   })
 
+  test('asks a subagent’s own model at its own effort, with a task budget and its beta when it has one', () => {
+    const request = buildConversationRequest([{ role: 'user', content: 'Hello' }], {
+      ...CONFIG,
+      settings: { model: 'claude-sonnet-5-5', effort: 'low', taskBudget: 60000 },
+    })
+
+    expect(request).toMatchObject({
+      model: 'claude-sonnet-5-5',
+      betas: [
+        'thinking-display-updates-2026-08-18',
+        'thinking-binding-controls-2026-08-01',
+        'server-side-fallback-2026-07-01',
+        'task-budgets-2026-03-13',
+      ],
+      output_config: { effort: 'low', task_budget: { type: 'tokens', total: 60000 } },
+    })
+    expect(buildConversationRequest([], { ...CONFIG, settings: undefined }).output_config).toEqual({ effort: 'medium' })
+  })
+
   test('builds the next request as the last one’s bytes, then what follows', () => {
     const first = JSON.stringify(
       buildConversationRequest(

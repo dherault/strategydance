@@ -553,6 +553,9 @@ enum ConversationRunTrigger {
   # A subagent's run carrying on the one before it, which reached its limits and chained to it, on
   # the same anchor
   CONTINUE
+  # A parent's reaction to its subagents' reports, once every subagent of a batch has reported and
+  # the parent is idle: the first run no member started, on an entry holding the reports
+  REPORTS
 }
 
 # Where a run stands. Append a value; never reorder
@@ -691,6 +694,10 @@ type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"
   # the mutation that ends its run, however it ends
   report: String
   reportedAt: Timestamp
+  # When its report reached its parent's transcript: in the entry of a reaction, a send or an
+  # answer, or marked so with no run once its parent is full, since nothing would deliver it then.
+  # Null while it waits, and on a subagent that has not reported
+  reportDeliveredAt: Timestamp
   # A parent's: the subagents it launched and are not pruned yet, at most 100
   # (`MAX_CONVERSATION_SUBAGENTS`), which a launch moves on as its lock on the parent
   subagentCount: Int! @default(value: 0)

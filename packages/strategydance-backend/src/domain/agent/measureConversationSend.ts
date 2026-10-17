@@ -3,7 +3,7 @@ import type { BetaContentBlockParam, BetaMessageParam } from '@anthropic-ai/sdk/
 import type { ClaudeClient, ConversationContentBlock } from '~types'
 
 import { type ConversationRequestConfig, buildConversationMessages } from '~domain/agent/buildConversationRequest'
-import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
+import { CONVERSATION_REQUEST_SETTINGS } from '~domain/agent/conversationRequestSettings'
 import { countConfigTokens, findStartingRequest, sumRequest } from '~domain/agent/measureConversationRequest'
 import replaceConversationFiles, { type ConversationFileTokens } from '~domain/agent/replaceConversationFiles'
 import type { ConversationRunUsage } from '~domain/conversations/conversationRunUsage'
@@ -61,7 +61,7 @@ async function measureConversationSend({
       fileTokens,
     )
     const inputTokens = await client.countTokens({
-      model: CONVERSATION_MODEL,
+      model: (requestConfig.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
       system: requestConfig.system,
       tools: requestConfig.tools,
       messages: counted.messages,
@@ -77,7 +77,7 @@ async function measureConversationSend({
   const counted = replaceConversationFiles(following, fileTokens)
   const texts = counted.messages.flatMap(readTexts)
   const textTokens = await client.countTokens({
-    model: CONVERSATION_MODEL,
+    model: (requestConfig.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
     messages: [{ role: 'user', content: texts.map(text => ({ type: 'text' as const, text })) }],
   })
 

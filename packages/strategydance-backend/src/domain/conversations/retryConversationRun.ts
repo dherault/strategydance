@@ -18,6 +18,7 @@ import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
+import stopConversationSubagents from '~domain/subagents/stopConversationSubagents'
 
 // How many times a retry reads where the conversation stands and tries, before it gives up
 const MAX_ROUNDS = 4
@@ -51,7 +52,12 @@ export type RetryConversationRunResult =
   answers the anchor again, with a context message of its own. It is never refused for a full
   conversation, since it gives back the room the runs took, and marks the conversation full no
   longer: the run measures again before its request. Answers with the runs whose messages went, which
-  the page drops from every page it holds. Each round reads where things stand first:
+  the page drops from every page it holds.
+
+  The live subagents the runs it cuts launched, those on the anchor, are asked to stop and deleted in
+  the same write, at an instant of their own, so restoring the conversation never brings them back,
+  and their runs queued or waiting for a slot are ended right after (`stopConversationSubagents`):
+  their reports are never delivered, and what they wrote stays written. Each round reads where things stand first:
 
   - a retry sent again after its first try went through finds the run it started right after the
     one it retries, and is answered with it, queued again while it waits
@@ -161,6 +167,12 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
 
       continue
     }
+
+    await stopConversationSubagents(
+      { organizationId, userId, conversationId },
+      { anchorPosition: latest.anchorPosition },
+      { isAsked: true },
+    )
 
     if (!(await enqueueRun({ ...reference, runId: retryingRunId }, 'conversation-runs')))
       return { outcome: 'unavailable' }

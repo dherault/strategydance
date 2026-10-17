@@ -20,6 +20,7 @@ const outputSchema = z.object({
       startedAt: z.string(),
       endedAt: z.string().nullable(),
       hasReport: z.boolean(),
+      isReportDelivered: z.boolean(),
     }),
   ),
   cursor: z.string().optional(),
@@ -32,7 +33,7 @@ function registerListSubagents(server: McpServer, { caller }: SubagentsToolConte
     {
       title: 'List subagents',
       description:
-        "Lists the subagents this conversation launched, newest first: each one's id, title, status (QUEUED, WAITING_FOR_SLOT for one of the member's five that run at once, WORKING, REPORTED, STOPPED, FAILED or INTERRUPTED), when it started and when it ended, and whether its report is written, which read_subagent reads. Up to 20 a page, with a `cursor` while more remain: send it back to read the next page. A subagent a retry discarded is not listed.",
+        "Lists the subagents this conversation launched, newest first: each one's id, title, status (QUEUED, WAITING_FOR_SLOT for one of the member's five that run at once, WORKING, REPORTED, STOPPED, FAILED or INTERRUPTED), when it started and when it ended, whether its report is written, which read_subagent reads, and whether it reached you already, with the other reports of its batch or with a message of the member's. Up to 20 a page, with a `cursor` while more remain: send it back to read the next page. A subagent a retry discarded is not listed.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },

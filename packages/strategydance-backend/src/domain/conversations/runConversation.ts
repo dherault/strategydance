@@ -25,6 +25,7 @@ import {
   renewConversationRunLease,
   storeConversationToolResults,
   tagConversationAspects,
+  getSubagentReactionContext,
 } from 'strategydance-database/backend'
 
 import type {
@@ -52,7 +53,7 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import type { ConversationRequestConfig } from '~domain/agent/buildConversationRequest'
 import buildConversationTools from '~domain/agent/buildConversationTools'
-import buildSubagentTools from '~domain/agent/buildSubagentTools'
+import buildSubagentTools, { isSubagentTool } from '~domain/agent/buildSubagentTools'
 import checkTranscript from '~domain/agent/checkTranscript'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
@@ -60,6 +61,7 @@ import createConversationIntegrationRunners from '~domain/agent/createConversati
 import planConversationToolCalls, { type ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
 import SUBAGENT_REPORT_REQUEST from '~domain/agent/subagentReportRequest'
+import readSubagentRequestSettings from '~domain/agent/subagentRequestSettings'
 import SUBAGENT_SYSTEM_PROMPT from '~domain/agent/subagentSystemPrompt'
 import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 import buildConversationToolResults from '~domain/conversations/buildConversationToolResults'
@@ -88,6 +90,8 @@ import runConversationToolCalls from '~domain/conversations/runConversationToolC
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import storeConversationParts from '~domain/conversations/storeConversationParts'
 import deriveChainedRunId from '~domain/subagents/deriveChainedRunId'
+import { isWaitingReport } from '~domain/subagents/findDueSubagentReports'
+import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
 
 // How many steps a run takes at most, each a request, a message drawn or its end. A run draws at
 // most 100 entries before it sends no further request, so only a loop that would never end reaches it
@@ -246,11 +250,18 @@ async function runConversation(
       limits: { ...LIMITS, ...limits },
       stopCheckIntervalMs,
       config: isSubagent
-        ? { system: SUBAGENT_SYSTEM_PROMPT, tools: buildSubagentTools(modules.tools) }
+        ? {
+            system: SUBAGENT_SYSTEM_PROMPT,
+            tools: buildSubagentTools(modules.tools),
+            settings: readSubagentRequestSettings(),
+          }
         : { system: CONVERSATION_SYSTEM_PROMPT, tools: buildConversationTools(modules.tools) },
       // The integration tools' runners always, whatever the organization added, so a turn is planned
-      // the same by whoever takes it over. A subagent is sent none of their tools
-      runners: isSubagent ? modules.runners : [...createIntegrationRunners(fence), ...modules.runners],
+      // the same by whoever takes it over. A subagent is sent none of their tools, nor the module
+      // tools it never gets, so a call to one is planned as a call to a tool nobody runs
+      runners: isSubagent
+        ? modules.runners.filter(runner => isSubagentTool(runner.name))
+        : [...createIntegrationRunners(fence), ...modules.runners],
       toolTimeoutMs,
       isSubagent,
     })
@@ -403,6 +414,7 @@ async function takeStep({
       lease,
       position,
       isSubagent,
+      parentId: context.conversation?.parentId ?? null,
       chain: readChain(context, isSubagent, pendingToolResults),
     })
   }
@@ -540,21 +552,24 @@ async function takeStep({
         pending: ran.pending,
         skipsQuestions: false,
       })
+      /*
+        A run an answer started that stores the results of a turn another run drew carried a waiting
+        turn on to make the calls its member allowed, and is anchored on those results from then on,
+        as a run its answers' entry started is: checked first, as that entry is checked before it is
+        stored. Its entry is the answer's, so it carries the reports of the conversation's subagents
+        waiting after the results, as an answer's entry does. A resume carries on the turn of the run
+        it resumes too, and keeps that run's anchor
+      */
+      const isReanchored =
+        run?.trigger === ConversationRunTrigger.ANSWER
+        && toCanonicalUuid(entry.run?.id ?? '') !== toCanonicalUuid(fence.runId)
+      const reports = isReanchored ? await readWaitingReports(fence) : { ids: [], blocks: [] }
       // A subagent's last request, when it follows the results, asks for its report, calling nothing
       const isLastRequestNext =
         isSubagent && run?.number === MAX_SUBAGENT_RUNS - 1 && usage.requests.length === limits.maxRequests - 1
       const content = isLastRequestNext
         ? [...results, { type: 'text' as const, text: SUBAGENT_REPORT_REQUEST }]
-        : results
-      /*
-        A run an answer started that stores the results of a turn another run drew carried a waiting
-        turn on to make the calls its member allowed, and is anchored on those results from then on,
-        as a run its answers' entry started is: checked first, as that entry is checked before it is
-        stored. A resume carries on the turn of the run it resumes too, and keeps that run's anchor
-      */
-      const isReanchored =
-        run?.trigger === ConversationRunTrigger.ANSWER
-        && toCanonicalUuid(entry.run?.id ?? '') !== toCanonicalUuid(fence.runId)
+        : [...results, ...reports.blocks]
 
       if (isReanchored) {
         checkTranscript(
@@ -573,6 +588,7 @@ async function takeStep({
           position: entry.position + 1,
           content: serializeTranscriptContent(content),
           ...(isReanchored && { anchorPosition: entry.position + 1 }),
+          deliveredSubagentIds: reports.ids,
         }),
       )
 
@@ -659,6 +675,7 @@ async function writeOutcome({ outcome, context, fence, lease, isSubagent }: Writ
       lease,
       position: context.conversation?.nextMessagePosition ?? 0,
       isSubagent,
+      parentId: context.conversation?.parentId ?? null,
       chain: readChain(context, isSubagent, null),
     })
   }
@@ -892,6 +909,7 @@ async function interruptBeforeClaiming(
         lease: null,
         position: context.conversation?.nextMessagePosition ?? 0,
         isSubagent,
+        parentId: context.conversation?.parentId ?? null,
       })
 
       return 'finished'
@@ -926,6 +944,20 @@ function toReference({ organizationId, userId, conversationId, runId }: Conversa
 
 function isInFlight(status: ConversationRunStatus) {
   return status === ConversationRunStatus.QUEUED || status === ConversationRunStatus.RUNNING
+}
+
+// The reports of a conversation's subagents waiting to be delivered, each one JSON block, which an
+// answer's entry carries after its results, and their subagents, which its write marks delivered
+async function readWaitingReports(fence: ConversationRunFence) {
+  const { data } = await getSubagentReactionContext(dataConnect, {
+    organizationId: fence.organizationId,
+    userId: fence.userId,
+    conversationId: fence.conversationId,
+  })
+  const waiting = data.subagents.filter(isWaitingReport)
+  const blocks = await readSubagentReportBlocks(fence, waiting)
+
+  return { ids: waiting.map(({ id }) => toCanonicalUuid(id)), blocks }
 }
 
 function isPast(time: string | null | undefined) {

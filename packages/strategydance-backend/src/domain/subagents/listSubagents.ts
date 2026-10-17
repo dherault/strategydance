@@ -28,6 +28,9 @@ export type ListedSubagent = {
   // When its last run ended, which its report is written at however it ended
   endedAt: string | null
   hasReport: boolean
+  // Whether its report reached the conversation, in a reaction's entry or a member's message, or was
+  // marked so once the conversation was full
+  isReportDelivered: boolean
 }
 
 export type ListSubagentsResult = { outcome: 'listed'; subagents: ListedSubagent[]; cursor?: string } | SubagentsRefusal
@@ -78,6 +81,7 @@ async function listSubagents(caller: ModuleCaller, { cursor }: { cursor?: string
       startedAt: subagent.createdAt,
       endedAt: subagent.reportedAt ?? null,
       hasReport: Boolean(subagent.reportedAt),
+      isReportDelivered: Boolean(subagent.reportDeliveredAt),
     })),
     ...(last
       && remaining.length > PAGE_SIZE && {

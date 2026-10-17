@@ -179,6 +179,36 @@ describe('runConversation, for a subagent', () => {
     expect(kit.readConversation(subagent)?.isAwaitingAnswer ?? false).toBe(false)
   })
 
+  test('refuses a delete it was never sent, drawn as a failed call, the task left as it was', async () => {
+    const { subagent } = await launch()
+    const task = fake.modules.insertTask({ organizationId: ORGANIZATION_ID, name: 'Draft the launch post' })
+    const scripted = kit.createClient([
+      answer(
+        [
+          {
+            type: 'tool_use',
+            id: 'toolu_delete',
+            name: 'delete_task',
+            input: { id: task.id },
+            caller: { type: 'direct' },
+          },
+        ],
+        { stopReason: 'tool_use' },
+      ),
+      answer(),
+    ])
+
+    expect(await runConversation(subagent, { client: scripted.client })).toBe('finished')
+
+    const toolNames = (readRequest(scripted.requests).tools ?? []).map(tool => ('name' in tool ? tool.name : tool.type))
+
+    expect(toolNames).not.toContain('delete_task')
+    expect(toolNames).not.toContain('delete_document')
+    expect(toolNames).not.toContain('launch_subagent')
+    expect(kit.readThread(subagent)[1]).toMatchObject({ toolName: 'delete_task', toolStatus: 'FAILED' })
+    expect(fake.modules.tasks.get(task.id)?.deletedAt ?? null).toBeNull()
+  })
+
   test('fails at its limits on its fourth run, with a report saying so, after the text it had', async () => {
     const { subagent } = await launch()
     const run = kit.readRun(subagent)
@@ -212,7 +242,10 @@ describe('runConversation, for a subagent', () => {
   })
 
   test('writes its report however its run ends, how it ended first, or alone when it drew no reply', async () => {
-    const failed = await launch()
+    // One parent, which the first report's reaction keeps busy, so the reports after it wait
+    const parent = await startParent()
+    const launchOne = async () => ({ subagent: await kit.launch(parent) })
+    const failed = await launchOne()
 
     await runConversation(failed.subagent, {
       client: kit.createClient([
@@ -222,14 +255,14 @@ describe('runConversation, for a subagent', () => {
 
     expect(readReport(failed.subagent)).toBe('This subagent failed before it finished.')
 
-    const refused = await launch()
+    const refused = await launchOne()
 
     await runConversation(refused.subagent, { client: kit.createClient([refusal()]).client })
 
     expect(kit.readRun(refused.subagent)?.status).toBe('REFUSED')
     expect(readReport(refused.subagent)).toBe('This subagent stopped before it finished: Claude declined to go on.')
 
-    const stopped = await launch()
+    const stopped = await launchOne()
     const stoppedRun = kit.readRun(stopped.subagent)
 
     if (stoppedRun) stoppedRun.stopRequestedAt = new Date().toISOString()
@@ -240,7 +273,7 @@ describe('runConversation, for a subagent', () => {
     // Its brief is no reply of its own
     expect(readReport(stopped.subagent)).toBe('This subagent was stopped before it finished.')
 
-    const full = await launch()
+    const full = await launchOne()
     const fullConversation = kit.readConversation(full.subagent)
 
     if (fullConversation) fullConversation.messageCount = MAX_CONVERSATION_MESSAGES
@@ -249,7 +282,7 @@ describe('runConversation, for a subagent', () => {
 
     expect(readReport(full.subagent)).toBe('This subagent stopped before it finished: its conversation was full.')
 
-    const deleted = await launch()
+    const deleted = await launchOne()
     const deletedConversation = kit.readConversation(deleted.subagent)
 
     if (deletedConversation) deletedConversation.deletedAt = new Date().toISOString()

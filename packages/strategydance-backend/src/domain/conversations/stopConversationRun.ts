@@ -5,8 +5,8 @@ import {
   ConversationNoteKind,
   ConversationRunStatus,
   getConversationRunContext,
-  requestConversationRunStop,
-  stopQueuedConversationRun,
+  requestConversationRunStopWithSubagents,
+  stopQueuedConversationRunWithSubagents,
 } from 'strategydance-database/backend'
 
 import type { ConversationRunReference } from '~types'
@@ -16,6 +16,8 @@ import { dataConnect } from '~firebase'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
+import startDueSubagentReactions from '~domain/subagents/startDueSubagentReactions'
+import stopConversationSubagents from '~domain/subagents/stopConversationSubagents'
 
 // How many times a stop reads where its run stands and tries, before the caller is told it could not
 const MAX_TRIES = 4
@@ -37,6 +39,11 @@ type Options = {
   - a run a worker holds is asked to stop: the worker reads it before its next request and every two
     seconds while one streams, then ends the run stopped, with its note
 
+  The live subagents launched on the run's anchor, the action the member stops, are asked to stop in
+  the same write, after the conversation's row, and their runs queued or waiting for a slot ended at
+  once (`stopConversationSubagents`), whatever the run's own end: a fan-out an earlier message
+  started goes on, which Stop all reaches.
+
   A queued run a worker claimed between the read and the stop, or a note at a counter something
   moved, is read again
 */
@@ -56,30 +63,42 @@ async function stopConversationRun(
       return { outcome: 'stopped' }
     }
 
+    const { anchorPosition } = run
+
     // A queued run past its lease that is still coming is stopped as any queued run is
     if (isDeadConversationRun(run) && (await finalizeDeadConversationRun(reference, 'conversation-runs')) !== 'alive') {
+      await stopConversationSubagents(reference, { anchorPosition })
+
       return { outcome: 'stopped' }
     }
 
     try {
       if (run.status === ConversationRunStatus.QUEUED) {
-        await stopQueuedConversationRun(dataConnect, {
+        await stopQueuedConversationRunWithSubagents(dataConnect, {
           ...reference,
           noteId: deriveConversationMessageId(reference.runId, 'note'),
           position: data.conversation.nextMessagePosition,
           preview: buildConversationPreview({ kind: 'NOTE', noteKind: ConversationNoteKind.STOPPED }),
+          anchorPosition,
         })
       } else {
         // Asked already, or ended meanwhile, either of which is as good
-        await requestConversationRunStop(dataConnect, reference)
+        await requestConversationRunStopWithSubagents(dataConnect, { ...reference, anchorPosition })
       }
-
-      return { outcome: 'stopped' }
     } catch (error) {
       if (tries === MAX_TRIES) throw error
 
       await wait(tries * retryDelayMs)
+
+      continue
     }
+
+    await stopConversationSubagents(reference, { anchorPosition }, { isAsked: true })
+
+    // One of the member's 3 is free when a queued run ended, which a reaction held back by them takes
+    if (run.status === ConversationRunStatus.QUEUED) await startDueSubagentReactions(reference)
+
+    return { outcome: 'stopped' }
   }
 }
 

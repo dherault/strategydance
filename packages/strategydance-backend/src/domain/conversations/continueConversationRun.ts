@@ -13,12 +13,15 @@ import type { ConversationRunReference } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import toCanonicalUuid from '~utils/toCanonicalUuid'
+
 import { STOPPED_CALL_RESULT, toFailedOutput } from '~domain/conversations/conversationToolResults'
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
 import readConversationOpenCalls from '~domain/conversations/readConversationOpenCalls'
+import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
 
 // How many times a continuation reads where the conversation stands and tries, before it gives up
 const MAX_ROUNDS = 4
@@ -47,10 +50,12 @@ export type ContinueConversationRunResult =
   - a question still waits: nothing starts
   - a run of the caller's in flight past its lease died with its worker, and is finalized before
     they are counted, and with 3 in flight nothing starts: the page's reconcile tries again
-  - then the entry answering the turn is built and checked, and the run started. When the member
-    allowed a call of the turn, which has not run, nothing can answer the turn yet: the run starts
-    with no entry, carrying the turn on as a resumed run does, makes the calls allowed, then stores
-    the entry itself, and the calls a stop kept from running are answered as stopped
+  - then the entry answering the turn is built and checked, and the run started, carrying after
+    every result, the answers' included, the reports of the conversation's subagents waiting, which
+    it marks delivered, as a send carries them. When the member allowed a call of the turn, which has
+    not run, nothing can answer the turn yet: the run starts with no entry, carrying the turn on as a
+    resumed run does, makes the calls allowed, then stores the entry itself, with the reports waiting
+    then, and the calls a stop kept from running are answered as stopped
 
   A write refused anyway, because an answer, a send or a run got there in between, starts another
   round
@@ -107,9 +112,17 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'waiting' }
 
     const [lastEntry] = data.conversationTranscriptEntries
+    // After every result, as a send carries them; a run carrying allowed calls on stores its own
+    const reports = data.waitingReports.length
+      ? await readSubagentReportBlocks(
+          { organizationId, userId, membershipCreatedAt: membership.createdAt },
+          data.waitingReports,
+        )
+      : []
     const answering = await readConversationOpenCalls(reference, lastEntry, {
       membershipCreatedAt: membership.createdAt,
       skipsQuestions: false,
+      follows: reports,
     })
 
     if (!answering || !lastEntry) throw new Error(`Conversation ${conversationId} waits on a turn that called nothing`)
@@ -139,6 +152,7 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
           ...started,
           content: answering.content,
           transcriptPosition: lastEntry.position + 1,
+          deliveredSubagentIds: data.waitingReports.map(({ id }) => toCanonicalUuid(id)),
         })
       }
     } catch (error) {

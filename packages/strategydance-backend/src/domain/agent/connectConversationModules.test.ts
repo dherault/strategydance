@@ -74,7 +74,7 @@ afterEach(async () => {
 })
 
 describe('connectConversationModules', () => {
-  it('connects without an initialize handshake, listing the Knowledge module’s tools, then the Tasks module’s', async () => {
+  it('connects without an initialize handshake, listing the Knowledge module’s tools, then the Tasks module’s and the Subagents module’s', async () => {
     const { tools, runners } = await connect()
 
     expect(requests.map(({ method }) => method)).not.toContain('initialize')
@@ -96,6 +96,10 @@ describe('connectConversationModules', () => {
       'remove_task_dependency',
       'delete_task',
       'restore_task',
+      'list_subagents',
+      'read_subagent',
+      'launch_subagent',
+      'stop_subagent',
     ])
     expect(runners.filter(({ isReadOnly }) => isReadOnly).map(({ name }) => name)).toEqual([
       'search_documents',
@@ -103,6 +107,8 @@ describe('connectConversationModules', () => {
       'read_document',
       'list_tasks',
       'read_task',
+      'list_subagents',
+      'read_subagent',
     ])
 
     for (const tool of tools) {

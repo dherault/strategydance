@@ -24,6 +24,8 @@ function toSentence(refusal: TasksRefusal) {
       return 'The member is no longer in this organization, so its tasks are closed to you.'
     case 'readOnly':
       return 'This connection may only read tasks. Ask the member to connect again with write access to change them.'
+    case 'fromReaction':
+      return "This run reacts to subagents' reports, and deletes nothing. Ask the member with ask_user whether the task should go: the run their answer starts can delete it."
     case 'notFound':
       return 'No task on the board has that id. List the tasks to find it: a deleted task is not on the board.'
     case 'assigneeNotMember':
@@ -32,6 +34,8 @@ function toSentence(refusal: TasksRefusal) {
       return `The board holds ${MAX_TASKS} tasks, the most it keeps. Tell the member, who can delete one first.`
     case 'changed':
       return "The task's description changed since you read it. Read it again first."
+    case 'moved':
+      return `The task is no longer where you read it: somebody moved it to ${refusal.status} since. Read it again, and leave it be when somebody else took it up.`
     case 'versionRequired':
       return 'Replacing a description takes the version read_task gave. Read the task first, then send its version.'
     case 'descriptionTooLong':

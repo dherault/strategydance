@@ -23,7 +23,10 @@ import type { ConversationContentBlock } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import toCanonicalUuid from '~utils/toCanonicalUuid'
+
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
+import buildConversationFileNames from '~domain/agent/buildConversationFileNames'
 import {
   UNAPPROVED_CALL_RESULT,
   UNRUN_ALLOWED_CALL_RESULT,
@@ -38,6 +41,7 @@ import measureConversationMessage from '~domain/conversations/measureConversatio
 import readConversationOpenCalls from '~domain/conversations/readConversationOpenCalls'
 import readConversationSendAttachments from '~domain/conversations/readConversationSendAttachments'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
+import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
 
 // How many times a send reads where the conversation stands and tries, before it gives up
 const MAX_ROUNDS = 4
@@ -102,15 +106,23 @@ type SendConversationMessageResult =
   its answer, or skipped, and a call by its result, or as stopped or interrupted. A run waiting on
   its questions is consumed, so an answer's continuation and the send never both carry it on.
 
+  The reports of the conversation's subagents waiting to be delivered go into the entry after every
+  result of the turn and before the member's files and text, those of a batch still working
+  included, each one JSON block (`readSubagentReportBlocks`), and are marked delivered with the
+  message, exactly those read: a member's message is where they hear of everything so far, and the
+  reaction a batch's completion starts carries its remaining reports alone.
+
   A message that starts the conversation starts it with the aspects the member picked on the draft,
   as the member's, so the agent never tags it, and a later one leaves them as they are.
 
   A message with files, only once nothing above refuses it: the files have to be the caller's in this
   conversation, stored and not sent, and the conversation to have room for them, its files, images,
   bytes and PDF pages counted, then the request they lead to measured under 700000 input tokens. Its
-  entry holds the files before its text, each referencing its file in the Files API, and they are
-  copied into the conversation's folder before the message is stored, which sets each one's message.
-  A message of files alone holds no text, and a conversation it starts is titled after its first file.
+  entry holds the files before its text, each referencing its file in the Files API, after a text
+  block naming each with its id (`buildConversationFileNames`), by which the agent hands one to a
+  subagent. They are copied into the conversation's folder before the message is stored, which sets
+  each one's message. A message of files alone holds no text of the member's, and a conversation it
+  starts is titled after its first file.
 
   A run whose task could not be queued leaves the send stored, and answered `unavailable`.
 
@@ -201,7 +213,17 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
     if (files.outcome === 'overBudget') return files
 
     const { attachments } = files
+    // Read only for a conversation that is, since a new one has no subagent
+    const reports = conversation
+      ? await readSubagentReportBlocks(
+          { organizationId, userId, membershipCreatedAt: membership.createdAt },
+          data.waitingReports,
+        )
+      : []
     const follows: ConversationContentBlock[] = [
+      ...reports,
+      // Named first, so the agent can hand one to a subagent by its id
+      ...(attachments.length ? [buildConversationFileNames(attachments)] : []),
       ...attachments.map(attachment =>
         buildConversationAttachmentBlock(attachment, { fileId: attachment.claudeFileId }),
       ),
@@ -266,6 +288,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
           position: conversation.nextMessagePosition,
           runNumber: conversation.nextRunNumber,
           transcriptPosition: lastEntry ? lastEntry.position + 1 : 0,
+          deliveredSubagentIds: data.waitingReports.map(({ id }) => toCanonicalUuid(id)),
         }
 
         if (answering) {

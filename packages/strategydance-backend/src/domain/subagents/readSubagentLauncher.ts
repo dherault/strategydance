@@ -1,4 +1,8 @@
-import { ConversationRunStatus, getSubagentLauncherForAgent } from 'strategydance-database/backend'
+import {
+  ConversationRunStatus,
+  ConversationRunTrigger,
+  getSubagentLauncherForAgent,
+} from 'strategydance-database/backend'
 
 import type { ModuleCaller } from '~types'
 
@@ -7,8 +11,9 @@ import { dataConnect } from '~firebase'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 export type SubagentLauncherRead =
-  // The run calling is still running and not asked to stop: a launch from it is made on its anchor
-  | { outcome: 'running'; conversationId: string; runId: string; anchorPosition: number }
+  // The run calling is still running and not asked to stop: a launch from it is made on its anchor,
+  // unless it reacts to subagents' reports, which launches nothing, though it reads and stops
+  | { outcome: 'running'; conversationId: string; runId: string; anchorPosition: number; isReaction: boolean }
   // The caller names no run calling, as everything but a worker that claimed one
   | { outcome: 'noLauncher' }
   // The caller is no longer the member the module was built for
@@ -49,7 +54,13 @@ async function readSubagentLauncher(caller: ModuleCaller): Promise<SubagentLaunc
     return { outcome: 'launcherEnded' }
   }
 
-  return { outcome: 'running', conversationId, runId, anchorPosition: run.anchorPosition }
+  return {
+    outcome: 'running',
+    conversationId,
+    runId,
+    anchorPosition: run.anchorPosition,
+    isReaction: run.trigger === ConversationRunTrigger.REPORTS,
+  }
 }
 
 export default readSubagentLauncher

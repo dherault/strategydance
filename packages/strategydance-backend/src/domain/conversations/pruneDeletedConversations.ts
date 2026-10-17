@@ -3,6 +3,9 @@ import {
   deleteClaimedConversations,
   deleteConversationModuleCallResults,
   getClaimedConversations,
+  getClaimedSubagents,
+  getConversationsWithSubagents,
+  pruneClaimedSubagents,
 } from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
@@ -14,6 +17,9 @@ import deleteClaimedConversationAttachments from '~domain/conversations/deleteCl
 
 // How many claimed conversations `GetClaimedConversations` reads at a time, its `limit`
 const BATCH_SIZE = 20
+
+// How many claimed subagents `GetClaimedSubagents` reads at a time, its `limit`
+const SUBAGENT_BATCH_SIZE = 100
 
 // How long one sweep deletes batches for at most, so it ends in bounded time, well inside the 15
 // minutes its request has with the sweep's other prunes after it: what is left goes the next day.
@@ -30,7 +36,14 @@ const MAX_DURATION_MS = 5 * 60 * 1000
   then deletes what is claimed, a batch at a time: each conversation's files, in Storage and the Files
   API, and their rows, found by the conversation, its author and its organization, since nothing
   references the conversation from them; what its module calls stored under their keys, found by its
-  scope for the same reason; then the conversations. A conversation whose files could not all be
+  scope for the same reason; then the conversations.
+
+  Subagents go first, each parent's together, with what their module calls stored under their own
+  scope, before any parent, since a parent's deletion nulls their `parent` and would leave each a
+  conversation of its own: their parent's `subagentCount` is lowered by as many in the write that
+  deletes them, so a parent whose retries left it at 100 launches again once they are gone. A
+  subagent's files are its parent's, which go with it. A subagent is claimed only once no run holds
+  it, and a parent still holding a subagent, claimed or not, is kept for the next sweep. A conversation whose files could not all be
   deleted is kept, still claimed, and every claimed conversation is deleted, whichever sweep claimed
   it, so a sweep that failed after claiming is finished by the next. Answers how many it claimed and
   deleted, and how many files and module call results went with them
@@ -46,8 +59,49 @@ async function pruneDeletedConversations() {
   const deadline = Date.now() + MAX_DURATION_MS
 
   while (Date.now() < deadline) {
+    const { data } = await getClaimedSubagents(dataConnect)
+    const byParent = new Map<string, string[]>()
+
+    for (const { id, parentId } of data.conversations) {
+      if (!parentId || kept.has(id)) continue
+
+      byParent.set(parentId, [...(byParent.get(parentId) ?? []), id])
+    }
+
+    if (!byParent.size) break
+
+    for (const [parentId, ids] of byParent) {
+      try {
+        const { data: results } = await deleteConversationModuleCallResults(dataConnect, {
+          scopes: ids.map(toConversationModuleScope),
+        })
+
+        await pruneClaimedSubagents(dataConnect, { parentId, ids, count: ids.length })
+
+        deletedResults += results.moduleCallResult_deleteMany
+        deleted += ids.length
+      } catch (error) {
+        logger.error(
+          `Conversation ${parentId}: its subagents could not be pruned, they are kept for the next sweep`,
+          error,
+        )
+
+        for (const id of ids) kept.add(id)
+      }
+    }
+
+    if (data.conversations.length < SUBAGENT_BATCH_SIZE) break
+  }
+
+  while (Date.now() < deadline) {
     const { data } = await getClaimedConversations(dataConnect)
     const ids: string[] = []
+    const { data: holding } = await getConversationsWithSubagents(dataConnect, {
+      ids: data.conversations.map(({ id }) => id),
+    })
+
+    // A parent whose subagents are still there, which deleting it would leave conversations of their own
+    for (const { parentId } of holding.conversations) if (parentId) kept.add(parentId)
 
     for (const conversation of data.conversations) {
       if (kept.has(conversation.id)) continue

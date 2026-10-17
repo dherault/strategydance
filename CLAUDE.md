@@ -136,7 +136,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. Each `--file`, an image, a PDF or a text file, a relative path read from the repository's root, is uploaded first and sent with it, the text then optional. `--organization <id or slug>` names the organization when the account is in several |
-| `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches a subagent of one of that account's conversations, or `--count` of them at once, up to 10, as Strategy Dance's agent will once the Subagents module does, handing each file named, one the conversation sent, runs them in its own process, past the account's five slots waiting for one, and prints each transcript and report once all have reported. A promotion runs the subagent it promotes in the process that freed the slot, so launch an account's subagents from one script, never from two side by side. It answers with the stand-in reply under `CONVERSATION_AGENT=placeholder`, and asks Claude otherwise, which costs money. It refuses to run anywhere but against the emulators |
+| `bun run measure:subagents [--configurations <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]` | Runs three short briefs as subagents on each model and effort weighed for subagents, from a throwaway account of the emulators, each priced from its ledger, a dollar a subagent and fifteen in all at most, and prints the table David chooses `SUBAGENT_REQUEST_SETTINGS` from. It asks Claude, which costs money, unless run under `CONVERSATION_AGENT=placeholder` |
+| `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches a subagent of one of that account's conversations, or `--count` of them at once, up to 10, as Strategy Dance's agent does through the Subagents module, handing each file named, one the conversation sent, runs them in its own process, past the account's five slots waiting for one, and prints each transcript and report once all have reported. A promotion runs the subagent it promotes in the process that freed the slot, so launch an account's subagents from one script, never from two side by side. It answers with the stand-in reply under `CONVERSATION_AGENT=placeholder`, and asks Claude otherwise, which costs money. It refuses to run anywhere but against the emulators |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's and `check:subagents-module` the Subagents module's |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
@@ -739,6 +740,46 @@ A conversation is kept twice, once for Claude and once for the page, and
   sweep (`sweepSubagentRuns`) reconcile a member's subagent runs (`reconcileSubagentRuns`): the dead
   ones finalized or queued again, the skipped ones ended, a hundred at a time until none is left,
   then a promotion
+- A parent reacts to its subagents' reports in a run of its own, triggered `REPORTS`, the first run
+  no member started (`reactToSubagentReports` in `domain/subagents/`): once every live subagent of a
+  batch, those its runs launched on one anchor, has reported and the parent is idle, its latest run
+  `COMPLETED` and nothing waiting. `StartSubagentReaction` takes the membership's lock, counts the
+  member's three runs, writes the parent's row under `activeRunId` null and the run number read, and
+  marks exactly the reports its entry carries delivered (`reportDeliveredAt`), so two subagents
+  ending at once start one reaction. Its entry holds one JSON block per report
+  (`buildSubagentReportBlock`, `{"subagentReport": {...}}`), which the thread draws as nothing, and
+  the run counts toward the three like any of the member's. A subagent's end starts its parent's;
+  any other run's end, the route-side ones included, starts the member's oldest due
+  (`startDueSubagentReactions`), its own conversation's first; the subagents' reconcile route and
+  the daily sweep (`sweepSubagentReactions`) start them too, the sweep every one. A new way to end a
+  member's run starts their reactions due after it. A reaction launches and deletes nothing:
+  `LaunchSubagentForAgent` refuses a `REPORTS` launcher, and `delete_document` and `delete_task` read
+  the caller's launcher (`isReactionCaller`) and refuse one, telling the agent to ask the member
+- A member's send carries every finished report not delivered yet, after the turn's results and
+  before the file names, files and text, those of a batch still working included, and an answer's
+  continuation, and the results entry an Allow's run stores, carry them after every result. Each
+  names exactly what it marks delivered, `$deliveredSubagentIds`, counted as `$attachmentIds` is,
+  and is always called with the list, empty when nothing waits, since a write leaving it out is
+  refused while a report waits. Resume and Retry carry none. A parent ended with the full note takes
+  no report: `FinishConversationRunFull` marks every report waiting delivered as it ends, and a
+  report that comes after is marked with no run (`MarkSubagentReportsDelivered`), from whatever reads
+  the parent full, the subagent's end, the reconcile or the sweep
+- Every write on a parent and its subagents keeps one lock order: the membership, the parent's runs,
+  the parent's row, its subagents' runs, then their rows, so whichever of a launch and a cascade
+  commits second sees the first. The parent's Stop asks its anchor's live subagents to stop in the
+  same write (`RequestConversationRunStopWithSubagents`, `StopQueuedConversationRunWithSubagents`),
+  Stop all and a row's Stop go through the parent's routes (`POST …/subagents/stop`, `POST
+  …/subagents/:subagentId/stop`), Retry stops and deletes the cut runs' subagents at an instant of
+  their own, and the web's `DeleteConversation` writes the parent's runs before its row, then its
+  live subagents at its own instant, which `RestoreConversation` brings back by, reading it through
+  `response`. Each that freed a slot ends the queued and waiting runs at once
+  (`stopConversationSubagents`) and promotes after. The sweep prunes a parent's subagents before it,
+  only once idle, lowering a remaining parent's `subagentCount` (`PruneClaimedSubagents`).
+  `check:conversation-runs` reads the order off the mutations themselves, since PGlite serializes
+  every race: a new write on a parent keeps it
+- A domain function hands an operation only the variables it declares: Data Connect refuses one it
+  does not, which the fakes let through, so pass a member as `{ organizationId, userId }`, never a
+  run reference that carries more
 - Until conversations launch, they are for administrators of Strategy Dance alone
   (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
   every page under an organization's `conversations/` sits behind the bouncer its layout route
@@ -752,7 +793,10 @@ A conversation is kept twice, once for Claude and once for the page, and
   (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
   token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
   two as `useCanUseConversations`, before it reads a consent request or offers the Connected agents
-  tab or a module's agents button
+  tab or a module's agents button. Launches have a gate of their own until M34's page reconciles a
+  parent's subagents, `IS_SUBAGENT_LAUNCH_GATED`, lifted on the development backend alone: under it
+  `launch_subagent` refuses, telling the agent to do the work itself, which the tests open in each
+  file that launches through the module, one test keeping it closed
 - The dock's windows are each member's in each organization, kept by `_ConversationDockProvider`
   under one persisted key, each set under `${userId}:${organizationId}`, since the key a persisted
   state reads is read once. A minimized window reads nothing but `GetDockConversations`, the
@@ -1278,7 +1322,12 @@ Modules says what each does and why.
   modules outgrew in M17: only the agent's own tools are strict, and
   `buildConversationTools.test.ts` holds them to those limits. A module's schema still has to be one
   the API takes: run `bun run probe:claude` whenever a module's tools change, since a list it
-  refuses fails every run
+  refuses fails every run. The connection carries the claimed run as the caller's `launcher`, which
+  the Subagents module reads; a send's or a launch's measurement connects without one. A subagent's
+  worker sends none of the Subagents module's tools nor the deletes, by name (`isSubagentTool`), and
+  plans a call to one as a call to a tool nobody runs. A subagent's requests carry settings of their
+  own, `SUBAGENT_REQUEST_SETTINGS` beside its tools, a model, an effort and a task budget, which a
+  change of is a change of its request alone
 - The agent keys each write with Claude's id for the call, under `conversation:<id>`, so a worker
   taking over or a Resume calling it again is answered from its key. Finalizing a dead run, and a send
   or a continuation answering its calls, read the key of each write it left started

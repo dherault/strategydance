@@ -74,7 +74,7 @@ describe('stopConversationRun', () => {
     const reference = await start()
 
     fake.beforeOperation = async name => {
-      if (name !== 'StopQueuedConversationRun') return
+      if (name !== 'StopQueuedConversationRunWithSubagents') return
 
       fake.beforeOperation = async () => {}
       await claim(reference)

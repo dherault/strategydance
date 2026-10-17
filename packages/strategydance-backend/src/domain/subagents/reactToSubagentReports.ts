@@ -1,0 +1,149 @@
+import { randomUUID } from 'node:crypto'
+
+import { MAX_ACTIVE_RUNS_PER_MEMBER } from 'strategydance-core'
+import {
+  ConversationNoteKind,
+  ConversationRunStatus,
+  getSubagentReactionContext,
+  markSubagentReportsDelivered,
+  startSubagentReaction,
+} from 'strategydance-database/backend'
+
+import type { ConversationRunReference } from '~types'
+
+import { dataConnect } from '~firebase'
+
+import toCanonicalUuid from '~utils/toCanonicalUuid'
+
+import enqueueRun from '~domain/conversations/enqueueRun'
+import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
+import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
+import findDueSubagentReports, { isWaitingReport } from '~domain/subagents/findDueSubagentReports'
+import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
+
+// How many times a reaction reads where its parent stands and tries, before it gives up
+const MAX_ROUNDS = 4
+
+export type SubagentReaction =
+  // A reaction's run started, or was, on the reports due, queued on `conversation-runs`
+  | { outcome: 'started'; runId: string }
+  // The reaction's run is stored, but could not be queued: its lease is brought in, and its parent's
+  // page or the sweep queues it again
+  | { outcome: 'unavailable'; runId: string }
+  // The member's 3 runs in flight are taken: the reports wait for the next of their runs to end, a
+  // reconcile, the sweep, or the member's next message
+  | { outcome: 'busy' }
+  // The parent is full: its waiting reports were marked delivered, with no run
+  | { outcome: 'delivered' }
+  // Nothing to react to yet: no report waits, a batch is still working, the parent is busy, waits on
+  // an answer, or its latest run did not complete
+  | { outcome: 'notDue' }
+  // The conversation is not the caller's, deleted or a subagent, or the caller no member
+  | { outcome: 'missing' }
+
+/*
+  Starts a parent's reaction to its subagents' reports, once one is due: every subagent of a batch
+  has reported, a batch being those its runs launched on one anchor less those a retry deleted, and
+  the parent is idle, its latest run completed, no question waiting. The reaction is a run of its
+  own, triggered `REPORTS`, the first run no member started, counted toward the member's 3 runs in
+  flight as any of theirs, its entry one block per report it delivers, of every batch complete
+  (`readSubagentReportBlocks`), which the mutation marks delivered as it starts the run. Each round
+  reads where things stand first:
+
+  - a parent whose latest run ended with the full note can neither react nor be sent to, so its
+    waiting reports are marked delivered with no run, which nothing else would deliver
+  - a run of the member's in flight past its lease died with its worker, and is finalized before
+    they are counted, and with 3 in flight nothing starts
+  - a write refused anyway, because a send, an answer, another subagent's end or a report delivered
+    got there in between, starts another round, which finds the parent busy or the reports delivered
+
+  Reached from a subagent's end, a parent's run ending, any run of the member's ending, the subagents'
+  reconcile route and the daily sweep
+*/
+async function reactToSubagentReports(parent: Omit<ConversationRunReference, 'runId'>): Promise<SubagentReaction> {
+  const { organizationId, userId } = parent
+  const conversationId = toCanonicalUuid(parent.conversationId)
+  const member = { organizationId, userId }
+
+  for (let round = 1; ; round++) {
+    const { data } = await getSubagentReactionContext(dataConnect, { organizationId, userId, conversationId })
+    const { userOrganization: membership, conversation } = data
+
+    if (
+      !membership
+      || !conversation
+      || conversation.userId !== userId
+      || toCanonicalUuid(conversation.organizationId) !== toCanonicalUuid(organizationId)
+      || conversation.deletedAt
+      || conversation.parentId
+    ) {
+      return { outcome: 'missing' }
+    }
+
+    const waiting = data.subagents.filter(isWaitingReport)
+
+    if (!waiting.length) return { outcome: 'notDue' }
+
+    const [latest] = data.latestRuns
+
+    try {
+      if (latest?.status === ConversationRunStatus.FAILED && latest.notes[0]?.noteKind === ConversationNoteKind.FULL) {
+        await markSubagentReportsDelivered(dataConnect, {
+          organizationId,
+          userId,
+          conversationId,
+          parentRunNumber: latest.number,
+          subagentIds: waiting.map(({ id }) => toCanonicalUuid(id)),
+        })
+
+        return { outcome: 'delivered' }
+      }
+
+      if (
+        conversation.activeRunId
+        || conversation.isAwaitingAnswer
+        || latest?.status !== ConversationRunStatus.COMPLETED
+      ) {
+        return { outcome: 'notDue' }
+      }
+
+      const due = findDueSubagentReports(data.subagents)
+
+      if (!due.length) return { outcome: 'notDue' }
+
+      // Read again once one has ended, which freed one of the member's runs
+      if (
+        (await finalizeDeadConversationRuns(member, data.conversationRuns, 'conversation-runs'))
+        && round < MAX_ROUNDS
+      )
+        continue
+
+      if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'busy' }
+
+      const blocks = await readSubagentReportBlocks({ ...member, membershipCreatedAt: membership.createdAt }, due)
+      const runId = randomUUID().replaceAll('-', '')
+
+      await startSubagentReaction(dataConnect, {
+        organizationId,
+        userId,
+        conversationId,
+        membershipCreatedAt: membership.createdAt,
+        runId,
+        runNumber: conversation.nextRunNumber,
+        content: serializeTranscriptContent(blocks),
+        transcriptPosition: (data.lastEntries[0]?.position ?? -1) + 1,
+        subagentIds: due.map(({ id }) => toCanonicalUuid(id)),
+      })
+
+      if (!(await enqueueRun({ ...parent, conversationId, runId }, 'conversation-runs'))) {
+        return { outcome: 'unavailable', runId }
+      }
+
+      return { outcome: 'started', runId }
+    } catch (error) {
+      if (round >= MAX_ROUNDS) throw error
+    }
+  }
+}
+
+export default reactToSubagentReports

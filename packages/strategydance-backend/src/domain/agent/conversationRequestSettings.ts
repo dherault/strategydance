@@ -18,6 +18,27 @@ export const CONVERSATION_BETAS = [
   'server-side-fallback-2026-07-01',
 ] as const
 
+/*
+  What a run's requests are answered by: the model, the effort it thinks at, and the task budget it
+  paces a loop by, in tokens, which none takes but a subagent measured with one. A conversation's
+  are today's, and a subagent's its own (`SUBAGENT_REQUEST_SETTINGS`), since its thinking is bound
+  to its own conversation and its cached prefix shared with other subagents alone
+*/
+export type ConversationRequestSettings = {
+  model: string
+  effort: 'low' | 'medium' | 'high'
+  taskBudget: number | null
+}
+
+export const CONVERSATION_REQUEST_SETTINGS: ConversationRequestSettings = {
+  model: CONVERSATION_MODEL,
+  effort: 'medium',
+  taskBudget: null,
+}
+
+// The beta a request with a task budget takes besides the others
+export const TASK_BUDGET_BETA = 'task-budgets-2026-03-13'
+
 // How many times a turn web search's server-side loop paused is sent back to carry on
 export const MAX_CONVERSATION_PAUSES = 5
 

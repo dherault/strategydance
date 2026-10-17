@@ -2121,6 +2121,14 @@
         "hash": "8152483c9f173472",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.launchSubagent.done": {
+        "hash": "27913bed96337c7f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.launchSubagent.running": {
+        "hash": "f9e57681c290b67d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.linkTasks.done": {
         "hash": "d24cd134aa3eecd3",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2145,6 +2153,14 @@
         "hash": "ec3949d2f18fd1b8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.listSubagents.done": {
+        "hash": "3d89ca49bb3999d3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listSubagents.running": {
+        "hash": "211711354443df2c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.listTasks.done": {
         "hash": "bd244ddcc02ce242",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2159,6 +2175,14 @@
       },
       "conversation.tool.readKnowledge.running": {
         "hash": "64c2f903f021241f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readSubagent.done": {
+        "hash": "32bac3cbbeae3914",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readSubagent.running": {
+        "hash": "6494176f4efcbfa5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.readTask.done": {
@@ -2191,6 +2215,14 @@
       },
       "conversation.tool.searchKnowledge.running": {
         "hash": "ad4aa23eae02d820",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.stopSubagent.done": {
+        "hash": "7efc38c7a3c08815",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.stopSubagent.running": {
+        "hash": "0d8d92650a40f7f7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.tagKnowledge.done": {

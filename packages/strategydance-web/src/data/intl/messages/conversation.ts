@@ -546,6 +546,54 @@ const conversationMessages = defineMessages({
     description:
       "What the AI did once it used one of the organization's integrations, the service of another company connected to Strategy Dance, when the service's name is not known. Past tense.",
   },
+  toolListSubagentsRunning: {
+    id: 'conversation.tool.listSubagents.running',
+    defaultMessage: 'Listing subagents',
+    description:
+      'What the AI is doing while it looks at the subagents it launched in this conversation, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back.',
+  },
+  toolListSubagentsDone: {
+    id: 'conversation.tool.listSubagents.done',
+    defaultMessage: 'Listed subagents',
+    description:
+      'What the AI did once it looked at the subagents it launched in this conversation, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back. Past tense.',
+  },
+  toolReadSubagentRunning: {
+    id: 'conversation.tool.readSubagent.running',
+    defaultMessage: 'Reading a subagent’s work',
+    description:
+      'What the AI is doing while it reads what one of its subagents did and reported, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back.',
+  },
+  toolReadSubagentDone: {
+    id: 'conversation.tool.readSubagent.done',
+    defaultMessage: 'Read a subagent’s work',
+    description:
+      'What the AI did once it read what one of its subagents did and reported, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back. Past tense.',
+  },
+  toolLaunchSubagentRunning: {
+    id: 'conversation.tool.launchSubagent.running',
+    defaultMessage: 'Launching a subagent',
+    description:
+      'What the AI is doing while it hands one piece of work to a subagent, a helper that works on its own, in parallel with others, and reports back.',
+  },
+  toolLaunchSubagentDone: {
+    id: 'conversation.tool.launchSubagent.done',
+    defaultMessage: 'Launched a subagent',
+    description:
+      'What the AI did once it handed one piece of work to a subagent, a helper that works on its own, in parallel with others, and reports back. Past tense.',
+  },
+  toolStopSubagentRunning: {
+    id: 'conversation.tool.stopSubagent.running',
+    defaultMessage: 'Stopping a subagent',
+    description:
+      'What the AI is doing while it stops one of its subagents, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back.',
+  },
+  toolStopSubagentDone: {
+    id: 'conversation.tool.stopSubagent.done',
+    defaultMessage: 'Stopped a subagent',
+    description:
+      'What the AI did once it stopped one of its subagents, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back. Past tense.',
+  },
   integrationCallRunning: {
     id: 'conversation.integrationCall.running',
     defaultMessage: 'Calling {server}',

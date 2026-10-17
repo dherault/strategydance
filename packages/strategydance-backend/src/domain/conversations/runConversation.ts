@@ -52,7 +52,7 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import type { ConversationRequestConfig } from '~domain/agent/buildConversationRequest'
 import buildConversationTools from '~domain/agent/buildConversationTools'
-import buildSubagentTools from '~domain/agent/buildSubagentTools'
+import buildSubagentTools, { isSubagentTool } from '~domain/agent/buildSubagentTools'
 import checkTranscript from '~domain/agent/checkTranscript'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
@@ -249,8 +249,11 @@ async function runConversation(
         ? { system: SUBAGENT_SYSTEM_PROMPT, tools: buildSubagentTools(modules.tools) }
         : { system: CONVERSATION_SYSTEM_PROMPT, tools: buildConversationTools(modules.tools) },
       // The integration tools' runners always, whatever the organization added, so a turn is planned
-      // the same by whoever takes it over. A subagent is sent none of their tools
-      runners: isSubagent ? modules.runners : [...createIntegrationRunners(fence), ...modules.runners],
+      // the same by whoever takes it over. A subagent is sent none of their tools, nor the module
+      // tools it never gets, so a call to one is planned as a call to a tool nobody runs
+      runners: isSubagent
+        ? modules.runners.filter(runner => isSubagentTool(runner.name))
+        : [...createIntegrationRunners(fence), ...modules.runners],
       toolTimeoutMs,
       isSubagent,
     })

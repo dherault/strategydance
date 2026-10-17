@@ -179,6 +179,36 @@ describe('runConversation, for a subagent', () => {
     expect(kit.readConversation(subagent)?.isAwaitingAnswer ?? false).toBe(false)
   })
 
+  test('refuses a delete it was never sent, drawn as a failed call, the task left as it was', async () => {
+    const { subagent } = await launch()
+    const task = fake.modules.insertTask({ organizationId: ORGANIZATION_ID, name: 'Draft the launch post' })
+    const scripted = kit.createClient([
+      answer(
+        [
+          {
+            type: 'tool_use',
+            id: 'toolu_delete',
+            name: 'delete_task',
+            input: { id: task.id },
+            caller: { type: 'direct' },
+          },
+        ],
+        { stopReason: 'tool_use' },
+      ),
+      answer(),
+    ])
+
+    expect(await runConversation(subagent, { client: scripted.client })).toBe('finished')
+
+    const toolNames = (readRequest(scripted.requests).tools ?? []).map(tool => ('name' in tool ? tool.name : tool.type))
+
+    expect(toolNames).not.toContain('delete_task')
+    expect(toolNames).not.toContain('delete_document')
+    expect(toolNames).not.toContain('launch_subagent')
+    expect(kit.readThread(subagent)[1]).toMatchObject({ toolName: 'delete_task', toolStatus: 'FAILED' })
+    expect(fake.modules.tasks.get(task.id)?.deletedAt ?? null).toBeNull()
+  })
+
   test('fails at its limits on its fourth run, with a report saying so, after the text it had', async () => {
     const { subagent } = await launch()
     const run = kit.readRun(subagent)

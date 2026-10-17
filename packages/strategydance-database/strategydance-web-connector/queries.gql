@@ -1253,6 +1253,12 @@ query GetConversations($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "StopQueuedConversationRunWithSubagents"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "ResumeConversationRun"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1506,6 +1512,12 @@ query GetDockConversations($organizationId: UUID!, $ids: [UUID!]!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "StopQueuedConversationRunWithSubagents"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "FinishConversationRunWaiting"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1693,6 +1705,12 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "StopQueuedConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopQueuedConversationRunWithSubagents"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
   }
 )
@@ -2202,6 +2220,12 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "RequestConversationRunStopWithSubagents"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RequestSubagentRunStopForAgent"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
@@ -2209,6 +2233,12 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "StopQueuedConversationRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopQueuedConversationRunWithSubagents"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
 )

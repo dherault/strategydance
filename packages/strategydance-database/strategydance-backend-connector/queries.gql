@@ -730,12 +730,75 @@ query GetConversationRunStop($organizationId: UUID!, $userId: String!, $conversa
 # which of the files uploaded under its id are its own
 query GetClaimedConversations @auth(level: NO_ACCESS) {
   conversations(
-    where: { pruneClaimedAt: { isNull: false }, deletedAt: { lt_time: { now: true, sub: { days: 1 } } } }
+    where: {
+      pruneClaimedAt: { isNull: false }
+      deletedAt: { lt_time: { now: true, sub: { days: 1 } } }
+      parentId: { isNull: true }
+    }
     limit: 20
   ) {
     id
     userId
     organizationId
+  }
+}
+
+# A batch of the subagents the daily sweep has claimed and not deleted yet, which it prunes before
+# any parent, each parent's together, its own `subagentCount` lowered by as many. Only those still
+# deleted over a day ago, as the delete takes them. A hundred at a time, a parent's most, since a
+# subagent's thread is a few hundred messages at most
+query GetClaimedSubagents @auth(level: NO_ACCESS) {
+  conversations(
+    where: {
+      pruneClaimedAt: { isNull: false }
+      deletedAt: { lt_time: { now: true, sub: { days: 1 } } }
+      parentId: { isNull: false }
+    }
+    orderBy: [{ parentId: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    parentId
+  }
+}
+
+# Which of the conversations a prune is about to delete still hold a subagent, claimed or not, which
+# it keeps for the next sweep rather than leave the subagent a conversation of its own
+query GetConversationsWithSubagents($ids: [UUID!]!) @auth(level: NO_ACCESS) {
+  conversations(where: { parentId: { in: $ids } }, limit: 1000) {
+    parentId
+  }
+}
+
+# The subagents of a parent a stop or a retry reaches, those launched on `$anchorPosition`, or named
+# by `$subagentIds`, or every one when both are left out, deleted ones included, since a retry deletes
+# them as it stops them, each with the run it is busy with, which the backend ends at once when it is
+# queued or waiting for a slot, and asks to stop again when a chain swapped it meanwhile
+query GetSubagentsToStop(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $anchorPosition: Int
+  $subagentIds: [UUID!]
+) @auth(level: NO_ACCESS) {
+  conversations(
+    where: {
+      id: { in: $subagentIds }
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      launchAnchorPosition: { eq: $anchorPosition }
+      activeRunId: { isNull: false }
+    }
+    limit: 100
+  ) {
+    id
+    activeRunId
+    latestRuns: conversationRuns_on_conversation(orderBy: [{ number: DESC }], limit: 1) {
+      id
+      status
+      stopRequestedAt
+    }
   }
 }
 

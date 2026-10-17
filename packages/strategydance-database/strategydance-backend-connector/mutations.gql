@@ -1345,6 +1345,179 @@ mutation StopQueuedConversationRun(
   )
 }
 
+# Asks a run a worker holds to stop, as `RequestConversationRunStop` does, and the live subagents
+# launched on its anchor, `$anchorPosition`, the action the member stops, in one mutation: the run
+# first, then the parent's row, the lock a launch and every cascade on a parent share, then the
+# subagents' runs, the order every write on a parent keeps, so whichever of a launch and the stop
+# commits second sees the first. A subagent's queued run, or one waiting for a slot, is ended by the
+# backend after, with its report, and a fan-out an earlier message started goes on, which Stop all
+# reaches
+mutation RequestConversationRunStopWithSubagents(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $anchorPosition: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
+      }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+  # The parent's row, written after its run and changing nothing, the lock a launch and every cascade
+  # on a parent share
+  parent: conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      parentId: { isNull: true }
+    }
+    data: { subagentCount_update: { inc: 0 } }
+  )
+  # The live subagents' runs launched on the stopped run's anchor, `$anchorPosition`, the action the
+  # member stops, asked to stop as theirs, after the parent's row: a launch committing first is
+  # reached, and one after finds its launching run asked to stop
+  subagentRuns: conversationRun_updateMany(
+    where: {
+      status: { in: [QUEUED, RUNNING, PENDING] }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        parentId: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        launchAnchorPosition: { eq: $anchorPosition }
+      }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+}
+
+# Stops a run still queued, as `StopQueuedConversationRun` does, and asks the live subagents launched
+# on its anchor, `$anchorPosition`, to stop, after the parent's row, which the note's write takes,
+# as `RequestConversationRunStopWithSubagents` asks them
+mutation StopQueuedConversationRunWithSubagents(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $noteId: UUID!
+  $position: Int!
+  $preview: Any!
+  $anchorPosition: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: QUEUED }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: true }
+      }
+    }
+    data: {
+      status: STOPPED
+      failure: "Its member stopped it while it was queued"
+      endedAt_expr: "request.time"
+      leaseExpiresAt: null
+    }
+  ) @check(expr: "this == 1", message: "The run is no longer queued")
+  conversation_updateMany(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { id: { eq: $conversationId } }
+        { nextMessagePosition: { eq: $position } }
+        { _or: [{ activeRunId: { eq: $runId } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
+    data: {
+      activeRunId: null
+      preview: $preview
+      previewMessageId: $noteId
+      nextMessagePosition_update: { inc: 1 }
+      messageCount_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The conversation could not take the note at that position")
+  conversationMessage_insert(
+    data: {
+      id: $noteId
+      conversationId: $conversationId
+      runId: $runId
+      kind: NOTE
+      noteKind: STOPPED
+      position: $position
+    }
+  )
+  # The live subagents' runs launched on the stopped run's anchor, `$anchorPosition`, the action the
+  # member stops, asked to stop as theirs, after the parent's row: a launch committing first is
+  # reached, and one after finds its launching run asked to stop
+  subagentRuns: conversationRun_updateMany(
+    where: {
+      status: { in: [QUEUED, RUNNING, PENDING] }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        parentId: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        launchAnchorPosition: { eq: $anchorPosition }
+      }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+}
+
+# Asks a parent's live subagents to stop, every one, as its Stop all does, or those `$subagentIds`
+# names, as a row's Stop does: their runs queued, running or waiting for a slot and not asked yet,
+# after the parent's row, the lock a launch and every cascade on a parent share. `$anchorPosition`
+# and `$subagentIds` each narrow it when given, and left out drop their filter. A run a chain swapped
+# while this waited is not reached, and the backend reads again and asks the run that carries on.
+# The parent has to be the caller's, not deleted and no subagent
+mutation RequestConversationSubagentsStop(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $anchorPosition: Int
+  $subagentIds: [UUID!]
+) @auth(level: NO_ACCESS) @transaction {
+  parent: conversation_updateMany(
+    where: {
+      id: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      parentId: { isNull: true }
+      deletedAt: { isNull: true }
+    }
+    data: { subagentCount_update: { inc: 0 } }
+  ) @check(expr: "this == 1", message: "No such conversation of the caller's")
+  subagentRuns: conversationRun_updateMany(
+    where: {
+      status: { in: [QUEUED, RUNNING, PENDING] }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        id: { in: $subagentIds }
+        parentId: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        launchAnchorPosition: { eq: $anchorPosition }
+      }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+}
+
 # Resumes a run its member stopped, or that died with its worker, from its note: the note goes,
 # which is the thread's newest message, and a run starts on the anchor of the run it resumes, which
 # carries that run's response on. In one mutation:
@@ -1482,6 +1655,10 @@ mutation ResumeConversationRun(
 # - the messages are deleted, exactly as many as the retry counted
 # - the transcript after the anchor is deleted
 # - the run is inserted, queued with a twenty minutes' lease, as a send queues one
+# - the live subagents the runs it cuts launched, those on the anchor, are asked to stop and deleted,
+#   after the parent's row, at an instant of their own, so restoring the parent never brings them
+#   back: their reports are never delivered, and what they wrote stays written. The backend ends
+#   their queued runs and those waiting for a slot after, with their reports, which nobody reads
 #
 # A retry sent again after its first try went through finds the conversation taken, and the backend
 # answers with the run it started
@@ -1584,6 +1761,30 @@ mutation RetryConversationRun(
       anchorPosition: $anchorPosition
       leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
     }
+  )
+  subagentRuns: conversationRun_updateMany(
+    where: {
+      status: { in: [QUEUED, RUNNING, PENDING] }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        parentId: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        launchAnchorPosition: { eq: $anchorPosition }
+        deletedAt: { isNull: true }
+      }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+  subagents: conversation_updateMany(
+    where: {
+      parentId: { eq: $conversationId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      launchAnchorPosition: { eq: $anchorPosition }
+      deletedAt: { isNull: true }
+    }
+    data: { deletedAt_expr: "request.time" }
   )
 }
 
@@ -4276,9 +4477,37 @@ mutation PruneDeletedTasks @auth(level: NO_ACCESS) {
 # the row no longer matching. What is claimed is then deleted, by `DeleteClaimedConversations`
 mutation ClaimDeletedConversations @auth(level: NO_ACCESS) {
   conversation_updateMany(
-    where: { deletedAt: { lt_time: { now: true, sub: { days: 1 } } }, pruneClaimedAt: { isNull: true } }
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { deletedAt: { lt_time: { now: true, sub: { days: 1 } } }, pruneClaimedAt: { isNull: true } }
+        # A subagent only once no run holds it, so none is pruned under its worker
+        { _or: [{ parentId: { isNull: true } }, { activeRunId: { isNull: true } }] }
+      ]
+    }
     data: { pruneClaimedAt_expr: "request.time" }
   )
+}
+
+# Deletes claimed subagents of one parent, `$ids`, exactly as many as `$count`, before their parent,
+# whose deletion would leave them conversations of their own, since `parent` is nulled on delete. The
+# parent's row is written first, the order every write on a parent keeps, its `subagentCount` lowered
+# by as many, so the 100 it holds counts what is still there, and a parent a retry left at 100 can
+# launch again once the subagents it deleted are gone. A parent deleted already lowers nothing.
+# Their messages, runs and transcripts cascade, and their module call results go before, by their
+# scope (`DeleteConversationModuleCallResults`). Deleting them twice deletes nothing, which the
+# count refuses, and the next sweep reads again
+mutation PruneClaimedSubagents($parentId: UUID!, $ids: [UUID!]!, $count: Int!) @auth(level: NO_ACCESS) @transaction {
+  parent: conversation_updateMany(where: { id: { eq: $parentId } }, data: { subagentCount_update: { dec: $count } })
+    @check(expr: "vars.count == size(vars.ids) && vars.count <= 100", message: "A prune names each subagent it counts")
+  subagents: conversation_deleteMany(
+    where: {
+      id: { in: $ids }
+      parentId: { eq: $parentId }
+      pruneClaimedAt: { isNull: false }
+      deletedAt: { lt_time: { now: true, sub: { days: 1 } } }
+    }
+  ) @check(expr: "this == vars.count", message: "The subagents changed since the prune read them")
 }
 
 # Deletes claimed conversations, with their messages, runs and transcript, which cascade. Only those

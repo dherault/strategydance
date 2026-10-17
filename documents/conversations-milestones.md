@@ -2188,9 +2188,9 @@ own.
     The launching run is read each round too (`GetSubagentLauncherForAgent`), its anchor the one the
     launch is made on, so a run refused for a Stop meanwhile is answered with the Stop's sentence.
   - **The key keeps `{ id, title, status }`** as the launch inserted it, `QUEUED` or
-    `WAITING_FOR_SLOT`. The first answer says the status after the launch's own promotion, so a
-    pending launch that took a slot freed meanwhile answers `QUEUED`; a call again answers what the
-    key keeps.
+    `WAITING_FOR_SLOT`, and every answer of the launch says what the key keeps, so a pending launch
+    that took a slot freed meanwhile answers `WAITING_FOR_SLOT` the first time as a call again does,
+    and the reads say where it stands since.
   - **The statuses are words of their own**, `QUEUED`, `WAITING_FOR_SLOT`, `WORKING`, `REPORTED`,
     `STOPPED`, `FAILED` and `INTERRUPTED`, from the latest run (`toSubagentStatus`), a refused run
     reading as failed. `endedAt` is `reportedAt`, which the ending that writes the report stamps

@@ -1960,8 +1960,8 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 
 # The bodies of some of a conversation's messages, by id, which never change once written: a text's
 # Markdown and its citations, a question's prompt and options, a call to an integration's server and
-# tool and an approval's arguments at a glance, and the files a member's message sent, which the
-# mutation inserting it sets. Read once per message, as its id first appears on the page,
+# tool and an approval's arguments at a glance, a call's id, the files a member's message sent, which
+# the mutation inserting it sets, and the files a subagent's brief hands over. Read once per message, as its id first appears on the page,
 # up to 50 at a time. Only the caller's own conversation's messages come back, so an id from anywhere
 # else reads nothing
 query GetConversationMessageBodies($organizationId: UUID!, $id: UUID!, $messageIds: [UUID!]!) @auth(level: USER) {
@@ -1993,6 +1993,11 @@ query GetConversationMessageBodies($organizationId: UUID!, $id: UUID!, $messageI
     integrationName
     integrationToolName
     argumentsPreview
+    # A call's id, Claude's, by which a subagent's row finds the call that launched it
+    toolUseId
+    # A subagent's brief's: the ids of its parent's files it hands over, which
+    # `GetConversationBriefAttachments` reads
+    attachmentIds
     # The files a member's message sent, in the order Claude reads them: only their author's, the
     # only ones a send ever sets on its message, and never more than
     # `MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`
@@ -2071,6 +2076,11 @@ query GetConversationMessagesBefore($organizationId: UUID!, $id: UUID!, $beforeP
     integrationName
     integrationToolName
     argumentsPreview
+    # A call's id, Claude's, by which a subagent's row finds the call that launched it
+    toolUseId
+    # A subagent's brief's: the ids of its parent's files it hands over, which
+    # `GetConversationBriefAttachments` reads
+    attachmentIds
     # The files a member's message sent, in the order Claude reads them: only their author's, the
     # only ones a send ever sets on its message, and never more than
     # `MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`

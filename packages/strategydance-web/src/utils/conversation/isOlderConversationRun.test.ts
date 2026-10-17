@@ -38,6 +38,21 @@ describe('isOlderConversationRun', () => {
     )
   })
 
+  it('takes a subagent’s run waiting for a slot as older than queued, and one that chained as ended', () => {
+    expect(isOlderConversationRun(run(0, ConversationRunStatus.QUEUED), run(0, ConversationRunStatus.PENDING))).toBe(
+      true,
+    )
+    expect(isOlderConversationRun(run(0, ConversationRunStatus.PENDING), run(0, ConversationRunStatus.QUEUED))).toBe(
+      false,
+    )
+    expect(isOlderConversationRun(run(0, ConversationRunStatus.CHAINED), run(0, ConversationRunStatus.RUNNING))).toBe(
+      true,
+    )
+    expect(isOlderConversationRun(run(0, ConversationRunStatus.RUNNING), run(0, ConversationRunStatus.CHAINED))).toBe(
+      false,
+    )
+  })
+
   it('never takes a run gone as older, nor one coming back', () => {
     expect(isOlderConversationRun(run(1, ConversationRunStatus.RUNNING), undefined)).toBe(false)
     expect(isOlderConversationRun(undefined, run(1, ConversationRunStatus.RUNNING))).toBe(false)

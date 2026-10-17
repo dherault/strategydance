@@ -78,9 +78,15 @@ async function resumeConversationRun(reference: ConversationRunReference): Promi
 
     if (latest && previous?.id === runId && latest.trigger === ConversationRunTrigger.RESUME) {
       const started = { ...reference, runId: latest.id }
-      const state = isDeadConversationRun(latest) ? await finalizeDeadConversationRun(started) : 'alive'
+      const state = isDeadConversationRun(latest)
+        ? await finalizeDeadConversationRun(started, 'conversation-runs')
+        : 'alive'
 
-      if (state === 'alive' && latest.status === ConversationRunStatus.QUEUED && !(await enqueueRun(started))) {
+      if (
+        state === 'alive'
+        && latest.status === ConversationRunStatus.QUEUED
+        && !(await enqueueRun(started, 'conversation-runs'))
+      ) {
         return { outcome: 'unavailable' }
       }
 
@@ -88,13 +94,17 @@ async function resumeConversationRun(reference: ConversationRunReference): Promi
     }
 
     // Read again once one has ended, which freed its conversation and the caller's allowance
-    if ((await finalizeDeadConversationRuns(reference, data.conversationRuns)) && round < MAX_ROUNDS) continue
+    if (
+      (await finalizeDeadConversationRuns(reference, data.conversationRuns, 'conversation-runs'))
+      && round < MAX_ROUNDS
+    )
+      continue
 
     if (conversation.activeRunId) {
       const activeRun = data.conversationRuns.find(run => run.id === conversation.activeRunId)
 
       if (activeRun?.status === ConversationRunStatus.QUEUED) {
-        await enqueueRun({ ...reference, runId: activeRun.id })
+        await enqueueRun({ ...reference, runId: activeRun.id }, 'conversation-runs')
       }
 
       return { outcome: 'busy' }
@@ -140,7 +150,8 @@ async function resumeConversationRun(reference: ConversationRunReference): Promi
       continue
     }
 
-    if (!(await enqueueRun({ ...reference, runId: resumingRunId }))) return { outcome: 'unavailable' }
+    if (!(await enqueueRun({ ...reference, runId: resumingRunId }, 'conversation-runs')))
+      return { outcome: 'unavailable' }
 
     return { outcome: 'resumed', runId: resumingRunId }
   }

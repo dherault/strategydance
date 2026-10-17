@@ -550,6 +550,9 @@ enum ConversationRunTrigger {
   RETRY
   # A subagent's first run, which its launch queued on its brief
   LAUNCH
+  # A subagent's run carrying on the one before it, which reached its limits and chained to it, on
+  # the same anchor
+  CONTINUE
 }
 
 # Where a run stands. Append a value; never reorder
@@ -568,6 +571,12 @@ enum ConversationRunStatus {
   # A waiting run whose turn was consumed. It never waits again, so an answer or a send arriving
   # after another has consumed it finds nothing to consume
   CONTINUED
+  # A subagent's run launched while its member's five subagent runs went, waiting for a slot: no
+  # lease and no task, its subagent busy since `activeRunId` names it, until a promotion queues it
+  PENDING
+  # A subagent's run that reached one of its limits before its fourth run, and handed on to the
+  # next, `CONTINUE`, in the write that ended it
+  CHAINED
 }
 
 # Who an entry of the transcript is from, as Claude reads it. Append a value; never reorder
@@ -625,9 +634,10 @@ type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"
   # Who set `aspects` last, and null until anybody has. The agent tags a conversation after its
   # first message only while this is null, so once the member sets them they stay the member's
   aspectsSetBy: ConversationActor
-  # The run in flight, and null while none is. A plain UUID rather than a reference: the first send
-  # inserts the conversation and its run in one mutation, and a reference would have it write this
-  # row a second time to point at the run, which Data Connect skips
+  # The run in flight, queued, running or, for a subagent, pending, and null while none is. A plain
+  # UUID rather than a reference: the first send inserts the conversation and its run in one
+  # mutation, and a reference would have it write this row a second time to point at the run, which
+  # Data Connect skips
   activeRunId: UUID
   # Whether a question waits for the member. The write that ends a run `WAITING` sets it and the
   # one that consumes its turn clears it, both of which write this row anyway, so the sidebar's
@@ -720,7 +730,8 @@ type ConversationRun @table @unique(fields: ["conversation", "number"]) @index(f
   # When the member asked it to stop, which its worker reads between steps
   stopRequestedAt: Timestamp
   # Until when it counts as alive: a minute out once a worker claims it, renewed as it goes, and
-  # twenty minutes out while it is queued, when it only says when to ask the queue again
+  # twenty minutes out while it is queued, when it only says when to ask the queue again. Null while
+  # a subagent's run is pending, which nothing delivers until a promotion queues it
   leaseExpiresAt: Timestamp
   # How many times a worker claimed it. Every write of a worker matches the attempt it claimed, so
   # one that lost the run writes nothing more
@@ -733,7 +744,8 @@ type ConversationRun @table @unique(fields: ["conversation", "number"]) @index(f
   # The tokens and web searches each model used, and whether a figure is an estimate: the ledger
   # credits will be counted from
   usage: Any
-  # When it was queued
+  # When it was queued: for a subagent's run that waited pending, when a promotion queued it, which
+  # the twenty minutes a run is queued again within count from
   createdAt: Timestamp! @default(expr: "request.time")
   # When a worker first claimed it
   startedAt: Timestamp

@@ -62,6 +62,14 @@ export type ConversationRunReference = {
   runId: string
 }
 
+/*
+  The Cloud Tasks queue a run goes through, named as Cloud Tasks names it: a subagent's runs go
+  through their own, every other run through the conversations'. It follows from the run, and goes
+  wherever its task is named, created, looked up or created again, since Cloud Tasks takes a task's
+  name only under the queue it was created in
+*/
+export type ConversationRunQueue = 'conversation-runs' | 'subagent-runs'
+
 // A file sent in a conversation, by what finds everything it left: its id, its conversation, author
 // and organization, and its id in the Files API once it has one
 export type ConversationAttachmentReference = {

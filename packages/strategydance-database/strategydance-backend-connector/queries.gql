@@ -887,6 +887,201 @@ query GetSubagentLaunchContext(
     status
     leaseExpiresAt
   }
+  # The member's subagent runs holding one of their five slots in the organization, whatever
+  # conversation launched them: those past their lease are finalized before a launch counts
+  activeSubagentRuns: conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+    }
+    limit: 5
+  ) {
+    id
+    status
+    leaseExpiresAt
+    conversation {
+      id
+    }
+  }
+}
+
+# Where a member's subagent runs stand in an organization, across all their conversations, as the
+# launch's count and the reconcile read it first:
+#
+# - the membership's `createdAt`, which a pending run has to have been launched under to be promoted,
+#   and which `GetSubagentPendingRuns` then reads the runs waiting by
+# - the runs holding one of the member's five slots (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`), queued
+#   or running, with their lease, which says whether one died
+# - the runs waiting for a slot, oldest first, a hundred at a time, which a reconcile ends once the
+#   member is no member any more, each with the membership it was launched under, whether it was
+#   asked to stop and whether its subagent was deleted
+#
+# `$userId` is the uid the backend verified, or the author a sweep found
+query GetSubagentSlots($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    createdAt
+  }
+  activeRuns: conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+    }
+    limit: 5
+  ) {
+    id
+    status
+    leaseExpiresAt
+    conversation {
+      id
+    }
+  }
+  pendingRuns: conversationRuns(
+    where: {
+      status: { eq: PENDING }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    createdAt
+    membershipCreatedAt
+    stopRequestedAt
+    conversation {
+      id
+      deletedAt
+    }
+  }
+}
+
+# A member's subagent runs waiting for a slot in an organization, read by the membership they are as
+# `GetSubagentSlots` read it, so no number of runs a promotion skips ever hides one it may promote:
+#
+# - the runs holding one of the member's five slots, as `GetSubagentSlots` reads them
+# - the oldest runs a promotion may promote, as many as there are slots: launched under that
+#   membership, not asked to stop, and their subagent not deleted
+# - the runs it skips, a hundred at a time, which the reconcile ends and reads again until none is
+#   left: asked to stop, their subagent deleted, or launched under another membership
+#
+# `$userId` is the uid the backend verified, or the author a sweep found
+query GetSubagentPendingRuns($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
+@auth(level: NO_ACCESS) {
+  activeRuns: conversationRuns(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+    }
+    limit: 5
+  ) {
+    id
+  }
+  promotableRuns: conversationRuns(
+    where: {
+      status: { eq: PENDING }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      stopRequestedAt: { isNull: true }
+      conversation: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+        deletedAt: { isNull: true }
+      }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 5
+  ) {
+    id
+    conversation {
+      id
+    }
+  }
+  skippedRuns: conversationRuns(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { status: { eq: PENDING } }
+        {
+          conversation: {
+            userId: { eq: $userId }
+            organizationId: { eq: $organizationId }
+            parentId: { isNull: false }
+          }
+        }
+        {
+          _or: [
+            { stopRequestedAt: { isNull: false } }
+            { conversation: { deletedAt: { isNull: false } } }
+            { membershipCreatedAt: { ne: $membershipCreatedAt } }
+          ]
+        }
+      ]
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    membershipCreatedAt
+    stopRequestedAt
+    conversation {
+      id
+      deletedAt
+    }
+  }
+}
+
+# The daily sweep's for subagents: who has a subagent run no page may reconcile, past its lease or
+# waiting for a slot, in any organization, a hundred accounts at a time, after the last one read, so
+# however many runs one member holds, nobody after them is hidden. The sweep reads each one's
+# organizations with `GetSubagentSweepOrganizations`, then reconciles each member there
+query GetSubagentSweepMembers($afterUserId: String!) @auth(level: NO_ACCESS) {
+  users(
+    where: {
+      id: { gt: $afterUserId }
+      conversations_on_user: {
+        exist: {
+          parentId: { isNull: false }
+          conversationRuns_on_conversation: {
+            exist: {
+              _or: [
+                { status: { eq: PENDING } }
+                { _and: [{ status: { in: [QUEUED, RUNNING] } }, { leaseExpiresAt: { lt_time: { now: true } } }] }
+              ]
+            }
+          }
+        }
+      }
+    }
+    orderBy: [{ id: ASC }]
+    limit: 100
+  ) {
+    id
+  }
+}
+
+# The organizations in which an account the sweep found has a subagent run no page may reconcile,
+# as `GetSubagentSweepMembers` finds them, whether they are still a member there or not
+query GetSubagentSweepOrganizations($userId: String!) @auth(level: NO_ACCESS) {
+  organizations(
+    where: {
+      conversations_on_organization: {
+        exist: {
+          userId: { eq: $userId }
+          parentId: { isNull: false }
+          conversationRuns_on_conversation: {
+            exist: {
+              _or: [
+                { status: { eq: PENDING } }
+                { _and: [{ status: { in: [QUEUED, RUNNING] } }, { leaseExpiresAt: { lt_time: { now: true } } }] }
+              ]
+            }
+          }
+        }
+      }
+    }
+    limit: 1000
+  ) {
+    id
+  }
 }
 
 # Why `RecordConversationSearch` refused a search: whether the caller is still a member, and their

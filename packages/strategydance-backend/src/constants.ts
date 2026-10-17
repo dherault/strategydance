@@ -79,6 +79,14 @@ export const WORKER_URL = `https://strategydance-worker-${GOOGLE_CLOUD_PROJECT_N
 */
 export const CONVERSATION_RUN_QUEUE_PATH = `projects/${FIREBASE_PROJECT_ID}/locations/${GOOGLE_CLOUD_REGION}/queues/conversation-runs`
 
+/*
+  The Cloud Tasks queue a subagent's run is delivered through instead, to the same worker route,
+  created by hand (Setup 11 in `documents/conversations.md`): 5 attempts at most, 90 seconds' backoff
+  at least, 20 deliveries at once, so a few fan-outs of forty minutes never hold the deliveries every
+  member's reply waits on
+*/
+export const SUBAGENT_RUN_QUEUE_PATH = `projects/${FIREBASE_PROJECT_ID}/locations/${GOOGLE_CLOUD_REGION}/queues/subagent-runs`
+
 // Who Cloud Tasks and Cloud Scheduler call the worker as, the one account granted the invoker role
 // on it. The project's owners and `deployer` can call it too, as they can any service there
 export const CONVERSATION_TASKS_SERVICE_ACCOUNT = 'conversation-tasks@strategydance.iam.gserviceaccount.com'

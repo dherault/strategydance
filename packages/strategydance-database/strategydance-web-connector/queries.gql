@@ -1794,6 +1794,36 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "ChainSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "LaunchPendingSubagent"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopPendingSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptPendingSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptDeadSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -2227,6 +2257,42 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "InterruptSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "ChainSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "LaunchPendingSubagent"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "PromoteSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "StopPendingSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptPendingSubagentRun"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "InterruptDeadSubagentRun"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
   }
 )

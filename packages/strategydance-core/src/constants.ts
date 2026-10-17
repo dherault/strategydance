@@ -582,6 +582,17 @@ export const MAX_CONVERSATION_SUBAGENTS = 100
 export const MAX_SUBAGENT_BRIEF_LENGTH = 20000
 export const MAX_SUBAGENT_REPORT_LENGTH = 8000
 
+/*
+  How many subagent runs go at once per member in an organization, across all their conversations
+  and apart from their own three runs, which a fan-out never blocks: a launch past them waits
+  `PENDING` for a slot, which a promotion gives it once a run ends. And how many runs a subagent
+  takes, each run at a limit before the last handing on to the next. `LaunchSubagent`,
+  `LaunchPendingSubagent` and `PromoteSubagentRun` write out the five, and `ChainSubagentRun` the
+  four: change them together
+*/
+export const MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER = 5
+export const MAX_SUBAGENT_RUNS = 4
+
 /* ---
   MODULES
 --- */

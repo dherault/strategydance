@@ -258,7 +258,7 @@ describe('a subagent', () => {
 
     fake.conversations.get(subagentId)!.previewMessageId = approval.id
 
-    return { subagentId, runId, question, approval }
+    return { parentId, subagentId, runId, question, approval }
   }
 
   // Every way a member acts on a conversation refuses a subagent, which only its parent acts on
@@ -280,11 +280,27 @@ describe('a subagent', () => {
       expect((await post(origin, `${subagentId}/runs/${runId}/${action}`)).status).toBe(404)
     }
 
+    // Its parent's page reconciles the subagents, never the subagent's own id
+    expect((await post(origin, `${subagentId}/subagents/reconcile`)).status).toBe(404)
+
     expect(fake.messages.size).toBe(messageCount)
     expect(fake.runs.size).toBe(1)
     expect(fake.runs.get(runId)).toMatchObject({ status: 'QUEUED', stopRequestedAt: null })
     expect(fake.messages.get(question.id)?.answeredAt).toBeUndefined()
     expect(fake.messages.get(approval.id)).toMatchObject({ approvalState: 'PENDING' })
+  })
+
+  test('has its run that died with its worker finalized by its parent’s reconcile, with its report', async () => {
+    const origin = await listen()
+    const { parentId, subagentId, runId } = insertSubagent()
+
+    expect((await post(origin, `${parentId}/subagents/reconcile`)).status).toBe(200)
+    expect(fake.runs.get(runId)?.status).toBe('INTERRUPTED')
+    expect(fake.conversations.get(subagentId)).toMatchObject({
+      activeRunId: null,
+      report: 'This subagent was interrupted before it finished.',
+    })
+    expect((await post(origin, `${crypto.randomUUID()}/subagents/reconcile`)).status).toBe(404)
   })
 
   test('is left out of what a search finds, by its title or its messages, in any language', async () => {

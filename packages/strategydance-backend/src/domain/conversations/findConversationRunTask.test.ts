@@ -26,16 +26,23 @@ beforeEach(() => {
 
 describe('findConversationRunTask', () => {
   test('answers queued for a task Cloud Tasks holds, looked up by the run’s task name', async () => {
-    expect(await findConversationRunTask(RUN_ID)).toBe('queued')
+    expect(await findConversationRunTask(RUN_ID, 'conversation-runs')).toBe('queued')
     expect(getTask.mock.calls[0]?.[0]).toEqual({
       name: `projects/strategydance/locations/us-central1/queues/conversation-runs/tasks/run-${RUN_ID}`,
+    })
+  })
+
+  test('looks a subagent’s run up on the subagents’ own queue', async () => {
+    expect(await findConversationRunTask(RUN_ID, 'subagent-runs')).toBe('queued')
+    expect(getTask.mock.calls[0]?.[0]).toEqual({
+      name: `projects/strategydance/locations/us-central1/queues/subagent-runs/tasks/run-${RUN_ID}`,
     })
   })
 
   test('answers gone for a task Cloud Tasks does not hold', async () => {
     answer = Object.assign(new Error('Not found'), { code: Status.NOT_FOUND })
 
-    expect(await findConversationRunTask(RUN_ID)).toBe('gone')
+    expect(await findConversationRunTask(RUN_ID, 'conversation-runs')).toBe('gone')
   })
 
   test('answers unknown when Cloud Tasks could not say', async () => {
@@ -46,7 +53,7 @@ describe('findConversationRunTask', () => {
     ]) {
       answer = error
 
-      expect(await findConversationRunTask(RUN_ID)).toBe('unknown')
+      expect(await findConversationRunTask(RUN_ID, 'conversation-runs')).toBe('unknown')
     }
   })
 })

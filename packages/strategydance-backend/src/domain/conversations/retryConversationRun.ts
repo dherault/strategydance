@@ -86,9 +86,15 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
 
     if (latest && previous?.id === runId && latest.trigger === ConversationRunTrigger.RETRY) {
       const started = { ...reference, runId: latest.id }
-      const state = isDeadConversationRun(latest) ? await finalizeDeadConversationRun(started) : 'alive'
+      const state = isDeadConversationRun(latest)
+        ? await finalizeDeadConversationRun(started, 'conversation-runs')
+        : 'alive'
 
-      if (state === 'alive' && latest.status === ConversationRunStatus.QUEUED && !(await enqueueRun(started))) {
+      if (
+        state === 'alive'
+        && latest.status === ConversationRunStatus.QUEUED
+        && !(await enqueueRun(started, 'conversation-runs'))
+      ) {
         return { outcome: 'unavailable' }
       }
 
@@ -107,13 +113,17 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
     }
 
     // Read again once one has ended, which freed its conversation and the caller's allowance
-    if ((await finalizeDeadConversationRuns(reference, data.conversationRuns)) && round < MAX_ROUNDS) continue
+    if (
+      (await finalizeDeadConversationRuns(reference, data.conversationRuns, 'conversation-runs'))
+      && round < MAX_ROUNDS
+    )
+      continue
 
     if (conversation.activeRunId) {
       const activeRun = data.conversationRuns.find(run => run.id === conversation.activeRunId)
 
       if (activeRun?.status === ConversationRunStatus.QUEUED) {
-        await enqueueRun({ ...reference, runId: activeRun.id })
+        await enqueueRun({ ...reference, runId: activeRun.id }, 'conversation-runs')
       }
 
       return { outcome: 'busy' }
@@ -152,7 +162,8 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
       continue
     }
 
-    if (!(await enqueueRun({ ...reference, runId: retryingRunId }))) return { outcome: 'unavailable' }
+    if (!(await enqueueRun({ ...reference, runId: retryingRunId }, 'conversation-runs')))
+      return { outcome: 'unavailable' }
 
     return {
       outcome: 'retried',

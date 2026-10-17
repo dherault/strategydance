@@ -79,9 +79,15 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
       if (latest.trigger !== ConversationRunTrigger.ANSWER) return { outcome: 'consumed' }
 
       const started = { ...reference, runId: latest.id }
-      const state = isDeadConversationRun(latest) ? await finalizeDeadConversationRun(started) : 'alive'
+      const state = isDeadConversationRun(latest)
+        ? await finalizeDeadConversationRun(started, 'conversation-runs')
+        : 'alive'
 
-      if (state === 'alive' && latest.status === ConversationRunStatus.QUEUED && !(await enqueueRun(started))) {
+      if (
+        state === 'alive'
+        && latest.status === ConversationRunStatus.QUEUED
+        && !(await enqueueRun(started, 'conversation-runs'))
+      ) {
         return { outcome: 'unavailable', runId: latest.id }
       }
 
@@ -92,7 +98,11 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
     if (data.waitingQuestions.length) return { outcome: 'waiting' }
 
     // Read again once one has ended, which freed the caller's allowance
-    if ((await finalizeDeadConversationRuns(reference, data.conversationRuns)) && round < MAX_ROUNDS) continue
+    if (
+      (await finalizeDeadConversationRuns(reference, data.conversationRuns, 'conversation-runs'))
+      && round < MAX_ROUNDS
+    )
+      continue
 
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'waiting' }
 
@@ -139,7 +149,7 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
 
     const queued = { ...reference, runId: continuingRunId }
 
-    if (!(await enqueueRun(queued))) return { outcome: 'unavailable', runId: continuingRunId }
+    if (!(await enqueueRun(queued, 'conversation-runs'))) return { outcome: 'unavailable', runId: continuingRunId }
 
     return { outcome: 'continued', runId: continuingRunId }
   }

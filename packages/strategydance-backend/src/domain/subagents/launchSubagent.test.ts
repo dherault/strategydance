@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 import type { MessageCountTokensParams } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { MAX_CONVERSATION_SEND_INPUT_TOKENS, MAX_SUBAGENTS_PER_ACTION } from 'strategydance-core'
+import {
+  MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER,
+  MAX_CONVERSATION_SEND_INPUT_TOKENS,
+  MAX_SUBAGENTS_PER_ACTION,
+} from 'strategydance-core'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
 import createScriptedClaudeClient from '~domain/agent/testing/createScriptedClaudeClient'
 import createConversationDatabaseFake, {
@@ -35,7 +39,7 @@ function count(body: MessageCountTokensParams) {
 const scripted = createScriptedClaudeClient({ count })
 
 // The runs the launches started, which here nothing runs: each is on its way, unless a test says not
-const enqueueRun = mock(async (_reference: ConversationRunReference) => true)
+const enqueueRun = mock(async (_reference: ConversationRunReference, _queue: ConversationRunQueue) => true)
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
 
@@ -104,6 +108,13 @@ function insertAttachment(conversationId: string, values: Partial<FakeAttachment
   return row
 }
 
+// The status of each subagent's first run, in the order given
+function readStatuses(subagentIds: string[]) {
+  return subagentIds.map(
+    subagentId => [...fake.runs.values()].find(run => run.conversationId === subagentId && run.number === 0)?.status,
+  )
+}
+
 beforeEach(() => {
   fake.reset()
   fake.addMember(AUTHOR, ORGANIZATION_ID)
@@ -136,12 +147,10 @@ describe('launchSubagent', () => {
     expect(kit.readEntries({ ...parent, conversationId: subagentId, runId })).toMatchObject([
       { role: 'USER', position: 0, content: JSON.stringify([{ type: 'text', text: BRIEF }]) },
     ])
-    expect(enqueueRun).toHaveBeenCalledWith({
-      organizationId: ORGANIZATION_ID,
-      userId: AUTHOR,
-      conversationId: subagentId,
-      runId,
-    })
+    expect(enqueueRun).toHaveBeenCalledWith(
+      { organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId: subagentId, runId },
+      'subagent-runs',
+    )
   })
 
   test('answers a launch sent again with the subagent it made, and queues its run again while it waits', async () => {
@@ -212,6 +221,8 @@ describe('launchSubagent', () => {
     }
 
     expect(await launch(parent.conversationId)).toEqual({ outcome: 'tooManyOnAnchor' })
+    // Five of them hold the member's slots, and the others wait for one
+    expect(readStatuses(subagentIds)).toEqual([...Array(5).fill('QUEUED'), ...Array(5).fill('PENDING')])
 
     // As a retry deletes the subagents of the runs it cuts
     const deleted = fake.conversations.get(subagentIds[0] ?? '')
@@ -220,6 +231,96 @@ describe('launchSubagent', () => {
 
     expect((await launch(parent.conversationId)).outcome).toBe('launched')
     expect(await launch(parent.conversationId)).toEqual({ outcome: 'tooManyOnAnchor' })
+  })
+
+  test('waits for a slot once the member’s five subagent runs go, with no lease and nothing queued', async () => {
+    const first = await kit.start()
+    const second = await kit.start()
+
+    for (let index = 0; index < MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER; index++) {
+      await launched((index % 2 ? first : second).conversationId)
+    }
+
+    enqueueRun.mockClear()
+
+    const sixth = await launched(first.conversationId)
+
+    expect(sixth.isPending).toBe(true)
+    expect(fake.runs.get(sixth.runId)).toMatchObject({ status: 'PENDING', leaseExpiresAt: null, trigger: 'LAUNCH' })
+    expect(fake.conversations.get(sixth.subagentId)?.activeRunId).toBe(sixth.runId)
+    expect(enqueueRun).not.toHaveBeenCalled()
+  })
+
+  test('finalizes a dead subagent run of another parent’s before it counts, and queues its own', async () => {
+    const other = await kit.start()
+    const subagents = []
+
+    for (let index = 0; index < MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER; index++) subagents.push(await kit.launch(other))
+
+    const [dead] = subagents
+
+    if (dead) kit.expireLease(dead)
+
+    const parent = await kit.start()
+    const launchedNow = await launched(parent.conversationId)
+
+    expect(kit.readRun(dead ?? other)?.status).toBe('INTERRUPTED')
+    expect(kit.readConversation(dead ?? other)?.report).toBe('This subagent was interrupted before it finished.')
+    expect(launchedNow.isPending).toBe(false)
+    expect(fake.runs.get(launchedNow.runId)?.status).toBe('QUEUED')
+    expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: launchedNow.runId }), 'subagent-runs')
+  })
+
+  test('promotes its own run when a slot freed while it launched pending', async () => {
+    const other = await kit.start()
+    const subagents = []
+
+    for (let index = 0; index < MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER; index++) subagents.push(await kit.launch(other))
+
+    const [ending] = subagents
+
+    // A worker ends one after the launch read the five, before its write
+    fake.beforeOperation = async name => {
+      if (name !== 'LaunchPendingSubagent' || !ending) return
+
+      fake.beforeOperation = async () => {}
+
+      await kit.call('finishSubagentRun', { ...(await kit.claim(ending)), status: 'COMPLETED', report: 'Done.' })
+    }
+
+    const parent = await kit.start()
+    const launchedNow = await launched(parent.conversationId)
+
+    expect(launchedNow.isPending).toBe(false)
+    expect(fake.runs.get(launchedNow.runId)?.status).toBe('QUEUED')
+    expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: launchedNow.runId }), 'subagent-runs')
+  })
+
+  test('promotes its own run when its pending launch’s answer was lost and a slot freed meanwhile', async () => {
+    const other = await kit.start()
+    const subagents = []
+
+    for (let index = 0; index < MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER; index++) subagents.push(await kit.launch(other))
+
+    const [ending] = subagents
+
+    // The launch lands, a run ends and its promotion finds nothing waiting yet, and the answer is lost
+    fake.afterOperation = async name => {
+      if (name !== 'LaunchPendingSubagent' || !ending) return
+
+      fake.afterOperation = async () => {}
+
+      await kit.call('finishSubagentRun', { ...(await kit.claim(ending)), status: 'COMPLETED', report: 'Done.' })
+
+      throw new Error('The connection closed before the answer')
+    }
+
+    const parent = await kit.start()
+    const launchedNow = await launched(parent.conversationId)
+
+    expect(launchedNow.isPending).toBe(false)
+    expect(fake.runs.get(launchedNow.runId)?.status).toBe('QUEUED')
+    expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: launchedNow.runId }), 'subagent-runs')
   })
 
   test('refuses a parent holding its hundred subagents', async () => {

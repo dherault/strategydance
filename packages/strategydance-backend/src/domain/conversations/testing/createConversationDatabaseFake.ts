@@ -2,6 +2,7 @@ import {
   CONVERSATION_ATTACHMENT_CONTENT_TYPES,
   CONVERSATION_SEARCH_WINDOW_MINUTES,
   MAX_ACTIVE_RUNS_PER_MEMBER,
+  MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER,
   MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
   MAX_CONVERSATION_ATTACHMENT_SIZE,
   MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
@@ -37,7 +38,7 @@ import createModuleDatabaseFake from '~domain/modules/testing/createModuleDataba
   An operation checks everything before it changes anything, so it applies whole or not at all, as
   a transaction does, and runs without yielding, so two called at once take turns as two locked
   transactions do. `beforeOperation` runs first, which is where a test lets something happen
-  meanwhile, a member removed say. Times are the clock's, which a test moves with `setSystemTime`.
+  meanwhile, a member removed say, and `afterOperation` last, which is where it loses an answer. Times are the clock's, which a test moves with `setSystemTime`.
   Ids are kept as Data Connect keeps them, dashless
 */
 
@@ -87,6 +88,8 @@ export const ConversationRunStatus = {
   REFUSED: 'REFUSED',
   INTERRUPTED: 'INTERRUPTED',
   CONTINUED: 'CONTINUED',
+  PENDING: 'PENDING',
+  CHAINED: 'CHAINED',
 } as const
 
 export const ConversationRunTrigger = {
@@ -95,6 +98,7 @@ export const ConversationRunTrigger = {
   RESUME: 'RESUME',
   RETRY: 'RETRY',
   LAUNCH: 'LAUNCH',
+  CONTINUE: 'CONTINUE',
 } as const
 
 export const ConversationToolStatus = {
@@ -309,6 +313,8 @@ function createConversationDatabaseFake() {
     attachments,
     calls,
     beforeOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
+    // Runs once an operation applied, where a test throws to lose a write's answer after it landed
+    afterOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
   }
 
   function now() {
@@ -457,6 +463,36 @@ function createConversationDatabaseFake() {
         && conversation.organizationId === id(organizationId)
         && conversation.parentId == null
       )
+    })
+  }
+
+  // A member's subagent runs in an organization in one of those statuses, whatever conversation
+  // launched them, oldest first, as the slots and the promotion read them. Two of one millisecond
+  // keep the order they were made in, where Postgres' microseconds would tell them apart
+  function subagentRuns(userId: unknown, organizationId: unknown, statuses: string[]) {
+    return [...runs.values()]
+      .filter(run => {
+        const conversation = conversations.get(run.conversationId)
+
+        return (
+          statuses.includes(run.status)
+          && conversation !== undefined
+          && conversation.userId === userId
+          && conversation.organizationId === id(organizationId)
+          && conversation.parentId != null
+        )
+      })
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0))
+  }
+
+  // The subagent runs no page may reconcile, past their lease or waiting for a slot, with their
+  // subagent, as the sweep's reads find their members
+  function sweptRuns() {
+    return [...runs.values()].flatMap(run => {
+      const conversation = conversations.get(run.conversationId)
+      const isDue = run.status === 'PENDING' || (RUN_IN_FLIGHT.includes(run.status) && isPast(run.leaseExpiresAt))
+
+      return conversation?.parentId != null && isDue ? [{ run, conversation }] : []
     })
   }
 
@@ -824,6 +860,143 @@ function createConversationDatabaseFake() {
 
   function end(run: FakeRun, status: string) {
     Object.assign(run, { status, endedAt: now(), leaseExpiresAt: null })
+  }
+
+  /*
+    The connector's `LaunchSubagent`, its first run queued into one of the member's five slots, and
+    `LaunchPendingSubagent`, its first run pending, with no lease, whatever the slots
+  */
+  function launchSubagent(variables: AnyVariables, { isPending }: { isPending: boolean }) {
+    if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+      refuse('Only a member of an organization can launch subagents in it')
+    }
+
+    const attachmentIds = (variables.attachmentIds as string[]).map(id)
+
+    if ([...variables.title].length > 120 || [...variables.text].length > 20000 || attachmentIds.length > 10) {
+      refuse("A subagent's title holds at most 120 characters, its brief 20000, and its files 10")
+    }
+
+    const parentId = id(variables.parentId)
+    const parent = conversations.get(parentId)
+
+    if (
+      !parent
+      || parent.userId !== variables.userId
+      || parent.organizationId !== id(variables.organizationId)
+      || parent.deletedAt !== null
+      || parent.parentId != null
+      || (parent.subagentCount ?? 0) >= MAX_CONVERSATION_SUBAGENTS
+    ) {
+      refuse('The parent launches no more subagents: it is gone, a subagent, or holds 100')
+    }
+
+    if (
+      memberships.get(membershipKey(variables.userId, variables.organizationId))?.createdAt
+      !== variables.membershipCreatedAt
+    ) {
+      refuse('The membership changed since the launch read it')
+    }
+
+    const subagentId = id(variables.conversationId)
+
+    if (conversations.has(subagentId)) refuse('The subagent exists already')
+
+    const onAnchor = [...conversations.values()].filter(
+      conversation =>
+        conversation.parentId === parentId
+        && conversation.launchAnchorPosition === variables.anchorPosition
+        && conversation.deletedAt === null,
+    )
+
+    if (onAnchor.length >= MAX_SUBAGENTS_PER_ACTION) refuse('A parent launches at most 10 subagents on one anchor')
+
+    const files = [...attachments.values()].filter(
+      attachment =>
+        attachmentIds.includes(attachment.id)
+        && isAttachmentOf(attachment, { ...variables, conversationId: parentId })
+        && attachment.status === 'READY'
+        && attachment.messageId !== null,
+    )
+
+    if (files.length !== attachmentIds.length) refuse('A subagent is handed only files its parent sent')
+
+    if (
+      !isPending
+      && subagentRuns(variables.userId, variables.organizationId, RUN_IN_FLIGHT).length
+        >= MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER
+    ) {
+      refuse("Every one of the member's 5 subagent slots is taken")
+    }
+
+    const runId = id(variables.runId)
+
+    if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+    if (messages.has(id(variables.messageId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+    parent.subagentCount = (parent.subagentCount ?? 0) + 1
+    conversations.set(subagentId, {
+      id: subagentId,
+      userId: variables.userId,
+      organizationId: id(variables.organizationId),
+      title: variables.title,
+      activeRunId: runId,
+      preview: null,
+      previewMessageId: null,
+      unreadCount: 0,
+      nextRunNumber: 1,
+      nextMessagePosition: 1,
+      messageCount: 1,
+      isFull: false,
+      deletedAt: null,
+      pruneClaimedAt: null,
+      updatedAt: now(),
+      aspects: [],
+      aspectsSetBy: null,
+      parentId,
+      launchRunId: variables.launchRunId ? id(variables.launchRunId) : null,
+      launchToolUseId: variables.launchToolUseId ?? null,
+      launchAnchorPosition: variables.anchorPosition,
+      report: null,
+      reportedAt: null,
+      subagentCount: 0,
+    })
+    const run = queuedRun(runId, subagentId, { ...variables, runNumber: 0 }, 'LAUNCH', 0)
+
+    // A run launched past the slots waits pending, with no lease
+    runs.set(runId, isPending ? { ...run, status: 'PENDING', leaseExpiresAt: null } : run)
+    insertMessage({
+      id: id(variables.messageId),
+      conversationId: subagentId,
+      runId,
+      kind: 'BRIEF',
+      text: variables.text,
+      noteKind: null,
+      toolStatus: null,
+      position: 0,
+      attachmentIds,
+    })
+    insertEntry({
+      id: crypto.randomUUID().replaceAll('-', ''),
+      conversationId: subagentId,
+      runId,
+      position: 0,
+      role: 'USER',
+      content: variables.content,
+      drawnBlocks: 0,
+    })
+
+    return { conversation_updateMany: 1 }
+  }
+
+  // A subagent's run still waiting for a slot, in the caller's conversation, as the pending endings
+  // find theirs, refused with their message
+  function requirePendingRun(variables: AnyVariables, message: string) {
+    const run = findOwnedRun(variables, 'PENDING')
+
+    if (!run || conversations.get(run.conversationId)?.parentId == null) refuse(message)
+
+    return run
   }
 
   // The membership lock and the counts `StartConversation` and `SendConversationMessage` share
@@ -2974,121 +3147,248 @@ function createConversationDatabaseFake() {
               .filter(run => run.conversationId === subagent.id && run.number === 0)
               .map(({ id: runId, status, leaseExpiresAt }) => ({ id: runId, status, leaseExpiresAt }))
           : [],
+        activeSubagentRuns: subagentRuns(variables.userId, variables.organizationId, RUN_IN_FLIGHT)
+          .slice(0, MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER)
+          .map(({ id: runId, status, leaseExpiresAt, conversationId }) => ({
+            id: runId,
+            status,
+            leaseExpiresAt,
+            conversation: { id: conversationId },
+          })),
       }
     },
 
-    LaunchSubagent: variables => {
-      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
-        refuse('Only a member of an organization can launch subagents in it')
+    LaunchSubagent: variables => launchSubagent(variables, { isPending: false }),
+
+    LaunchPendingSubagent: variables => launchSubagent(variables, { isPending: true }),
+
+    GetSubagentSlots: variables => {
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+
+      return {
+        userOrganization: membership ? { createdAt: membership.createdAt } : null,
+        activeRuns: subagentRuns(variables.userId, variables.organizationId, RUN_IN_FLIGHT)
+          .slice(0, MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER)
+          .map(({ id: runId, status, leaseExpiresAt, conversationId }) => ({
+            id: runId,
+            status,
+            leaseExpiresAt,
+            conversation: { id: conversationId },
+          })),
+        pendingRuns: subagentRuns(variables.userId, variables.organizationId, ['PENDING'])
+          .slice(0, 100)
+          .map(({ id: runId, createdAt, membershipCreatedAt, stopRequestedAt, conversationId }) => ({
+            id: runId,
+            createdAt,
+            membershipCreatedAt,
+            stopRequestedAt,
+            conversation: { id: conversationId, deletedAt: conversations.get(conversationId)?.deletedAt ?? null },
+          })),
       }
+    },
 
-      const attachmentIds = (variables.attachmentIds as string[]).map(id)
+    GetSubagentPendingRuns: variables => {
+      const pending = subagentRuns(variables.userId, variables.organizationId, ['PENDING'])
+      const isDeleted = (run: FakeRun) => conversations.get(run.conversationId)?.deletedAt != null
+      const isPromotable = (run: FakeRun) =>
+        run.membershipCreatedAt === variables.membershipCreatedAt && run.stopRequestedAt === null && !isDeleted(run)
 
-      if ([...variables.title].length > 120 || [...variables.text].length > 20000 || attachmentIds.length > 10) {
-        refuse("A subagent's title holds at most 120 characters, its brief 20000, and its files 10")
+      return {
+        activeRuns: subagentRuns(variables.userId, variables.organizationId, RUN_IN_FLIGHT)
+          .slice(0, MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER)
+          .map(({ id: runId }) => ({ id: runId })),
+        promotableRuns: pending
+          .filter(isPromotable)
+          .slice(0, MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER)
+          .map(({ id: runId, conversationId }) => ({ id: runId, conversation: { id: conversationId } })),
+        skippedRuns: pending
+          .filter(run => !isPromotable(run))
+          .slice(0, 100)
+          .map(({ id: runId, membershipCreatedAt, stopRequestedAt, conversationId }) => ({
+            id: runId,
+            membershipCreatedAt,
+            stopRequestedAt,
+            conversation: { id: conversationId, deletedAt: conversations.get(conversationId)?.deletedAt ?? null },
+          })),
       }
+    },
 
-      const parentId = id(variables.parentId)
-      const parent = conversations.get(parentId)
+    GetSubagentSweepMembers: variables => ({
+      users: [...new Set(sweptRuns().map(({ conversation }) => conversation.userId))]
+        .filter(userId => userId > variables.afterUserId)
+        .sort()
+        .slice(0, 100)
+        .map(userId => ({ id: userId })),
+    }),
+
+    GetSubagentSweepOrganizations: variables => ({
+      organizations: [
+        ...new Set(
+          sweptRuns()
+            .filter(({ conversation }) => conversation.userId === variables.userId)
+            .map(({ conversation }) => conversation.organizationId),
+        ),
+      ]
+        .slice(0, 1000)
+        .map(organizationId => ({ id: organizationId })),
+    }),
+
+    ChainSubagentRun: variables => {
+      const run = requireSubagentRun(variables)
+      const conversation = conversations.get(run.conversationId)
 
       if (
-        !parent
-        || parent.userId !== variables.userId
-        || parent.organizationId !== id(variables.organizationId)
-        || parent.deletedAt !== null
-        || parent.parentId != null
-        || (parent.subagentCount ?? 0) >= MAX_CONVERSATION_SUBAGENTS
+        !conversation
+        || run.number !== variables.runNumber
+        || run.anchorPosition !== variables.anchorPosition
+        || run.stopRequestedAt !== null
+        || conversation.deletedAt !== null
       ) {
-        refuse('The parent launches no more subagents: it is gone, a subagent, or holds 100')
+        refuse("The run is no longer this worker's")
+      }
+
+      if (!(variables.runNumber < 3 && variables.nextRunNumber === variables.runNumber + 1)) {
+        refuse("A subagent's run chains to the run right after it, before its fourth")
+      }
+
+      if (conversation.activeRunId !== run.id || conversation.nextRunNumber !== variables.nextRunNumber) {
+        refuse('The subagent could not take the run its run chains to')
+      }
+
+      const nextRunId = id(variables.nextRunId)
+
+      if (runs.has(nextRunId)) refuse('violates SQL unique constraint: conversation_run_pkey')
+
+      end(run, 'CHAINED')
+      assignGiven(run, { usage: variables.usage, failure: variables.failure })
+      Object.assign(conversation, { activeRunId: nextRunId, nextRunNumber: conversation.nextRunNumber + 1 })
+      runs.set(nextRunId, {
+        ...queuedRun(
+          nextRunId,
+          conversation.id,
+          { ...variables, runNumber: variables.nextRunNumber },
+          'CONTINUE',
+          variables.anchorPosition,
+        ),
+        pendingToolResults: variables.pendingToolResults ?? null,
+      })
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    PromoteSubagentRun: variables => {
+      const membership = memberships.get(membershipKey(variables.userId, variables.organizationId))
+
+      if (!membership) refuse('Only a member of an organization has subagents in it')
+      if (membership.createdAt !== variables.membershipCreatedAt) {
+        refuse('The membership changed since the promotion read it')
       }
 
       if (
-        memberships.get(membershipKey(variables.userId, variables.organizationId))?.createdAt
-        !== variables.membershipCreatedAt
+        subagentRuns(variables.userId, variables.organizationId, RUN_IN_FLIGHT).length
+        >= MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER
       ) {
-        refuse('The membership changed since the launch read it')
+        refuse("Every one of the member's 5 subagent slots is taken")
       }
 
-      const subagentId = id(variables.conversationId)
+      const run = runs.get(id(variables.runId))
+      const conversation = run && conversations.get(run.conversationId)
 
-      if (conversations.has(subagentId)) refuse('The subagent exists already')
+      if (
+        !run
+        || !conversation
+        || run.status !== 'PENDING'
+        || run.membershipCreatedAt !== variables.membershipCreatedAt
+        || run.stopRequestedAt !== null
+        || conversation.id !== id(variables.conversationId)
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.parentId == null
+        || conversation.deletedAt !== null
+      ) {
+        refuse('The run is no longer waiting for a slot')
+      }
 
-      const onAnchor = [...conversations.values()].filter(
-        conversation =>
-          conversation.parentId === parentId
-          && conversation.launchAnchorPosition === variables.anchorPosition
-          && conversation.deletedAt === null,
-      )
+      Object.assign(run, { status: 'QUEUED', createdAt: now(), leaseExpiresAt: inSeconds(20 * 60) })
 
-      if (onAnchor.length >= MAX_SUBAGENTS_PER_ACTION) refuse('A parent launches at most 10 subagents on one anchor')
+      return { conversationRun_updateMany: 1 }
+    },
 
-      const files = [...attachments.values()].filter(
-        attachment =>
-          attachmentIds.includes(attachment.id)
-          && isAttachmentOf(attachment, { ...variables, conversationId: parentId })
-          && attachment.status === 'READY'
-          && attachment.messageId !== null,
-      )
+    StopPendingSubagentRun: variables => {
+      const run = requirePendingRun(variables, 'The run no longer waits to be stopped')
 
-      if (files.length !== attachmentIds.length) refuse('A subagent is handed only files its parent sent')
+      if (run.stopRequestedAt === null && conversations.get(run.conversationId)?.deletedAt == null) {
+        refuse('The run no longer waits to be stopped')
+      }
 
-      const runId = id(variables.runId)
+      checkReport(variables)
 
-      if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
-      if (messages.has(id(variables.messageId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+      const conversation = requireNoteConversation(variables)
 
-      parent.subagentCount = (parent.subagentCount ?? 0) + 1
-      conversations.set(subagentId, {
-        id: subagentId,
-        userId: variables.userId,
-        organizationId: id(variables.organizationId),
-        title: variables.title,
-        activeRunId: runId,
-        preview: null,
-        previewMessageId: null,
-        unreadCount: 0,
-        nextRunNumber: 1,
-        nextMessagePosition: 1,
-        messageCount: 1,
-        isFull: false,
-        deletedAt: null,
-        pruneClaimedAt: null,
-        updatedAt: now(),
-        aspects: [],
-        aspectsSetBy: null,
-        parentId,
-        launchRunId: variables.launchRunId ? id(variables.launchRunId) : null,
-        launchToolUseId: variables.launchToolUseId ?? null,
-        launchAnchorPosition: variables.anchorPosition,
-        report: null,
-        reportedAt: null,
-        subagentCount: 0,
-      })
-      runs.set(runId, {
-        ...queuedRun(runId, subagentId, { ...variables, runNumber: 0 }, 'LAUNCH', 0),
-      })
-      insertMessage({
-        id: id(variables.messageId),
-        conversationId: subagentId,
-        runId,
-        kind: 'BRIEF',
-        text: variables.text,
-        noteKind: null,
-        toolStatus: null,
-        position: 0,
-        attachmentIds,
-      })
-      insertEntry({
-        id: crypto.randomUUID().replaceAll('-', ''),
-        conversationId: subagentId,
-        runId,
-        position: 0,
-        role: 'USER',
-        content: variables.content,
-        drawnBlocks: 0,
-      })
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
 
-      return { conversation_updateMany: 1 }
+      end(run, 'STOPPED')
+      assignGiven(run, { failure: variables.failure })
+      writeNote(conversation, variables, 'STOPPED')
+      writeReport(conversation, variables)
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    InterruptPendingSubagentRun: variables => {
+      const run = requirePendingRun(variables, 'The run no longer waits to be interrupted')
+
+      if (
+        run.membershipCreatedAt !== variables.membershipCreatedAt
+        || memberships.get(membershipKey(variables.userId, variables.organizationId))?.createdAt
+          === variables.membershipCreatedAt
+      ) {
+        refuse('The run no longer waits to be interrupted')
+      }
+
+      checkReport(variables)
+
+      const conversation = requireNoteConversation(variables)
+
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      end(run, 'INTERRUPTED')
+      assignGiven(run, { failure: variables.failure })
+      writeNote(conversation, variables, 'INTERRUPTED')
+      writeReport(conversation, variables)
+
+      return { conversationRun_updateMany: 1 }
+    },
+
+    InterruptDeadSubagentRun: variables => {
+      const run = runs.get(id(variables.runId))
+      const conversation = run && conversations.get(run.conversationId)
+
+      if (
+        !run
+        || !conversation
+        || !RUN_IN_FLIGHT.includes(run.status)
+        || !isPast(run.leaseExpiresAt)
+        || conversation.id !== id(variables.conversationId)
+        || conversation.userId !== variables.userId
+        || conversation.organizationId !== id(variables.organizationId)
+        || conversation.parentId == null
+      ) {
+        refuse('The run is not dead')
+      }
+
+      checkReport(variables)
+
+      const noteConversation = requireNoteConversation(variables)
+
+      if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
+
+      end(run, 'INTERRUPTED')
+      assignGiven(run, { failure: variables.failure })
+      writeNote(noteConversation, variables, 'INTERRUPTED')
+      writeReport(noteConversation, variables)
+
+      return { conversationRun_updateMany: 1 }
     },
 
     RecordConversationSearch: variables => {
@@ -3488,7 +3788,11 @@ function createConversationDatabaseFake() {
 
       await fake.beforeOperation(name, variables)
 
-      return { data: operation(variables) }
+      const data = operation(variables)
+
+      await fake.afterOperation(name, variables)
+
+      return { data }
     }
   }
 
@@ -3500,6 +3804,7 @@ function createConversationDatabaseFake() {
 
     calls.length = 0
     fake.beforeOperation = async () => {}
+    fake.afterOperation = async () => {}
     modules.reset()
     integrations.reset()
   }

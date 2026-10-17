@@ -1,4 +1,5 @@
 import {
+  MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER,
   MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
   MAX_CONVERSATION_SEND_INPUT_TOKENS,
   MAX_CONVERSATION_SUBAGENTS,
@@ -10,6 +11,7 @@ import {
   ConversationAttachmentStatus,
   ConversationRunStatus,
   getSubagentLaunchContext,
+  launchPendingSubagent,
   launchSubagent as launchSubagentMutation,
 } from 'strategydance-database/backend'
 
@@ -18,11 +20,14 @@ import type { ConversationContentBlock } from '~types'
 import { dataConnect } from '~firebase'
 
 import deriveUuid from '~utils/deriveUuid'
+import logger from '~utils/logger'
 
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
 import enqueueRun from '~domain/conversations/enqueueRun'
+import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import measureSubagentLaunch from '~domain/subagents/measureSubagentLaunch'
+import promoteSubagentRuns from '~domain/subagents/promoteSubagentRuns'
 
 // How many times a launch reads where its parent stands and tries, before it gives up
 const MAX_ROUNDS = 4
@@ -48,7 +53,8 @@ type LaunchSubagentInput = {
 }
 
 export type LaunchSubagentResult =
-  | { outcome: 'launched'; subagentId: string; runId: string }
+  // Its run queued, or waiting for one of the member's five subagent slots
+  | { outcome: 'launched'; subagentId: string; runId: string; isPending: boolean }
   // The caller is no member of the organization
   | { outcome: 'forbidden' }
   // The parent is not the caller's, is deleted, or is a subagent, which launches none
@@ -76,7 +82,8 @@ export type LaunchSubagentResult =
   the run is sent on its way, as a send's is. Each round reads where things stand first:
 
   - the subagent at the id the launch derives exists: the launch went through already, and is
-    answered with it, its run queued again while it waits in the queue
+    answered with it, its run queued again while it waits in the queue, or promoted while it waits
+    for a slot, as the launch that left it pending would have
   - the parent has to be the caller's, not deleted and no subagent, under its 100 subagents, and
     under 10 on its latest anchor, the member's action the launch carries out, those a retry deleted
     left out
@@ -84,10 +91,15 @@ export type LaunchSubagentResult =
     would delete it under the subagent
   - with files, the subagent's first request, measured whole, has to fit a send's budget, so no
     subagent is full at its first request. A brief alone never comes near it
+  - a subagent run of the member's past its lease, under any parent, died with its worker and holds
+    one of their five slots: it is finalized first, with its report, the oldest run waiting
+    promoted into its slot, and the slots read again
 
   The launch is one mutation, which takes the member's lock, then the parent's, and counts again
-  under them. A write refused anyway, because a launch or a cascade got there in between, starts
-  another round
+  under them. Its run is queued into one of the member's five subagent slots in the organization, or,
+  with all five taken as the launch read them, waits pending for one, and the launch promotes right
+  after, so a slot freed meanwhile goes to the oldest run waiting. A write refused anyway, because a
+  launch, an end or a cascade got there in between, starts another round
 */
 async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagentResult> {
   const { organizationId, userId, parentId, attachmentIds } = input
@@ -136,11 +148,18 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
 
       const [run] = data.subagentRuns
 
-      if (run?.status === ConversationRunStatus.QUEUED && !(await enqueueRun(reference))) {
+      if (run?.status === ConversationRunStatus.QUEUED && !(await enqueueRun(reference, 'subagent-runs'))) {
         return { outcome: 'unavailable', subagentId, runId }
       }
 
-      return { outcome: 'launched', subagentId, runId }
+      // A pending launch whose answer was lost has not promoted yet, as the launch it repeats would
+      if (run?.status === ConversationRunStatus.PENDING) {
+        const promoted = await promote(input)
+
+        return { outcome: 'launched', subagentId, runId, isPending: !promoted.some(queued => queued.runId === runId) }
+      }
+
+      return { outcome: 'launched', subagentId, runId, isPending: false }
     }
 
     if (
@@ -154,6 +173,13 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
     }
 
     if (parent.subagentCount >= MAX_CONVERSATION_SUBAGENTS) return { outcome: 'tooMany' }
+
+    // Read again once one has ended, which freed a slot the oldest run waiting takes first
+    if (round < MAX_ROUNDS && (await finalizeDeadConversationRuns(input, data.activeSubagentRuns, 'subagent-runs'))) {
+      await promote(input)
+
+      continue
+    }
 
     // A launch from no run, as a script makes one, carries out the member's latest action
     const anchorPosition = data.latestRuns[0]?.anchorPosition ?? 0
@@ -207,8 +233,10 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
       }
     }
 
+    const isPending = data.activeSubagentRuns.length >= MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER
+
     try {
-      await launchSubagentMutation(dataConnect, {
+      await (isPending ? launchPendingSubagent : launchSubagentMutation)(dataConnect, {
         organizationId,
         userId,
         membershipCreatedAt: membership.createdAt,
@@ -230,9 +258,27 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
       continue
     }
 
-    if (!(await enqueueRun(reference))) return { outcome: 'unavailable', subagentId, runId }
+    if (isPending) {
+      const promoted = await promote(input)
 
-    return { outcome: 'launched', subagentId, runId }
+      return { outcome: 'launched', subagentId, runId, isPending: !promoted.some(run => run.runId === runId) }
+    }
+
+    if (!(await enqueueRun(reference, 'subagent-runs'))) return { outcome: 'unavailable', subagentId, runId }
+
+    return { outcome: 'launched', subagentId, runId, isPending: false }
+  }
+}
+
+// Promotes the member's oldest runs waiting into their free slots, answering those it promoted: one
+// that fails leaves them to the reconcile, and the launch stands
+async function promote(member: { organizationId: string; userId: string }) {
+  try {
+    return await promoteSubagentRuns(member)
+  } catch (error) {
+    logger.warn(`Subagent runs of ${member.userId}: a launch could not promote into the free slots`, error)
+
+    return []
   }
 }
 

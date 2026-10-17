@@ -6,6 +6,8 @@ import {
   MAX_SUBAGENTS_PER_ACTION,
 } from 'strategydance-core'
 
+import * as constants from '~constants'
+
 import createScriptedClaudeClient from '~domain/agent/testing/createScriptedClaudeClient'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
 import { ORGANIZATION_ID } from '~domain/conversations/testing/createConversationTestKit'
@@ -18,6 +20,8 @@ const scripted = createScriptedClaudeClient({ count: () => counted })
 const enqueueRun = mock(async () => true)
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
+// Launches are closed outside development until M34, and open here: one test keeps them closed
+mock.module('~constants', () => ({ ...constants, IS_SUBAGENT_LAUNCH_GATED: false }))
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 mock.module('strategydance-database/backend', () => fake.sdk)
 mock.module('~domain/agent/conversationClaudeClient', () => ({ default: scripted.client }))

@@ -441,6 +441,8 @@ export type SubagentsRefusal =
   | { outcome: 'readOnly' }
   /** The run calling is a subagent's, which launches none */
   | { outcome: 'fromSubagent' }
+  /** Launches are kept closed in this process until the page reconciles subagents (M34) */
+  | { outcome: 'launchesClosed' }
   /** The run calling has ended or was asked to stop, its conversation deleted included */
   | { outcome: 'launcherEnded' }
   /** No live subagent of the calling conversation by that id */

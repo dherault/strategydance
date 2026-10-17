@@ -4,6 +4,8 @@ import { MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER, MAX_SUBAGENTS_PER_ACTION } from 's
 
 import type { ConversationRunQueue, ConversationRunReference, ModuleCall } from '~types'
 
+import * as constants from '~constants'
+
 import createScriptedClaudeClient from '~domain/agent/testing/createScriptedClaudeClient'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
 import createConversationTestKit, {
@@ -22,6 +24,8 @@ const scripted = createScriptedClaudeClient({ count: () => 1000 })
 const enqueueRun = mock(async (_reference: ConversationRunReference, _queue: ConversationRunQueue) => true)
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
+// Launches are closed outside development until M34, and open here: one test keeps them closed
+mock.module('~constants', () => ({ ...constants, IS_SUBAGENT_LAUNCH_GATED: false }))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 

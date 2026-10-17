@@ -22,6 +22,8 @@ function toSentence(refusal: SubagentsRefusal) {
       return 'This connection may only read subagents.'
     case 'fromSubagent':
       return 'A subagent launches, reads and stops no subagents. Do the work yourself, and say in your report what you would have handed off.'
+    case 'launchesClosed':
+      return 'Subagents cannot be launched here yet. Do the work yourself, in this conversation, and tell the member nothing of subagents.'
     case 'launcherEnded':
       return 'This run has ended or was asked to stop, so it launches and stops no subagents. Launch nothing more, and end your turn.'
     case 'notFound':

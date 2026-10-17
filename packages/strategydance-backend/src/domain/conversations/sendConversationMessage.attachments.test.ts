@@ -178,7 +178,7 @@ beforeEach(() => {
 })
 
 describe('sendConversationMessage with files', () => {
-  test('sends files before the text, in the order they were uploaded, each by its id, and copies them', async () => {
+  test('sends files before the text, in the order they were uploaded, each by its id after a line naming it, and copies them', async () => {
     const image = upload({ name: 'Board.png' })
     const document = upload({ name: 'Plan.pdf', contentType: 'application/pdf', pageCount: 3 })
     const text = upload({ name: 'Notes.md', contentType: 'text/markdown' })
@@ -188,6 +188,10 @@ describe('sendConversationMessage with files', () => {
     expect(result.outcome).toBe('sent')
     expect(entryOf(0)?.content).toBe(
       JSON.stringify([
+        {
+          type: 'text',
+          text: `Board.png (attachment ${image.id})\nPlan.pdf (attachment ${document.id})\nNotes.md (attachment ${text.id})`,
+        },
         { type: 'image', source: { type: 'file', file_id: image.claudeFileId } },
         { type: 'document', source: { type: 'file', file_id: document.claudeFileId }, title: 'Plan.pdf' },
         { type: 'document', source: { type: 'file', file_id: text.claudeFileId }, title: 'Notes.md' },
@@ -212,12 +216,13 @@ describe('sendConversationMessage with files', () => {
     })
   })
 
-  test('sends files alone with no text block, the conversation titled after the first', async () => {
+  test("sends files alone with no text block of the member's, the conversation titled after the first", async () => {
     const image = upload({ name: 'Board.png' })
     const result = await send({ text: '', attachmentIds: [image.id] })
 
     expect(result.outcome).toBe('sent')
     expect(JSON.parse(entryOf(0)?.content ?? '[]')).toEqual([
+      { type: 'text', text: `Board.png (attachment ${image.id})` },
       { type: 'image', source: { type: 'file', file_id: image.claudeFileId } },
     ])
     expect(fake.conversations.get(conversationId)?.title).toBe('Board.png')
@@ -322,10 +327,10 @@ describe('sendConversationMessage with files', () => {
     expect(await send({ attachmentIds: [upload({ tokenCount: 60_000 }).id] })).toMatchObject({ outcome: 'overBudget' })
   })
 
-  test('counts the new text by the endpoint, Chinese and emoji alike, and the files by their counts', async () => {
+  test('counts the new text by the endpoint, Chinese and emoji alike, the line naming the files, and the files by their counts', async () => {
     await answered({ inputTokens: 5000, outputTokens: 1000 })
 
-    const image = upload({ tokenCount: 371 })
+    const image = upload({ name: 'Board.png', tokenCount: 371 })
 
     expect((await send({ text: '定价策略 🚀👩🏽‍💻', attachmentIds: [image.id] })).outcome).toBe('sent')
 
@@ -333,6 +338,7 @@ describe('sendConversationMessage with files', () => {
 
     expect(counted?.system).toBeUndefined()
     expect(JSON.stringify(counted?.messages)).toContain('定价策略 🚀👩🏽‍💻')
+    expect(JSON.stringify(counted?.messages)).toContain(`Board.png (attachment ${image.id})`)
     expect(JSON.stringify(counted?.messages)).not.toContain('file_')
   })
 

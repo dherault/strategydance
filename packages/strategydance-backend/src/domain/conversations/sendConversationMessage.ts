@@ -24,6 +24,7 @@ import type { ConversationContentBlock } from '~types'
 import { dataConnect } from '~firebase'
 
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
+import buildConversationFileNames from '~domain/agent/buildConversationFileNames'
 import {
   UNAPPROVED_CALL_RESULT,
   UNRUN_ALLOWED_CALL_RESULT,
@@ -108,9 +109,11 @@ type SendConversationMessageResult =
   A message with files, only once nothing above refuses it: the files have to be the caller's in this
   conversation, stored and not sent, and the conversation to have room for them, its files, images,
   bytes and PDF pages counted, then the request they lead to measured under 700000 input tokens. Its
-  entry holds the files before its text, each referencing its file in the Files API, and they are
-  copied into the conversation's folder before the message is stored, which sets each one's message.
-  A message of files alone holds no text, and a conversation it starts is titled after its first file.
+  entry holds the files before its text, each referencing its file in the Files API, after a text
+  block naming each with its id (`buildConversationFileNames`), by which the agent hands one to a
+  subagent. They are copied into the conversation's folder before the message is stored, which sets
+  each one's message. A message of files alone holds no text of the member's, and a conversation it
+  starts is titled after its first file.
 
   A run whose task could not be queued leaves the send stored, and answered `unavailable`.
 
@@ -202,6 +205,8 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
 
     const { attachments } = files
     const follows: ConversationContentBlock[] = [
+      // Named first, so the agent can hand one to a subagent by its id
+      ...(attachments.length ? [buildConversationFileNames(attachments)] : []),
       ...attachments.map(attachment =>
         buildConversationAttachmentBlock(attachment, { fileId: attachment.claudeFileId }),
       ),

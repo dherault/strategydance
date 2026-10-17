@@ -49,6 +49,12 @@ function DropLine() {
   One column of the board: its status, how many tasks it holds, a button that adds one to it, and
   its cards, with the line a dragged card would land on. It takes a card from another column, and
   tints while one is held over it
+
+  A column grows with its cards, but for Done, which only ever grows: its size is contained, so the
+  board's row is as tall as the tallest of the other columns, and Done stretches to it and scrolls
+  its cards. Its list starts higher by the room a focused card's outline and the drop line take
+  above the first card, which a scrolling list would otherwise clip, so its cards line up with the
+  other columns'
 */
 function TaskBoardColumn({
   status,
@@ -70,6 +76,7 @@ function TaskBoardColumn({
   const title = formatMessage(taskStatusMessages[status])
   const headingId = `task-column-${status}`
   const isMovingIn = isDraggedOver && draggedId !== null && !tasks.some(({ id }) => id === draggedId)
+  const isScrolling = status === TaskStatus.DONE
 
   return (
     <section
@@ -77,6 +84,7 @@ function TaskBoardColumn({
       aria-labelledby={headingId}
       className={cn(
         'flex min-w-0 flex-col rounded-xs bg-neutral-50 transition-colors duration-150 ease-in-out',
+        isScrolling && 'contain-size',
         isMovingIn && 'bg-primary-50',
       )}
     >
@@ -102,7 +110,12 @@ function TaskBoardColumn({
           onClick={onAdd}
         />
       </div>
-      <ul className="m-0 flex min-h-30 flex-1 list-none flex-col gap-2 px-2 pb-2">
+      <ul
+        className={cn(
+          'm-0 flex min-h-30 flex-1 list-none flex-col gap-2 px-2 pb-2',
+          isScrolling && '-mt-1.5 overflow-y-auto pt-1.5',
+        )}
+      >
         {tasks.map(task => (
           <Fragment key={task.id}>
             {dropMarker === task.id ? <DropLine /> : null}

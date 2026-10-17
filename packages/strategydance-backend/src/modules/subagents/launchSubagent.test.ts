@@ -6,6 +6,8 @@ import {
   MAX_SUBAGENTS_PER_ACTION,
 } from 'strategydance-core'
 
+import * as constants from '~constants'
+
 import createScriptedClaudeClient from '~domain/agent/testing/createScriptedClaudeClient'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
 import { ORGANIZATION_ID } from '~domain/conversations/testing/createConversationTestKit'
@@ -18,6 +20,8 @@ const scripted = createScriptedClaudeClient({ count: () => counted })
 const enqueueRun = mock(async () => true)
 
 mock.module('~firebase', () => ({ dataConnect: {} }))
+// Launches are closed outside development until M34, and open here: one test keeps them closed
+mock.module('~constants', () => ({ ...constants, IS_SUBAGENT_LAUNCH_GATED: false }))
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 mock.module('strategydance-database/backend', () => fake.sdk)
 mock.module('~domain/agent/conversationClaudeClient', () => ({ default: scripted.client }))
@@ -104,6 +108,40 @@ describe('launch_subagent', () => {
     expect(await kit.refusal('launch_subagent', LAUNCH, 'toolu_last')).toBe(
       `This conversation holds ${MAX_CONVERSATION_SUBAGENTS} subagents, the most it keeps. Do the work yourself, or tell the member, who can start a new conversation.`,
     )
+  })
+
+  it("refuses a launch from a reaction to subagents' reports, read first and inside its mutation, and serves its reads and its stop", async () => {
+    const REFUSAL =
+      "This run reacts to subagents' reports, and launches no subagents: every one starts from the member's word. Do the work yourself, or tell the member what you would hand off."
+    const parent = await conversation.startRunning()
+    const kit = await conversation.connect(parent)
+    const launched = await kit.answer<{ id: string }>('launch_subagent', LAUNCH, 'toolu_01')
+    const run = fake.runs.get(parent.runId)!
+
+    run.trigger = 'REPORTS'
+
+    expect(await kit.refusal('launch_subagent', LAUNCH, 'toolu_02')).toBe(REFUSAL)
+    expect((await kit.answer<{ subagents: { id: string }[] }>('list_subagents', {})).subagents).toHaveLength(1)
+    expect(await kit.answer('read_subagent', { id: launched.id })).toMatchObject({ id: launched.id })
+
+    // A reaction read as a member's run, the read racing nothing that changes a trigger, is refused
+    // by the mutation, and the read after it says why
+    run.trigger = 'MESSAGE'
+    fake.beforeOperation = async name => {
+      if (name === 'LaunchSubagentForAgent') run.trigger = 'REPORTS'
+    }
+
+    expect(await kit.refusal('launch_subagent', LAUNCH, 'toolu_03')).toBe(REFUSAL)
+    expect([...fake.conversations.values()].filter(({ parentId }) => parentId === parent.conversationId)).toHaveLength(
+      1,
+    )
+
+    fake.beforeOperation = async () => {}
+
+    expect(await kit.answer('stop_subagent', { id: launched.id }, 'toolu_04')).toEqual({
+      id: launched.id,
+      isEnded: false,
+    })
   })
 
   it('refuses a launch on a deleted parent', async () => {

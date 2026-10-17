@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
@@ -2892,6 +2893,108 @@ async function checkTagging() {
   )
   check('a deleted conversation takes no tag', (await refusal(tag(full, 1, 1))) !== null)
 }
+
+// One write a mutation makes, in the order it makes it, as `checkLockOrder` reads it
+type Step = { name: string; kind: 'membership' | 'run' | 'conversation'; isSubagents: boolean; isLive: boolean }
+
+// The mutations of a connector's file, each with its top-level writes in order
+function readMutationSteps(path: string) {
+  const text = readFileSync(path, 'utf8')
+  const mutations = new Map<string, Step[]>()
+
+  for (const match of text.matchAll(/^mutation (\w+)[\s\S]*?^\}$/gm)) {
+    const [body, name] = match
+    const steps: Step[] = []
+    // Each top-level step starts two spaces in, an alias perhaps before it, and runs to the next
+    const starts = [...body.matchAll(/^ {2}(?:\w+: )?(\w+)\(/gm)]
+
+    for (const [index, start] of starts.entries()) {
+      const field = start[1] ?? ''
+      const end = starts[index + 1]?.index ?? body.length
+      const stepText = body.slice(start.index, end)
+      const kind = /^userOrganization_(update|upsert)$/.test(field)
+        ? 'membership'
+        : /^conversationRun_update(Many)?$/.test(field)
+          ? 'run'
+          : /^conversation_(update|updateMany|delete|deleteMany)$/.test(field)
+            ? 'conversation'
+            : null
+
+      if (!kind) continue
+
+      steps.push({
+        name: field,
+        kind,
+        // A parent's subagents: their rows by their parent, or named by a list of subagents
+        isSubagents: /parentId: \{ eq: /.test(stepText) || /\$(deliveredS|s)ubagentIds/.test(stepText),
+        // A run that goes, which a worker's fence or a stop reaches
+        isLive: /status: \{ (eq: (QUEUED|RUNNING|PENDING)|in: \[[^\]]*(QUEUED|RUNNING|PENDING))/.test(stepText),
+      })
+    }
+
+    mutations.set(name ?? '', steps)
+  }
+
+  return mutations
+}
+
+/*
+  The one order every write on a conversation keeps, read off the operations themselves, since the
+  emulator's PGlite runs one transaction at a time and no race shows there: the membership, then the
+  parent's runs, the parent's row, its subagents' runs and their rows. No mutation writes the
+  membership after a run or a conversation's row, nor a run that goes after its own conversation's
+  row, nor a parent's subagents' runs after their rows, so no two of them wait on each other's lock
+*/
+function checkLockOrder() {
+  const connectors = ['strategydance-backend-connector', 'strategydance-web-connector'].map(connector =>
+    readMutationSteps(new URL(`../../strategydance-database/${connector}/mutations.gql`, import.meta.url).pathname),
+  )
+  const disordered: string[] = []
+
+  for (const mutations of connectors) {
+    for (const [name, steps] of mutations) {
+      for (const [index, step] of steps.entries()) {
+        const before = steps.slice(0, index)
+
+        if (step.kind === 'membership' && before.some(({ kind }) => kind !== 'membership')) disordered.push(name)
+        if (
+          step.kind === 'run'
+          && step.isLive
+          && !step.isSubagents
+          && before.some(({ kind, isSubagents }) => kind === 'conversation' && !isSubagents)
+        ) {
+          disordered.push(name)
+        }
+        if (
+          step.kind === 'run'
+          && step.isSubagents
+          && before.some(({ kind, isSubagents }) => kind === 'conversation' && isSubagents)
+        ) {
+          disordered.push(name)
+        }
+      }
+    }
+  }
+
+  check(
+    'no mutation writes the membership after a run or a row, a live run after its row, or a subagent’s run after its row',
+    disordered.length === 0,
+  )
+
+  for (const name of new Set(disordered)) console.log(`        out of order: ${name}`)
+
+  check(
+    'the lock order reads the cascades it guards',
+    [
+      'DeleteConversation',
+      'RetryConversationRun',
+      'RequestConversationRunStopWithSubagents',
+      'StartSubagentReaction',
+    ].every(name => connectors.some(mutations => (mutations.get(name)?.length ?? 0) > 0)),
+  )
+}
+
+checkLockOrder()
 
 try {
   await setUp()

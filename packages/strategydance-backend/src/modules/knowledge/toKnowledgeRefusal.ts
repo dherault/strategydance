@@ -19,6 +19,8 @@ function toSentence(refusal: KnowledgeRefusal) {
       return 'The member is no longer in this organization, so its knowledge is closed to you.'
     case 'readOnly':
       return 'This connection may only read knowledge. Ask the member to connect again with write access to change it.'
+    case 'fromReaction':
+      return "This run reacts to subagents' reports, and deletes nothing. Ask the member with ask_user whether the document should go: the run their answer starts can delete it."
     case 'notFound':
       return 'No document has that id in this organization. Search or list its documents to find it.'
     case 'keptFromAi':

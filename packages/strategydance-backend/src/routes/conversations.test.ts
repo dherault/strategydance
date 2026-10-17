@@ -303,6 +303,27 @@ describe('a subagent', () => {
     expect((await post(origin, `${crypto.randomUUID()}/subagents/reconcile`)).status).toBe(404)
   })
 
+  test('is stopped through its parent alone, by its own Stop and by Stop all, never by its own id', async () => {
+    const origin = await listen()
+    const { parentId, subagentId, runId } = insertSubagent()
+
+    // Queued and still coming, so stopped rather than finalized as dead
+    fake.runs.get(runId)!.leaseExpiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+
+    expect((await post(origin, `${subagentId}/subagents/stop`)).status).toBe(404)
+    expect((await post(origin, `${subagentId}/subagents/${subagentId}/stop`)).status).toBe(404)
+    expect((await post(origin, `${crypto.randomUUID()}/subagents/stop`)).status).toBe(404)
+    expect(fake.runs.get(runId)?.status).toBe('QUEUED')
+    expect((await post(origin, `${parentId}/subagents/${subagentId}/stop`)).status).toBe(200)
+    expect(fake.runs.get(runId)?.status).toBe('STOPPED')
+    expect(fake.conversations.get(subagentId)).toMatchObject({
+      activeRunId: null,
+      report: 'This subagent was stopped before it finished.',
+    })
+    // Stop all, sent with nothing left to stop, answers the same
+    expect((await post(origin, `${parentId}/subagents/stop`)).status).toBe(200)
+  })
+
   test('is left out of what a search finds, by its title or its messages, in any language', async () => {
     const origin = await listen()
     const parentId = insertConversation('Pricing for the launch')

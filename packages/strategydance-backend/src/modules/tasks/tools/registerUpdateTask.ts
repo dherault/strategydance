@@ -34,6 +34,9 @@ const inputSchema = z
       .describe('The whole description replaced, in Markdown, "" clearing it, with `version`'),
     version: z.string().max(200).optional().describe('The version read_task gave, required with `description`'),
     status: statusSchema.optional().describe('The column the task moves to'),
+    fromStatus: statusSchema
+      .optional()
+      .describe('The column you read the task in, with `status`: refused once the task has left it'),
     beforeId: taskIdSchema.optional().describe('A task of that column the task moves before, its end otherwise'),
     assignee: assigneeSchema
       .optional()
@@ -51,6 +54,10 @@ const inputSchema = z
 
     if (args.beforeId !== undefined && args.status === undefined) {
       context.addIssue({ code: 'custom', message: 'beforeId goes with status, the column it names a task of' })
+    }
+
+    if (args.fromStatus !== undefined && args.status === undefined) {
+      context.addIssue({ code: 'custom', message: 'fromStatus goes with status, the column the task moves to' })
     }
 
     if (args.version !== undefined && args.description === undefined) {
@@ -72,7 +79,7 @@ function registerUpdateTask(server: McpServer, context: TasksToolContext) {
     {
       title: 'Update a task',
       description:
-        'Changes the fields of a task of the team\'s board that the call names, and no other, so a member changing another field meanwhile keeps their change. `status` moves the task to that column, before the task `beforeId` names there or at the column\'s end. `description` replaces the whole description, in Markdown, `""` clearing it, and takes the `version` read_task gave, refused when someone changed the description since. `assignee` takes "me", "agent" for Strategy Dance, "unassigned" or "member:<id>", `dueDate` null clears the day, and `aspects` replaces them all. A move to DONE answers the tasks that can start now (`canStartNow`): tell the member. A description replaced answers its new version.',
+        'Changes the fields of a task of the team\'s board that the call names, and no other, so a member changing another field meanwhile keeps their change. `status` moves the task to that column, before the task `beforeId` names there or at the column\'s end, and `fromStatus` names the column you read it in, so the move is refused once somebody else moved it: send it when you take a task up. `description` replaces the whole description, in Markdown, `""` clearing it, and takes the `version` read_task gave, refused when someone changed the description since. `assignee` takes "me", "agent" for Strategy Dance, "unassigned" or "member:<id>", `dueDate` null clears the day, and `aspects` replaces them all. A move to DONE answers the tasks that can start now (`canStartNow`): tell the member. A description replaced answers its new version.',
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },

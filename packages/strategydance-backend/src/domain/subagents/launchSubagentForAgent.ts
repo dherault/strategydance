@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 
 import type { ModuleCall, ModuleCaller, SubagentsWriteResult } from '~types'
 
+import { IS_SUBAGENT_LAUNCH_GATED } from '~constants'
+
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import launchSubagent, { type LaunchedSubagent } from '~domain/subagents/launchSubagent'
@@ -20,7 +22,10 @@ type LaunchSubagentForAgentInput = {
   answered with what it answered then. A call without a key, which no agent of Strategy Dance's makes,
   launches a subagent each time. Answers its id and whether it was queued or left waiting for a slot,
   as its key keeps it, so a launch that found the five taken and promoted itself at once answers that
-  it waits, the same as a call again: the reads say where it stands since
+  it waits, the same as a call again: the reads say where it stands since.
+
+  Refused before anything is read while launches are kept closed (`IS_SUBAGENT_LAUNCH_GATED`), which
+  the `launch:subagent` script, launching through `launchSubagent` directly, never meets
 */
 async function launchSubagentForAgent(
   caller: ModuleCaller,
@@ -28,6 +33,7 @@ async function launchSubagentForAgent(
   call: ModuleCall | null,
 ): Promise<SubagentsWriteResult<LaunchedSubagent>> {
   if (!caller.launcher) return { outcome: 'noLauncher' }
+  if (IS_SUBAGENT_LAUNCH_GATED) return { outcome: 'launchesClosed' }
 
   const launched = await launchSubagent({
     organizationId: caller.organizationId,
@@ -47,6 +53,7 @@ async function launchSubagentForAgent(
     case 'keyConflict':
     case 'notMember':
     case 'fromSubagent':
+    case 'fromReaction':
     case 'launcherEnded':
     case 'noLauncher':
     case 'invalid':

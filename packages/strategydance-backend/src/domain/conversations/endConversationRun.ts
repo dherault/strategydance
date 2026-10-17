@@ -4,6 +4,7 @@ import {
   ConversationRunStatus,
   chainSubagentRun,
   finishConversationRun,
+  finishConversationRunFull,
   finishConversationRunWaiting,
   finishConversationRunWithNote,
   finishSubagentRun,
@@ -26,6 +27,8 @@ import readConversationTranscript from '~domain/conversations/readConversationTr
 import buildSubagentReport from '~domain/subagents/buildSubagentReport'
 import deriveChainedRunId from '~domain/subagents/deriveChainedRunId'
 import promoteSubagentRuns from '~domain/subagents/promoteSubagentRuns'
+import reactToSubagentReports from '~domain/subagents/reactToSubagentReports'
+import startDueSubagentReactions from '~domain/subagents/startDueSubagentReactions'
 
 /*
   How a worker ends its run:
@@ -78,8 +81,10 @@ type EndConversationRunInput = {
   lease: ConversationRunLease | null
   // The conversation's counter, where a note goes
   position: number
-  // Whether the conversation is a subagent, whose run ends with its report
+  // Whether the conversation is a subagent, whose run ends with its report, and its parent, whose
+  // reaction its end may start
   isSubagent: boolean
+  parentId?: string | null
   // What a subagent's run hands on to at its limits, null for its fourth run and every other run
   chain?: SubagentChain | null
 }
@@ -98,9 +103,23 @@ type EndConversationRunInput = {
   A subagent's run at one of its limits before its fourth run chains instead (`chain`): it ends
   `CHAINED` and the next run is queued in the same write, holding its slot, so nothing is promoted,
   and its member's stop, read first, ends it stopped rather than lost on a run it never named.
-  Answers `chained` then, for the worker to queue the next run, and `ended` otherwise
+  Answers `chained` then, for the worker to queue the next run, and `ended` otherwise.
+
+  A run that ended may let a reaction to subagents' reports start: a subagent's end its parent's, the
+  last report of a batch, or marks its report delivered when the parent is full; and any other run,
+  which frees one of its member's 3, its own conversation's reaction first, when it completed, then
+  the member's oldest due in the organization (`startDueSubagentReactions`). It ends a full
+  conversation through `FinishConversationRunFull`, which marks the reports waiting delivered
 */
-async function endConversationRun({
+async function endConversationRun(input: EndConversationRunInput): Promise<'ended' | 'chained'> {
+  const ended = await endRun(input)
+
+  if (ended === 'ended') await reactAfter(input)
+
+  return ended
+}
+
+async function endRun({
   ending,
   fence,
   lease,
@@ -153,21 +172,49 @@ async function endConversationRun({
     return 'ended'
   }
 
-  await write(() =>
-    finishConversationRunWithNote(dataConnect, {
-      ...fence,
-      status: ending.status,
-      noteKind: ending.noteKind,
-      noteId: deriveConversationMessageId(fence.runId, 'note'),
-      position,
-      preview: buildConversationPreview({ kind: 'NOTE', noteKind: ending.noteKind }),
-      failure: ending.failure,
-      ...(ending.usage ? { usage: ending.usage } : {}),
-      ...(ending.isFull ? { isFull: true } : {}),
-    }),
-  )
+  const noted = {
+    ...fence,
+    noteId: deriveConversationMessageId(fence.runId, 'note'),
+    position,
+    preview: buildConversationPreview({ kind: 'NOTE', noteKind: ending.noteKind }),
+    failure: ending.failure,
+    ...(ending.usage ? { usage: ending.usage } : {}),
+    ...(ending.isFull ? { isFull: true } : {}),
+  }
+
+  // A full conversation is sent to no more, so the reports waiting are marked delivered as it ends
+  if (ending.noteKind === ConversationNoteKind.FULL) {
+    await write(() => finishConversationRunFull(dataConnect, noted))
+  } else {
+    await write(() =>
+      finishConversationRunWithNote(dataConnect, { ...noted, status: ending.status, noteKind: ending.noteKind }),
+    )
+  }
 
   return 'ended'
+}
+
+/*
+  What a run's end lets start, once it is written: a subagent's parent's reaction, and for any other
+  run, its member's reactions due, its own conversation's first. One that fails is logged, and left
+  to the parent's page, the next run's end or the sweep, never failing the end, which is written
+*/
+async function reactAfter({ ending, fence, isSubagent, parentId }: EndConversationRunInput) {
+  const run = ending.kind === 'interrupted' ? ending.reference : fence
+
+  if (!run) return
+
+  const member = { organizationId: run.organizationId, userId: run.userId }
+
+  try {
+    if (isSubagent) {
+      if (parentId) await reactToSubagentReports({ ...member, conversationId: parentId })
+    } else {
+      await startDueSubagentReactions(member, { first: run.conversationId })
+    }
+  } catch (error) {
+    logger.warn(`Conversation run ${run.runId}: the reactions its end lets start could not be read`, error)
+  }
 }
 
 type EndSubagentRunInput = Omit<EndConversationRunInput, 'lease' | 'isSubagent'> & {

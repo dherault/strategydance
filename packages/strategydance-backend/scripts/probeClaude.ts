@@ -15,9 +15,12 @@ import retrieveSecret from '~utils/retrieveSecret'
 import buildConversationRequest from '~domain/agent/buildConversationRequest'
 import buildConversationTaggingRequest from '~domain/agent/buildConversationTaggingRequest'
 import buildConversationTools, { type ConversationRequestTools } from '~domain/agent/buildConversationTools'
+import buildSubagentTools from '~domain/agent/buildSubagentTools'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
 import readConversationTagging from '~domain/agent/readConversationTagging'
+import readSubagentRequestSettings from '~domain/agent/subagentRequestSettings'
+import SUBAGENT_SYSTEM_PROMPT from '~domain/agent/subagentSystemPrompt'
 import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
 
 /*
@@ -563,8 +566,10 @@ for (const id of uploaded) {
   THE AGENT'S OWN REQUEST, ITS TOOLS AND ITS MODULES'
 --- */
 
-// The tools a run's requests send, which the checks after the first send too
+// The tools a run's requests send, which the checks after the first send too, and the modules'
+// tools they end with, which a subagent's list is built from
 let agentTools: ConversationRequestTools = []
+let moduleTools: Parameters<typeof buildSubagentTools>[0] = []
 
 await check(
   "The agent's own request is accepted, with its system prompt and every tool it sends, the modules' included",
@@ -579,6 +584,7 @@ await check(
 
     await modules.close()
 
+    moduleTools = modules.tools
     agentTools = buildConversationTools(modules.tools)
 
     const request = buildConversationRequest([{ role: 'user', content: 'Answer with one word: ready.' }], {
@@ -628,11 +634,21 @@ await check("The modules' tools are counted, what each adds to every request", a
     if ('name' in tool) each[tool.name] = (await count([...ownTools, tool])) - own
   }
 
+  // The whole tools list alone, M29's integration tools and the Subagents module's included, against
+  // the 10000 at which Later modules weighs Claude's tool search
+  const messages: BetaMessageParam[] = [{ role: 'user', content: '.' }]
+  const [withTools, withoutTools] = await Promise.all([
+    client.beta.messages.countTokens({ model: CONVERSATION_MODEL, tools: agentTools, messages }),
+    client.beta.messages.countTokens({ model: CONVERSATION_MODEL, messages }),
+  ])
+  const list = withTools.input_tokens - withoutTools.input_tokens
+
   finding('The system prompt and the agent’s own tools, in tokens', own)
   finding('The modules’ tools, in tokens', all - own)
+  finding('The whole tools list alone, the agent’s own and the modules’, in tokens', list)
   finding('What each module tool adds alone, in tokens', each)
 
-  return `${own} tokens, then ${all - own} for the modules' tools`
+  return `${own} tokens, then ${all - own} for the modules' tools, ${list} for the whole list alone`
 })
 
 await check("A module's tool, which is not strict, is called with an input its schema names", async () => {
@@ -698,6 +714,95 @@ await check(
     return JSON.stringify(input)
   },
 )
+
+await check(
+  "A subagent's request is accepted, with its own system prompt and tools, the deletes left out",
+  async () => {
+    assert(moduleTools.length, 'no module tools listed')
+
+    const tools = buildSubagentTools(moduleTools)
+    const names = tools.map(tool => ('name' in tool ? tool.name : tool.type))
+    const message = await client.beta.messages
+      .stream(
+        buildConversationRequest([{ role: 'user', content: 'Your brief: answer with one word, ready.' }], {
+          system: SUBAGENT_SYSTEM_PROMPT,
+          tools,
+          settings: readSubagentRequestSettings(),
+        }),
+      )
+      .finalMessage()
+
+    finding("The subagent's request's usage", message.usage)
+    assert(message.stop_reason !== 'refusal', 'the request was refused')
+    assert(!names.includes('delete_task') && !names.includes('launch_subagent'), 'it sends a tool it never gets')
+
+    return `${tools.length} tools, stopped on ${message.stop_reason}`
+  },
+)
+
+await check('The agent hands work to a subagent through the whole list, with a title and a brief', async () => {
+  assert(agentTools.length, 'no tools listed')
+
+  const message = await client.beta.messages
+    .stream(
+      buildConversationRequest(
+        [
+          {
+            role: 'user',
+            content:
+              'Hand the research of the pricing pages of Linear, Notion and Asana to a subagent now, one subagent for the three: I need you free meanwhile. Do not read the knowledge or the board first.',
+          },
+        ],
+        { system: CONVERSATION_SYSTEM_PROMPT, tools: agentTools },
+      ),
+    )
+    .finalMessage()
+  const call = message.content.find((block): block is BetaToolUseBlock => block.type === 'tool_use')
+  const input = (call?.input ?? {}) as Record<string, unknown>
+
+  finding('The call', call ? { name: call.name, input } : message.stop_reason)
+  assert(call?.name === 'launch_subagent', `called ${call?.name ?? 'no tool'}`)
+  assert(typeof input.title === 'string' && !input.title.includes('\n'), 'sent no one-line title')
+  assert(typeof input.brief === 'string' && input.brief.length > 40, 'sent no brief worth the name')
+
+  return JSON.stringify(input)
+})
+
+await check('The agent takes a task up from the column it read it in before it hands it to a subagent', async () => {
+  assert(agentTools.length, 'no tools listed')
+
+  const message = await client.beta.messages
+    .stream(
+      buildConversationRequest(
+        [
+          {
+            role: 'user',
+            content:
+              'I just read the board for you: the task 7c9e6679742540de944be07fc1f90ae7, "Draft the onboarding email", is assigned to Strategy Dance and sits in To do. Do not read it again. Take it up now and hand it to a subagent.',
+          },
+        ],
+        { system: CONVERSATION_SYSTEM_PROMPT, tools: agentTools },
+      ),
+    )
+    .finalMessage()
+  const calls = message.content.filter((block): block is BetaToolUseBlock => block.type === 'tool_use')
+  const [first] = calls
+  const input = (first?.input ?? {}) as Record<string, unknown>
+
+  finding(
+    'The calls',
+    calls.map(({ name, input: callInput }) => ({ name, input: callInput })),
+  )
+  assert(first?.name === 'update_task', `called ${first?.name ?? 'no tool'} first`)
+  assert(input.status === 'ONGOING', `moved it to ${String(input.status)}`)
+  assert(input.fromStatus === 'TODO', `named the column ${String(input.fromStatus)}`)
+  finding(
+    'It launched nothing before the move went through',
+    calls.findIndex(({ name }) => name === 'launch_subagent') !== 0,
+  )
+
+  return JSON.stringify(input)
+})
 
 /* ---
   THE TAGGING REQUEST

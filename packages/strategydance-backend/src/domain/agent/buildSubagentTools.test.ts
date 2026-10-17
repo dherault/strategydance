@@ -39,7 +39,7 @@ describe('buildSubagentTools', () => {
     to them makes every existing subagent lose its earlier reasoning once. Change this hash only with
     a release that means to change the tools
   */
-  it('keeps its bytes, web search then the Knowledge module’s and the Tasks module’s', async () => {
+  it('keeps its bytes, web search then the Knowledge module’s and the Tasks module’s, their deletes left out', async () => {
     const tools = buildSubagentTools(await readModuleTools())
 
     expect(tools.map(readName)).toEqual([
@@ -50,7 +50,6 @@ describe('buildSubagentTools', () => {
       'create_document',
       'update_document',
       'set_document_aspects',
-      'delete_document',
       'restore_document',
       'list_tasks',
       'read_task',
@@ -58,22 +57,30 @@ describe('buildSubagentTools', () => {
       'update_task',
       'add_task_dependency',
       'remove_task_dependency',
-      'delete_task',
       'restore_task',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      'dcae656f977ba6e076205cdc7ce4334992208927091050dc05e285c0bf3f9134',
+      '98a726a1d2a88b819af2c467bf7e5a98dcc3c80c4d42bb872c769d3c1dfa1552',
     )
   })
 
-  // Nobody answers a subagent's question or approves its call
-  it('sends every tool of a conversation’s but the agent’s own, web search aside, each as a conversation sends it', async () => {
+  // Nobody answers a subagent's question or approves its call, what it would delete it proposes, and
+  // it is one level deep
+  it('sends every tool of a conversation’s but the agent’s own, web search aside, the deletes and the Subagents module’s, each as a conversation sends it', async () => {
     const moduleTools = await readModuleTools()
     const subagent = buildSubagentTools(moduleTools).map(tool => JSON.stringify(tool))
     const conversation = buildConversationTools(moduleTools).map(tool => JSON.stringify(tool))
     const ownNames = CONVERSATION_TOOLS.map(readName).filter(name => name !== 'web_search')
 
     expect(subagent.every(tool => conversation.includes(tool))).toBe(true)
-    expect(conversation.filter(tool => !subagent.includes(tool)).map(tool => JSON.parse(tool).name)).toEqual(ownNames)
+    expect(conversation.filter(tool => !subagent.includes(tool)).map(tool => JSON.parse(tool).name)).toEqual([
+      ...ownNames,
+      'delete_document',
+      'delete_task',
+      'list_subagents',
+      'read_subagent',
+      'launch_subagent',
+      'stop_subagent',
+    ])
   })
 })

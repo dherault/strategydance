@@ -14,6 +14,7 @@ import pruneConversationAttachments from '~domain/conversations/pruneConversatio
 import pruneConversationSearches from '~domain/conversations/pruneConversationSearches'
 import pruneDeletedConversations from '~domain/conversations/pruneDeletedConversations'
 import runConversation from '~domain/conversations/runConversation'
+import sweepDeadConversationRuns from '~domain/conversations/sweepDeadConversationRuns'
 import publishDirectoryCheck from '~domain/directories/publishDirectoryCheck'
 import createGitHubAppToken from '~domain/github/createGitHubAppToken'
 import createGitHubClient from '~domain/github/createGitHubClient'
@@ -24,6 +25,7 @@ import pruneModuleCallResults from '~domain/modules/pruneModuleCallResults'
 import pruneAgentConnectionTokens from '~domain/oauth/pruneAgentConnectionTokens'
 import pruneOAuthAuthorizationRequests from '~domain/oauth/pruneOAuthAuthorizationRequests'
 import pruneOAuthClients from '~domain/oauth/pruneOAuthClients'
+import sweepSubagentReactions from '~domain/subagents/sweepSubagentReactions'
 import sweepSubagentRuns from '~domain/subagents/sweepSubagentRuns'
 import pruneDeletedTasks from '~domain/tasks/pruneDeletedTasks'
 
@@ -92,7 +94,9 @@ function createInternalRouter() {
     Reconciles first the subagent runs no page reconciled, a run past its lease or one waiting for a
     slot, for every member with one, as a parent's page would, and logs rather than throws, so the
     prunes after it run whatever it meets. Then removes what is still deleted past its Undo window,
-    whether or not anybody comes back, as Cloud Scheduler asks once a day: the conversations, with
+    whether or not anybody comes back, as Cloud Scheduler asks once a day, after the runs no page
+    reconciled, subagents' and members' alike, and the reactions to subagents' reports no run's end
+    started: the conversations, subagents before their parents, with
     their files, the board's tasks, the documents and the organizations' MCP servers, with their keys
     and members' connections, deleted over a day ago, and the files uploaded to conversations and
     never sent. A milestone that keeps something else deleted for a while adds its prune here. So
@@ -104,6 +108,8 @@ function createInternalRouter() {
   */
   router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
     await sweepSubagentRuns()
+    await sweepDeadConversationRuns()
+    await sweepSubagentReactions()
     await pruneDeletedConversations()
     await pruneConversationAttachments()
     await pruneConversationSearches()

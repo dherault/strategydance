@@ -520,7 +520,7 @@ describe('POST /:conversationId/messages with files', () => {
     expect(fake.attachments.get(attachmentId)?.messageId).toBe(messageId)
   })
 
-  test('stores a message of files whose text shows nothing without a text block', async () => {
+  test("stores a message of files whose text shows nothing without a text block of the member's", async () => {
     const attachmentId = newId()
 
     expect((await upload({ attachmentId, bytes: png(), contentType: 'image/png' })).status).toBe(201)
@@ -530,7 +530,8 @@ describe('POST /:conversationId/messages with files', () => {
 
     const [entry] = fake.entries.values()
 
-    expect(JSON.parse(entry?.content ?? '[]').map(({ type }: { type: string }) => type)).toEqual(['image'])
+    // The line naming the file, then the file
+    expect(JSON.parse(entry?.content ?? '[]').map(({ type }: { type: string }) => type)).toEqual(['text', 'image'])
   })
 
   test('refuses a message of more than 10 files, and one holding no text and no file', async () => {

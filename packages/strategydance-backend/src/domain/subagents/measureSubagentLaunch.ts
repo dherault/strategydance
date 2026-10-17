@@ -9,6 +9,7 @@ import buildSubagentTools from '~domain/agent/buildSubagentTools'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
 import measureConversationSend from '~domain/agent/measureConversationSend'
+import readSubagentRequestSettings from '~domain/agent/subagentRequestSettings'
 import SUBAGENT_SYSTEM_PROMPT from '~domain/agent/subagentSystemPrompt'
 import toConversationProfile from '~domain/agent/toConversationProfile'
 
@@ -62,7 +63,11 @@ async function measureSubagentLaunch({
   try {
     return await measureConversationSend({
       client: conversationClaudeClient,
-      config: { system: SUBAGENT_SYSTEM_PROMPT, tools: buildSubagentTools(modules.tools) },
+      config: {
+        system: SUBAGENT_SYSTEM_PROMPT,
+        tools: buildSubagentTools(modules.tools),
+        settings: readSubagentRequestSettings(),
+      },
       entries: [],
       entry: content,
       context: context.content,

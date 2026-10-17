@@ -239,7 +239,8 @@ describe('runConversation, chaining a subagent’s runs', () => {
     expect(readRuns(subagent).map(({ status }) => status)).toEqual(['STOPPED'])
     expect(kit.readThread(subagent).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'STOPPED' })
     expect(kit.readConversation(subagent)?.report).toBe('This subagent was stopped before it finished.')
-    expect(enqueueRun).not.toHaveBeenCalled()
+    // No next run of its chain, its parent's reaction aside
+    expect(enqueueRun.mock.calls.filter(([, queue]) => queue === 'subagent-runs')).toEqual([])
   })
 
   test('chains a run while all five slots are taken, which promotes nothing and stays at five', async () => {

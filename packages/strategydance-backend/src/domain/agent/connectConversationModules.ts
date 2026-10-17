@@ -20,8 +20,10 @@ type CallResult = Awaited<ReturnType<Client['callTool']>>
 
 /*
   Connects a run's worker to the modules its agent uses, as the run's member: the member the run was
-  queued under, with every scope, its calls kept under the conversation's idempotency scope. A send
-  with files connects the same way, before its run exists, for the tools its measurement counts.
+  queued under, with every scope, its calls kept under the conversation's idempotency scope, and the
+  run itself as the caller's launcher, which the Subagents module reads, the run a worker claimed
+  being the only one that names it. A send with files connects the same way, before its run exists,
+  with no launcher, for the tools its measurement counts, and so does a launch's measurement.
 
   Each module is reached through its own handler, the one the public endpoint mounts, by the SDK's
   client pinned to the 2026-07-28 revision, which is stateless, on a transport whose `fetch` hands
@@ -36,7 +38,8 @@ type CallResult = Awaited<ReturnType<Client['callTool']>>
   goes back to Claude as an error
 */
 async function connectConversationModules(
-  fence: Pick<ConversationRunFence, 'organizationId' | 'userId' | 'conversationId' | 'membershipCreatedAt'>,
+  fence: Pick<ConversationRunFence, 'organizationId' | 'userId' | 'conversationId' | 'membershipCreatedAt'>
+    & Partial<Pick<ConversationRunFence, 'runId'>>,
 ): Promise<ConversationModules> {
   const caller: ModuleCaller = {
     kind: 'agent',
@@ -48,6 +51,7 @@ async function connectConversationModules(
       scopes.write,
     ]),
     idempotencyScope: toConversationModuleScope(fence.conversationId),
+    ...(fence.runId && { launcher: { conversationId: fence.conversationId, runId: fence.runId } }),
   }
   const authInfo = toModuleAuthInfo(caller)
   const clients: Client[] = []

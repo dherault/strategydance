@@ -12,6 +12,7 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 import toConversationModuleScope from '~domain/agent/toConversationModuleScope'
 import readSubagentLauncher from '~domain/subagents/readSubagentLauncher'
 import toSubagentStatus from '~domain/subagents/toSubagentStatus'
+import toSubagentWrite, { type SubagentWrite } from '~domain/subagents/toSubagentWrite'
 
 // How many writes a page holds: a chain of four runs makes up to 200 calls
 const PAGE_SIZE = 50
@@ -21,9 +22,6 @@ const FIRST_PAGE_AFTER = '1970-01-01T00:00:00Z'
 
 // What a cursor holds: the last write's place, oldest first, which the next page starts after
 const cursorSchema = z.object({ createdAt: z.string(), key: z.string() })
-
-// What a subagent's write named: the document or the task its result names, with the tool that wrote
-export type SubagentWrite = { tool: string; documentId?: string; taskId?: string }
 
 // A subagent as `read_subagent` reads it, with a page of what it wrote
 export type ReadSubagent = {
@@ -114,28 +112,6 @@ async function readSubagent(
           cursor: encodeCursor({ createdAt: last.createdAt, key: last.idempotencyKey }),
         }),
     },
-  }
-}
-
-// The document or the task a write's result names, by the module whose tool wrote it: every result
-// of the Knowledge and Tasks modules' writes holds the id of what it wrote
-function toSubagentWrite({ tool, result }: { tool: string; result: string }): SubagentWrite {
-  const id = readResultId(result)
-
-  if (!id) return { tool }
-  if (tool.includes('document')) return { tool, documentId: id }
-  if (tool.includes('task')) return { tool, taskId: id }
-
-  return { tool }
-}
-
-function readResultId(result: string) {
-  try {
-    const parsed: unknown = JSON.parse(result)
-
-    return parsed && typeof parsed === 'object' && 'id' in parsed && typeof parsed.id === 'string' ? parsed.id : null
-  } catch {
-    return null
   }
 }
 

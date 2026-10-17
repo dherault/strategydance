@@ -260,6 +260,8 @@ export type KnowledgeRefusal =
   | { outcome: 'notMember' }
   /** The caller's connection may read but not write */
   | { outcome: 'readOnly' }
+  /** A delete from a parent's reaction to its subagents' reports, which deletes nothing */
+  | { outcome: 'fromReaction' }
   /** No document by that id in the organization, or one deleted */
   | { outcome: 'notFound' }
   /** The team keeps the document from agents */
@@ -362,6 +364,8 @@ export type TasksRefusal =
   | { outcome: 'notMember' }
   /** The caller's connection may read but not write */
   | { outcome: 'readOnly' }
+  /** A delete from a parent's reaction to its subagents' reports, which deletes nothing */
+  | { outcome: 'fromReaction' }
   /** No live task by that id on the board */
   | { outcome: 'notFound' }
   /** A task assigned to somebody who is not a member of the organization */
@@ -372,6 +376,8 @@ export type TasksRefusal =
   | { outcome: 'changed' }
   /** A description replaced without the version a read gave */
   | { outcome: 'versionRequired' }
+  /** A move from a column the task has left, which somebody else moved it out of */
+  | { outcome: 'moved'; status: TaskStatus }
   /** A description past what a task holds once stored */
   | { outcome: 'descriptionTooLong' }
   /** A move before a task that is not in the column it names */
@@ -439,6 +445,10 @@ export type SubagentsRefusal =
   | { outcome: 'readOnly' }
   /** The run calling is a subagent's, which launches none */
   | { outcome: 'fromSubagent' }
+  /** The run calling reacts to subagents' reports, which launches none */
+  | { outcome: 'fromReaction' }
+  /** Launches are kept closed in this process until the page reconciles subagents (M34) */
+  | { outcome: 'launchesClosed' }
   /** The run calling has ended or was asked to stop, its conversation deleted included */
   | { outcome: 'launcherEnded' }
   /** No live subagent of the calling conversation by that id */

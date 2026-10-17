@@ -84,7 +84,7 @@ nothing, rather than leave the daily sweep their only recovery.
 | M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | #184 |
 | M31 | Chains, slots and the subagents' queue | database, core, backend, web, root | M30, setup 11 | #193 |
 | M32 | The Subagents module | core, backend, database, web | M31 | #196 |
-| M33 | Subagents in conversations | backend, database, root | M11, M32 | |
+| M33 | Subagents in conversations | backend, database, root | M11, M32 | #200 |
 | M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | |
 | M35 | Usage caps | core, database, backend, web, root | M33 | |
 | M36 | Integrations in subagents | backend, web | M29, M33 | |
@@ -2347,6 +2347,116 @@ own.
   - Brief a subagent whose work calls for a delete, and read its report proposing it, the reaction
     asking, and the run the answer starts deleting it.
   - Ask it to research two competitors at once.
+- Built with these settled, on 2026-10-17:
+  - **The reaction** (`reactToSubagentReports`) reads its parent whole (`GetSubagentReactionContext`),
+    finds every waiting report of each complete batch (`findDueSubagentReports`), and starts its run
+    in one write (`StartSubagentReaction`): the membership's lock and the three runs counted, the
+    parent's row written under `activeRunId` null, no answer waiting and the run number read, its
+    latest `COMPLETED` run checked after the lock, the run and its entry inserted, and exactly the
+    reports it carries marked delivered, so a report a send delivered meanwhile refuses it, which
+    reads again. Its entry is drawn as nothing. A subagent's end starts its parent's; any other run's
+    end, the queued stop and the run's reconcile included, starts the member's oldest due
+    (`startDueSubagentReactions`), its own conversation's first, until one starts or the three are
+    taken; the subagents' reconcile route starts its parent's; the daily sweep
+    (`sweepSubagentReactions`) starts every one due, member by member.
+  - **Reports as JSON**: `{"subagentReport": {"id", "title", "ending", "report", "writes",
+    "total"}}`, one text block each (`buildSubagentReportBlock`), the ending in `list_subagents`'
+    words and the writes named as `read_subagent` names them (`toSubagentWrite`, shared).
+  - **Delivery** goes through an optional `$deliveredSubagentIds` on `SendConversationMessage`,
+    `SendConversationMessageAnsweringCalls`, `ContinueConversationRun` and
+    `StoreConversationToolResults`, the last for the results entry an Allow's run stores, which
+    carries them after the turn's results as an answer's entry does. Each is always called with the
+    list, empty when nothing waits: the filter it drops when left out matches every report waiting,
+    which its count then refuses. The send's and the turn's contexts read the reports waiting
+    (`waitingReports`).
+  - **A full parent**: its full ending is an operation of its own, `FinishConversationRunFull`, which
+    marks the reports waiting delivered after the parent's row; a report that comes after is marked
+    by whatever reads the parent full, the subagent's end, the reconcile or the sweep
+    (`MarkSubagentReportsDelivered`, which writes the parent's row first and refuses once a run
+    numbered after the full one exists). A report committing while the full ending runs, past what
+    its update read, waits for the reconcile or the sweep to mark it, the narrow race no lock closes
+    without writing the parent's row from a subagent's ending, against the one order.
+  - **The deletes refuse a reaction** by reading the caller's launcher (`isReactionCaller`), loaded
+    only for a call carrying one, so the Knowledge and Tasks modules' fakes load nothing new. The
+    launch refuses one as it reads its launcher (`readSubagentLauncher`'s `isReaction`) and in its
+    mutation (`trigger: { ne: REPORTS }`).
+  - **Subagents get neither the deletes nor the Subagents module's tools**, by name (`isSubagentTool`),
+    their runners filtered the same, so a call to one is planned as a call to a tool nobody runs.
+  - **The launch gate** sits in `launchSubagentForAgent`, so the `launch:subagent` script, which
+    launches through `launchSubagent` directly, never meets it. The tests open it with
+    `mock.module('~constants', …)` in each file that launches through the module, and
+    `launchGate.test.ts` keeps it closed.
+  - **`fromStatus`** is checked against the task as each round reads the board, then matched in the
+    write: a refused write is read again, and refused as `moved` once the task has left the column.
+  - **The cascades**: the parent's Stop goes through new operations taking the stopped run's anchor,
+    `RequestConversationRunStopWithSubagents` and `StopQueuedConversationRunWithSubagents`, since a
+    required variable would break the old ones; Stop all and a row's Stop through
+    `RequestConversationSubagentsStop`, whose anchor and ids each narrow it when given. Each is
+    followed by `stopConversationSubagents`, which reads the subagents reached
+    (`GetSubagentsToStop`), ends their queued and waiting runs at once, promotes, and asks again a run
+    a chain swapped meanwhile. `RetryConversationRun` gains its steps without a variable: the live
+    subagents on the retried anchor are exactly those the cut runs launched. `DeleteConversation` now
+    writes the parent's runs before its row, then its subagents' runs and rows at its own instant, and
+    `RestoreConversation` restores those deleted at that instant, read in its query step and matched
+    through `response.query.deleted.deletedAt`, a `Timestamp` read back equal to the microsecond, as
+    the emulator showed.
+  - **The prune** claims a subagent only once no run holds it, reads claimed subagents first
+    (`GetClaimedSubagents`) and deletes each parent's together, lowering its `subagentCount` by as
+    many (`PruneClaimedSubagents`), then the parents, `GetClaimedConversations` leaving subagents out
+    and a parent still holding one kept (`GetConversationsWithSubagents`). The sweep also reconciles
+    every member's run past its lease (`sweepDeadConversationRuns`), a reaction's whose task was lost
+    above all.
+  - **The checks**: `check:subagent-runs` gains the reaction's, delivery's, the full ending's, the
+    cascades' and the prune's operations, and a launch against a Stop, Stop all, a delete, a send, an
+    answer and Retry in both orders, where the launch helpers live; `check:conversation-runs` reads
+    the one lock order off the mutations themselves (`checkLockOrder`), which flags the old
+    `DeleteConversation`.
+  - **Data Connect refuses a variable an operation does not declare**, which the fakes let through:
+    the measurement's dry run found two reads handed a run reference, fixed to pass the member alone.
+  - **The tools list**, counted whole: 16017 tokens alone, the system prompt and the agent's own
+    tools, M29's three integration tools included, 8727, the twenty module tools 9021, the four
+    Subagents tools 1351 of them. Past the 10000 at which Later modules weighs Claude's tool search:
+    whether it keeps some out is David's call.
+  - **A subagent's request** carries settings of its own (`SUBAGENT_REQUEST_SETTINGS`, a model, an
+    effort and a task budget), today's until David chooses; outside production the measurement sets
+    others through the environment (`readSubagentRequestSettings`).
+  - **The measurement**, cut by David on 2026-10-17 from eighteen subagents and some $50 to twelve
+    short ones, a dollar each and $15 in all at most: three briefs on Opus 5.5 at medium and low
+    effort, Sonnet 5.5 at medium, and Opus 5.5 at medium with a task budget of 50000, launched by
+    `bun run measure:subagents` from parents whose own run never goes, each configuration back to
+    back to share the cache. Measured on 2026-10-17, $0.57 in all, every subagent ending in one run
+    without chaining or being asked for its report, in one to three requests and 6 to 32 seconds:
+
+    | Configuration | Research | Task | Document | All three | Output tokens |
+    | --- | --- | --- | --- | --- | --- |
+    | Opus 5.5, medium (today's) | $0.116 | $0.025 | $0.032 | $0.173 | 2663 |
+    | Opus 5.5, low | $0.101 | $0.018 | $0.026 | $0.144 | 1982 |
+    | Sonnet 5.5, medium | $0.076 | $0.013 | $0.017 | $0.105 | 1962 |
+    | Opus 5.5, medium, task budget 50000 | $0.094 | $0.021 | $0.032 | $0.147 | 2472 |
+
+    The research is most of it: five searches and some 60000 to 78000 tokens of their results read
+    from the cache, every other brief reading the 14226-token prefix the subagents share. Every
+    research found Linear's Business plan at $16 a seat billed yearly and Notion's at $20; Sonnet's
+    read both official pages, Opus's at medium and low effort relied on third-party pages for one or
+    both, and the budgeted run's search came back after one query and it fell back on what it knew,
+    the weakest. Every document brief created its five bullets and flagged the one it inferred, Opus
+    tagging three aspects and Sonnet one. The task brief worked on one seeded task, so only the first
+    configuration wrote its plan, and the three after found it there and rightly changed nothing: a
+    flaw of the measurement, which compares their judgment on that brief rather than their writing.
+    On briefs this short Sonnet 5.5 at medium costs 39% less than today's, Opus at low effort 17%
+    less, and the task budget saves nothing measurable. David chooses from these numbers, Opus 5.5 at
+    medium staying until he does.
+  - Verified: the four checks; `check:subagent-runs`, `check:conversation-runs`,
+    `check:subagents-module`, `check:tasks-module` and `check:knowledge-module` against an emulator
+    of the branch's schema, and `check:oauth` against the branch's backend; `bun run probe:claude`,
+    every check passing, Claude launching a subagent with a full brief through the whole list and
+    taking a task up with `update_task` naming `fromStatus: TODO` first. With the real model, as
+    M33 asks: three tasks assigned to Strategy Dance, one already `ONGOING`, the two in To do moved
+    to `ONGOING` from `TODO` before their subagents launched, the third left alone, both reports
+    delivered by one reaction that replied; a subagent briefed to clean up duplicated tasks deleting
+    nothing and proposing the delete, the reaction asking with `ask_user`, and the run the answer
+    started deleting the duplicate; and two competitors researched at once by two subagents, compared
+    by the reaction.
 
 ### M34: Subagents in the thread
 

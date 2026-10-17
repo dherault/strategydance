@@ -1,3 +1,4 @@
+import { useLocation, useNavigate, useRouter } from '@tanstack/react-router'
 import { useEffect, useEffectEvent, useState } from 'react'
 import type { CompanyAspect } from 'strategydance-database/web'
 
@@ -5,6 +6,9 @@ import useConversation from '~hooks/conversation/useConversation'
 import useConversationDock from '~hooks/conversation/useConversationDock'
 import useConversationRun from '~hooks/conversation/useConversationRun'
 import useConversationStartedRun from '~hooks/conversation/useConversationStartedRun'
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
+
+import toHyphenatedUuid from '~utils/common/toHyphenatedUuid'
 
 import ConversationBar from '~components/conversation/ConversationBar'
 import ConversationComposer from '~components/conversation/ConversationComposer'
@@ -16,6 +20,8 @@ import ConversationThread from '~components/conversation/ConversationThread'
 
 type Props = {
   conversationId: string
+  // The subagent whose work is open over the page, as its address says
+  viewedSubagentId: string | null
 }
 
 /*
@@ -34,15 +40,24 @@ type Props = {
   here or in a dock's window.
 
   A conversation opened as its page is taken out of the dock, as the design has it: it is never
-  open twice
+  open twice.
+
+  A subagent's work opens over the page from its row, as a step of the address, `?subagent=<id>`,
+  so a phone's Back closes it, and closing it steps back to the conversation's own entry rather than
+  adding one, as a task's dialog does over the board. Opened by an address, closing it replaces the
+  address with the conversation's
 */
-function ConversationPage({ conversationId }: Props) {
+function ConversationPage({ conversationId, viewedSubagentId }: Props) {
   const { data: conversation } = useConversation(conversationId)
   const { data: run } = useConversationRun(conversationId)
   const [startedRun, setStartedRun] = useConversationStartedRun(conversationId)
   const [draftAspects, setDraftAspects] = useState<CompanyAspect[]>([])
-  // The subagent whose work is open over the page
-  const [viewedSubagentId, setViewedSubagentId] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const router = useRouter()
+  const organizationSlug = useCurrentOrganizationSlug()
+  const isFromConversationThread = useLocation({
+    select: location => location.state.isFromConversationThread === true,
+  })
   const { closeWindow } = useConversationDock()
 
   const leaveDock = useEffectEvent(() => closeWindow(conversationId))
@@ -50,6 +65,32 @@ function ConversationPage({ conversationId }: Props) {
   useEffect(() => {
     leaveDock()
   }, [conversationId])
+
+  function viewSubagent(subagentId: string) {
+    navigate({
+      to: '/$organizationSlug/conversations/$conversationId',
+      params: { organizationSlug, conversationId },
+      search: { subagent: toHyphenatedUuid(subagentId) },
+      state: { isFromConversationThread: true },
+      resetScroll: false,
+    })
+  }
+
+  function closeSubagent() {
+    if (isFromConversationThread) {
+      router.history.back()
+
+      return
+    }
+
+    navigate({
+      to: '/$organizationSlug/conversations/$conversationId',
+      params: { organizationSlug, conversationId },
+      search: {},
+      replace: true,
+      resetScroll: false,
+    })
+  }
 
   return (
     // The column fills the screen, as the design has it, so the composer sits at its foot however
@@ -71,7 +112,7 @@ function ConversationPage({ conversationId }: Props) {
           run={run}
           startedRun={startedRun}
           onRunStart={setStartedRun}
-          onViewSubagent={setViewedSubagentId}
+          onViewSubagent={viewSubagent}
         />
       ) : (
         <ConversationDraftThread
@@ -91,7 +132,7 @@ function ConversationPage({ conversationId }: Props) {
       <ConversationSubagentViewer
         conversationId={conversationId}
         subagentId={viewedSubagentId}
-        onClose={() => setViewedSubagentId(null)}
+        onClose={closeSubagent}
       />
     </ConversationLayout>
   )

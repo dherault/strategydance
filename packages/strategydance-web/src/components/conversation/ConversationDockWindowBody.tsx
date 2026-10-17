@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import type { CompanyAspect } from 'strategydance-database/web'
 
 import useConversation from '~hooks/conversation/useConversation'
@@ -7,6 +7,7 @@ import useConversationStartedRun from '~hooks/conversation/useConversationStarte
 
 import ConversationComposer from '~components/conversation/ConversationComposer'
 import ConversationDraftThread from '~components/conversation/ConversationDraftThread'
+import ConversationSubagentViewer from '~components/conversation/ConversationSubagentViewer'
 import ConversationThread from '~components/conversation/ConversationThread'
 
 const NO_ASPECTS: CompanyAspect[] = []
@@ -31,6 +32,8 @@ function ConversationDockWindowBody({ conversationId, isAutoFocused }: Props) {
   const { data: run } = useConversationRun(conversationId)
   const [startedRun, setStartedRun] = useConversationStartedRun(conversationId)
   const scrollerRef = useRef<HTMLDivElement>(null)
+  // The subagent whose work is open over the window
+  const [viewedSubagentId, setViewedSubagentId] = useState<string | null>(null)
 
   return (
     <>
@@ -44,6 +47,7 @@ function ConversationDockWindowBody({ conversationId, isAutoFocused }: Props) {
             run={run}
             startedRun={startedRun}
             onRunStart={setStartedRun}
+            onViewSubagent={setViewedSubagentId}
             scrollerRef={scrollerRef}
             size="sm"
           />
@@ -68,6 +72,11 @@ function ConversationDockWindowBody({ conversationId, isAutoFocused }: Props) {
         variant="dock"
         scrollerRef={scrollerRef}
         isAutoFocused={isAutoFocused}
+      />
+      <ConversationSubagentViewer
+        conversationId={conversationId}
+        subagentId={viewedSubagentId}
+        onClose={() => setViewedSubagentId(null)}
       />
     </>
   )

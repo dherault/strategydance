@@ -63,8 +63,10 @@ to one and a half times it (see Usage caps); subagents delete nothing, saying in
 what they would delete, a task is claimed for a subagent by a conditional move to `ONGOING` before
 its launch, and their
 model and effort are chosen from what M33 measures (see Subagents); and M36 is written again against
-M29 as it was built, the parent hearing of every integration call a subagent made. When a decision
-changes, change it here first.
+M29 as it was built, the parent hearing of every integration call a subagent made. Revised on
+2026-10-17, in M34, with what bringing subagents into the thread settled, in Subagents § In the
+parent's thread, and the launch gate removed (see Release gate). When a decision changes, change it
+here first.
 
 ## The design
 
@@ -2133,8 +2135,8 @@ way (see The orchestrator).
   delete is the web's and queues no task, so it only asks: it ends no run and frees no slot, the
   workers end the `QUEUED` and `RUNNING` runs as they read the flag, each end followed by its
   promotion, and the promotion skips the `PENDING` ones, which the reconcile and the sweep finalize.
-  Retry on the parent stops the subagents the runs it cuts launched (`launchRunId` among them) as
-  the parent's Stop does, finalizing their `QUEUED` and `PENDING` runs at once, and deletes them, at
+  Retry on the parent stops the subagents the runs it cuts launched, those launched on its anchor
+  (`launchAnchorPosition`), reported or not, as the parent's Stop does, finalizing their `QUEUED` and `PENDING` runs at once, and deletes them, at
   an instant of their own, so restoring the parent never brings them back, and their reports are
   never delivered; what they wrote stays written, as with every tool. The sweep prunes a parent's
   subagents before the parent, each with its module call results under `conversation:<subagentId>`,
@@ -2185,7 +2187,40 @@ way (see The orchestrator).
   fan-out offers Retry alone, which would otherwise end the fan-out without a word. When reports
   wait undelivered and the parent cannot react, its last run stopped, failed, refused or
   interrupted, the strip above the composer says so, "2 reports waiting. Your next message delivers
-  them.", since nothing else would tell the member a send is what brings them in.
+  them.", since nothing else would tell the member a send is what brings them in. As M34 built it,
+  on 2026-10-17:
+  - **A row finds its subagent** by the call's `toolUseId`, Claude's id for it, which the subagent
+    keeps as `launchToolUseId` and the bodies carry, since it never changes once written. Until the
+    call's body and the list are read, and for a launch refused, the call draws as any call does.
+    The list is read once the conversation's `subagentCount` says it launched one, so a conversation
+    that never did subscribes to nothing more.
+  - **What refreshes the list**: a subagent's runs write under its own id, never its parent's, so
+    each of their writes that changes a status wakes every list of the member's in the
+    organization, as the conversations' list wakes, while the parent's own writes, its launches
+    (`parentId`), its stops, its Retry and every delivery of its reports (`conversationId`), its
+    delete and its restore (`id`), wake its own list alone. The parent's stops of its subagents
+    name the parent too, so `GetConversationRun` now wakes on them under the member's condition,
+    which a subagent's viewer needs to say it is stopping.
+  - **A working row's step** is its run's progress line, a summary of the model's thinking, which
+    none of the subagents M34 ran in its checks wrote, their turns being short: the row says
+    "Working" meanwhile, as a conversation's indicator says "Thinking".
+  - **View output** reads the report once as it opens (`GetConversationSubagentReport`), not in the
+    live list, which a hundred reports of 8000 characters would weigh down at every push, and draws
+    it as Strategy Dance's replies are, its `doc:` and `task:` links working, under the launch's
+    input, in place of the launch's own output, which only said it was queued.
+  - **The viewer** is the page's or the dock window's, keyed by the subagent, since a thread is read
+    once for the conversation it was made for, and closes once the list is read without its
+    subagent. A subagent's thread is read only, which its `parentId` decides: its own run is never
+    reconciled through its id, which the route refuses, it offers no Resume or Retry, and its notes
+    are worded for a subagent ("This subagent was stopped."). On the page, View work pushes
+    `?subagent=<id>` as a step of the history, so a phone's Back closes it. A dialog its rows open, a
+    call's output or an image, stacks over it.
+  - **The reconcile** asks a few seconds in once a batch has reported whole with a report waiting
+    while the parent could react, every two minutes while any subagent is busy, and never otherwise,
+    its timer keyed on that delay alone, since the member's runs push the list often.
+  - **Retry's question** counts every subagent on the retried run's anchor, reported or not, since
+    the backend deletes them all, and names those still busy, which it stops first. A list not read
+    yet asks nothing.
 - **Integrations** (M36): a subagent reaches the three integration
   tools as its member, with their connections and the organization's keys, and calls only the tools
   an administrator lets run without approval, as David chose, since nobody can approve a call for a
@@ -2443,11 +2478,11 @@ worker's claim checks the role again, so a queued run stops too:
   conversations' gate, their routes (the reconcile and the stops) are conversations' routes, behind
   `staffOnlyMiddleware`, and a subagent's worker checks the role at its claim, as every run's does.
   The Subagents module is served to no external agent, so `ARE_MODULES_STAFF_ONLY` never meets it.
-  Launches have a gate of their own between M33 and M34 alone, `IS_SUBAGENT_LAUNCH_GATED`, lifted on
-  the development backend: M33 lets the agent launch, and only M34 has the page reconcile a parent's
-  subagents and Retry ask before it discards them, so in production `launch_subagent` refuses with a
-  sentence telling the agent to do the work itself until M34 removes it, and a release cut between
-  the two launches nothing.
+  Launches had a gate of their own between M33 and M34 alone, `IS_SUBAGENT_LAUNCH_GATED`, lifted on
+  the development backend: M33 let the agent launch, and only M34 had the page reconcile a parent's
+  subagents and Retry ask before it discards them, so in production `launch_subagent` refused with a
+  sentence telling the agent to do the work itself, and a release cut between the two launched
+  nothing. M34 removed it.
 - What replaces the gate is M37's, before M38 removes it: a member starts a run only once their
   address is verified (`ERROR_CODE_EMAIL_NOT_VERIFIED`), since an account costs nothing to make and
   the caps' allowance is an account's, and staff can suspend an account or an organization

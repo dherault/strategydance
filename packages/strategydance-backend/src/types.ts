@@ -447,8 +447,6 @@ export type SubagentsRefusal =
   | { outcome: 'fromSubagent' }
   /** The run calling reacts to subagents' reports, which launches none */
   | { outcome: 'fromReaction' }
-  /** Launches are kept closed in this process until the page reconciles subagents (M34) */
-  | { outcome: 'launchesClosed' }
   /** The run calling has ended or was asked to stop, its conversation deleted included */
   | { outcome: 'launcherEnded' }
   /** No live subagent of the calling conversation by that id */

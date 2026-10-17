@@ -709,6 +709,22 @@ A conversation is kept twice, once for Claude and once for the page, and
   subagents' queue, answering `missing` for a subagent's run on the conversations' and the reverse.
   `bun run check:subagent-runs`, in the backend's package, checks the operations against the
   emulators
+- A parent's page draws its subagents from `GetConversationSubagents`, live, read once its
+  `subagentCount` says it launched one: each launch's row finds its subagent by the call's
+  `toolUseId`, which the bodies carry, as the subagent's `launchToolUseId`, the strip above the
+  composer counts them, and Retry counts those launched on its run's anchor (`launchAnchorPosition`),
+  which it discards. A subagent's runs write under its own id, never the parent's, so the list
+  refreshes on each of them under the member and the organization, and on the parent's own writes,
+  its launches, stops, Retry, delete, restore and every delivery of its reports, under the parent's
+  id: a new write that changes a subagent's row or the status of its latest run names itself there.
+  A subagent's thread is drawn read only, in its viewer (`ConversationSubagentDialog`), which
+  `conversation.parentId` decides: no reconcile of its own run, whose route refuses it, no note
+  actions, and notes worded for a subagent. Its brief's files are the parent's, read by
+  `attachmentIds` among the parent's sent files (`GetConversationBriefAttachments`) and served under
+  the parent's id. No page polls a subagent's run, so the parent's page reconciles the member's
+  subagents (`useReconcileConversationSubagents`) every two minutes while one is busy, and a few
+  seconds in once a batch has reported whole while the parent could react, its timer keyed on its
+  delay alone
 - A subagent's run at one of its limits, its 25 requests, 10 minutes or 100 entries, before its
   fourth run (`MAX_SUBAGENT_RUNS`) chains: `ChainSubagentRun` ends it `CHAINED` and queues the next,
   `CONTINUE` on the same anchor, in one write, the next run's id derived from it
@@ -793,10 +809,7 @@ A conversation is kept twice, once for Claude and once for the page, and
   (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
   token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
   two as `useCanUseConversations`, before it reads a consent request or offers the Connected agents
-  tab or a module's agents button. Launches have a gate of their own until M34's page reconciles a
-  parent's subagents, `IS_SUBAGENT_LAUNCH_GATED`, lifted on the development backend alone: under it
-  `launch_subagent` refuses, telling the agent to do the work itself, which the tests open in each
-  file that launches through the module, one test keeping it closed
+  tab or a module's agents button
 - The dock's windows are each member's in each organization, kept by `_ConversationDockProvider`
   under one persisted key, each set under `${userId}:${organizationId}`, since the key a persisted
   state reads is read once. A minimized window reads nothing but `GetDockConversations`, the
@@ -880,6 +893,12 @@ other one (`useSwitchOrganization`), a document or a conversation back to its li
 naming an organization the reader is not in is the organization not found page, inside the app's
 frame, and one whose organization goes while its page is open, deleted or the reader removed,
 moves the reader on instead: `CurrentOrganizationBouncer` decides both.
+
+A subagent has no page of its own. Its address sends the reader to its parent's page with its work
+open over it, `?subagent=<hyphenated id>` (`ConversationSubagentBouncer`, under
+`ConversationBouncer`), before anything of the page draws, so no composer or title ever shows for
+one. View work pushes that search as a step of the history, with `isFromConversationThread` in its
+state, so Back closes the viewer and closing it steps back, as a task's dialog does over the board.
 
 The consent page, `/oauth/consent?request=<id>`, where an external agent's authorization sends the
 member, sits under `_authenticated` outside `_app`, as the invitation page does: the whole screen,

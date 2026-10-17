@@ -299,6 +299,36 @@ const conversationMessages = defineMessages({
     defaultMessage: 'This conversation is full. Start a new one to go on.',
     description: 'Note in a conversation that holds as much as it can, so it takes no more messages.',
   },
+  subagentNoteStopped: {
+    id: 'conversation.note.subagentStopped',
+    defaultMessage: 'This subagent was stopped.',
+    description:
+      'Note in the work of a subagent, a helper the AI handed one piece of work to, where it was stopped before it finished, by the reader or by the AI.',
+  },
+  subagentNoteFailed: {
+    id: 'conversation.note.subagentFailed',
+    defaultMessage: 'Something went wrong, and this subagent stopped.',
+    description:
+      'Note in the work of a subagent, a helper the AI handed one piece of work to, where it could not finish because of an error.',
+  },
+  subagentNoteRefused: {
+    id: 'conversation.note.subagentRefused',
+    defaultMessage: 'Strategy Dance could not do this work.',
+    description:
+      "Note in the work of a subagent, a helper the AI handed one piece of work to, where the AI declined to do it. Strategy Dance is the AI's name.",
+  },
+  subagentNoteInterrupted: {
+    id: 'conversation.note.subagentInterrupted',
+    defaultMessage: 'This subagent was interrupted.',
+    description:
+      'Note in the work of a subagent, a helper the AI handed one piece of work to, where its work was cut off, for example because the server restarted.',
+  },
+  subagentNoteFull: {
+    id: 'conversation.note.subagentFull',
+    defaultMessage: 'This subagent’s work grew as large as it can, and it stopped.',
+    description:
+      'Note in the work of a subagent, a helper the AI handed one piece of work to, where it held as much as it can, so it went no further.',
+  },
   noteResume: {
     id: 'conversation.note.resume',
     defaultMessage: 'Resume',
@@ -310,6 +340,52 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Retry',
     description:
       "Button under the note that ends a conversation when the AI's answer stopped, failed or was refused. It removes that answer and has the AI answer the reader's last message again.",
+  },
+  retryDialogTitle: {
+    id: 'conversation.retryDialog.title',
+    defaultMessage: 'Retry this response?',
+    description:
+      'Title of the dialog that asks before the AI answers the reader’s last message again, when its answer launched subagents, helpers it handed pieces of work to, which retrying discards.',
+  },
+  retryDialogDiscarded: {
+    id: 'conversation.retryDialog.discarded',
+    defaultMessage:
+      '{total, plural, one {Retrying discards the subagent this response launched, and its report.} other {Retrying discards the # subagents this response launched, and their reports.}}',
+    description:
+      'In the dialog that asks before the AI answers the reader’s last message again: the subagents its answer launched, helpers it handed pieces of work to, go with it. {total} is how many.',
+  },
+  retryDialogAllWorking: {
+    id: 'conversation.retryDialog.allWorking',
+    defaultMessage:
+      '{working, plural, one {It is still working, and stops first.} other {They are all still working, and stop first.}}',
+    description:
+      'In the dialog that asks before the AI answers the reader’s last message again, when every subagent it discards is still working. {working} is how many.',
+  },
+  retryDialogSomeWorking: {
+    id: 'conversation.retryDialog.someWorking',
+    defaultMessage:
+      '{working, plural, one {One of them is still working, and stops first.} other {# of them are still working, and stop first.}}',
+    description:
+      'In the dialog that asks before the AI answers the reader’s last message again, when some of the subagents it discards are still working. {working} is how many.',
+  },
+  retryDialogKept: {
+    id: 'conversation.retryDialog.kept',
+    defaultMessage:
+      '{total, plural, one {What it changed in your knowledge and tasks stays as it is.} other {What they changed in your knowledge and tasks stays as it is.}}',
+    description:
+      'In the dialog that asks before the AI answers the reader’s last message again: the documents and tasks the discarded subagents created or changed are not undone. {total} is how many subagents.',
+  },
+  retryDialogConfirm: {
+    id: 'conversation.retryDialog.confirm',
+    defaultMessage: 'Retry',
+    description:
+      'Button of the dialog that asks before the AI answers the reader’s last message again, which discards the subagents its answer launched and retries.',
+  },
+  retryDialogCancel: {
+    id: 'conversation.retryDialog.cancel',
+    defaultMessage: 'Cancel',
+    description:
+      'Button of the dialog that asks before the AI answers the reader’s last message again, which closes it and leaves the answer and its subagents as they are.',
   },
   noteActionError: {
     id: 'conversation.note.actionError',
@@ -545,6 +621,54 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Called an integration',
     description:
       "What the AI did once it used one of the organization's integrations, the service of another company connected to Strategy Dance, when the service's name is not known. Past tense.",
+  },
+  toolListSubagentsRunning: {
+    id: 'conversation.tool.listSubagents.running',
+    defaultMessage: 'Listing subagents',
+    description:
+      'What the AI is doing while it looks at the subagents it launched in this conversation, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back.',
+  },
+  toolListSubagentsDone: {
+    id: 'conversation.tool.listSubagents.done',
+    defaultMessage: 'Listed subagents',
+    description:
+      'What the AI did once it looked at the subagents it launched in this conversation, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back. Past tense.',
+  },
+  toolReadSubagentRunning: {
+    id: 'conversation.tool.readSubagent.running',
+    defaultMessage: 'Reading a subagent’s work',
+    description:
+      'What the AI is doing while it reads what one of its subagents did and reported, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back.',
+  },
+  toolReadSubagentDone: {
+    id: 'conversation.tool.readSubagent.done',
+    defaultMessage: 'Read a subagent’s work',
+    description:
+      'What the AI did once it read what one of its subagents did and reported, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back. Past tense.',
+  },
+  toolLaunchSubagentRunning: {
+    id: 'conversation.tool.launchSubagent.running',
+    defaultMessage: 'Launching a subagent',
+    description:
+      'What the AI is doing while it hands one piece of work to a subagent, a helper that works on its own, in parallel with others, and reports back.',
+  },
+  toolLaunchSubagentDone: {
+    id: 'conversation.tool.launchSubagent.done',
+    defaultMessage: 'Launched a subagent',
+    description:
+      'What the AI did once it handed one piece of work to a subagent, a helper that works on its own, in parallel with others, and reports back. Past tense.',
+  },
+  toolStopSubagentRunning: {
+    id: 'conversation.tool.stopSubagent.running',
+    defaultMessage: 'Stopping a subagent',
+    description:
+      'What the AI is doing while it stops one of its subagents, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back.',
+  },
+  toolStopSubagentDone: {
+    id: 'conversation.tool.stopSubagent.done',
+    defaultMessage: 'Stopped a subagent',
+    description:
+      'What the AI did once it stopped one of its subagents, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back. Past tense.',
   },
   integrationCallRunning: {
     id: 'conversation.integrationCall.running',
@@ -1085,6 +1209,164 @@ const conversationMessages = defineMessages({
     defaultMessage: '{minutes}m {seconds}s',
     description:
       'How long the AI has been working on an answer, in minutes and seconds, kept short as a timer. {seconds} has two digits, such as 05.',
+  },
+
+  /* ---
+    SUBAGENTS: the helpers Strategy Dance hands pieces of work to, each working on its own and
+    reporting back, which the thread draws and the reader can follow and stop
+  --- */
+
+  subagentBadge: {
+    id: 'conversation.subagent.badge',
+    defaultMessage: 'Subagent',
+    description:
+      'Small label on the row of a subagent in a conversation, a subagent being a helper Strategy Dance, the AI, hands one piece of work to, which works on its own and reports back.',
+  },
+  subagentStatusQueued: {
+    id: 'conversation.subagent.status.queued',
+    defaultMessage: 'Queued',
+    description: 'On the row of a subagent, a helper the AI handed one piece of work to: it is about to start.',
+  },
+  subagentStatusWaitingForSlot: {
+    id: 'conversation.subagent.status.waitingForSlot',
+    defaultMessage: 'Waiting for a slot',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it waits to start, since only a few of the reader’s subagents work at once.',
+  },
+  subagentStatusWorking: {
+    id: 'conversation.subagent.status.working',
+    defaultMessage: 'Working',
+    description: 'On the row of a subagent, a helper the AI handed one piece of work to: it is doing that work.',
+  },
+  subagentStatusStopping: {
+    id: 'conversation.subagent.status.stopping',
+    defaultMessage: 'Stopping',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it was asked to stop and is about to.',
+  },
+  subagentStatusReported: {
+    id: 'conversation.subagent.status.reported',
+    defaultMessage: 'Reported',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it finished and wrote its report of what it did.',
+  },
+  subagentStatusStopped: {
+    id: 'conversation.subagent.status.stopped',
+    defaultMessage: 'Stopped',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it was stopped before it finished, and reported what it had.',
+  },
+  subagentStatusFailed: {
+    id: 'conversation.subagent.status.failed',
+    defaultMessage: 'Failed',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it stopped at an error, and reported what it had.',
+  },
+  subagentStatusInterrupted: {
+    id: 'conversation.subagent.status.interrupted',
+    defaultMessage: 'Interrupted',
+    description:
+      'On the row of a subagent, a helper the AI handed one piece of work to: it was cut off, by a server stopping say, and reported what it had.',
+  },
+  subagentStop: {
+    id: 'conversation.subagent.stop',
+    defaultMessage: 'Stop',
+    description: 'Button that stops one subagent, a helper the AI handed one piece of work to, while it works.',
+  },
+  subagentStopLabel: {
+    id: 'conversation.subagent.stopLabel',
+    defaultMessage: 'Stop {title}',
+    description:
+      'Accessible name of the button that stops one subagent, a helper the AI handed one piece of work to. {title} is what the AI called that piece of work, such as Research the competitors.',
+  },
+  subagentStopError: {
+    id: 'conversation.subagent.stopError',
+    defaultMessage: 'The subagent could not be stopped. Try again.',
+    description: 'Shown when stopping a subagent, a helper the AI handed one piece of work to, did not go through.',
+  },
+  subagentViewWork: {
+    id: 'conversation.subagent.viewWork',
+    defaultMessage: 'View work',
+    description:
+      'Button that opens everything a subagent, a helper the AI handed one piece of work to, did: its instructions, what it used and what it wrote.',
+  },
+  subagentViewWorkLabel: {
+    id: 'conversation.subagent.viewWorkLabel',
+    defaultMessage: 'View the work of {title}',
+    description:
+      'Accessible name of the button that opens everything a subagent did, a subagent being a helper the AI handed one piece of work to. {title} is what the AI called that piece of work, such as Research the competitors.',
+  },
+  subagentReport: {
+    id: 'conversation.subagent.report',
+    defaultMessage: 'Report',
+    description:
+      'Heading over what a subagent, a helper the AI handed one piece of work to, wrote once it finished: what it did, found and changed.',
+  },
+  subagentReportCopy: {
+    id: 'conversation.subagent.reportCopy',
+    defaultMessage: 'Copy report',
+    description: 'Button that copies the report a subagent, a helper the AI handed one piece of work to, wrote.',
+  },
+  subagentReportEmpty: {
+    id: 'conversation.subagent.reportEmpty',
+    defaultMessage: 'This subagent wrote no report.',
+    description:
+      'Where the report of a subagent, a helper the AI handed one piece of work to, would be, when it has none.',
+  },
+  subagentReportLoadError: {
+    id: 'conversation.subagent.reportLoadError',
+    defaultMessage: 'This report could not be loaded. Check your connection and try again.',
+    description:
+      'Where the report of a subagent, a helper the AI handed one piece of work to, would be, when it could not be read.',
+  },
+  subagentWorkDescription: {
+    id: 'conversation.subagent.workDescription',
+    defaultMessage: 'Subagent · {status}',
+    description:
+      'Line under the title of the window that shows everything a subagent did, a subagent being a helper the AI handed one piece of work to. {status} says where it stands, such as Working or Reported.',
+  },
+  subagentWorkLoadError: {
+    id: 'conversation.subagent.workLoadError',
+    defaultMessage: 'This work could not be loaded. Check your connection and try again.',
+    description:
+      'In the window that shows everything a subagent did, a subagent being a helper the AI handed one piece of work to, when it could not be read.',
+  },
+  subagentWorkMissing: {
+    id: 'conversation.subagent.workMissing',
+    defaultMessage: 'This work is no longer there.',
+    description:
+      'In the window that shows everything a subagent did, a subagent being a helper the AI handed one piece of work to, when it was deleted meanwhile.',
+  },
+  subagentsWorking: {
+    id: 'conversation.subagents.working',
+    defaultMessage: '{count, plural, one {# subagent working} other {# subagents working}}',
+    description:
+      'Above the field where the reader writes to the AI, while some of the subagents it launched in this conversation still work, a subagent being a helper the AI hands one piece of work to. {count} is how many.',
+  },
+  subagentsStopAll: {
+    id: 'conversation.subagents.stopAll',
+    defaultMessage: 'Stop all',
+    description:
+      'Button beside the number of subagents still working in a conversation, which stops every one of them, a subagent being a helper the AI hands one piece of work to.',
+  },
+  subagentsStopAllError: {
+    id: 'conversation.subagents.stopAllError',
+    defaultMessage: 'The subagents could not be stopped. Try again.',
+    description:
+      'Shown when stopping every subagent of a conversation, the helpers the AI handed pieces of work to, did not go through.',
+  },
+  subagentsReportsWaiting: {
+    id: 'conversation.subagents.reportsWaiting',
+    defaultMessage:
+      '{count, plural, one {# report waiting. Your next message delivers it.} other {# reports waiting. Your next message delivers them.}}',
+    description:
+      'Above the field where the reader writes to the AI, when subagents, the helpers the AI handed pieces of work to, have reported while the AI stopped, so the AI reads their reports only once the reader writes again. {count} is how many reports.',
+  },
+  briefLabel: {
+    id: 'conversation.subagent.brief',
+    defaultMessage: 'Brief',
+    description:
+      'Label above the instructions Strategy Dance, the AI, wrote for one of its subagents, a helper it hands one piece of work to, at the top of that helper’s work.',
   },
 
   /* ---

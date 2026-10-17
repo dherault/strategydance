@@ -31,6 +31,7 @@ describe('GET /.well-known/oauth-authorization-server', () => {
       token_endpoint: 'http://localhost:3003/oauth/token',
       registration_endpoint: 'http://localhost:3003/oauth/register',
       revocation_endpoint: 'http://localhost:3003/oauth/revoke',
+      // The served modules' alone: Subagents is served to no external agent
       scopes_supported: ['knowledge:read', 'knowledge:write', 'tasks:read', 'tasks:write'],
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code', 'refresh_token'],

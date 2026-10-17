@@ -218,6 +218,7 @@ type Metadata = {
   token_endpoint: string
   registration_endpoint: string
   revocation_endpoint: string
+  scopes_supported: string[]
 }
 
 type Tokens = { access_token: string; refresh_token: string; scope: string }
@@ -392,6 +393,23 @@ async function checkFlow() {
   check(
     'an authorization sends the browser to the consent page',
     authorization.status === 302 && consentUrl.pathname === '/oauth/consent' && Boolean(requestId),
+  )
+
+  // The Subagents module is served to no external agent, so its address is refused as one no module
+  // has, back to the client, and the metadata offers none of its scopes
+  const subagentsUrl = new URL(authorizeUrl)
+
+  subagentsUrl.searchParams.set('resource', `${metadata.issuer}/mcp/subagents`)
+  subagentsUrl.searchParams.set('scope', 'subagents:read subagents:write')
+
+  const subagents = await fetch(subagentsUrl, { redirect: 'manual' })
+  const subagentsAnswer = new URL(subagents.headers.get('location') ?? 'invalid:')
+
+  check(
+    'an authorization for the Subagents module, served to nobody, is refused as for an address no module has',
+    subagents.status === 302
+      && subagentsAnswer.searchParams.get('error') === 'invalid_target'
+      && !metadata.scopes_supported.some(scope => scope.startsWith('subagents:')),
   )
 
   // The member reads it and allows it

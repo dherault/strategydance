@@ -2004,6 +2004,181 @@ query GetUndatedDoneTasks($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
   }
 }
 
+# The Subagents module's operations follow, named `…ForAgent`: what a conversation's agent reads of
+# the subagents it launched, and how it launches and stops them, through the module. Each takes the
+# member the backend verified, `$userId`, and the `createdAt` of the membership it read,
+# `$membershipCreatedAt`, as the other modules' operations do, and each read answers that membership
+# beside its rows. The module reaches nobody but Strategy Dance's own agents, whose caller names the
+# run that is calling, its launcher
+
+# The run calling the Subagents module, its launcher, as every tool of the module reads it first:
+# whether it is still running and not asked to stop, the anchor a launch from it is made on, and
+# whether its conversation is a subagent, which launches none, or deleted. Read on the member, so a
+# run of somebody else's reads as none
+query GetSubagentLauncherForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $conversationId: UUID!
+  $runId: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  runs: conversationRuns(
+    where: {
+      id: { eq: $runId }
+      conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    }
+    limit: 1
+  ) {
+    status
+    trigger
+    stopRequestedAt
+    anchorPosition
+    conversation {
+      parentId
+      deletedAt
+    }
+  }
+}
+
+# The live subagents a conversation launched, those a retry deleted left out, newest first and then
+# by id, each with its latest run, whose status says where it stands, and when it ended, which its
+# report is written at however it ends. A conversation holds at most 100 subagents until they are
+# pruned (`MAX_CONVERSATION_SUBAGENTS` in strategydance-core), so every one is read and the backend
+# pages them
+query ListSubagentsForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $parentId: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  subagents: conversations(
+    where: {
+      parentId: { eq: $parentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
+    orderBy: [{ createdAt: DESC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    title
+    createdAt
+    reportedAt
+    latestRuns: conversationRuns_on_conversation(orderBy: [{ number: DESC }], limit: 1) {
+      status
+    }
+  }
+}
+
+# One live subagent of a conversation, with its report once written, the run it is busy with, if
+# any, its latest run's status, step and stop, and how many runs it took. Nothing for a subagent of
+# another conversation, somebody else's, or one a retry deleted, whose launch the transcript no
+# longer holds
+query GetSubagentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $parentId: UUID!
+  $id: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  subagents: conversations(
+    where: {
+      id: { eq: $id }
+      parentId: { eq: $parentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+    }
+    limit: 1
+  ) {
+    id
+    title
+    createdAt
+    activeRunId
+    nextMessagePosition
+    report
+    reportedAt
+    latestRuns: conversationRuns_on_conversation(orderBy: [{ number: DESC }], limit: 1) {
+      id
+      number
+      status
+      step
+      stopRequestedAt
+    }
+    runCount: conversationRuns_on_conversation {
+      _count
+    }
+  }
+}
+
+# A page of what a subagent wrote through the modules, oldest first: the results its successful
+# writes kept under its idempotency scope, `$scope`, `conversation:<subagent id>`, since every write
+# of an agent carries a key and only a write that went through keeps one. Each with its tool and what
+# it answered. Read past `$afterCreatedAt` and `$afterKey`, the last of the page before, the first
+# page naming an instant before any, up to 51 for a page of 50, so the backend knows whether more
+# remain, and how many there are in all. The backend reads the subagent first, as the caller's and
+# its parent's
+query GetSubagentWritesForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $scope: String!
+  $afterCreatedAt: Timestamp!
+  $afterKey: String!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  writes: moduleCallResults(
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    where: {
+      _and: [
+        { idempotencyScope: { eq: $scope }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+        {
+          _or: [
+            { createdAt: { gt: $afterCreatedAt } }
+            { createdAt: { eq: $afterCreatedAt }, idempotencyKey: { gt: $afterKey } }
+          ]
+        }
+      ]
+    }
+    orderBy: [{ createdAt: ASC }, { idempotencyKey: ASC }]
+    limit: 51
+  ) {
+    idempotencyKey
+    tool
+    result
+    createdAt
+  }
+  total: moduleCallResults(
+    where: { idempotencyScope: { eq: $scope }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+  ) {
+    _count
+  }
+}
+
 # The authorization server's operations follow, which the backend's OAuth endpoints run for the
 # external agents a member connects to a module (`documents/conversations.md`, Modules, External
 # agents).

@@ -21,6 +21,8 @@ describe('parseModuleResource', () => {
       '',
       'not an address',
       'http://localhost:3003/mcp/budget',
+      // A module served to no external agent
+      'http://localhost:3003/mcp/subagents',
       'http://localhost:3003/mcp/knowledge/',
       'http://localhost:3003/mcp/knowledge?x=1',
       'http://localhost:3003/mcp/knowledge?',

@@ -639,3 +639,17 @@ describe('the Tasks module for external agents', () => {
     expect((await send(callTool('list_tasks', {}), { token, path: TASKS_PATH })).body.result.isError).toBeFalsy()
   })
 })
+
+describe('the Subagents module', () => {
+  test('is served to no external agent: no endpoint, and no protected resource metadata', async () => {
+    const { access_token: token } = await connect()
+    const call = await fetch(`${origin}/mcp/subagents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+    })
+
+    expect(call.status).toBe(404)
+    expect((await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/subagents`)).status).toBe(404)
+  })
+})

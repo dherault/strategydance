@@ -1607,9 +1607,13 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
   a stop run alone, in order. A result carries no web address, since a subagent is reached from its
   parent's thread, not from a page of its own.
 - The tools list grows by four, at its end. `drop_block` makes that a one-time loss of earlier
-  reasoning for existing conversations, as any tool is. M33 counts the whole list as M29 left it and
-  what the four add, since the modules' 7381 tokens were counted before M29's three integration
-  tools, against the 10000 at which Later modules weighs Claude's tool search.
+  reasoning for existing conversations, as any tool is. M33 counted the whole list on 2026-10-17:
+  16017 tokens of tool definitions alone, the agent's own tools, M29's three integration tools
+  included, and twenty module tools, which take 9021 of them, the four Subagents tools 1351; the
+  system prompt and the agent's own tools take 8727 beside the modules'. That is past the 10000 at
+  which Later modules weighs Claude's tool search, whose use is David's call. A subagent's prefix, its
+  own prompt and its list without the agent's own tools, the deletes and the Subagents module's, is
+  14226 tokens, cached across subagents.
 
 **Idempotent writes.** MCP has no idempotency key (the specification's issue #3394 asks for one),
 so a write retried by a client that lost its answer would land twice. Every write tool takes one in
@@ -1879,7 +1883,7 @@ the agent's list, as the Tasks module does in M15, M17 and M21, which `drop_bloc
 loss of earlier reasoning, as any tool is. Past some 10000 tokens of tool definitions, Claude's tool
 search (`defer_loading`) keeps them out of the context without touching the cached prefix, at the
 cost of a search step before a deferred tool's first use; Knowledge's and the Tasks module's take
-7381 (M17). A tool declared deferred that nothing has used yet is also outside what a replay's
+7381 (M17), and with the Subagents module's 9021, the whole list 16017 (M33). A tool declared deferred that nothing has used yet is also outside what a replay's
 thinking is checked against, so a module joining that way would cost no conversation its earlier
 reasoning.
 Listing the modules in the MCP Registry, under the `com.strategydance` name a DNS record proves, is
@@ -1924,8 +1928,9 @@ way (see The orchestrator).
   share their cached prefix only with other subagents'. Sonnet 5.5 costs half of Opus 5.5 ($2 and $10
   a million input and output tokens against $4 and $20, cache reads $0.20 alike), a lower effort
   writes fewer tokens, and a task budget (`output_config.task_budget`, beta) lets the model pace a
-  loop rather than be asked for its report at its last request. M33 measures them on the same briefs
-  and David chooses from the numbers, as he chose on 2026-10-16. The three things:
+  loop rather than be asked for its report at its last request. M33 measured them on the same briefs,
+  twelve short subagents as David chose on 2026-10-17 (see Cost), and David chooses from the numbers,
+  as he chose on 2026-10-16, a choice of `SUBAGENT_REQUEST_SETTINGS` alone. The three things:
   - Its own system prompt (`domain/agent/subagentSystemPrompt.ts`, pinned by its hash, as the
     conversation's is): it works for Strategy Dance's agent on one brief, with no member to ask; it
     reads before relying and writes within its brief; it deletes nothing, and says in its report
@@ -2702,6 +2707,14 @@ day in an organization at 150 runs and thirty subagents, an account's across its
 an organization and $5400 for an account, which the spend limit stays above. A parent's reaction
 comes once its subagents have reported, minutes after it last ran and past the cache's five
 minutes, so it writes the parent's whole context to the cache again: some $1 for 200000 tokens.
+
+M33 measured short subagents on 2026-10-17, three briefs each ending in one run, a piece of web
+research, a task planned in its description and a document summarized from the knowledge: some
+$0.10 a research, five searches and their results read, and $0.01 to $0.03 any other, since every
+subagent reads a 14226-token prefix the others cached. The three cost $0.17 on Opus 5.5 at medium
+effort, $0.14 at low, $0.11 on Sonnet 5.5 at medium, and $0.15 on Opus 5.5 at medium with a task
+budget (see the M33 milestone for the table and what each did). A fan-out of ten such subagents costs
+some $0.50 beside its parent's reaction.
 
 That figure assumes the cache holds between requests, which it does within a run: in M1's probe,
 the replay of a first turn read 8080 tokens from the cache and wrote 164. Between a

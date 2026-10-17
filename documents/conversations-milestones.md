@@ -2167,11 +2167,62 @@ own.
 - No endpoint is served: `check:oauth` only checks that `/mcp/subagents` is refused, as the bullet
   above says, and the module reaches external agents in a later plan, with everything Module
   conventions asks of a served one.
+- Built with these settled, on 2026-10-17:
+  - **The tools load their domain at call time**, as David chose: the subagents' domain is the
+    conversation runtime, which `launchSubagent` reaches through `enqueueRun` and
+    `measureSubagentLaunch`, some 210 files and 66 operations and enums the modules' fake lacks, and
+    every Knowledge and Tasks test loads every module's server. Each tool `await import`s its domain
+    function inside its handler, which also breaks the cycle `connectConversationModules`,
+    `moduleServers`, `launchSubagent`, `measureSubagentLaunch`. There is no
+    `createSubagentsDatabaseFake`: the module's tests run on `createConversationDatabaseFake`, which
+    holds the modules' fake and every subagent operation, the new ones included.
+  - **A launch pair of its own**, `LaunchSubagentForAgent` and `LaunchPendingSubagentForAgent`, since
+    the `Boolean!` its key's `@include` needs and a required `$launchRunId` would break the
+    connector: the same locks, checks and rows as M30's pair, its key stored after the membership's
+    lock, and the launching run read after the parent's row, still `RUNNING`, not asked to stop and
+    on the anchor the launch counts the ten on. M30's pair stays for the script, which launches from
+    no run. A launch called again is refused on its key before its subagent's id.
+  - **A launch reads its key first**, each round: a key held by another call is refused, and one
+    holding this launch is answered as it was once its subagent is queued again or promoted, as a
+    launch whose answer was lost needs, and launches nothing anew when its subagent was pruned since.
+    The launching run is read each round too (`GetSubagentLauncherForAgent`), its anchor the one the
+    launch is made on, so a run refused for a Stop meanwhile is answered with the Stop's sentence.
+  - **The key keeps `{ id, title, status }`** as the launch inserted it, `QUEUED` or
+    `WAITING_FOR_SLOT`. The first answer says the status after the launch's own promotion, so a
+    pending launch that took a slot freed meanwhile answers `QUEUED`; a call again answers what the
+    key keeps.
+  - **The statuses are words of their own**, `QUEUED`, `WAITING_FOR_SLOT`, `WORKING`, `REPORTED`,
+    `STOPPED`, `FAILED` and `INTERRUPTED`, from the latest run (`toSubagentStatus`), a refused run
+    reading as failed. `endedAt` is `reportedAt`, which the ending that writes the report stamps
+    however it ends.
+  - **A stop asks by the subagent's `activeRunId`** (`RequestSubagentRunStopForAgent`, keyed), on a
+    run queued, running or waiting, and is refused once that run chained, ended or was asked already,
+    when the module reads again. A queued run is then ended at once (`StopQueuedSubagentRun`, fenced
+    on the stop asked, with its note and report) and a promotion follows; a run waiting ends through
+    `StopPendingSubagentRun`; a running one is its worker's. A subagent that has ended, or was asked
+    to stop already, writes nothing, and a stop whose answer was lost is answered from its key, which
+    also ends a waiting run it left asked to stop.
+  - **What a subagent wrote** is what its successful module writes keep under its own scope,
+    `conversation:<subagentId>`, since every write of an agent carries a key and only a write that went
+    through keeps one, read oldest first by `createdAt` and key (`GetSubagentWritesForAgent`) with
+    their `_count`, each naming the document or the task its result names by its tool. The list
+    reads a conversation's live subagents whole, at most 100, and pages them in the backend.
+  - **Whether a report was delivered** joins `list_subagents` with `reportDeliveredAt`, in M33.
+  - **`readModuleCaller` is strict**, as Modules said it was: a field it does not know, or a
+    launcher it did not write, is refused rather than dropped.
+  - Verified: the four checks; `check:subagents-module`, `check:subagent-runs`,
+    `check:conversation-runs`, `check:tasks-module` and `check:knowledge-module` against an emulator
+    of the branch's schema, and `check:oauth` against the branch's backend; and the module's handler
+    driven against that emulator as a running conversation's agent, under the placeholder: a launch
+    queued and answered again from its key, its subagent run in process to its report, a running
+    subagent stopped and reporting so, and both listed. Not yet: the real model, which reaches the
+    tools in M33.
 
 ### M33: Subagents in conversations
 
 - **The schema change**, additive: `ConversationRunTrigger` gains `REPORTS`, appended, and
-  `Conversation` gains `reportDeliveredAt`.
+  `Conversation` gains `reportDeliveredAt`, which `list_subagents` reads as whether each report was
+  delivered, as M32 left it to.
 - `CONVERSATION_MODULES` gains `subagents`, so the agent's list ends with its four tools, and the
   subagents' list leaves them out with `ask_user`. The worker fills the caller's launcher.
 - **No deletes in subagents**, as David chose on 2026-10-16: `buildSubagentTools` leaves out

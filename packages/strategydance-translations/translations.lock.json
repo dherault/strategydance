@@ -4015,6 +4015,22 @@
         "hash": "1890892761cecc66",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.subagentsAgentsButton": {
+        "hash": "af2df2f77680b0f7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.subagentsName": {
+        "hash": "842712bca996b3d6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.subagentsReadAccess": {
+        "hash": "9507d8aa3c14d219",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.subagentsWriteAccess": {
+        "hash": "ba649cd63fc99147",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.tasksAgentsButton": {
         "hash": "3a3bd49e6fa23bcd",
         "locales": "DE,ES,FR,JA,PT,ZH"

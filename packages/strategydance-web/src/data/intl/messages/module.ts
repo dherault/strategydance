@@ -52,6 +52,28 @@ const moduleMessages = defineMessages({
     description:
       "Tooltip and accessible name of the icon button on the Tasks page that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to the team's task board. To tackle a task is to take it up and work on it.",
   },
+  subagentsName: {
+    id: 'module.subagentsName',
+    defaultMessage: 'Subagents',
+    description:
+      "The name of the module that lets Strategy Dance's agent hand pieces of work to subagents, runs of itself that carry out a brief in parallel and report on it.",
+  },
+  subagentsReadAccess: {
+    id: 'module.subagentsReadAccess',
+    defaultMessage: 'List the subagents a conversation launched, and read their work and reports.',
+    description: 'What an agent allowed to read the Subagents module can do.',
+  },
+  subagentsWriteAccess: {
+    id: 'module.subagentsWriteAccess',
+    defaultMessage: 'Launch subagents on a brief, and stop them.',
+    description: 'What an agent allowed to write in the Subagents module can do, beside reading.',
+  },
+  subagentsAgentsButton: {
+    id: 'module.subagentsAgentsButton',
+    defaultMessage: 'Allow your agents to launch subagents',
+    description:
+      "Tooltip and accessible name of an icon button that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to the Subagents module. Subagents are runs of Strategy Dance's agent that each carry out a piece of work in parallel.",
+  },
   readAccess: {
     id: 'module.readAccess',
     defaultMessage: 'Read',

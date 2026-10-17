@@ -54,7 +54,8 @@ function DropLine() {
   board's row is as tall as the tallest of the other columns, and Done stretches to it and scrolls
   its cards. Its list starts higher by the room a focused card's outline and the drop line take
   above the first card, which a scrolling list would otherwise clip, so its cards line up with the
-  other columns'
+  other columns'. Nothing in it shrinks, since an overflowing list would otherwise squeeze the drop
+  line, which has no content to hold its height, down to nothing
 */
 function TaskBoardColumn({
   status,
@@ -113,7 +114,7 @@ function TaskBoardColumn({
       <ul
         className={cn(
           'm-0 flex min-h-30 flex-1 list-none flex-col gap-2 px-2 pb-2',
-          isScrolling && '-mt-1.5 overflow-y-auto pt-1.5',
+          isScrolling && '-mt-1.5 overflow-y-auto pt-1.5 *:shrink-0',
         )}
       >
         {tasks.map(task => (

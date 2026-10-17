@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { type ReactNode, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS, MAX_AGENT_CONNECTIONS, MODULES } from 'strategydance-core'
+import { ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS, MAX_AGENT_CONNECTIONS, SERVED_MODULES } from 'strategydance-core'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button, buttonVariants } from 'strategydance-design-system/components/ui/Button'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
@@ -58,7 +58,7 @@ function OAuthConsent({ requestId }: Props) {
   const [outcome, setOutcome] = useState<Outcome | null>(null)
   const [isFull, setIsFull] = useState(false)
 
-  const definition = MODULES.find(({ name }) => name === request?.module)
+  const definition = SERVED_MODULES.find(({ name }) => name === request?.module)
 
   if (!request || !definition) return null
 

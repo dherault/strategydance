@@ -372,6 +372,8 @@ export type TasksRefusal =
   | { outcome: 'changed' }
   /** A description replaced without the version a read gave */
   | { outcome: 'versionRequired' }
+  /** A move from a column the task has left, which somebody else moved it out of */
+  | { outcome: 'moved'; status: TaskStatus }
   /** A description past what a task holds once stored */
   | { outcome: 'descriptionTooLong' }
   /** A move before a task that is not in the column it names */

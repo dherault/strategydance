@@ -31,6 +31,8 @@ type UpdateTaskInput = {
   description?: string
   version?: string
   status?: TaskStatus
+  // The column the agent read the task in, which a move is refused from once the task has left it
+  fromStatus?: TaskStatus
   // A task of the column `status` names, which the task moves before
   beforeId?: string
   // `"me"`, or one of the values `TaskAssignee` names
@@ -63,13 +65,15 @@ type Placement = { outcome: 'placed'; status: TaskStatus; position: number } | T
   between the read and the write included. A move lands before the task `beforeId` names in the
   column `status` names, or at the column's end, halfway between its new neighbours, and leaves the
   task where it is when it names the task itself in its own column; a gap too narrow for a float is
-  refused, since renumbering a column takes a write per task. A move to Done answers which tasks can
+  refused, since renumbering a column takes a write per task. A move naming `fromStatus` is refused
+  once the task has left that column, as read before each try and matched in the write, so two agents
+  taking up one task never both move it, and neither moves it back. A move to Done answers which tasks can
   start now, the first 50 in the board's order with their count, since one task can free the whole
   board
 */
 async function updateTask(
   caller: ModuleCaller,
-  { id, name, description, version, status, beforeId, assignee, dueDate, aspects }: UpdateTaskInput,
+  { id, name, description, version, status, fromStatus, beforeId, assignee, dueDate, aspects }: UpdateTaskInput,
   call: ModuleCall | null,
 ): Promise<TasksWriteResult<UpdatedTask>> {
   if (description !== undefined && version === undefined) return { outcome: 'versionRequired' }
@@ -106,6 +110,9 @@ async function updateTask(
     const task = tasks.find(other => other.id === taskId)
 
     if (!task) return { outcome: 'notFound' }
+    // Moved out of the column the agent read it in, by somebody taking it up or a teammate: refused,
+    // never moved back, as the page refuses a move from a column the task has left
+    if (fromStatus !== undefined && task.status !== fromStatus) return { outcome: 'moved', status: task.status }
 
     // The task as the write is guarded on, which a description's version is checked against too
     let updatedAt = task.updatedAt
@@ -147,6 +154,9 @@ async function updateTask(
         ...(name !== undefined && { name }),
         ...(written && { description: written.description, descriptionText: written.descriptionText }),
         ...(placement && { status: placement.status, position: placement.position }),
+        // Matched in the write too, so a move landing after this read refuses it, and the next read
+        // says where the task went
+        ...(fromStatus !== undefined && { fromStatus }),
         // Stamped on the way into Done alone, so a move within Done keeps the day it was finished
         ...(isFinishing && { doneAt: new Date().toISOString() }),
         ...assignment,

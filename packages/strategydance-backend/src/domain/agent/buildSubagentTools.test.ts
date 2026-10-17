@@ -62,7 +62,7 @@ describe('buildSubagentTools', () => {
       'restore_task',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      'dcae656f977ba6e076205cdc7ce4334992208927091050dc05e285c0bf3f9134',
+      '1a0343d1cc5725b3fda8327de642a6ed25418512b9bd7a17e2ed569b7166ad28',
     )
   })
 

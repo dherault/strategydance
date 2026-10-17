@@ -356,7 +356,11 @@ function createTasksDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
 
       const task = tasks.get(id(variables.id))
 
-      if (!isLive(task, variables.organizationId) || task.updatedAt !== variables.updatedAt) {
+      if (
+        !isLive(task, variables.organizationId)
+        || task.updatedAt !== variables.updatedAt
+        || (has(variables, 'fromStatus') && task.status !== variables.fromStatus)
+      ) {
         refuse('The task changed or was deleted since it was read')
       }
 

@@ -409,6 +409,18 @@ async function checkUpdating() {
     placed?.position === 8 && isSameTime(placed.doneAt, DONE_AT),
   )
   check(
+    'a move from a column the task has left is refused, its updatedAt current',
+    (
+      await refusal(update({ updatedAt: placed?.updatedAt, status: TaskStatus.ONGOING, fromStatus: TaskStatus.TODO }))
+    )?.includes('changed or was deleted') ?? false,
+  )
+
+  await update({ updatedAt: placed?.updatedAt, status: TaskStatus.ONGOING, position: 9, fromStatus: TaskStatus.DONE })
+
+  check('a move from the column the task is in goes through', (await readTask(id))?.status === 'ONGOING')
+
+  await update({ updatedAt: (await readTask(id))?.updatedAt, status: TaskStatus.DONE, position: 8 })
+  check(
     'an assignment to a member and to Strategy Dance at once is refused',
     (await refusal(update({ updatedAt: moved?.updatedAt, assigneeId: userId, isAssignedToAgent: true })))?.includes(
       'not both',

@@ -36,7 +36,7 @@ describe('update_task', () => {
     expect(fake.tasks.get(task.id)).toMatchObject({ name: 'Renamed', aspects: ['LEGAL', 'PEOPLE'], dueDate: null })
   })
 
-  it('refuses a call naming no field, beforeId without status, version without description, and a repeated aspect', async () => {
+  it('refuses a call naming no field, beforeId or fromStatus without status, version without description, and a repeated aspect', async () => {
     const kit = await board.connect()
     const task = board.add()
 
@@ -46,6 +46,7 @@ describe('update_task', () => {
       { id: task.id },
       { id: task.id, beforeId: task.id, name: 'Renamed' },
       { id: task.id, version: 'v', name: 'Renamed' },
+      { id: task.id, fromStatus: 'TODO', name: 'Renamed' },
       { id: task.id, aspects: ['SALES', 'SALES'] },
     ]) {
       expect((await kit.call('update_task', args)).isError).toBe(true)
@@ -135,6 +136,41 @@ describe('update_task', () => {
 
     expect(fake.tasks.get(task.id)).toMatchObject({ name: 'Renamed by a member', status: 'ONGOING' })
     expect(fake.calls.filter(call => call === 'UpdateTaskForAgent')).toHaveLength(2)
+  })
+
+  it('takes a task up from the column it was read in once, the second claim refused and moving nothing back', async () => {
+    // Two members' conversations, each taking up the task assigned to Strategy Dance
+    const first = await board.connect({ idempotencyScope: 'conversation:first' })
+    const second = await board.connect({ idempotencyScope: 'conversation:second' }, 'teammate')
+    const task = board.add({ status: 'TODO', position: 1 })
+
+    await first.answer('update_task', { id: task.id, status: 'ONGOING', fromStatus: 'TODO' })
+
+    expect(fake.tasks.get(task.id)!.status).toBe('ONGOING')
+    expect(await second.refusal('update_task', { id: task.id, status: 'ONGOING', fromStatus: 'TODO' })).toBe(
+      'The task is no longer where you read it: somebody moved it to ONGOING since. Read it again, and leave it be when somebody else took it up.',
+    )
+
+    // A claim whose launch was then refused moves it back, from the column it took it to
+    await first.answer('update_task', { id: task.id, status: 'TODO', fromStatus: 'ONGOING' })
+
+    expect(fake.tasks.get(task.id)!.status).toBe('TODO')
+  })
+
+  it('refuses a claim when the task leaves its column between the read and the write, rather than move it again', async () => {
+    const kit = await board.connect()
+    const task = board.add({ status: 'TODO', position: 1 })
+
+    fake.beforeOperation = async name => {
+      if (name === 'UpdateTaskForAgent' && fake.tasks.get(task.id)!.status === 'TODO') {
+        fake.changeTask(task.id, { status: 'ONGOING' })
+      }
+    }
+
+    expect(await kit.refusal('update_task', { id: task.id, status: 'ONGOING', fromStatus: 'TODO' })).toContain(
+      'no longer where you read it',
+    )
+    expect(fake.calls.filter(call => call === 'UpdateTaskForAgent')).toHaveLength(1)
   })
 
   it('moves a task halfway between two, to the end of a column, or leaves it where it is before itself', async () => {

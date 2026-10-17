@@ -1,7 +1,8 @@
 import { mcpAuthMetadataRouter } from '@modelcontextprotocol/express'
 import { Router } from 'express'
+import { SERVED_MODULES } from 'strategydance-core'
 
-import { OAUTH_ISSUER, SERVED_MODULES } from '~constants'
+import { OAUTH_ISSUER } from '~constants'
 
 import buildAuthorizationServerMetadata from '~domain/oauth/buildAuthorizationServerMetadata'
 

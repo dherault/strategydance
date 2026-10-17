@@ -1,4 +1,4 @@
-import { MODULES } from 'strategydance-core'
+import { SERVED_MODULES } from 'strategydance-core'
 
 import { OAUTH_ISSUER } from '~constants'
 
@@ -8,7 +8,7 @@ import { OAUTH_ISSUER } from '~constants'
   token and revocation endpoints take no authentication but the `client_id` a request names, which
   both say, since a field left out would mean `client_secret_basic`. It names the issuer in every
   authorization's answer (RFC 9207), and takes client ID metadata documents, which claude.ai and
-  ChatGPT use when it says so
+  ChatGPT use when it says so. Its scopes are the served modules' alone, the ones a consent grants
 */
 function buildAuthorizationServerMetadata() {
   return {
@@ -17,7 +17,7 @@ function buildAuthorizationServerMetadata() {
     token_endpoint: `${OAUTH_ISSUER}/oauth/token`,
     registration_endpoint: `${OAUTH_ISSUER}/oauth/register`,
     revocation_endpoint: `${OAUTH_ISSUER}/oauth/revoke`,
-    scopes_supported: MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
+    scopes_supported: SERVED_MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
     code_challenge_methods_supported: ['S256'],

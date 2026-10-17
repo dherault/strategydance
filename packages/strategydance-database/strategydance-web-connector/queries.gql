@@ -2103,7 +2103,8 @@ query GetConversationMessagesBefore($organizationId: UUID!, $id: UUID!, $beforeP
 #
 # A live query of its own, so the progress lines and lease renewals a run writes wake this small
 # read rather than the thread. The backend's run mutations join its `@refresh` list as they arrive,
-# a subagent's among them
+# a subagent's among them. The stops a parent sends its subagents name the parent alone, so they wake
+# every run read of the member's in the organization, a subagent's viewer's among them
 query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @auth(level: USER)
 @refresh(
@@ -2235,7 +2236,13 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "RequestConversationRunStopWithSubagents"
-    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RequestConversationSubagentsStop"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
 )
 @refresh(
@@ -2253,7 +2260,7 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "StopQueuedConversationRunWithSubagents"
-    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+    condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
   }
 )
 @refresh(
@@ -2464,6 +2471,9 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
     startedAt
     leaseExpiresAt
     stopRequestedAt
+    # Where its transcript was when it started, which a retry cuts back to, discarding the subagents
+    # launched on it
+    anchorPosition
   }
 }
 

@@ -2502,7 +2502,9 @@ account, and until both exist every send in production answers 503.
    ```
 7. For M25: the bucket's lifecycle rule deleting objects under `pending/` older than two days,
    `storage.lifecycle.json` (`gcloud storage buckets update gs://strategydance.firebasestorage.app
-   --lifecycle-file=storage.lifecycle.json`), before M25's release reaches production.
+   --lifecycle-file=storage.lifecycle.json`), before M25's release reaches production. Done on
+   2026-10-17, after that release: until then, the prunes of unsent files deleted each pending
+   object with its row, and only an object no row names, as one whose row was refused, stayed.
 8. Guards on spend, since nothing caps usage yet, and staff runs in production and every
    development run cost money from the first request: the workspace's spend limit (step 1), and a
    budget alert on Google Cloud, "Strategy Dance monthly", €50 a month on the whole project, alerting
@@ -2532,19 +2534,24 @@ account, and until both exist every send in production answers 503.
     on it for the runtime service account. Development uses a fixed local value. Rotating it adds a
     version: keep the previous one enabled until a deploy has replaced every instance, and for a day
     at least, since an instance keeps the latest version it read for its life, and a duplicate
-    refresh derives with the version its first use recorded.
+    refresh derives with the version its first use recorded. Until it is done, a code's exchange
+    works, which reads no secret, and every refresh answers 500, so an external agent loses its
+    connection once its access token, an hour, runs out: the member signs in again, and loses it an
+    hour later. Done on 2026-10-17, after M18 to M21 had shipped without it.
 11. For M31: the subagents' queue, `gcloud tasks queues create subagent-runs --location us-central1
     --max-attempts 5 --min-backoff 90s --max-concurrent-dispatches 20 --project strategydance`. The
     roles step 3 granted the runtime account cover it when they were granted on the project; granted
     on `conversation-runs` alone, grant them on this queue too. Until it exists, a launch in
     production queues nothing, and the parent's reconcile finalizes its subagents once their runs are
-    twenty minutes old.
+    twenty minutes old. Done on 2026-10-17, the roles having been granted on the project.
 12. For M28, before its release reaches production: keep the callback of members' Connects out of
     Cloud Run's request log, whose `httpRequest.requestUrl` holds the code and the state an
     authorization server sends in its query. The backend logs neither; the platform logs every
     request's address. A code there is worth little, spent once and useless without the PKCE verifier
     the Connect keeps encrypted, but a log is no place for it. An exclusion on the `_Default` sink
-    drops those entries, the backend's own line saying how each sign-in came back staying:
+    drops those entries, the backend's own line saying how each sign-in came back staying. Done on
+    2026-10-17, with the command below; the entries logged before it stay until their retention
+    ends:
 
     ```sh
     gcloud logging sinks update _Default --project strategydance \

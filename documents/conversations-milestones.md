@@ -83,7 +83,7 @@ nothing, rather than leave the daily sweep their only recovery.
 | M29 | Integrations in conversations | database, backend, web | M11, M28 | #171 |
 | M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | #184 |
 | M31 | Chains, slots and the subagents' queue | database, core, backend, web, root | M30, setup 11 | #193 |
-| M32 | The Subagents module | core, backend, database, web | M31 | |
+| M32 | The Subagents module | core, backend, database, web | M31 | #196 |
 | M33 | Subagents in conversations | backend, database, root | M11, M32 | |
 | M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | |
 | M35 | Usage caps | core, database, backend, web, root | M33 | |

@@ -2182,6 +2182,7 @@ query ListSubagentsForAgent(
     title
     createdAt
     reportedAt
+    reportDeliveredAt
     latestRuns: conversationRuns_on_conversation(orderBy: [{ number: DESC }], limit: 1) {
       status
     }

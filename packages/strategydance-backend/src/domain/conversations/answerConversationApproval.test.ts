@@ -223,6 +223,25 @@ describe('answerConversationApproval', () => {
     expect(sent.get('toolu_log')).toEqual({ content: '{"entries":[]}', isError: false })
   })
 
+  test('Allow’s run carries the reports of its subagents waiting after the results of the turn it stores', async () => {
+    const reference = await startWaiting(createIssue())
+    const subagent = await kit.launch(reference)
+
+    await kit.call('finishSubagentRun', { ...(await kit.claim(subagent)), status: 'COMPLETED', report: 'Found it.' })
+    await decide(reference, 'toolu_a', true)
+
+    const continuation = readContinuation(reference)
+
+    await run(continuation, createClient([answer()]))
+
+    const results = readEntries(reference).find(({ runId, role }) => runId === continuation.runId && role === 'USER')
+    const blocks = JSON.parse(results?.content ?? '[]') as { type: string; text?: string }[]
+
+    expect(blocks.map(({ type }) => type)).toEqual(['tool_result', 'text'])
+    expect(JSON.parse(blocks[1]?.text ?? '{}')).toMatchObject({ subagentReport: { report: 'Found it.' } })
+    expect(kit.readConversation(subagent)?.reportDeliveredAt).toEqual(expect.any(String))
+  })
+
   test('Deny answers the call as refused, never makes it, and carries the conversation on', async () => {
     const reference = await startWaiting(createIssue())
 

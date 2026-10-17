@@ -23,6 +23,8 @@ import type { ConversationContentBlock } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import toCanonicalUuid from '~utils/toCanonicalUuid'
+
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
 import buildConversationFileNames from '~domain/agent/buildConversationFileNames'
 import {
@@ -39,6 +41,7 @@ import measureConversationMessage from '~domain/conversations/measureConversatio
 import readConversationOpenCalls from '~domain/conversations/readConversationOpenCalls'
 import readConversationSendAttachments from '~domain/conversations/readConversationSendAttachments'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
+import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
 
 // How many times a send reads where the conversation stands and tries, before it gives up
 const MAX_ROUNDS = 4
@@ -102,6 +105,12 @@ type SendConversationMessageResult =
   kept from running, the message's entry answers them first, as The transcript says: a question by
   its answer, or skipped, and a call by its result, or as stopped or interrupted. A run waiting on
   its questions is consumed, so an answer's continuation and the send never both carry it on.
+
+  The reports of the conversation's subagents waiting to be delivered go into the entry after every
+  result of the turn and before the member's files and text, those of a batch still working
+  included, each one JSON block (`readSubagentReportBlocks`), and are marked delivered with the
+  message, exactly those read: a member's message is where they hear of everything so far, and the
+  reaction a batch's completion starts carries its remaining reports alone.
 
   A message that starts the conversation starts it with the aspects the member picked on the draft,
   as the member's, so the agent never tags it, and a later one leaves them as they are.
@@ -204,7 +213,15 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
     if (files.outcome === 'overBudget') return files
 
     const { attachments } = files
+    // Read only for a conversation that is, since a new one has no subagent
+    const reports = conversation
+      ? await readSubagentReportBlocks(
+          { organizationId, userId, membershipCreatedAt: membership.createdAt },
+          data.waitingReports,
+        )
+      : []
     const follows: ConversationContentBlock[] = [
+      ...reports,
       // Named first, so the agent can hand one to a subagent by its id
       ...(attachments.length ? [buildConversationFileNames(attachments)] : []),
       ...attachments.map(attachment =>
@@ -271,6 +288,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
           position: conversation.nextMessagePosition,
           runNumber: conversation.nextRunNumber,
           transcriptPosition: lastEntry ? lastEntry.position + 1 : 0,
+          deliveredSubagentIds: data.waitingReports.map(({ id }) => toCanonicalUuid(id)),
         }
 
         if (answering) {

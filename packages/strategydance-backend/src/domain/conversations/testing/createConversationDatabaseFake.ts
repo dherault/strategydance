@@ -654,6 +654,30 @@ function createConversationDatabaseFake() {
       .sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? '') || a.id.localeCompare(b.id))
   }
 
+  // The reports waiting of a conversation of the caller's, as the send's and the turn's contexts read them
+  function readWaitingReports(variables: AnyVariables) {
+    const conversation = conversations.get(id(variables.conversationId))
+
+    if (
+      !conversation
+      || conversation.userId !== variables.userId
+      || conversation.organizationId !== id(variables.organizationId)
+    ) {
+      return []
+    }
+
+    return waitingReports(conversation.id)
+      .slice(0, 100)
+      .map(subagent => ({
+        id: subagent.id,
+        title: subagent.title,
+        report: subagent.report ?? null,
+        latestRuns: latestRuns(subagent.id)
+          .slice(0, 1)
+          .map(({ status }) => ({ status })),
+      }))
+  }
+
   /*
     Marks delivered exactly the reports a write names among a parent's waiting, refused when they
     changed since they were read, as the operations count them. A write from before M33 names none,
@@ -1363,6 +1387,7 @@ function createConversationDatabaseFake() {
           conversation: { id: run.conversationId },
         })),
         keptConversations: [{ _count: keptConversations(variables).length }],
+        waitingReports: readWaitingReports(variables),
       }
     },
 
@@ -1581,6 +1606,7 @@ function createConversationDatabaseFake() {
               .slice(0, 1000)
               .map(message => ({ id: message.id }))
           : [],
+        waitingReports: readWaitingReports(variables),
       }
     },
 

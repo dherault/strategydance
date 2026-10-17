@@ -25,6 +25,7 @@ import {
   renewConversationRunLease,
   storeConversationToolResults,
   tagConversationAspects,
+  getSubagentReactionContext,
 } from 'strategydance-database/backend'
 
 import type {
@@ -88,6 +89,8 @@ import runConversationToolCalls from '~domain/conversations/runConversationToolC
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import storeConversationParts from '~domain/conversations/storeConversationParts'
 import deriveChainedRunId from '~domain/subagents/deriveChainedRunId'
+import { isWaitingReport } from '~domain/subagents/findDueSubagentReports'
+import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
 
 // How many steps a run takes at most, each a request, a message drawn or its end. A run draws at
 // most 100 entries before it sends no further request, so only a loop that would never end reaches it
@@ -544,21 +547,24 @@ async function takeStep({
         pending: ran.pending,
         skipsQuestions: false,
       })
+      /*
+        A run an answer started that stores the results of a turn another run drew carried a waiting
+        turn on to make the calls its member allowed, and is anchored on those results from then on,
+        as a run its answers' entry started is: checked first, as that entry is checked before it is
+        stored. Its entry is the answer's, so it carries the reports of the conversation's subagents
+        waiting after the results, as an answer's entry does. A resume carries on the turn of the run
+        it resumes too, and keeps that run's anchor
+      */
+      const isReanchored =
+        run?.trigger === ConversationRunTrigger.ANSWER
+        && toCanonicalUuid(entry.run?.id ?? '') !== toCanonicalUuid(fence.runId)
+      const reports = isReanchored ? await readWaitingReports(fence) : { ids: [], blocks: [] }
       // A subagent's last request, when it follows the results, asks for its report, calling nothing
       const isLastRequestNext =
         isSubagent && run?.number === MAX_SUBAGENT_RUNS - 1 && usage.requests.length === limits.maxRequests - 1
       const content = isLastRequestNext
         ? [...results, { type: 'text' as const, text: SUBAGENT_REPORT_REQUEST }]
-        : results
-      /*
-        A run an answer started that stores the results of a turn another run drew carried a waiting
-        turn on to make the calls its member allowed, and is anchored on those results from then on,
-        as a run its answers' entry started is: checked first, as that entry is checked before it is
-        stored. A resume carries on the turn of the run it resumes too, and keeps that run's anchor
-      */
-      const isReanchored =
-        run?.trigger === ConversationRunTrigger.ANSWER
-        && toCanonicalUuid(entry.run?.id ?? '') !== toCanonicalUuid(fence.runId)
+        : [...results, ...reports.blocks]
 
       if (isReanchored) {
         checkTranscript(
@@ -577,6 +583,7 @@ async function takeStep({
           position: entry.position + 1,
           content: serializeTranscriptContent(content),
           ...(isReanchored && { anchorPosition: entry.position + 1 }),
+          deliveredSubagentIds: reports.ids,
         }),
       )
 
@@ -932,6 +939,20 @@ function toReference({ organizationId, userId, conversationId, runId }: Conversa
 
 function isInFlight(status: ConversationRunStatus) {
   return status === ConversationRunStatus.QUEUED || status === ConversationRunStatus.RUNNING
+}
+
+// The reports of a conversation's subagents waiting to be delivered, each one JSON block, which an
+// answer's entry carries after its results, and their subagents, which its write marks delivered
+async function readWaitingReports(fence: ConversationRunFence) {
+  const { data } = await getSubagentReactionContext(dataConnect, {
+    organizationId: fence.organizationId,
+    userId: fence.userId,
+    conversationId: fence.conversationId,
+  })
+  const waiting = data.subagents.filter(isWaitingReport)
+  const blocks = await readSubagentReportBlocks(fence, waiting)
+
+  return { ids: waiting.map(({ id }) => toCanonicalUuid(id)), blocks }
 }
 
 function isPast(time: string | null | undefined) {

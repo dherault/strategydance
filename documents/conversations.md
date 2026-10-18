@@ -2636,8 +2636,9 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
   subagent hold for everything a request is billed for but what a search retrieves, which is
   reserved by measure (below) and can pass its allowance within the request that retrieves it. The
   figures that follow from them, a subagent's, a fan-out's and a day's, are bounds in the same sense.
-  Reserving for a cold cache stops a run over a very large context sooner, some $5 into a run at
-  700000 tokens, which is the price of that bound. Three things keep it:
+  Reserving for a cold cache stops a run over a very large context sooner, some $3.50 into a run at
+  700000 tokens once its searches are reserved too (M35), which is the price of that bound. Three
+  things keep it:
   - **The reservation is stored, and stands while what was billed is unknown.** The lease's write
     that reserves a request records its worst case in the ledger beside its estimate, and the cost
     limit prices a request that has no settled usage at that worst case, never at the estimate a
@@ -2651,8 +2652,9 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
     refused note rather than passing $10.
   - **What a search brings back is reserved by measure.** Web search bills what it retrieves as
     input within the same request, which `measureConversationRequest` cannot count beforehand and no
-    setting caps. Each of the five searches is reserved as one more reading of the whole input and
-    an allowance for its results, `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`, the largest M35 measures with
+    setting caps. Each of the five searches is reserved as one more reading of the whole input, at
+    the cache-read rate, since the request's first reading cached it, as David chose on 2026-10-18,
+    and an allowance for its results, `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`, the largest M35 measures with
     `probe:claude` and a margin. The tools list cannot drop search for one request without costing
     every conversation its cache, so a run whose next request cannot hold the allowance ends with
     its limits' note. Here alone the bound rests on a measure rather than a proof: `report:usage`

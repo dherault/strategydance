@@ -218,10 +218,21 @@ export const CONVERSATION_TOOL_CALL_TIMEOUT_MS = 60 * 1000
 export const CONVERSATION_READ_CALLS_AT_ONCE = 4
 
 /*
+  How long a queued run's lease is, which only says when to ask Cloud Tasks whether its task is still
+  coming: every write that queues a run sets it, and the one that finds its task there pushes it back
+  as far, each writing it out in its mutation, which this mirrors for the tests' fake. Short of the
+  window below, so a run whose task never came, its process gone between storing it and queueing
+  it, is found and queued again while it is young, by its page or by the worker's reconcile every
+  few minutes for a run no page watches, a subagent's or a reaction's
+*/
+export const CONVERSATION_RUN_QUEUED_LEASE_MS = 2 * 60 * 1000
+
+/*
   How long after a run was queued a route that finds its task gone queues it again, rather than
-  finalizing the run as interrupted: as long as a queued run's first lease. A task that could not be
-  queued, or was lost, is queued again while the member still waits on its page, which asks every
-  two minutes, and a run whose task keeps going missing ends once it is older
+  finalizing the run as interrupted: ten of a queued run's leases. A task that could not be queued,
+  or was lost, is queued again while the member still waits on its page, which asks every two
+  minutes, or the worker's reconcile finds it, and a run whose task keeps going missing ends once it
+  is older
 */
 export const CONVERSATION_RUN_REQUEUE_WINDOW_MS = 20 * 60 * 1000
 

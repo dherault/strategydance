@@ -69,7 +69,7 @@ import {
   tagConversationAspects,
 } from 'strategydance-database/backend'
 
-import { FIREBASE_PROJECT_ID } from '~constants'
+import { CONVERSATION_RUN_QUEUED_LEASE_MS, FIREBASE_PROJECT_ID } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -398,8 +398,8 @@ async function checkStarting() {
       && conversation.messageCount === 1
       && conversation.previewMessageId === started.messageId
       && run?.status === ConversationRunStatus.QUEUED
-      && leaseMinutes > 19
-      && leaseMinutes <= 20
+      && leaseMinutes > CONVERSATION_RUN_QUEUED_LEASE_MS / 60000 - 1
+      && leaseMinutes <= CONVERSATION_RUN_QUEUED_LEASE_MS / 60000
       && data.conversationTranscriptEntries[0]?.position === 0
       && data.conversationTranscriptEntries[0]?.role === 'USER',
   )
@@ -1121,10 +1121,10 @@ async function checkQueuedLeases() {
   const { data: renewed } = await renewQueuedConversationRunLease(dataConnect, reference)
 
   check(
-    'a queued run’s lease past is pushed twenty minutes out again, for its author alone',
+    'a queued run’s lease past is pushed a queued lease out again, for its author alone',
     strangerRenewal.conversationRun_updateMany === 0
       && renewed.conversationRun_updateMany === 1
-      && (await readLease()) > Date.now() + 19 * 60 * 1000,
+      && (await readLease()) > Date.now() + CONVERSATION_RUN_QUEUED_LEASE_MS - 60 * 1000,
   )
 
   const { data: expired } = await expireQueuedConversationRunLease(dataConnect, reference)

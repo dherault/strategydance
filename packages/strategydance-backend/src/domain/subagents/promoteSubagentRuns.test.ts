@@ -96,7 +96,7 @@ describe('promoteSubagentRuns', () => {
     expect(kit.readRun(sixth)).toMatchObject({
       status: 'QUEUED',
       createdAt: '2026-10-16T10:30:00.000Z',
-      leaseExpiresAt: '2026-10-16T10:50:00.000Z',
+      leaseExpiresAt: '2026-10-16T10:32:00.000Z',
     })
     expect(readQueued()).toEqual([{ runId: sixth.runId, queue: 'subagent-runs' }])
   })

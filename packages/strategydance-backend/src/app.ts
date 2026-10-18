@@ -55,10 +55,15 @@ function createApp({ isWorker }: Options) {
   app.disable('x-powered-by')
 
   // The OAuth protocol's own endpoints answer any origin, without credentials, since no cookie is
-  // involved; every other route answers the app's origins alone
+  // involved; every other route answers the app's origins alone. `Retry-After` is exposed, which a
+  // page of another origin cannot read otherwise: a daily cap's refusal says in it when the cap has
+  // room again
   app.use(
     cors((request, callback) => {
-      callback(null, { origin: isOAuthProtocolPath(request.path) ? '*' : ALLOWED_ORIGINS })
+      callback(null, {
+        origin: isOAuthProtocolPath(request.path) ? '*' : ALLOWED_ORIGINS,
+        exposedHeaders: ['Retry-After'],
+      })
     }),
   )
   app.use(securityMiddleware)

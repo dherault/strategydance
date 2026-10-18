@@ -1417,6 +1417,133 @@ const conversationMessages = defineMessages({
     description:
       'Shown above the message field when the server could not take the message for now. What the reader wrote stays in the field.',
   },
+  capFreed: {
+    id: 'conversation.cap.freed',
+    defaultMessage: 'The daily limit has room again. Try once more.',
+    description:
+      'Shown in place of a daily limit reached once the time it said it would have room again has passed, while the reader has not tried again yet. What they wrote stays in the field.',
+  },
+  capMemberConversations: {
+    id: 'conversation.cap.memberConversations',
+    defaultMessage:
+      'You started {max, number} conversations in this organization in the last 24 hours, as many as you can for now. You can start another {time}.',
+    description:
+      "Shown when the reader starts a conversation past the daily limit on conversations they may start in this organization. What they wrote stays in the field. {max} is a number such as 20. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capAccountConversations: {
+    id: 'conversation.cap.accountConversations',
+    defaultMessage:
+      'You started {max, number} conversations across your organizations in the last 24 hours, as many as you can for now. You can start another {time}.',
+    description:
+      "Shown when the reader starts a conversation past the daily limit on conversations their account may start across every organization it is in. What they wrote stays in the field. {max} is a number such as 40. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capOrganizationConversations: {
+    id: 'conversation.cap.organizationConversations',
+    defaultMessage:
+      'Your team started {max, number} conversations in this organization in the last 24 hours, as many as it can for now. You can start another {time}.',
+    description:
+      "Shown when the reader starts a conversation past the daily limit on conversations the whole organization may start. What they wrote stays in the field. {max} is a number such as 100. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capMemberRuns: {
+    id: 'conversation.cap.memberRuns',
+    defaultMessage:
+      'Strategy Dance answered you {max, number} times in this organization in the last 24 hours, as many as it can for now. It can answer again {time}.',
+    description:
+      "Shown when the reader sends a message, resumes or retries a response past the daily limit on the responses they may ask for in this organization. When it was a message, what they wrote stays in the field. {max} is a number such as 100. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capAccountRuns: {
+    id: 'conversation.cap.accountRuns',
+    defaultMessage:
+      'Strategy Dance answered you {max, number} times across your organizations in the last 24 hours, as many as it can for now. It can answer again {time}.',
+    description:
+      "Shown when the reader sends a message, resumes or retries a response past the daily limit on the responses their account may ask for across every organization it is in. When it was a message, what they wrote stays in the field. {max} is a number such as 200. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capOrganizationRuns: {
+    id: 'conversation.cap.organizationRuns',
+    defaultMessage:
+      'Strategy Dance answered your team {max, number} times in this organization in the last 24 hours, as many as it can for now. It can answer again {time}.',
+    description:
+      "Shown when the reader sends a message, resumes or retries a response past the daily limit on the responses the whole organization may ask for. When it was a message, what they wrote stays in the field. {max} is a number such as 500. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  accessUnverified: {
+    id: 'conversation.access.unverified',
+    defaultMessage: 'Confirm your email address first. The notice above the message field sends you the link.',
+    description:
+      'Shown under a question, an action waiting for approval, or the Resume and Retry buttons, when the server refused because the reader has not confirmed their email address yet, which talking with the AI requires. The notice it names offers to email a confirmation link.',
+  },
+  accessSuspended: {
+    id: 'conversation.access.suspended',
+    defaultMessage: 'Conversations are suspended. Write to {email} to talk about it.',
+    description:
+      "Shown under a question, an action waiting for approval, the Resume and Retry buttons, or above the message field, when Strategy Dance's team suspended conversations for the reader's account or in the organization, so the AI takes nothing more. {email} is Strategy Dance's support address.",
+  },
+  confirmationTitle: {
+    id: 'conversation.confirmation.title',
+    defaultMessage: 'Confirm your email address',
+    description:
+      'Title of the notice above the message field when the reader has not confirmed their email address yet, which talking with the AI requires.',
+  },
+  confirmationLead: {
+    id: 'conversation.confirmation.lead',
+    defaultMessage:
+      'Strategy Dance answers once your address is confirmed. We will send a confirmation link to {email}.',
+    description:
+      'Text of the notice above the message field when the reader has not confirmed their email address yet. Strategy Dance is the product name and stays untranslated. {email} is their address.',
+  },
+  confirmationSend: {
+    id: 'conversation.confirmation.send',
+    defaultMessage: 'Send the link',
+    description: 'Button of the notice above the message field that emails the reader a link confirming their address.',
+  },
+  confirmationResend: {
+    id: 'conversation.confirmation.resend',
+    defaultMessage: 'Send it again',
+    description: 'Button of the notice above the message field that emails the confirmation link once more.',
+  },
+  confirmationSent: {
+    id: 'conversation.confirmation.sent',
+    defaultMessage: 'Link sent to {email}. Open it, then come back here.',
+    description:
+      'Shown in the notice above the message field once the confirmation link was emailed, naming the address.',
+  },
+  confirmationCheck: {
+    id: 'conversation.confirmation.check',
+    defaultMessage: 'I confirmed it',
+    description:
+      'Button of the notice above the message field that the reader presses after opening the confirmation link, which checks that their address is now confirmed.',
+  },
+  confirmationNotConfirmed: {
+    id: 'conversation.confirmation.notConfirmed',
+    defaultMessage: '{email} is not confirmed yet. Open the link in the email we sent, or send it again.',
+    description:
+      'Shown in the notice above the message field when the reader said they confirmed their address but it is still unconfirmed, naming the address.',
+  },
+  confirmationError: {
+    id: 'conversation.confirmation.error',
+    defaultMessage: 'That did not go through. Check your connection and try again in a moment.',
+    description:
+      'Shown in the notice above the message field when emailing the confirmation link, or checking the address, failed.',
+  },
+  suspensionTitle: {
+    id: 'conversation.suspension.title',
+    defaultMessage: 'Conversations are suspended',
+    description:
+      "Title of the notice above the message field when Strategy Dance's team suspended conversations for the reader's account or in the organization.",
+  },
+  suspensionAccount: {
+    id: 'conversation.suspension.account',
+    defaultMessage:
+      "Strategy Dance's team suspended conversations for your account. Write to {email} to talk about it.",
+    description:
+      "Text of the notice above the message field when Strategy Dance's team suspended conversations for the reader's account, in every organization. Strategy Dance is the product name and stays untranslated. {email} is its support address, a link.",
+  },
+  suspensionOrganization: {
+    id: 'conversation.suspension.organization',
+    defaultMessage:
+      "Strategy Dance's team suspended conversations in this organization. Write to {email} to talk about it.",
+    description:
+      "Text of the notice above the message field when Strategy Dance's team suspended conversations in the organization, for every member. Strategy Dance is the product name and stays untranslated. {email} is its support address, a link.",
+  },
   composerAttach: {
     id: 'conversation.composer.attach',
     defaultMessage: 'Attach',

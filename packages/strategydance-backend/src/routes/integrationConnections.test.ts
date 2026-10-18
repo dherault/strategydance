@@ -61,7 +61,7 @@ mock.module('~middleware/authentication', () => ({
       return
     }
 
-    request.viewer = { id: viewer, email: null }
+    request.viewer = { id: viewer, email: null, isEmailVerified: true }
     next()
   },
 }))
@@ -95,8 +95,6 @@ beforeEach(() => {
   fake.reset()
   fake.addMember(MEMBER, ORGANIZATION_ID)
   fake.addMember(OTHER, ORGANIZATION_ID, OrganizationRole.ADMINISTRATOR)
-  fake.staff.add(MEMBER)
-  fake.staff.add(OTHER)
   fake.integrations.set(INTEGRATION_ID, {
     id: INTEGRATION_ID,
     organizationId: ORGANIZATION_ID,
@@ -202,16 +200,11 @@ describe("a member's Connect, through the routes", () => {
     })
   })
 
-  test('refuses a caller who is not a member, one not staff, and one with no token', async () => {
+  test('refuses a caller who is not a member, and one with no token', async () => {
     fake.addMember('stranger', '11111111111141118111111111111111')
-    fake.staff.add('stranger')
 
     expect((await call('POST', '/connection', 'stranger')).body.code).toBe(ERROR_CODE_FORBIDDEN)
-
-    fake.staff.delete(MEMBER)
-
-    expect((await call('POST', '/connection')).body.code).toBe(ERROR_CODE_FORBIDDEN)
-    expect((await call('DELETE', '/connection')).body.code).toBe(ERROR_CODE_FORBIDDEN)
+    expect((await call('DELETE', '/connection', 'stranger')).body.code).toBe(ERROR_CODE_FORBIDDEN)
     expect((await call('POST', '/connection', null)).status).toBe(401)
     expect(fake.authorizations.size).toBe(0)
   })

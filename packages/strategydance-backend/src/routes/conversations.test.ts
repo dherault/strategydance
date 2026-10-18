@@ -4,6 +4,10 @@ import type { AddressInfo } from 'node:net'
 
 import express, { type NextFunction, type Request, type Response } from 'express'
 import {
+  ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED,
+  ERROR_CODE_CONVERSATIONS_SUSPENDED,
+  ERROR_CODE_EMAIL_NOT_VERIFIED,
+  ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_TOO_MANY_REQUESTS,
   MAX_CONVERSATION_SEARCHES,
   MAX_SEARCH_QUERY_LENGTH,
@@ -42,7 +46,11 @@ mock.module('~middleware/appCheck', () => ({ default: passThrough }))
 
 mock.module('~middleware/authentication', () => ({
   default: (request: Request, _response: Response, next: NextFunction) => {
-    request.viewer = { id: request.header('x-viewer') ?? SEARCHER, email: null }
+    request.viewer = {
+      id: request.header('x-viewer') ?? SEARCHER,
+      email: null,
+      isEmailVerified: request.header('x-email-verified') !== 'false',
+    }
     next()
   },
 }))
@@ -148,6 +156,53 @@ describe('POST /:conversationId/messages', () => {
       expect(response.status).toBe(400)
       expect(fake.conversations.size).toBe(0)
     }
+  })
+
+  test('refuses a start past a daily cap with its code, and says in `Retry-After` when it has room', async () => {
+    const origin = await listen()
+
+    // Twenty conversations started, the newest an hour ago, the oldest twenty seconds before it
+    for (let index = 0; index < 20; index++) {
+      const id = crypto.randomUUID().replaceAll('-', '')
+
+      fake.cappedStarts.set(id, {
+        id,
+        userId: SEARCHER,
+        organizationId: ORGANIZATION_ID,
+        kind: 'CONVERSATION',
+        createdAt: new Date(Date.now() - 60 * 60 * 1000 - index * 1000).toISOString(),
+      })
+    }
+
+    const response = await sendMessage(origin, crypto.randomUUID(), {})
+
+    expect(response.status).toBe(429)
+    expect(((await response.json()) as { code: string }).code).toBe(ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED)
+    expect(Number(response.headers.get('retry-after'))).toBe(23 * 60 * 60 - 19)
+    expect(fake.conversations.size).toBe(0)
+  })
+
+  test("names the account's cap when the account's runs reach theirs", async () => {
+    const origin = await listen()
+    const conversationId = insertConversation('Priced', { nextMessagePosition: 1, nextRunNumber: 1, messageCount: 1 })
+
+    for (let index = 0; index < 200; index++) {
+      const id = crypto.randomUUID().replaceAll('-', '')
+
+      fake.cappedStarts.set(id, {
+        id,
+        userId: SEARCHER,
+        organizationId: '7d6c5b4a39284f1e8d7c6b5a49382716',
+        kind: 'RUN',
+        createdAt: new Date().toISOString(),
+      })
+    }
+
+    const response = await sendMessage(origin, conversationId, {})
+
+    expect(response.status).toBe(429)
+    expect(((await response.json()) as { code: string }).code).toBe(ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED)
+    expect(Number(response.headers.get('retry-after'))).toBeGreaterThan(23 * 60 * 60)
   })
 })
 
@@ -352,6 +407,104 @@ describe('a subagent', () => {
     expect(((await chinese.json()) as { data: { conversationIds: string[] } }).data.conversationIds).toEqual([
       chineseParent,
     ])
+  })
+})
+
+describe('a caller whose address is not confirmed', () => {
+  function post(origin: string, path: string, body?: unknown) {
+    return fetch(`${origin}/organizations/${ORGANIZATION_ID}/conversations/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-email-verified': 'false' },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+  }
+
+  test('is refused by every route that starts or continues a run, before anything is stored', async () => {
+    const origin = await listen()
+    const conversationId = insertConversation('Pricing')
+    const runId = crypto.randomUUID()
+    const messageId = crypto.randomUUID()
+    const before = [fake.conversations.size, fake.messages.size, fake.runs.size]
+
+    for (const [path, body] of [
+      [`${crypto.randomUUID()}/messages`, { messageId, text: 'Help me price the beta' }],
+      [`${conversationId}/messages`, { messageId, text: 'Help me price the beta' }],
+      [`${conversationId}/answers`, { messageId, selected: ['Monthly'], other: null }],
+      [`${conversationId}/approvals`, { messageId, isAllowed: true }],
+      [`${conversationId}/runs/${runId}/resume`, undefined],
+      [`${conversationId}/runs/${runId}/retry`, undefined],
+    ] as const) {
+      const response = await post(origin, path, body)
+
+      expect(response.status).toBe(403)
+      expect(((await response.json()) as { code: string }).code).toBe(ERROR_CODE_EMAIL_NOT_VERIFIED)
+    }
+
+    expect([fake.conversations.size, fake.messages.size, fake.runs.size]).toEqual(before)
+  })
+
+  // A run already started goes on, and stopping or reading needs no confirmed address
+  test('still stops, reconciles and searches', async () => {
+    const origin = await listen()
+    const conversationId = insertConversation('Pricing')
+    const runId = crypto.randomUUID()
+
+    for (const path of [
+      `${conversationId}/runs/${runId}/stop`,
+      `${conversationId}/runs/${runId}/reconcile`,
+      `${conversationId}/subagents/stop`,
+      `${conversationId}/subagents/reconcile`,
+    ]) {
+      expect((await post(origin, path)).status).not.toBe(403)
+    }
+
+    expect((await post(origin, 'search', { query: 'pricing' })).status).toBe(200)
+  })
+})
+
+describe('a member whose conversations staff suspended', () => {
+  function post(origin: string, path: string, body?: unknown) {
+    return fetch(`${origin}/organizations/${ORGANIZATION_ID}/conversations/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+  }
+
+  test('is refused by every route that starts or continues a run, their account’s suspension or the organization’s, until it is lifted', async () => {
+    const origin = await listen()
+    const conversationId = insertConversation('Pricing')
+    const runId = crypto.randomUUID()
+    const messageId = crypto.randomUUID()
+    const user = fake.users.get(SEARCHER)!
+    const organization = fake.organizations.get(ORGANIZATION_ID)!
+    const before = [fake.conversations.size, fake.messages.size, fake.runs.size]
+
+    for (const suspended of [user, organization]) {
+      suspended.conversationsSuspendedAt = new Date().toISOString()
+
+      for (const [path, body] of [
+        [`${crypto.randomUUID()}/messages`, { messageId, text: 'Help me price the beta' }],
+        [`${conversationId}/answers`, { messageId, selected: ['Monthly'], other: null }],
+        [`${conversationId}/approvals`, { messageId, isAllowed: true }],
+        [`${conversationId}/runs/${runId}/resume`, undefined],
+        [`${conversationId}/runs/${runId}/retry`, undefined],
+      ] as const) {
+        const response = await post(origin, path, body)
+
+        expect(response.status).toBe(403)
+        expect(((await response.json()) as { code: string }).code).toBe(ERROR_CODE_CONVERSATIONS_SUSPENDED)
+      }
+
+      // Stopping and reading are left to them
+      expect((await post(origin, `${conversationId}/runs/${runId}/stop`)).status).not.toBe(403)
+      expect((await post(origin, 'search', { query: 'pricing' })).status).toBe(200)
+
+      suspended.conversationsSuspendedAt = null
+    }
+
+    expect([fake.conversations.size, fake.messages.size, fake.runs.size]).toEqual(before)
+    expect((await sendMessage(origin, crypto.randomUUID(), {})).status).toBe(202)
   })
 })
 

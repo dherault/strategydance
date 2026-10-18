@@ -80,7 +80,6 @@ beforeEach(() => {
   fake.reset()
   logged.mockClear()
   membershipCreatedAt = fake.addMember(MEMBER, ORGANIZATION_ID)
-  fake.setStaff(MEMBER)
 })
 
 afterEach(() => {
@@ -153,13 +152,6 @@ describe('createAgentConnectionTokenVerifier', () => {
     expect(await refusal('access')).toBe('invalid_token')
   })
 
-  test('refuses an account that is no longer staff, while modules are theirs alone', async () => {
-    connect()
-    fake.setStaff(MEMBER, false)
-
-    expect(await refusal('access')).toBe('invalid_token')
-  })
-
   test('marks the connection used on a verified call, then at most once a minute', async () => {
     connect()
 
@@ -211,11 +203,13 @@ describe('createAgentConnectionTokenVerifier', () => {
 
   test('marks nothing used for a token it refuses', async () => {
     connect()
-    fake.setStaff(MEMBER, false)
 
-    expect(await refusal('access')).toBe('invalid_token')
     expect(await refusal('refresh')).toBe('invalid_token')
     expect(await refusal('access', createAgentConnectionTokenVerifier(new URL(TASKS)))).toBe('invalid_token')
+
+    setSystemTime(Date.now() + 61 * 60 * 1000)
+
+    expect(await refusal('access')).toBe('invalid_token')
     expect(fake.calls).not.toContain('RecordAgentConnectionUse')
     expect(fake.connections.get(CONNECTION_ID)!.lastUsedAt).toBeNull()
   })

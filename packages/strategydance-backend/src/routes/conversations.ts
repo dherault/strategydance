@@ -38,6 +38,7 @@ import { UUID_PATTERN } from '~constants'
 import parseConversationAttachmentHeaders from '~utils/parseConversationAttachmentHeaders'
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
+import respondUsageCapped from '~utils/respondUsageCapped'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
@@ -46,9 +47,10 @@ import conversationAttachmentReadRateLimitMiddleware from '~middleware/conversat
 import conversationAttachmentRemovalRateLimitMiddleware from '~middleware/conversationAttachmentRemovalRateLimit'
 import conversationAttachmentUploadRateLimitMiddleware from '~middleware/conversationAttachmentUploadRateLimit'
 import createConversationSearchRateLimitMiddleware from '~middleware/conversationSearchRateLimit'
+import conversationsSuspensionMiddleware from '~middleware/conversationsSuspension'
 import organizationMemberMiddleware from '~middleware/organizationMember'
-import staffOnlyMiddleware from '~middleware/staffOnly'
 import validateMiddleware from '~middleware/validate'
+import verifiedEmailMiddleware from '~middleware/verifiedEmail'
 
 import answerConversationApproval from '~domain/conversations/answerConversationApproval'
 import answerConversationQuestion from '~domain/conversations/answerConversationQuestion'
@@ -72,12 +74,16 @@ import { aspectsSchema } from '~modules/moduleSchemas'
   A member's conversations in an organization, mounted at
   `/organizations/:organizationId/conversations`, whose `:organizationId` each route reads through
   `mergeParams`. Only their author reaches a conversation, which every operation behind a route
-  checks, and only Strategy Dance's administrators while conversations are open to them alone.
+  checks.
 
   Each route runs its middleware in one order: the body parsed, App Check, the caller's token, the
-  parameters and the body checked, then the caller's membership and whether they are staff, which
-  read and write nothing before them. The search is metered between the token and the checks, as
-  the routes other routers meter are
+  parameters and the body checked, then the caller's membership, which reads and writes nothing
+  before them. The search is metered between the token and the checks, as
+  the routes other routers meter are. The routes that start or continue a run, the send, an answer,
+  an approval, Resume, Retry and a file's upload, then refuse with a 403 a caller whose token says
+  their address is not confirmed (`verifiedEmailMiddleware`), and one whose conversations staff
+  suspended, their account's or the organization's (`conversationsSuspensionMiddleware`): the others
+  stop, reconcile or read, which a member does whatever their address, suspended or not
 */
 function createConversationsRouter() {
   const router = Router({ mergeParams: true })
@@ -118,7 +124,10 @@ function createConversationsRouter() {
     for, or whose next request would pass 700000 input tokens, with a 409.
     A conversation it would start past the thousand the caller keeps is refused with a 409. The
     aspects the member picked on the draft start it as the member's, and any other message leaves
-    them out.
+    them out. A send that would pass a daily cap on the runs the caller starts, or on the
+    conversations for one that starts one, is refused with a 429 naming the cap, its `Retry-After`
+    saying when it has room again; one retried after its first try went through is answered as
+    above, whatever the caps.
 
     Answered with a 503 when the run is stored but could not be queued for the worker: the browser
     sends the same message again, under the same id, which queues it again, and the conversation's
@@ -132,7 +141,8 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: messagesParamsSchema, body: messagesBodySchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
+    verifiedEmailMiddleware,
+    conversationsSuspensionMiddleware,
     async (request: MessagesRequest, response: Response<ApiResponse<SendConversationMessageData>>) => {
       const attachmentIds = [...new Set(request.body.attachmentIds?.map(toCanonicalUuid))]
       const text = parseConversationMessageText(request.body.text, { allowsEmpty: attachmentIds.length > 0 })
@@ -182,6 +192,10 @@ function createConversationsRouter() {
             ERROR_CODE_TOO_MANY_CONVERSATIONS,
             `Somebody keeps at most ${MAX_CONVERSATIONS} conversations in an organization`,
           )
+
+          return
+        case 'capped':
+          respondUsageCapped(response, result.cap)
 
           return
         case 'attachmentsInvalid':
@@ -251,7 +265,8 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: messagesParamsSchema, body: answersBodySchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
+    verifiedEmailMiddleware,
+    conversationsSuspensionMiddleware,
     async (request: AnswersRequest, response: Response<ApiResponse<AnswerConversationQuestionData>>) => {
       const result = await answerConversationQuestion({
         organizationId: toCanonicalUuid(request.params.organizationId),
@@ -321,7 +336,8 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: messagesParamsSchema, body: approvalsBodySchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
+    verifiedEmailMiddleware,
+    conversationsSuspensionMiddleware,
     async (request: ApprovalsRequest, response: Response<ApiResponse<AnswerConversationApprovalData>>) => {
       const result = await answerConversationApproval({
         organizationId: toCanonicalUuid(request.params.organizationId),
@@ -384,7 +400,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: runParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (request: RunRequest, response: Response<ApiResponse>) => {
       const result = await reconcileConversationRun({
         organizationId: toCanonicalUuid(request.params.organizationId),
@@ -417,7 +432,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: messagesParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (
       request: Request<z.infer<typeof messagesParamsSchema>, ApiResponse, unknown>,
       response: Response<ApiResponse>,
@@ -450,7 +464,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: messagesParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (
       request: Request<z.infer<typeof messagesParamsSchema>, ApiResponse, unknown>,
       response: Response<ApiResponse>,
@@ -489,7 +502,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: subagentParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (
       request: Request<z.infer<typeof subagentParamsSchema>, ApiResponse, unknown>,
       response: Response<ApiResponse>,
@@ -525,7 +537,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: runParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (request: RunRequest, response: Response<ApiResponse>) => {
       const result = await stopConversationRun({
         organizationId: toCanonicalUuid(request.params.organizationId),
@@ -549,7 +560,8 @@ function createConversationsRouter() {
     the conversation's newest message: the note goes, and a run carries the response on, 202 with
     its id. A resume sent again after its first try went through is answered with the run it
     started. Refused with a 409 when the run is not the latest, did not stop or die, or something
-    follows its note, and when a run goes or the caller has 3 in flight. Answered with a 503 when the
+    follows its note, and when a run goes or the caller has 3 in flight, and with a 429 at a daily
+    cap on the runs the caller starts, as a send is. Answered with a 503 when the
     run is started but could not be queued, which the same resume sent again queues again. Takes no
     body
   */
@@ -559,7 +571,8 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: runParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
+    verifiedEmailMiddleware,
+    conversationsSuspensionMiddleware,
     async (
       request: Request<z.infer<typeof runParamsSchema>, ApiResponse<ResumeConversationRunData>, unknown>,
       response: Response<ApiResponse<ResumeConversationRunData>>,
@@ -588,6 +601,10 @@ function createConversationsRouter() {
           respondError(response, 409, ERROR_CODE_CONFLICT, 'This response cannot be resumed')
 
           return
+        case 'capped':
+          respondUsageCapped(response, result.cap)
+
+          return
         case 'unavailable':
           respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'The response could not be resumed now')
 
@@ -604,7 +621,8 @@ function createConversationsRouter() {
     answers that entry again, 202 with its id and the runs whose messages went. A retry sent again
     after its first try went through is answered with the run it started. Never refused for a full
     conversation, whose room it gives back. Refused with a 409 when the run is not the latest or did
-    not end with a note, and when a run goes or the caller has 3 in flight. Answered with a 503 when
+    not end with a note, and when a run goes or the caller has 3 in flight, and with a 429 at a
+    daily cap on the runs the caller starts, as a send is. Answered with a 503 when
     the run is started but could not be queued, which the same retry sent again queues again. Takes
     no body
   */
@@ -614,7 +632,8 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: runParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
+    verifiedEmailMiddleware,
+    conversationsSuspensionMiddleware,
     async (
       request: Request<z.infer<typeof runParamsSchema>, ApiResponse<RetryConversationRunData>, unknown>,
       response: Response<ApiResponse<RetryConversationRunData>>,
@@ -641,6 +660,10 @@ function createConversationsRouter() {
           return
         case 'conflict':
           respondError(response, 409, ERROR_CODE_CONFLICT, 'This response cannot be retried')
+
+          return
+        case 'capped':
+          respondUsageCapped(response, result.cap)
 
           return
         case 'unavailable':
@@ -707,7 +730,6 @@ function createConversationsRouter() {
     searchRateLimitMiddleware,
     validateMiddleware({ params: searchParamsSchema, body: searchBodySchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (request: SearchRequest, response: Response<ApiResponse<SearchConversationsData>>) => {
       const result = await searchConversations({
         organizationId: toCanonicalUuid(request.params.organizationId),
@@ -778,7 +800,8 @@ function createConversationsRouter() {
     conversationAttachmentUploadRateLimitMiddleware,
     validateMiddleware({ params: attachmentParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
+    verifiedEmailMiddleware,
+    conversationsSuspensionMiddleware,
     async (
       request: AttachmentRequest<ConversationAttachmentData>,
       response: Response<ApiResponse<ConversationAttachmentData>>,
@@ -848,7 +871,6 @@ function createConversationsRouter() {
     conversationAttachmentRemovalRateLimitMiddleware,
     validateMiddleware({ params: attachmentParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (request: AttachmentRequest, response: Response<ApiResponse>) => {
       const result = await removeConversationAttachment(readAttachmentLocation(request))
 
@@ -876,7 +898,6 @@ function createConversationsRouter() {
     conversationAttachmentReadRateLimitMiddleware,
     validateMiddleware({ params: attachmentParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (request: AttachmentRequest, response: Response) => {
       const result = await readConversationAttachment(readAttachmentLocation(request))
 

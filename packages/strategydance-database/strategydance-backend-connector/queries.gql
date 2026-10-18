@@ -56,11 +56,45 @@ query GetOrganizationMembership($organizationId: UUID!, $userId: String!) @auth(
   }
 }
 
-# Whether somebody is one of Strategy Dance's own administrators, which conversations are open to
-# alone until they launch (`ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core)
-query GetUserStaffStatus($userId: String!) @auth(level: NO_ACCESS) {
+# Whether Strategy Dance's staff suspended conversations for the account, or in the organization,
+# which the routes that start or continue a run refuse (`conversationsSuspensionMiddleware`)
+query GetConversationsSuspension($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
   user(key: { id: $userId }) {
-    isAdministrator
+    conversationsSuspendedAt
+  }
+  organization(id: $organizationId) {
+    conversationsSuspendedAt
+  }
+}
+
+# The account an address names, which staff's `bun run suspend:conversations` reads by the address
+# they typed, lowercased as Firebase writes it
+query GetUserByEmail($email: String!) @auth(level: NO_ACCESS) {
+  users(where: { email: { eq: $email } }, limit: 1) {
+    id
+    email
+    conversationsSuspendedAt
+  }
+}
+
+# An organization by its id, and below by its slug, which staff's `bun run suspend:conversations`
+# reads by what they typed: two queries, since a filter on an optional variable left out is dropped
+# and would match every organization
+query GetOrganizationById($id: UUID!) @auth(level: NO_ACCESS) {
+  organization(id: $id) {
+    id
+    name
+    slug
+    conversationsSuspendedAt
+  }
+}
+
+query GetOrganizationBySlug($slug: String!) @auth(level: NO_ACCESS) {
+  organizations(where: { slug: { eq: $slug } }, limit: 1) {
+    id
+    name
+    slug
+    conversationsSuspendedAt
   }
 }
 
@@ -406,8 +440,8 @@ query GetConversationRetryContext(
 #   worker told of a run elsewhere finds nothing
 # - the conversation: whether it is deleted, the run it names, its counter and how many messages it
 #   holds, and whether it is a subagent, whose run sends its own prompt and tools and writes a report
-# - the author's membership, whose `createdAt` has to be the one the run records, and whether they
-#   are still staff
+# - the author's membership, whose `createdAt` has to be the one the run records, and whether staff
+#   suspended conversations for their account or in the organization, which a worker claims no run of
 # - the transcript's last entry, with how many of its blocks the thread has drawn, which is where a
 #   worker taking over after a crash carries on
 # - the messages the run has drawn, which it may draw 100 of (`MAX_CONVERSATION_RUN_ENTRIES` in
@@ -455,7 +489,10 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     createdAt
   }
   user(key: { id: $userId }) {
-    isAdministrator
+    conversationsSuspendedAt
+  }
+  organization(id: $organizationId) {
+    conversationsSuspendedAt
   }
   conversationTranscriptEntries(
     where: { conversationId: { eq: $conversationId } }
@@ -921,6 +958,8 @@ query GetConversationRequestContext($organizationId: UUID!, $userId: String!, $c
 #   its brief's block and the measurement of its first request read of it. At most 10
 # - the subagent at the id the launch derives, with its first run, when a launch sent again made it
 #   already
+# - whether staff suspended conversations for the caller's account or in the organization, which
+#   launches nothing
 #
 # `$userId` is the uid the backend verified, never one a client sent
 query GetSubagentLaunchContext(
@@ -932,6 +971,12 @@ query GetSubagentLaunchContext(
 ) @auth(level: NO_ACCESS) {
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     createdAt
+  }
+  user(key: { id: $userId }) {
+    conversationsSuspendedAt
+  }
+  organization(id: $organizationId) {
+    conversationsSuspendedAt
   }
   parent: conversation(id: $parentId) {
     userId
@@ -1205,6 +1250,104 @@ query GetConversationSearchQuota($organizationId: UUID!, $userId: String!) @auth
     }
     orderBy: [{ createdAt: DESC }]
     limit: 120
+  ) {
+    createdAt
+  }
+}
+
+# What the daily caps counted of a member's starts in the last 24 hours, newest first: the member's
+# in the organization, the account's across every organization, and the organization's, as each
+# mutation that starts a conversation, a run or a subagent counts them. Read by the backend before
+# such a start stores anything, and again once a mutation's count refused one, to say which cap it
+# reached and when the cap has room, which the oldest of the newest rows, as many as the cap, says.
+# Runs are read to one and a half times each cap, which what finishes work under way passes it by,
+# conversations and subagents to each cap (`MAX_DAILY_…` and `DAILY_CAP_OVERRUN_FACTOR` in
+# strategydance-core: change them together). `$userId` is the uid the backend verified
+query GetCappedStarts($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  memberConversations: cappedStarts(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      kind: { eq: CONVERSATION }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 20
+  ) {
+    createdAt
+  }
+  accountConversations: cappedStarts(
+    where: {
+      userId: { eq: $userId }
+      kind: { eq: CONVERSATION }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 40
+  ) {
+    createdAt
+  }
+  organizationConversations: cappedStarts(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: CONVERSATION }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 100
+  ) {
+    createdAt
+  }
+  memberRuns: cappedStarts(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      kind: { eq: RUN }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 150
+  ) {
+    createdAt
+  }
+  accountRuns: cappedStarts(
+    where: { userId: { eq: $userId }, kind: { eq: RUN }, createdAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+    orderBy: [{ createdAt: DESC }]
+    limit: 300
+  ) {
+    createdAt
+  }
+  organizationRuns: cappedStarts(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: RUN }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 750
+  ) {
+    createdAt
+  }
+  memberSubagents: cappedStarts(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      kind: { eq: SUBAGENT }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 30
+  ) {
+    createdAt
+  }
+  accountSubagents: cappedStarts(
+    where: {
+      userId: { eq: $userId }
+      kind: { eq: SUBAGENT }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 60
   ) {
     createdAt
   }
@@ -2285,6 +2428,61 @@ query GetSubagentWritesForAgent(
   }
 }
 
+# The calls a subagent made to the organization's integrations, oldest first: those that started,
+# since a call refused as it was drawn, or one waiting on an approval nobody gave it, reached no
+# server. Each with the server and the tool as they were named at call time, its status, whether it
+# finished and whether its server never answered. A chain makes at most 200 calls, so 200 is all of
+# them, with their count. The backend reads the subagent first, as the caller's and its parent's
+query GetSubagentIntegrationCallsForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $subagentId: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  calls: conversationMessages(
+    where: {
+      conversation: {
+        id: { eq: $subagentId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+      }
+      kind: { in: [TOOL_CALL, APPROVAL] }
+      integrationToolName: { isNull: false }
+      toolStartedAt: { isNull: false }
+    }
+    orderBy: [{ position: ASC }]
+    limit: 200
+  ) {
+    integrationName
+    integrationToolName
+    toolStatus
+    toolDurationMs
+    isToolUnanswered
+  }
+  total: conversationMessages(
+    where: {
+      conversation: {
+        id: { eq: $subagentId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+      }
+      kind: { in: [TOOL_CALL, APPROVAL] }
+      integrationToolName: { isNull: false }
+      toolStartedAt: { isNull: false }
+    }
+  ) {
+    _count
+  }
+}
+
 # What a parent's reaction to its subagents' reports reads before it starts, and what a send, an
 # answer and a full ending read of the reports waiting:
 #
@@ -2297,12 +2495,20 @@ query GetSubagentWritesForAgent(
 #   status says how it ended
 # - the caller's runs in flight in the organization, which a dead one among is finalized before they
 #   are counted
+# - whether staff suspended conversations for the caller's account or in the organization, which
+#   starts no reaction: its reports wait until the suspension is lifted
 #
 # Only the caller's conversation in that organization
 query GetSubagentReactionContext($organizationId: UUID!, $userId: String!, $conversationId: UUID!)
 @auth(level: NO_ACCESS) {
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     createdAt
+  }
+  user(key: { id: $userId }) {
+    conversationsSuspendedAt
+  }
+  organization(id: $organizationId) {
+    conversationsSuspendedAt
   }
   conversation(id: $conversationId) {
     userId
@@ -2579,8 +2785,7 @@ query GetAgentConnectionTokens($hashes: [String!]!) @auth(level: NO_ACCESS) {
 }
 
 # The token verifier's one read, on every call an external agent makes to a module: an unexpired
-# access token alone, never a refresh token, with its connection, the membership it belongs to and
-# the account's staff role, while modules are for Strategy Dance's administrators alone
+# access token alone, never a refresh token, with its connection and the membership it belongs to
 query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
   agentConnectionTokens(
     where: { hash: { eq: $hash }, kind: { eq: ACCESS }, expiresAt: { gt_time: { now: true } } }
@@ -2598,9 +2803,6 @@ query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
         userId
         organizationId
         createdAt
-        user {
-          isAdministrator
-        }
       }
     }
   }

@@ -51,7 +51,7 @@ mock.module('~middleware/authentication', () => ({
       return
     }
 
-    request.viewer = { id: viewer, email: null }
+    request.viewer = { id: viewer, email: null, isEmailVerified: true }
     next()
   },
 }))
@@ -175,7 +175,6 @@ beforeEach(() => {
   fetchOutbound.mockClear()
   documents.clear()
   fake.addMember(MEMBER, ORGANIZATION_ID)
-  fake.setStaff(MEMBER)
   publishDocument()
 })
 
@@ -191,21 +190,15 @@ describe('GET /oauth/requests/:requestId', () => {
     expect(fetchOutbound).not.toHaveBeenCalled()
   })
 
-  test('meters a caller before the staff check reads anything', async () => {
-    const requestId = await createRequest()
+  test('meters a caller before anything is read', async () => {
+    const unknown = 'fedcba9876543210fedcba9876543210'
 
-    for (let index = 0; index < 60; index++) expect((await call(requestId, { viewer: 'outsider' })).status).toBe(403)
+    for (let index = 0; index < 60; index++) expect((await call(unknown, { viewer: 'outsider' })).status).toBe(404)
 
-    expect((await call(requestId, { viewer: 'outsider' })).status).toBe(429)
-  })
+    const reads = fake.calls.length
 
-  test('refuses an account that is not staff, fetching nothing', async () => {
-    const requestId = await createRequest()
-
-    fake.setStaff(MEMBER, false)
-
-    expect((await call(requestId)).status).toBe(403)
-    expect(fetchOutbound).not.toHaveBeenCalled()
+    expect((await call(unknown, { viewer: 'outsider' })).status).toBe(429)
+    expect(fake.calls).toHaveLength(reads)
   })
 
   test("fetches a client ID metadata document once a member reads the request, and shows the client's domain", async () => {
@@ -322,14 +315,10 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     expect(fake.connections.size).toBe(0)
   })
 
-  test('refuses an account that is not staff, and an organization it is not in', async () => {
+  test('refuses an organization the caller is not in', async () => {
     const requestId = await createRequest()
 
     expect((await approve(requestId, undefined, OTHER_ORGANIZATION_ID)).status).toBe(403)
-
-    fake.setStaff(MEMBER, false)
-
-    expect((await approve(requestId)).status).toBe(403)
     expect(fake.connections.size).toBe(0)
     expect(fake.requests.get(requestId)?.decidedAt).toBeNull()
   })

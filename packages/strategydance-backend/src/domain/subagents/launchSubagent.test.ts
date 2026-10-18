@@ -323,6 +323,39 @@ describe('launchSubagent', () => {
     expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: launchedNow.runId }), 'subagent-runs')
   })
 
+  test('refuses a launch past the member’s thirty subagents in a day, and the account’s sixty, storing nothing', async () => {
+    const parent = await kit.start()
+
+    kit.seedStarts('SUBAGENT', 29)
+
+    await launched(parent.conversationId)
+
+    const refused = await launch(parent.conversationId)
+
+    expect(refused).toMatchObject({ outcome: 'tooManyToday', cap: { kind: 'subagents', scope: 'member', max: 30 } })
+
+    fake.cappedStarts.clear()
+    kit.seedStarts('SUBAGENT', 60, { organization: '7d6c5b4a39284f1e8d7c6b5a49382716' })
+
+    const subagents = [...fake.conversations.values()].filter(({ parentId }) => parentId != null).length
+
+    expect(await launch(parent.conversationId)).toMatchObject({
+      outcome: 'tooManyToday',
+      cap: { kind: 'subagents', scope: 'account', max: 60 },
+    })
+    expect([...fake.conversations.values()].filter(({ parentId }) => parentId != null)).toHaveLength(subagents)
+  })
+
+  test('counts a launch as a subagent, and never a subagent’s runs as runs', async () => {
+    const parent = await kit.start()
+    const before = [...fake.cappedStarts.values()].filter(({ kind }) => kind === 'RUN').length
+
+    await launched(parent.conversationId)
+
+    expect([...fake.cappedStarts.values()].filter(({ kind }) => kind === 'SUBAGENT')).toHaveLength(1)
+    expect([...fake.cappedStarts.values()].filter(({ kind }) => kind === 'RUN')).toHaveLength(before)
+  })
+
   test('refuses a parent holding its hundred subagents', async () => {
     const parent = await kit.start()
     const conversation = fake.conversations.get(parent.conversationId)

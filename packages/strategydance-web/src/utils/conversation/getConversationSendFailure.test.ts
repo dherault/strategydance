@@ -1,12 +1,20 @@
 import { describe, expect, mock, test } from 'bun:test'
 
 import {
+  ERROR_CODE_ACCOUNT_DAILY_CONVERSATIONS_REACHED,
+  ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED,
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
   ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET,
   ERROR_CODE_CONVERSATION_BUSY,
   ERROR_CODE_CONVERSATION_FULL,
+  ERROR_CODE_CONVERSATIONS_SUSPENDED,
+  ERROR_CODE_EMAIL_NOT_VERIFIED,
+  ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
+  ERROR_CODE_MEMBER_DAILY_RUNS_REACHED,
   ERROR_CODE_NOT_FOUND,
+  ERROR_CODE_ORGANIZATION_DAILY_CONVERSATIONS_REACHED,
+  ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED,
   ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_TOO_MANY_CONVERSATIONS,
   ERROR_CODE_UNKNOWN_ERROR,
@@ -17,6 +25,9 @@ mock.module('~data/firebase', () => ({ EMULATORS_REQUESTED: true, appCheck: null
 
 const { ApiError } = await import('~data/api')
 const { default: getConversationSendFailure } = await import('~utils/conversation/getConversationSendFailure')
+const { default: getConversationFailureRetryAt } = await import('~utils/conversation/getConversationFailureRetryAt')
+const { default: isConversationCapFailure } = await import('~utils/conversation/isConversationCapFailure')
+const { default: isConversationAccessFailure } = await import('~utils/conversation/isConversationAccessFailure')
 
 describe('getConversationSendFailure', () => {
   test('reads each refusal the reader can do something about', () => {
@@ -26,6 +37,42 @@ describe('getConversationSendFailure', () => {
     expect(getConversationSendFailure(new ApiError(503, ERROR_CODE_SERVICE_UNAVAILABLE, 'Unavailable'))).toBe(
       'unavailable',
     )
+  })
+
+  test('reads which daily cap a start reached, and when it has room again', () => {
+    const now = Date.parse('2026-10-18T12:00:00Z')
+    const caps = [
+      [ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED, 'memberConversationsCapped'],
+      [ERROR_CODE_ACCOUNT_DAILY_CONVERSATIONS_REACHED, 'accountConversationsCapped'],
+      [ERROR_CODE_ORGANIZATION_DAILY_CONVERSATIONS_REACHED, 'organizationConversationsCapped'],
+      [ERROR_CODE_MEMBER_DAILY_RUNS_REACHED, 'memberRunsCapped'],
+      [ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED, 'accountRunsCapped'],
+      [ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED, 'organizationRunsCapped'],
+    ] as const
+
+    for (const [code, failure] of caps) {
+      const error = new ApiError(429, code, 'Capped', 3_600_000)
+
+      expect(getConversationSendFailure(error, true)).toBe(failure)
+      expect(isConversationCapFailure(getConversationSendFailure(error))).toBe(true)
+      expect(getConversationFailureRetryAt(error, now)).toBe(now + 3_600_000)
+    }
+
+    expect(isConversationCapFailure('busy')).toBe(false)
+    expect(isConversationCapFailure(null)).toBe(false)
+    expect(getConversationFailureRetryAt(new ApiError(409, ERROR_CODE_CONVERSATION_BUSY, 'Busy'), now)).toBeNull()
+    expect(getConversationFailureRetryAt(new TypeError('Failed to fetch'), now)).toBeNull()
+  })
+
+  test('reads an address not confirmed and conversations suspended, which the composer’s notice says', () => {
+    const unverified = getConversationSendFailure(new ApiError(403, ERROR_CODE_EMAIL_NOT_VERIFIED, 'Confirm'), true)
+    const suspended = getConversationSendFailure(new ApiError(403, ERROR_CODE_CONVERSATIONS_SUSPENDED, 'Suspended'))
+
+    expect([unverified, suspended]).toEqual(['unverified', 'suspended'])
+    expect([unverified, suspended].every(failure => isConversationAccessFailure(failure))).toBe(true)
+    expect(isConversationAccessFailure('busy')).toBe(false)
+    expect(isConversationAccessFailure(null)).toBe(false)
+    expect(isConversationCapFailure(unverified)).toBe(false)
   })
 
   test('reads files the conversation has no room for, whether the message sends files or not', () => {

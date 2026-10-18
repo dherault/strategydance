@@ -10,6 +10,7 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 import validateMiddleware from '~middleware/validate'
 
 import createAnthropicClaudeClient from '~domain/agent/createAnthropicClaudeClient'
+import pruneCappedStarts from '~domain/conversations/pruneCappedStarts'
 import pruneConversationAttachments from '~domain/conversations/pruneConversationAttachments'
 import pruneConversationSearches from '~domain/conversations/pruneConversationSearches'
 import pruneDeletedConversations from '~domain/conversations/pruneDeletedConversations'
@@ -100,10 +101,10 @@ function createInternalRouter() {
     their files, the board's tasks, the documents and the organizations' MCP servers, with their keys
     and members' connections, deleted over a day ago, and the files uploaded to conversations and
     never sent. A milestone that keeps something else deleted for a while adds its prune here. So
-    does one that keeps a count or a record for a while, as the conversation searches over a day old
-    go, the module call results past their expiry, members' Connects to MCP servers expired over an
-    hour ago, and the authorization server's requests expired over a day ago, its tokens past their
-    expiry and the registrations nobody uses. Every step is idempotent, so a sweep that failed is
+    does one that keeps a count or a record for a while, as the conversation searches and the starts
+    the daily caps counted over a day old go, the module call results past their expiry, members'
+    Connects to MCP servers expired over an hour ago, and the authorization server's requests expired
+    over a day ago, its tokens past their expiry and the registrations nobody uses. Every step is idempotent, so a sweep that failed is
     finished by the next. Takes no body
   */
   router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
@@ -113,6 +114,7 @@ function createInternalRouter() {
     await pruneDeletedConversations()
     await pruneConversationAttachments()
     await pruneConversationSearches()
+    await pruneCappedStarts()
     await pruneDeletedTasks()
     await pruneDeletedDocuments()
     await pruneDeletedIntegrations()

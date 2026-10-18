@@ -10,8 +10,18 @@ import {
   MAX_CONVERSATION_SEARCHES,
   MAX_CONVERSATIONS,
   MAX_CONVERSATION_SUBAGENTS,
+  MAX_DAILY_CONVERSATIONS_PER_ACCOUNT,
+  MAX_DAILY_CONVERSATIONS_PER_MEMBER,
+  MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION,
+  MAX_DAILY_RUNS_PER_ACCOUNT,
+  MAX_DAILY_RUNS_PER_MEMBER,
+  MAX_DAILY_RUNS_PER_ORGANIZATION,
+  MAX_DAILY_SUBAGENTS_PER_ACCOUNT,
+  MAX_DAILY_SUBAGENTS_PER_MEMBER,
   MAX_PENDING_CONVERSATION_ATTACHMENTS,
   MAX_SUBAGENTS_PER_ACTION,
+  DAILY_CAP_OVERRUN_FACTOR,
+  DAILY_CAP_WINDOW_HOURS,
 } from 'strategydance-core'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
@@ -196,6 +206,8 @@ export type FakeMessage = {
   toolOutput?: string | null
   toolStartedAt?: string | null
   toolDurationMs?: number | null
+  // A call to an integration's its server never answered, so it may have run
+  isToolUnanswered?: boolean | null
   questionPrompt?: string | null
   questionOptions?: string[] | null
   isMultipleChoice?: boolean | null
@@ -235,11 +247,13 @@ export type FakeEntry = {
 
 // What a member's account and membership tell the context message, which a test can change
 export type FakeUser = {
-  isAdministrator: boolean
   displayName: string | null
   timezone: string | null
   locale: string
   bio: string | null
+  email?: string
+  // When staff suspended the account's conversations, null or absent while they are not
+  conversationsSuspendedAt?: string | null
 }
 
 export type FakeMembership = {
@@ -254,6 +268,41 @@ export type FakeSearch = {
   userId: string
   organizationId: string
   createdAt: string
+}
+
+// A start the daily caps count, kept past what it counts, its organization a plain id
+export type FakeCappedStart = {
+  id: string
+  userId: string
+  organizationId: string
+  kind: CappedStartKind
+  createdAt: string
+}
+
+type CappedStartKind = 'CONVERSATION' | 'RUN' | 'SUBAGENT'
+
+type CapScope = 'member' | 'account' | 'organization'
+
+// Each cap by what it counts and whose, as the mutations write them out: subagents have no
+// organization's
+const DAILY_CAPS: Record<CappedStartKind, Partial<Record<CapScope, number>>> = {
+  CONVERSATION: {
+    member: MAX_DAILY_CONVERSATIONS_PER_MEMBER,
+    account: MAX_DAILY_CONVERSATIONS_PER_ACCOUNT,
+    organization: MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION,
+  },
+  RUN: {
+    member: MAX_DAILY_RUNS_PER_MEMBER,
+    account: MAX_DAILY_RUNS_PER_ACCOUNT,
+    organization: MAX_DAILY_RUNS_PER_ORGANIZATION,
+  },
+  SUBAGENT: { member: MAX_DAILY_SUBAGENTS_PER_MEMBER, account: MAX_DAILY_SUBAGENTS_PER_ACCOUNT },
+}
+
+const CAPPED_NOUNS: Record<CappedStartKind, string> = {
+  CONVERSATION: 'conversations',
+  RUN: 'runs',
+  SUBAGENT: 'subagents',
 }
 
 // A file a member sent or uploaded to send, with where it stands and what its upload counted
@@ -277,6 +326,9 @@ export type FakeOrganization = {
   name: string
   brief: string | null
   exploredAspects: string[]
+  slug?: string | null
+  // When staff suspended conversations there, null or absent while they are not
+  conversationsSuspendedAt?: string | null
 }
 
 type Variables = Record<string, unknown>
@@ -299,6 +351,7 @@ function createConversationDatabaseFake() {
   const entries = new Map<string, FakeEntry>()
   const searches = new Map<string, FakeSearch>()
   const attachments = new Map<string, FakeAttachment>()
+  const cappedStarts = new Map<string, FakeCappedStart>()
   // Every operation called, by name, in order
   const calls: string[] = []
   const modules = createModuleDatabaseFake()
@@ -317,6 +370,7 @@ function createConversationDatabaseFake() {
     entries,
     searches,
     attachments,
+    cappedStarts,
     calls,
     beforeOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
     // Runs once an operation applied, where a test throws to lose a write's answer after it landed
@@ -354,9 +408,39 @@ function createConversationDatabaseFake() {
     throw new Error(message)
   }
 
-  function addMember(userId: string, organizationId: string, { isAdministrator = true } = {}) {
+  // Whether staff suspended the account's conversations, and the organization's, as the contexts read
+  function readSuspension(variables: AnyVariables) {
+    const user = users.get(variables.userId)
+    const organization = organizations.get(id(variables.organizationId))
+
+    return {
+      user: user ? { conversationsSuspendedAt: user.conversationsSuspendedAt ?? null } : null,
+      organization: organization ? { conversationsSuspendedAt: organization.conversationsSuspendedAt ?? null } : null,
+    }
+  }
+
+  // Asks the runs in flight that `isReached` reaches to stop, as a suspension does, the account's or
+  // the organization's: their own queued or running, and their subagents' waiting for a slot too.
+  // Answers how many of each it asked, as the mutation's two steps do
+  function requestSuspendedRunsStop(isReached: (conversation: FakeConversation) => boolean) {
+    const asked = { runs: 0, subagentRuns: 0 }
+
+    for (const run of runs.values()) {
+      const conversation = conversations.get(run.conversationId)
+      const states = conversation?.parentId ? ['QUEUED', 'RUNNING', 'PENDING'] : RUN_IN_FLIGHT
+
+      if (conversation && isReached(conversation) && states.includes(run.status) && run.stopRequestedAt === null) {
+        run.stopRequestedAt = now()
+        asked[conversation.parentId ? 'subagentRuns' : 'runs']++
+      }
+    }
+
+    return asked
+  }
+
+  function addMember(userId: string, organizationId: string) {
     if (!users.has(userId)) {
-      users.set(userId, { isAdministrator, displayName: null, timezone: null, locale: 'EN', bio: null })
+      users.set(userId, { displayName: null, timezone: null, locale: 'EN', bio: null })
     }
 
     if (!organizations.has(id(organizationId))) {
@@ -626,6 +710,64 @@ function createConversationDatabaseFake() {
           && Date.parse(search.createdAt) > since,
       )
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
+  }
+
+  // The starts of one kind the daily caps counted in the last 24 hours, newest first: the member's in
+  // the organization, the account's across every organization, or the organization's
+  function todaysStarts(variables: AnyVariables, kind: CappedStartKind, scope: CapScope) {
+    const since = Date.now() - DAILY_CAP_WINDOW_HOURS * 60 * 60 * 1000
+
+    return [...cappedStarts.values()]
+      .filter(
+        start =>
+          start.kind === kind
+          && Date.parse(start.createdAt) > since
+          && (scope === 'organization' || start.userId === variables.userId)
+          && (scope === 'account' || start.organizationId === id(variables.organizationId)),
+      )
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
+  }
+
+  /*
+    The daily caps a mutation counts in its query step, in its order and with its messages: the
+    member's, the account's and the organization's, each refused at its cap, or at one and a half
+    times it for what finishes work under way. Lifted when `isUsageCapped` is false, and held when it
+    is left out
+  */
+  function checkDailyCaps(variables: AnyVariables, kind: CappedStartKind, { isFinishing = false } = {}) {
+    if (variables.isUsageCapped === false) return
+
+    const verb = kind === 'SUBAGENT' ? 'launches' : 'starts'
+    const finishing = isFinishing ? ', finishing work under way' : ''
+
+    for (const [scope, cap] of Object.entries(DAILY_CAPS[kind]) as [CapScope, number][]) {
+      const limit = isFinishing ? cap * DAILY_CAP_OVERRUN_FACTOR : cap
+
+      if (todaysStarts(variables, kind, scope).length < limit) continue
+
+      const noun = CAPPED_NOUNS[kind]
+
+      refuse(
+        scope === 'member'
+          ? `Somebody ${verb} at most ${limit} ${noun} in 24 hours in an organization${finishing}`
+          : scope === 'account'
+            ? `An account ${verb} at most ${limit} ${noun} in 24 hours across its organizations${finishing}`
+            : `An organization ${verb} at most ${limit} ${noun} in 24 hours${finishing}`,
+      )
+    }
+  }
+
+  // The row a mutation inserts last for what it started
+  function recordStart(variables: AnyVariables, kind: CappedStartKind) {
+    const start = {
+      id: crypto.randomUUID().replaceAll('-', ''),
+      userId: String(variables.userId),
+      organizationId: id(variables.organizationId),
+      kind,
+      createdAt: stamp(),
+    }
+
+    cappedStarts.set(start.id, start)
   }
 
   // The conversations a search reads: the caller's own in the organization, while they are a member
@@ -1143,6 +1285,8 @@ function createConversationDatabaseFake() {
       refuse("Every one of the member's 5 subagent slots is taken")
     }
 
+    checkDailyCaps(variables, 'SUBAGENT')
+
     const runId = id(variables.runId)
 
     if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
@@ -1203,6 +1347,8 @@ function createConversationDatabaseFake() {
 
     if (isForAgent) modules.storeResult(variables)
 
+    recordStart(variables, 'SUBAGENT')
+
     return { conversation_updateMany: 1 }
   }
 
@@ -1242,6 +1388,7 @@ function createConversationDatabaseFake() {
     const conversation = conversations.get(id(variables.conversationId))
 
     checkStart(variables)
+    checkDailyCaps(variables, 'RUN')
 
     if (
       !conversation
@@ -1427,7 +1574,85 @@ function createConversationDatabaseFake() {
   }
 
   const operations: Record<string, (variables: AnyVariables) => unknown> = {
-    GetUserStaffStatus: ({ userId }) => ({ user: users.get(userId) ?? null }),
+    GetConversationsSuspension: readSuspension,
+
+    GetUserByEmail: ({ email }) => ({
+      users: [...users.entries()]
+        .filter(([, user]) => user.email === email)
+        .slice(0, 1)
+        .map(([userId, user]) => ({
+          id: userId,
+          email: user.email,
+          conversationsSuspendedAt: user.conversationsSuspendedAt ?? null,
+        })),
+    }),
+
+    GetOrganizationById: variables => {
+      const organization = organizations.get(id(variables.id))
+
+      return {
+        organization: organization
+          ? {
+              id: id(variables.id),
+              name: organization.name,
+              slug: organization.slug ?? null,
+              conversationsSuspendedAt: organization.conversationsSuspendedAt ?? null,
+            }
+          : null,
+      }
+    },
+
+    GetOrganizationBySlug: ({ slug }) => ({
+      organizations: [...organizations.entries()]
+        .filter(([, organization]) => organization.slug === slug)
+        .slice(0, 1)
+        .map(([organizationId, organization]) => ({
+          id: organizationId,
+          name: organization.name,
+          slug: organization.slug ?? null,
+          conversationsSuspendedAt: organization.conversationsSuspendedAt ?? null,
+        })),
+    }),
+
+    SuspendUserConversations: ({ userId }) => {
+      const user = users.get(userId) ?? refuse('No such account')
+
+      user.conversationsSuspendedAt = now()
+
+      return {
+        user_update: { id: userId },
+        ...requestSuspendedRunsStop(conversation => conversation.userId === userId),
+      }
+    },
+
+    LiftUserConversationsSuspension: ({ userId }) => {
+      const user = users.get(userId) ?? refuse('No such account')
+
+      user.conversationsSuspendedAt = null
+
+      return { user_update: { id: userId } }
+    },
+
+    SuspendOrganizationConversations: variables => {
+      const organizationId = id(variables.organizationId)
+      const organization = organizations.get(organizationId) ?? refuse('No such organization')
+
+      organization.conversationsSuspendedAt = now()
+
+      return {
+        organization_update: { id: organizationId },
+        ...requestSuspendedRunsStop(conversation => conversation.organizationId === organizationId),
+      }
+    },
+
+    LiftOrganizationConversationsSuspension: variables => {
+      const organizationId = id(variables.organizationId)
+      const organization = organizations.get(organizationId) ?? refuse('No such organization')
+
+      organization.conversationsSuspendedAt = null
+
+      return { organization_update: { id: organizationId } }
+    },
 
     GetConversationSendContext: variables => {
       const conversation = conversations.get(id(variables.conversationId))
@@ -1492,7 +1717,10 @@ function createConversationDatabaseFake() {
         conversationRuns: isTheirs ? [{ context: null, usage: null, ...run }] : [],
         conversation: conversation ? { ...conversation } : null,
         userOrganization: memberships.get(membershipKey(variables.userId, variables.organizationId)) ?? null,
-        user: users.get(variables.userId) ?? null,
+        ...readSuspension(variables),
+        user: users.has(variables.userId)
+          ? { ...users.get(variables.userId), ...readSuspension(variables).user }
+          : null,
         conversationTranscriptEntries: lastEntry
           ? [{ drawnPieces: 0, ...lastEntry, run: { id: lastEntry.runId } }]
           : [],
@@ -1908,6 +2136,10 @@ function createConversationDatabaseFake() {
 
       if (keptConversations(variables).length >= MAX_CONVERSATIONS)
         refuse('Somebody keeps at most 1000 conversations in an organization')
+
+      checkDailyCaps(variables, 'CONVERSATION')
+      checkDailyCaps(variables, 'RUN')
+
       if (runs.has(runId)) refuse('violates SQL unique constraint: conversation_run_pkey')
 
       const sent = matchSentAttachments(variables)
@@ -1970,6 +2202,9 @@ function createConversationDatabaseFake() {
 
       for (const attachment of sent) attachment.messageId = id(variables.messageId)
 
+      recordStart(variables, 'CONVERSATION')
+      recordStart(variables, 'RUN')
+
       return { conversation_insert: { id: conversationId } }
     },
 
@@ -1987,6 +2222,8 @@ function createConversationDatabaseFake() {
       deliver()
 
       for (const attachment of sent) attachment.messageId = id(variables.messageId)
+
+      recordStart(variables, 'RUN')
 
       return { conversation_updateMany: 1 }
     },
@@ -2046,6 +2283,8 @@ function createConversationDatabaseFake() {
       deliver()
 
       for (const attachment of sent) attachment.messageId = id(variables.messageId)
+
+      recordStart(variables, 'RUN')
 
       return { conversation_updateMany: 1 }
     },
@@ -2119,6 +2358,7 @@ function createConversationDatabaseFake() {
       if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
         refuse('Somebody has at most 3 runs in flight in an organization')
       }
+      checkDailyCaps(variables, 'RUN', { isFinishing: true })
 
       const conversationId = id(variables.conversationId)
 
@@ -2176,6 +2416,8 @@ function createConversationDatabaseFake() {
       runs.set(runId, queuedRun(runId, conversationId, variables, 'ANSWER', variables.transcriptPosition))
       insertEntry(entry)
       deliver()
+
+      recordStart(variables, 'RUN')
 
       return { conversation_updateMany: 1 }
     },
@@ -2247,6 +2489,7 @@ function createConversationDatabaseFake() {
       if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
         refuse('Somebody has at most 3 runs in flight in an organization')
       }
+      checkDailyCaps(variables, 'RUN', { isFinishing: true })
 
       const conversationId = id(variables.conversationId)
 
@@ -2306,6 +2549,8 @@ function createConversationDatabaseFake() {
         ...queuedRun(runId, conversationId, variables, 'ANSWER', variables.anchorPosition),
         pendingToolResults: variables.pendingToolResults ?? null,
       })
+
+      recordStart(variables, 'RUN')
 
       return { conversation_updateMany: 1 }
     },
@@ -2496,6 +2741,7 @@ function createConversationDatabaseFake() {
       if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
         refuse('Somebody has at most 3 runs in flight in an organization')
       }
+      checkDailyCaps(variables, 'RUN')
 
       if (
         conversation.deletedAt !== null
@@ -2550,6 +2796,8 @@ function createConversationDatabaseFake() {
         pendingToolResults: variables.pendingToolResults ?? null,
       })
 
+      recordStart(variables, 'RUN')
+
       return { conversation_updateMany: 1, conversationMessage_deleteMany: 1 }
     },
 
@@ -2586,6 +2834,7 @@ function createConversationDatabaseFake() {
       if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
         refuse('Somebody has at most 3 runs in flight in an organization')
       }
+      checkDailyCaps(variables, 'RUN')
 
       if (
         conversation.deletedAt !== null
@@ -2652,6 +2901,8 @@ function createConversationDatabaseFake() {
           subagent.deletedAt = stamp()
         }
       }
+
+      recordStart(variables, 'RUN')
 
       return { conversation_updateMany: 1 }
     },
@@ -3080,6 +3331,7 @@ function createConversationDatabaseFake() {
         toolStatus: variables.toolStatus,
         toolOutput: variables.toolOutput,
         ...(variables.toolDurationMs === undefined ? {} : { toolDurationMs: variables.toolDurationMs }),
+        ...(variables.isToolUnanswered === undefined ? {} : { isToolUnanswered: variables.isToolUnanswered }),
         ...(approvalState === null ? {} : { approvalState }),
       })
 
@@ -3288,6 +3540,7 @@ function createConversationDatabaseFake() {
 
       return {
         userOrganization: memberships.get(membershipKey(variables.userId, variables.organizationId)) ?? null,
+        ...readSuspension(variables),
         conversation: conversation
           ? { ...conversation, isAwaitingAnswer: conversation.isAwaitingAnswer ?? false }
           : null,
@@ -3421,9 +3674,15 @@ function createConversationDatabaseFake() {
         refuse('The membership changed since the reaction read it')
       }
 
+      const suspension = readSuspension(variables)
+
+      if (suspension.user?.conversationsSuspendedAt) refuse('Conversations are suspended for this account')
+      if (suspension.organization?.conversationsSuspendedAt) refuse('Conversations are suspended in this organization')
+
       if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
         refuse('Somebody has at most 3 runs in flight in an organization')
       }
+      checkDailyCaps(variables, 'RUN', { isFinishing: true })
 
       const [completed] = latestRuns(conversationId).filter(run => run.status === 'COMPLETED')
 
@@ -3459,6 +3718,8 @@ function createConversationDatabaseFake() {
       insertEntry(entry)
 
       for (const subagent of delivered) subagent.reportDeliveredAt = now()
+
+      recordStart(variables, 'RUN')
 
       return { parent: 1, delivered: delivered.length }
     },
@@ -3696,6 +3957,7 @@ function createConversationDatabaseFake() {
 
       return {
         userOrganization: membership ? { createdAt: membership.createdAt } : null,
+        ...readSuspension(variables),
         parent: parent
           ? {
               userId: parent.userId,
@@ -3853,6 +4115,37 @@ function createConversationDatabaseFake() {
           .slice(0, 51)
           .map(({ idempotencyKey, tool, result, createdAt }) => ({ idempotencyKey, tool, result, createdAt })),
         total: [{ _count: written.length }],
+      }
+    },
+
+    GetSubagentIntegrationCallsForAgent: variables => {
+      const subagent = conversations.get(id(variables.subagentId))
+      const isTheirs =
+        subagent !== undefined
+        && subagent.userId === variables.userId
+        && subagent.organizationId === id(variables.organizationId)
+        && subagent.parentId != null
+      const calls = isTheirs
+        ? conversationMessages(subagent.id)
+            .filter(
+              message =>
+                ['TOOL_CALL', 'APPROVAL'].includes(message.kind)
+                && message.integrationToolName != null
+                && message.toolStartedAt != null,
+            )
+            .sort((a, b) => a.position - b.position)
+        : []
+
+      return {
+        membership: moduleMembership(variables),
+        calls: calls.slice(0, 200).map(message => ({
+          integrationName: message.integrationName ?? null,
+          integrationToolName: message.integrationToolName ?? null,
+          toolStatus: message.toolStatus,
+          toolDurationMs: message.toolDurationMs ?? null,
+          isToolUnanswered: message.isToolUnanswered ?? null,
+        })),
+        total: [{ _count: calls.length }],
       }
     },
 
@@ -4233,6 +4526,38 @@ function createConversationDatabaseFake() {
       }
     },
 
+    GetCappedStarts: variables => {
+      const read = (kind: CappedStartKind, scope: CapScope, limit: number) =>
+        todaysStarts(variables, kind, scope)
+          .slice(0, limit)
+          .map(({ createdAt }) => ({ createdAt }))
+
+      return {
+        memberConversations: read('CONVERSATION', 'member', MAX_DAILY_CONVERSATIONS_PER_MEMBER),
+        accountConversations: read('CONVERSATION', 'account', MAX_DAILY_CONVERSATIONS_PER_ACCOUNT),
+        organizationConversations: read('CONVERSATION', 'organization', MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION),
+        memberRuns: read('RUN', 'member', MAX_DAILY_RUNS_PER_MEMBER * DAILY_CAP_OVERRUN_FACTOR),
+        accountRuns: read('RUN', 'account', MAX_DAILY_RUNS_PER_ACCOUNT * DAILY_CAP_OVERRUN_FACTOR),
+        organizationRuns: read('RUN', 'organization', MAX_DAILY_RUNS_PER_ORGANIZATION * DAILY_CAP_OVERRUN_FACTOR),
+        memberSubagents: read('SUBAGENT', 'member', MAX_DAILY_SUBAGENTS_PER_MEMBER),
+        accountSubagents: read('SUBAGENT', 'account', MAX_DAILY_SUBAGENTS_PER_ACCOUNT),
+      }
+    },
+
+    DeleteExpiredCappedStarts: () => {
+      const before = Date.now() - 24 * 60 * 60 * 1000
+      let deleted = 0
+
+      for (const start of cappedStarts.values()) {
+        if (Date.parse(start.createdAt) < before) {
+          cappedStarts.delete(start.id)
+          deleted++
+        }
+      }
+
+      return { cappedStart_deleteMany: deleted }
+    },
+
     DeleteExpiredConversationSearches: () => {
       const before = Date.now() - 24 * 60 * 60 * 1000
       let deleted = 0
@@ -4560,9 +4885,22 @@ function createConversationDatabaseFake() {
 
   // Empties every table, for the next test
   function reset() {
-    for (const table of [users, memberships, conversations, runs, messages, entries, searches, attachments]) {
+    for (const table of [
+      users,
+      memberships,
+      conversations,
+      runs,
+      messages,
+      entries,
+      searches,
+      attachments,
+      cappedStarts,
+    ]) {
       table.clear()
     }
+
+    // The organizations stay, as `addMember` made them, but none suspended
+    for (const organization of organizations.values()) organization.conversationsSuspendedAt = null
 
     calls.length = 0
     fake.beforeOperation = async () => {}

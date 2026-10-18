@@ -159,7 +159,6 @@ async function setUp() {
       other: organization_insert(data: { id: $otherOrganizationId, name: "Another organization" })
       userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: MEMBER })
       otherMember: userOrganization_insert(data: { userId: $otherUserId, organizationId: $organizationId, role: MEMBER })
-      user_update(id: $userId, data: { isAdministrator: true })
     }`,
     { organizationId, otherOrganizationId, userId, otherUserId },
   )

@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
-import { ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS, ERROR_CODE_UNKNOWN_ERROR } from 'strategydance-core'
+import {
+  ERROR_CODE_MEMBER_DAILY_RUNS_REACHED,
+  ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS,
+  ERROR_CODE_UNKNOWN_ERROR,
+} from 'strategydance-core'
 
 // A signed-in reader whose token the calls carry, and no App Check, as against the emulators
 mock.module('~data/firebase', () => ({
@@ -9,7 +13,7 @@ mock.module('~data/firebase', () => ({
   authentication: { currentUser: { uid: 'reader', getIdToken: async () => 'id-token' } },
 }))
 
-const { API_URL, ApiError, requestApiFile, uploadApiFile } = await import('~data/api')
+const { API_URL, ApiError, readRetryAfter, requestApi, requestApiFile, uploadApiFile } = await import('~data/api')
 
 type ProgressHandler = (event: { lengthComputable: boolean; loaded: number; total: number }) => void
 
@@ -23,6 +27,7 @@ class FakeXMLHttpRequest {
   body: unknown = null
   status = 0
   responseText = ''
+  responseHeaders: Record<string, string> = {}
   isAborted = false
   upload: { onprogress: ProgressHandler | null } = { onprogress: null }
   onload: (() => void) | null = null
@@ -51,9 +56,16 @@ class FakeXMLHttpRequest {
     this.onabort?.()
   }
 
-  answer(status: number, payload: unknown) {
+  getResponseHeader(name: string) {
+    return this.responseHeaders[name.toLowerCase()] ?? null
+  }
+
+  answer(status: number, payload: unknown, headers: Record<string, string> = {}) {
     this.status = status
     this.responseText = typeof payload === 'string' ? payload : JSON.stringify(payload)
+    this.responseHeaders = Object.fromEntries(
+      Object.entries(headers).map(([name, value]) => [name.toLowerCase(), value]),
+    )
     this.onload?.()
   }
 }
@@ -197,5 +209,58 @@ describe('requestApiFile', () => {
       status: 502,
       code: ERROR_CODE_UNKNOWN_ERROR,
     })
+  })
+})
+
+describe('requestApi', () => {
+  test('throws the refusal with how long until the call can go, from its Retry-After', async () => {
+    stubFetch(async () =>
+      Response.json(
+        { status: 'error', code: ERROR_CODE_MEMBER_DAILY_RUNS_REACHED, message: 'You started 100 responses' },
+        { status: 429, headers: { 'Retry-After': '120' } },
+      ),
+    )
+
+    const error = await requestApi({ method: 'POST', path: '/conversations/1/messages' }).catch(caught => caught)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ status: 429, code: ERROR_CODE_MEMBER_DAILY_RUNS_REACHED, retryAfterMs: 120_000 })
+  })
+
+  test('throws a refusal without a Retry-After with none', async () => {
+    stubFetch(async () => Response.json({ status: 'error', code: 'CONFLICT', message: 'No' }, { status: 409 }))
+
+    const error = await requestApi({ method: 'POST', path: '/conversations/1/messages' }).catch(caught => caught)
+
+    expect(error).toMatchObject({ status: 409, retryAfterMs: null })
+  })
+})
+
+describe('uploadApiFile, refused', () => {
+  test('throws the refusal with its Retry-After', async () => {
+    const upload = uploadApiFile({ method: 'PUT', path: '/files/1', file: new Blob(['x']) })
+    const request = await sent()
+
+    request.answer(
+      429,
+      { status: 'error', code: ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS, message: 'Too many' },
+      { 'Retry-After': '30' },
+    )
+
+    expect(await upload.catch(caught => caught)).toMatchObject({ status: 429, retryAfterMs: 30_000 })
+  })
+})
+
+describe('readRetryAfter', () => {
+  test('reads seconds, or a date, and nothing else', () => {
+    const now = Date.parse('2026-10-18T12:00:00Z')
+
+    expect(readRetryAfter('3600', now)).toBe(3_600_000)
+    expect(readRetryAfter('Sun, 18 Oct 2026 13:00:00 GMT', now)).toBe(3_600_000)
+    expect(readRetryAfter('Sun, 18 Oct 2026 11:00:00 GMT', now)).toBe(0)
+    expect(readRetryAfter(null, now)).toBeNull()
+    expect(readRetryAfter('', now)).toBeNull()
+    expect(readRetryAfter('soon', now)).toBeNull()
+    expect(readRetryAfter('-5', now)).toBeNull()
   })
 })

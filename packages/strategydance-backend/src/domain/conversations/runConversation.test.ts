@@ -1093,16 +1093,45 @@ describe('runConversation', () => {
     expect(readConversation(reference)?.activeRunId).toBeNull()
   })
 
-  test('interrupts the run of somebody who is no longer staff', async () => {
+  test('never claims the run of a member whose conversations staff suspended, nor one in an organization they suspended', async () => {
+    const user = fake.users.get(AUTHOR)
+    const organization = fake.organizations.get(ORGANIZATION_ID)
+
+    if (!user || !organization) throw new Error('No author')
+
+    for (const [suspended, failure] of [
+      [user, 'Its author’s conversations are suspended'],
+      [organization, 'Its organization’s conversations are suspended'],
+    ] as const) {
+      const reference = await start()
+      const scripted = createClient()
+
+      suspended.conversationsSuspendedAt = new Date().toISOString()
+
+      expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+      expect(scripted.requests).toHaveLength(0)
+      expect(readRun(reference)).toMatchObject({ status: 'INTERRUPTED', attempts: 0, failure })
+      expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'INTERRUPTED' })
+      expect(readConversation(reference)?.activeRunId).toBeNull()
+
+      suspended.conversationsSuspendedAt = null
+    }
+  })
+
+  // The suspension asked it to stop, which its first step reads before it sends anything
+  test('stops before its first request a run whose member was suspended between its read and its claim', async () => {
     const reference = await start()
     const scripted = createClient()
-    const user = fake.users.get(AUTHOR)
 
-    if (user) user.isAdministrator = false
+    fake.beforeOperation = async name => {
+      if (name === 'ClaimQueuedConversationRun') await sdk.suspendUserConversations({}, { userId: AUTHOR })
+    }
 
     expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
     expect(scripted.requests).toHaveLength(0)
-    expect(readRun(reference)).toMatchObject({ status: 'INTERRUPTED', failure: 'Its author is no longer staff' })
+    expect(readRun(reference)).toMatchObject({ status: 'STOPPED', attempts: 1 })
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'STOPPED' })
+    expect(readConversation(reference)?.activeRunId).toBeNull()
   })
 
   test('sends no request from a run that has drawn its 100 entries, and fails it with a note', async () => {
@@ -1248,8 +1277,11 @@ describe('runConversation', () => {
   test('leaves a run whose steps keep failing to its lease', async () => {
     const reference = await start()
     const scripted = createClient(Array.from({ length: 5 }, () => new Error('The worker broke')))
+    // Each request a failed step left unsettled counts at its worst case, which would end the run at
+    // its cost limit by the third: this is about the steps alone
+    const limits = { maxCostMicrodollars: Number.MAX_SAFE_INTEGER }
 
-    expect(await runConversation(reference, { client: scripted.client, retryDelayMs: 0 })).toBe('held')
+    expect(await runConversation(reference, { client: scripted.client, retryDelayMs: 0, limits })).toBe('held')
     expect(scripted.requests).toHaveLength(5)
     expect(readRun(reference)?.status).toBe('RUNNING')
   })

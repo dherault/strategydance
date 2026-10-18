@@ -38,12 +38,12 @@ import type {
 } from '~types'
 
 import {
+  CONVERSATION_RUN_MAX_COST_MICRODOLLARS,
   CONVERSATION_RUN_MAX_DURATION_MS,
   CONVERSATION_RUN_MAX_REQUESTS,
   CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
   CONVERSATION_RUN_STREAM_DEADLINE_MS,
   CONVERSATION_TOOL_CALL_TIMEOUT_MS,
-  IS_CONVERSATIONS_RELEASE_GATED,
 } from '~constants'
 
 import { dataConnect } from '~firebase'
@@ -121,6 +121,7 @@ const LIMITS: ConversationRunLimits = {
   maxRequests: CONVERSATION_RUN_MAX_REQUESTS,
   maxDurationMs: CONVERSATION_RUN_MAX_DURATION_MS,
   streamDeadlineMs: CONVERSATION_RUN_STREAM_DEADLINE_MS,
+  maxCostMicrodollars: CONVERSATION_RUN_MAX_COST_MICRODOLLARS,
 }
 
 type ConversationRunContext = GetConversationRunContextData
@@ -131,8 +132,8 @@ type ConversationRunContext = GetConversationRunContextData
   or this one gave up on it, whose lease then lapses.
 
   It first claims the run, if it is queued or its worker stopped renewing its lease, and only for
-  its author as the member it was queued under, and still staff while conversations are: anybody
-  else's run ends interrupted, with its note, so nothing is left for a later delivery. It connects
+  its author as the member it was queued under, their conversations suspended neither for their
+  account nor in the organization: anybody else's run ends interrupted, with its note, so nothing is left for a later delivery. It connects
   to the modules its agent uses, as that member, whose tools its requests send after the agent's
   own. Then it takes one step at a time, each read afresh, so a worker taking over after a crash
   carries on where the last one stopped:
@@ -154,8 +155,9 @@ type ConversationRunContext = GetConversationRunContextData
   A run whose member asked it to stop sends no further request: it ends stopped, with its note, once
   what was paid for is written and drawn. One whose conversation was deleted stops without a note.
 
-  A subagent's run sends the subagent's own system prompt and tools, which leave out `ask_user` and
-  the integrations', never tags its conversation, draws no reply as unread, and ends through the
+  A subagent's run sends the subagent's own system prompt and tools, which leave out `ask_user`, draws
+  a call to an integration that would wait for an approval failed, since nobody can give one, never
+  tags its conversation, draws no reply as unread, and ends through the
   subagent's own endings, which write its report, however it ends. At one of its limits before its
   fourth run it chains instead, to a run that carries it on, which is queued once this one has let
   go of its lease, the run answering `held` while it cannot be, so the delivery comes back to queue
@@ -191,7 +193,7 @@ async function runConversation(
   if (!run || !isInFlight(run.status)) return 'finished'
   if (run.status === ConversationRunStatus.RUNNING && !isPast(run.leaseExpiresAt)) return 'held'
 
-  if (!isAuthorStill(context, run.membershipCreatedAt)) {
+  if (!isClaimable(context, run.membershipCreatedAt)) {
     return interruptBeforeClaiming(reference, run.attempts, context, retryDelayMs, isSubagent)
   }
 
@@ -203,7 +205,9 @@ async function runConversation(
   })
 
   // Another worker claimed it first, or its author changed between the read and the claim, whose
-  // run nothing else would end: a removed author's can no longer reach its page to reconcile it
+  // run nothing else would end: a removed author's can no longer reach its page to reconcile it. A
+  // suspension landing between the two claims it all the same, and asked it to stop, which its first
+  // step reads
   if (data.conversationRun_updateMany !== 1) {
     const claimedContext = await readContext(reference)
     const [claimedRun] = claimedContext.conversationRuns
@@ -212,7 +216,7 @@ async function runConversation(
       claimedRun
       && isInFlight(claimedRun.status)
       && claimedRun.attempts === run.attempts
-      && !isAuthorStill(claimedContext, claimedRun.membershipCreatedAt)
+      && !isClaimable(claimedContext, claimedRun.membershipCreatedAt)
     ) {
       return interruptBeforeClaiming(reference, claimedRun.attempts, claimedContext, retryDelayMs, isSubagent)
     }
@@ -257,11 +261,13 @@ async function runConversation(
           }
         : { system: CONVERSATION_SYSTEM_PROMPT, tools: buildConversationTools(modules.tools) },
       // The integration tools' runners always, whatever the organization added, so a turn is planned
-      // the same by whoever takes it over. A subagent is sent none of their tools, nor the module
-      // tools it never gets, so a call to one is planned as a call to a tool nobody runs
-      runners: isSubagent
-        ? modules.runners.filter(runner => isSubagentTool(runner.name))
-        : [...createIntegrationRunners(fence), ...modules.runners],
+      // the same by whoever takes it over, a subagent's acting as its member under its own fence. A
+      // subagent is sent none of the module tools it never gets, so a call to one is planned as a call
+      // to a tool nobody runs
+      runners: [
+        ...createIntegrationRunners(fence),
+        ...(isSubagent ? modules.runners.filter(runner => isSubagentTool(runner.name)) : modules.runners),
+      ],
       toolTimeoutMs,
       isSubagent,
     })
@@ -490,6 +496,7 @@ async function takeStep({
           reply: parts.flatMap(({ blocks }) => blocks),
           streamDeadline: Date.parse(startedAt) + limits.streamDeadlineMs,
           stopCheckIntervalMs,
+          maxCostMicrodollars: limits.maxCostMicrodollars,
         })
       }
 
@@ -969,17 +976,28 @@ function describeAuthorChange(context: ConversationRunContext, membershipCreated
   if (!context.userOrganization) return 'Its author left the organization'
   if (context.userOrganization.createdAt !== membershipCreatedAt)
     return 'Its author was invited back since it was queued'
+  if (context.user?.conversationsSuspendedAt) return 'Its author’s conversations are suspended'
 
-  return 'Its author is no longer staff'
+  return 'Its organization’s conversations are suspended'
 }
 
-// Whether the run's author is still the member it was queued under, and still staff while
-// conversations are open to staff alone here
-function isAuthorStill(context: ConversationRunContext, membershipCreatedAt: string) {
+/*
+  Whether a worker may claim the run: its author still passes for it, and staff suspended
+  conversations neither for their account nor in the organization. Only the claim reads the
+  suspension, never the steps after it, which would throw away a turn already paid for: the
+  suspension asked the runs in flight to stop, which each reads before its next request
+*/
+function isClaimable(context: ConversationRunContext, membershipCreatedAt: string) {
   return (
-    context.userOrganization?.createdAt === membershipCreatedAt
-    && (!IS_CONVERSATIONS_RELEASE_GATED || context.user?.isAdministrator === true)
+    isAuthorStill(context, membershipCreatedAt)
+    && !context.user?.conversationsSuspendedAt
+    && !context.organization?.conversationsSuspendedAt
   )
+}
+
+// Whether the run's author is still the member it was queued under
+function isAuthorStill(context: ConversationRunContext, membershipCreatedAt: string) {
+  return context.userOrganization?.createdAt === membershipCreatedAt
 }
 
 export default runConversation

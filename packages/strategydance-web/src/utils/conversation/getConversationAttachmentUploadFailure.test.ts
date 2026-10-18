@@ -3,6 +3,8 @@ import { describe, expect, mock, test } from 'bun:test'
 import {
   ERROR_CODE_ATTACHMENT_TOO_LARGE,
   ERROR_CODE_CONFLICT,
+  ERROR_CODE_CONVERSATIONS_SUSPENDED,
+  ERROR_CODE_EMAIL_NOT_VERIFIED,
   ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS,
   ERROR_CODE_TOO_MANY_REQUESTS,
   ERROR_CODE_UNSUPPORTED_MEDIA_TYPE,
@@ -26,6 +28,16 @@ describe('getConversationAttachmentUploadFailure', () => {
     expect(
       getConversationAttachmentUploadFailure(new ApiError(409, ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS, 'No')),
     ).toBe('pending')
+  })
+
+  // The same file goes up once the reader confirms their address, or the suspension is lifted
+  test('reads an address not confirmed and conversations suspended apart from the refusals of a file', () => {
+    expect(getConversationAttachmentUploadFailure(new ApiError(403, ERROR_CODE_EMAIL_NOT_VERIFIED, 'No'))).toBe(
+      'unverified',
+    )
+    expect(getConversationAttachmentUploadFailure(new ApiError(403, ERROR_CODE_CONVERSATIONS_SUSPENDED, 'No'))).toBe(
+      'suspended',
+    )
   })
 
   test('reads anything else as a failure the same file may get past', () => {

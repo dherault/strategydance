@@ -38,6 +38,18 @@ const landingMessages = defineMessages({
     description:
       'Paragraph under the main heading of the public home page. Strategy Dance is the product name and stays untranslated. MVP means minimum viable product.',
   },
+  companyLabel: {
+    id: 'landing.companyLabel',
+    defaultMessage: 'About your company',
+    description:
+      'Name read aloud by screen readers for the large text field of the public home page, under the heading, where a founder writes or pastes what they know about their company.',
+  },
+  companyPlaceholder: {
+    id: 'landing.companyPlaceholder',
+    defaultMessage: 'Write or paste everything you have about your company',
+    description:
+      'Placeholder of the large text field of the public home page, under the heading, inviting a founder to write or paste whatever they have about their company: notes, a pitch, a plan.',
+  },
   start: {
     id: 'landing.start',
     defaultMessage: 'Start your journey',

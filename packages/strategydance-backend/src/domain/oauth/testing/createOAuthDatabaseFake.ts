@@ -83,8 +83,6 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
   const requests = new Map<string, FakeOAuthAuthorizationRequest>()
   const connections = new Map<string, FakeAgentConnection>()
   const tokens = new Map<string, FakeAgentConnectionToken>()
-  // The accounts that are Strategy Dance's administrators
-  const staff = new Set<string>()
 
   // Declared here rather than read off the base, so a call narrows what follows it
   function refuse(message: string): never {
@@ -145,12 +143,6 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
     }
   }
 
-  // Whether the account is Strategy Dance's administrator, as a test sets it
-  function setStaff(userId: string, isStaff = true) {
-    if (isStaff) staff.add(userId)
-    else staff.delete(userId)
-  }
-
   function connectionsOf(userId: string, organizationId: string) {
     return [...connections.values()].filter(
       connection => connection.userId === userId && connection.organizationId === id(organizationId),
@@ -166,8 +158,6 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
   })
 
   base.addOperations({
-    GetUserStaffStatus: variables => ({ user: { isAdministrator: staff.has(String(variables.userId)) } }),
-
     GetOAuthClient: variables => ({ oAuthClient: clients.get(id(variables.id)) ?? null }),
 
     GetPendingOAuthAuthorizationRequest: variables => {
@@ -254,7 +244,6 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
                 userId: connection.userId,
                 organizationId: connection.organizationId,
                 createdAt: membership.createdAt,
-                user: { isAdministrator: staff.has(connection.userId) },
               },
             },
           },
@@ -592,7 +581,7 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
   Object.assign(base.sdk, { AgentConnectionTokenKind })
 
   base.onReset(() => {
-    for (const table of [clients, requests, connections, tokens, staff]) table.clear()
+    for (const table of [clients, requests, connections, tokens]) table.clear()
   })
 
   return Object.assign(base, {
@@ -600,8 +589,6 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
     requests,
     connections,
     tokens,
-    staff,
-    setStaff,
     connectionsOf,
     tokensOf,
   })

@@ -53,8 +53,10 @@ async function launchSubagentForAgent(
     case 'invalid':
     case 'tooManyOnAnchor':
     case 'tooMany':
+    case 'tooManyToday':
     case 'attachmentsInvalid':
     case 'overBudget':
+    case 'suspended':
       return launched
     case 'forbidden':
       return { outcome: 'notMember' }

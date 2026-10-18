@@ -71,8 +71,6 @@
   "module.tasksName": "タスク",
   "module.tasksReadAccess": "チームのボードにあるタスクの一覧表示と閲覧。",
   "module.tasksWriteAccess": "チームのボードにあるタスクの作成、変更、リンク、削除。",
-  "module.unavailableDescription": "Strategy Dance では、Claude や ChatGPT などのエージェントを組織に連携する機能が間もなく利用可能になります。",
-  "module.unavailableTitle": "エージェント連携はまだご利用いただけません",
   "module.unnamedAgent": "名称未設定のエージェント",
   "module.unverified": "未確認",
   "module.unverifiedHint": "このエージェントは自己登録されたため、Strategy Danceでは作成者を確認できません。"

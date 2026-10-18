@@ -17,7 +17,9 @@ import {
   launchSubagent as launchSubagentMutation,
 } from 'strategydance-database/backend'
 
-import type { ConversationContentBlock, ModuleCall, ModuleCaller, SubagentStatus } from '~types'
+import type { ConversationContentBlock, ModuleCall, ModuleCaller, ReachedUsageCap, SubagentStatus } from '~types'
+
+import { IS_USAGE_CAPPED } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -27,6 +29,7 @@ import logger from '~utils/logger'
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
+import readReachedUsageCap from '~domain/conversations/readReachedUsageCap'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
@@ -82,8 +85,13 @@ export type LaunchSubagentResult =
   // Its parent launched 10 on its anchor already, or holds 100
   | { outcome: 'tooManyOnAnchor' }
   | { outcome: 'tooMany' }
+  // The member launched 30 in the organization in the last 24 hours, or the account 60 across its
+  // organizations
+  | { outcome: 'tooManyToday'; cap: ReachedUsageCap }
   // A file it names is not one its parent sent
   | { outcome: 'attachmentsInvalid' }
+  // Staff suspended the member's conversations, or the organization's
+  | { outcome: 'suspended' }
   // Its first request, measured whole, would pass a send's budget
   | { outcome: 'overBudget'; reason: string }
   // Its id, derived from the launch, names a conversation that is not this launch's subagent
@@ -116,6 +124,8 @@ export type LaunchSubagentResult =
   - the parent has to be the caller's, not deleted and no subagent, under its 100 subagents, and
     under 10 on its latest anchor, the member's action the launch carries out, those a retry deleted
     left out
+  - the member may not have launched 30 subagents in the organization in the last 24 hours, nor the
+    account 60 across its organizations, the daily caps a deleted subagent still counts toward
   - each file it names has to be one its parent sent, never one waiting in a draft, whose prune
     would delete it under the subagent
   - with files, the subagent's first request, measured whole, has to fit a send's budget, so no
@@ -221,6 +231,11 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
     // Its subagent was pruned since, which a launch called again never makes anew
     if (stored) return stored
 
+    // Read before the launcher, which the suspension asked to stop: no run of theirs would be claimed
+    if (data.user?.conversationsSuspendedAt || data.organization?.conversationsSuspendedAt) {
+      return { outcome: 'suspended' }
+    }
+
     const launcher = input.module ? await readSubagentLauncher(input.module.caller) : null
 
     if (launcher && launcher.outcome !== 'running') return launcher
@@ -255,6 +270,11 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
     ) {
       return { outcome: 'tooManyOnAnchor' }
     }
+
+    // Counted before anything is stored, and again by the mutation, whose refusal reads them again
+    const cap = await readReachedUsageCap(input, ['subagents'])
+
+    if (cap) return { outcome: 'tooManyToday', cap }
 
     const files = []
 
@@ -312,6 +332,7 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
       text,
       content: serializeTranscriptContent(content),
       attachmentIds,
+      isUsageCapped: IS_USAGE_CAPPED,
     }
 
     const result: LaunchedSubagent = { id: subagentId, title, status: isPending ? 'WAITING_FOR_SLOT' : 'QUEUED' }

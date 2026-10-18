@@ -8,7 +8,7 @@ import type {
   BetaToolUseBlock,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 
-import { SECRET_ANTHROPIC_API_KEY } from '~constants'
+import { SECRET_ANTHROPIC_API_KEY, WEB_SEARCH_RESULT_TOKEN_ALLOWANCE } from '~constants'
 
 import retrieveSecret from '~utils/retrieveSecret'
 
@@ -17,7 +17,11 @@ import buildConversationTaggingRequest from '~domain/agent/buildConversationTagg
 import buildConversationTools, { type ConversationRequestTools } from '~domain/agent/buildConversationTools'
 import buildSubagentTools from '~domain/agent/buildSubagentTools'
 import connectConversationModules from '~domain/agent/connectConversationModules'
-import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
+import {
+  CLAUDE_FALLBACK_MODELS,
+  CLAUDE_MODEL_PRICES,
+  CONVERSATION_MODEL,
+} from '~domain/agent/conversationRequestSettings'
 import readConversationTagging from '~domain/agent/readConversationTagging'
 import readSubagentRequestSettings from '~domain/agent/subagentRequestSettings'
 import SUBAGENT_SYSTEM_PROMPT from '~domain/agent/subagentSystemPrompt'
@@ -43,10 +47,13 @@ import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
   strict, the second with its arguments as an object; sends the
   request that tags a conversation with its aspects, its answer held to a schema, and reads it as the
   worker does; and sends the first request and the replay straight to each model
-  a refusal may fall back to. It prints what passed, what failed and what it found, and exits
+  a refusal may fall back to, which the cost limit's price table has to list. For the cost limit
+  besides: sends the replay again without `fallbacks`, which has to read the cache all the same, and
+  has Claude search the web a few times over, to measure what a search brings back past a reading
+  of the request's input, which `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE` has to hold. It prints what passed, what failed and what it found, and exits
   non-zero naming every check that did not pass.
 
-  It calls the real model, so it costs money, under a dollar a run: run it after an Anthropic SDK
+  It calls the real model, so it costs money, a dollar or two a run: run it after an Anthropic SDK
   bump or a change of model, never in CI. It reads the API key from Secret Manager with Application
   Default Credentials, or from ANTHROPIC_API_KEY when that is set, for a machine whose credentials
   cannot read the secret:
@@ -716,7 +723,7 @@ await check(
 )
 
 await check(
-  "A subagent's request is accepted, with its own system prompt and tools, the deletes left out",
+  "A subagent's request is accepted, with its own system prompt and tools, the integration tools in, the deletes left out",
   async () => {
     assert(moduleTools.length, 'no module tools listed')
 
@@ -735,6 +742,10 @@ await check(
     finding("The subagent's request's usage", message.usage)
     assert(message.stop_reason !== 'refusal', 'the request was refused')
     assert(!names.includes('delete_task') && !names.includes('launch_subagent'), 'it sends a tool it never gets')
+    assert(
+      !names.includes('ask_user') && names.includes('call_integration_tool'),
+      'it sends ask_user, or not the integration tools',
+    )
 
     return `${tools.length} tools, stopped on ${message.stop_reason}`
   },
@@ -901,6 +912,115 @@ for (const target of targets) {
     finding(`${target} on request 2: input_transformations`, readTransformations(turn))
   })
 }
+
+await check(`The cost limit prices every model ${MODEL} may fall back to, and reserves the same list`, () => {
+  const listed = CLAUDE_FALLBACK_MODELS[MODEL] ?? []
+
+  assert(
+    targets.every(target => CLAUDE_MODEL_PRICES[target]),
+    `unpriced: ${targets.filter(target => !CLAUDE_MODEL_PRICES[target]).join(', ')}`,
+  )
+  assert(
+    [...targets].sort().join() === [...listed].sort().join(),
+    `the API lists ${targets.join(', ')}, CLAUDE_FALLBACK_MODELS ${listed.join(', ')}`,
+  )
+})
+
+/* ---
+  THE COST LIMIT: A REQUEST WITHOUT ITS FALLBACK, AND WHAT A SEARCH BRINGS BACK
+--- */
+
+const replayedForCache = replay as BetaMessageParam[] | null
+
+if (replayedForCache) {
+  // A request near the run's limit is sent without `fallbacks`, its betas the same
+  await check('A request sent without fallbacks reads the cache the replay with them wrote', async () => {
+    const { fallbacks: _fallbacks, ...body } = buildBody(replayedForCache)
+    const message = await client.beta.messages.stream(body).finalMessage()
+
+    finding('The replay without fallbacks: usage', message.usage)
+    assert(message.usage.cache_read_input_tokens, 'cache_read_input_tokens is 0')
+  })
+} else {
+  skip('A request sent without fallbacks reads the cache', 'request 2 was never built')
+}
+
+// Questions that take a few searches each, whose answers change, so nothing cached answers them
+const SEARCH_PROMPTS = [
+  "Search the web for the monthly price per seat of Linear's Business plan, Notion's Business plan and Asana's Advanced plan today, one search for each, then list the three.",
+  'Search the web for the three latest announcements on the Anthropic news page, then say each in one line.',
+  'Search the web for the population of Lyon, Marseille and Toulouse in the latest census, one search for each city, then list them.',
+]
+
+const SEARCH_SYSTEM_PROMPT = 'You answer briefly. Search the web as the member asks, then answer from what you found.'
+
+const SEARCH_TOOLS: BetaMessageStreamParams['tools'] = [
+  { type: 'web_search_20260209', name: 'web_search', max_uses: 5 },
+]
+
+/*
+  What one request's searches brought back, in input tokens, past what reading its input once per
+  search and once more would bill: all the request billed as input, cache reads and writes included,
+  less its input as counted times its searches and one, over its searches. What earlier results and
+  outputs are read again by each later step of the search loop counts in, so it is more than a
+  search's results alone, which is what the cost limit's allowance has to hold
+*/
+const retrieved: number[] = []
+
+for (const [index, prompt] of SEARCH_PROMPTS.entries()) {
+  await check(`Search request ${index + 1} bills no more than its reservation allows a search`, async () => {
+    const messages: BetaMessageParam[] = [{ role: 'user', content: prompt }]
+    const counted = await client.beta.messages.countTokens({
+      model: MODEL,
+      system: SEARCH_SYSTEM_PROMPT,
+      tools: SEARCH_TOOLS,
+      messages,
+    })
+    const message = await client.beta.messages
+      .stream({
+        model: MODEL,
+        max_tokens: 16000,
+        thinking: { type: 'adaptive' },
+        output_config: { effort: 'medium' },
+        cache_control: { type: 'ephemeral' },
+        system: SEARCH_SYSTEM_PROMPT,
+        tools: SEARCH_TOOLS,
+        messages,
+      })
+      .finalMessage()
+    const { usage } = message
+    const searches = usage.server_tool_use?.web_search_requests ?? 0
+    const billed = usage.input_tokens + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0)
+    const perSearch = searches ? (billed - counted.input_tokens * (searches + 1)) / searches : 0
+
+    finding(`Search request ${index + 1}`, {
+      counted: counted.input_tokens,
+      billed,
+      searches,
+      perSearch: Math.round(perSearch),
+      stopReason: message.stop_reason,
+      iterations: (usage.iterations ?? []).map(iteration => ({
+        type: iteration.type,
+        input: 'input_tokens' in iteration ? iteration.input_tokens : null,
+        cacheRead: 'cache_read_input_tokens' in iteration ? iteration.cache_read_input_tokens : null,
+        cacheWrite: 'cache_creation_input_tokens' in iteration ? iteration.cache_creation_input_tokens : null,
+      })),
+    })
+
+    assert(searches, 'it made no search')
+
+    retrieved.push(perSearch)
+
+    assert(
+      perSearch <= WEB_SEARCH_RESULT_TOKEN_ALLOWANCE,
+      `${Math.round(perSearch)} tokens a search, past the ${WEB_SEARCH_RESULT_TOKEN_ALLOWANCE} allowed`,
+    )
+
+    return `${Math.round(perSearch)} tokens a search`
+  })
+}
+
+if (retrieved.length) finding('The most a search brought back, past its readings of the input', Math.max(...retrieved))
 
 /* ---
   SUMMARY

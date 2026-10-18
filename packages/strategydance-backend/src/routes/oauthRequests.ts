@@ -19,7 +19,6 @@ import respondError from '~utils/respondError'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
-import modulesStaffOnlyMiddleware from '~middleware/modulesStaffOnly'
 import oauthRequestRateLimitMiddleware from '~middleware/oauthRequestRateLimit'
 import validateMiddleware from '~middleware/validate'
 
@@ -31,10 +30,8 @@ const UNKNOWN_MESSAGE = 'The authorization request is unknown, decided already o
 
 /*
   The consent page's routes, which the app calls as every other, behind App Check and the member's
-  ID token, metered per caller before anything is read, the staff check included, and for Strategy
-  Dance's administrators alone while the modules are theirs: reading an
-  external agent's request, which is when a client's document is first fetched, and allowing or
-  denying it. Each answers the app's envelope, and Allow and Deny where to send the browser
+  ID token, metered per caller before anything is read: reading an external agent's request, which
+  is when a client's document is first fetched, and allowing or denying it. Each answers the app's envelope, and Allow and Deny where to send the browser
 */
 function createOAuthRequestsRouter() {
   const router = Router()
@@ -52,7 +49,6 @@ function createOAuthRequestsRouter() {
     appCheckMiddleware,
     authenticationMiddleware,
     oauthRequestRateLimitMiddleware,
-    modulesStaffOnlyMiddleware,
     validateMiddleware({ params: paramsSchema }),
     async (request: Request<RequestParams>, response: Response<ApiResponse<OAuthAuthorizationRequestSummary>>) => {
       const reading = await readOAuthAuthorizationRequest(request.params.requestId)
@@ -79,7 +75,6 @@ function createOAuthRequestsRouter() {
     appCheckMiddleware,
     authenticationMiddleware,
     oauthRequestRateLimitMiddleware,
-    modulesStaffOnlyMiddleware,
     validateMiddleware({ params: paramsSchema, body: approvalSchema }),
     async (
       request: Request<RequestParams, ApiResponse<OAuthAuthorizationDecision>, z.infer<typeof approvalSchema>>,
@@ -136,7 +131,6 @@ function createOAuthRequestsRouter() {
     appCheckMiddleware,
     authenticationMiddleware,
     oauthRequestRateLimitMiddleware,
-    modulesStaffOnlyMiddleware,
     validateMiddleware({ params: paramsSchema }),
     async (request: Request<RequestParams>, response: Response<ApiResponse<OAuthAuthorizationDecision>>) => {
       const denial = await denyOAuthAuthorizationRequest(request.params.requestId)

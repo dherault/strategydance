@@ -4,9 +4,9 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 /*
   The backend connector's integration operations over tables in memory, each mirroring its
-  namesake's conditions and refusals in the words the routes read, beside the reads the routes'
-  middleware makes: the membership's role and whether the caller is staff. `check:integrations` is
-  what keeps these conditions the SQL's.
+  namesake's conditions and refusals in the words the routes read, beside the read the routes'
+  middleware makes: the membership's role. `check:integrations` is what keeps these conditions the
+  SQL's.
 
   An operation checks everything before it changes anything, so it applies whole or not at all, as a
   transaction does. Times are the clock's, which a test moves with `setSystemTime`. Ids are kept as
@@ -128,7 +128,6 @@ function createIntegrationDatabaseFake() {
   // Each member's role, by user and organization, and when their membership was made
   const roles = new Map<string, string>()
   const membershipsCreatedAt = new Map<string, string>()
-  const staff = new Set<string>()
   const integrations = new Map<string, FakeIntegration>()
   // Members' Connects under way, by id, and their connections, by server and member
   const authorizations = new Map<string, FakeAuthorization>()
@@ -297,7 +296,6 @@ function createIntegrationDatabaseFake() {
 
       return { userOrganization: role ? { role } : null }
     },
-    GetUserStaffStatus: ({ userId }) => ({ user: { isAdministrator: staff.has(userId) } }),
     GetOrganizationIntegrationForAdministrator: ({ organizationId, integrationId }) => {
       const row = integrations.get(id(integrationId))
 
@@ -962,7 +960,6 @@ function createIntegrationDatabaseFake() {
   return {
     sdk,
     roles,
-    staff,
     integrations,
     authorizations,
     connections,
@@ -1002,7 +999,6 @@ function createIntegrationDatabaseFake() {
     reset() {
       roles.clear()
       membershipsCreatedAt.clear()
-      staff.clear()
       integrations.clear()
       authorizations.clear()
       connections.clear()

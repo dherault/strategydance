@@ -22,11 +22,12 @@ async function authenticationMiddleware(request: Request, response: Response, ne
   }
 
   try {
-    const { uid, email } = await authentication.verifyIdToken(idToken)
+    const { uid, email, email_verified: isEmailVerified } = await authentication.verifyIdToken(idToken)
 
     request.viewer = {
       id: uid,
       email: email ?? null,
+      isEmailVerified: isEmailVerified === true,
     }
   } catch (error) {
     logger.warn('Authentication: the ID token failed verification', error)

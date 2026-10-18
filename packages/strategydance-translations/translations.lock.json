@@ -1373,6 +1373,14 @@
       }
     },
     "conversation": {
+      "conversation.access.suspended": {
+        "hash": "3766f03af89023dc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.access.unverified": {
+        "hash": "5d5e610b36f96c83",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.addAspects": {
         "hash": "dbdccbe464e1e3cd",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1487,6 +1495,34 @@
       },
       "conversation.cancel": {
         "hash": "07ff79083e4440c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.accountConversations": {
+        "hash": "f1538ccdd3111e12",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.accountRuns": {
+        "hash": "bd956b0c01beaa64",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.freed": {
+        "hash": "71f8dc9195f93d18",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.memberConversations": {
+        "hash": "a6eaeb8bacdb972d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.memberRuns": {
+        "hash": "dac3d481097ecd1d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.organizationConversations": {
+        "hash": "7d2bac3772071943",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.organizationRuns": {
+        "hash": "8c7bc72ab7d9fdee",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.citationLabel": {
@@ -1623,6 +1659,38 @@
       },
       "conversation.confirm": {
         "hash": "35e5b22bdee1f919",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.check": {
+        "hash": "9ccb848331b98d6f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.error": {
+        "hash": "a3feb30b41b2bbf3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.lead": {
+        "hash": "92df430e1a90660a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.notConfirmed": {
+        "hash": "7c237be25f81a046",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.resend": {
+        "hash": "8c468679e411dd29",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.send": {
+        "hash": "9d8bd010a92f2448",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.sent": {
+        "hash": "a674def690f9a7c0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.title": {
+        "hash": "c6b50f0375b8ed7a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.conversationLoadError": {
@@ -2203,6 +2271,18 @@
       },
       "conversation.subagents.working": {
         "hash": "1627970cf4d770a5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.suspension.account": {
+        "hash": "d54de47f0ed1cd0d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.suspension.organization": {
+        "hash": "cabf51a7c0b6bdac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.suspension.title": {
+        "hash": "f47a1e92ee223f13",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.taskGone": {
@@ -3302,7 +3382,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "integration.toolsApprovalWarning": {
-        "hash": "1af82cb4bbb3cd30",
+        "hash": "a75ee7b01f691223",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "integration.toolsCount": {
@@ -3803,6 +3883,14 @@
         "hash": "0ca35b69ab2c13a0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "landing.companyLabel": {
+        "hash": "ec62bd7c7f36e0c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.companyPlaceholder": {
+        "hash": "bdd9f85b82c093ff",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "landing.copyright": {
         "hash": "022f1515907b7aa1",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -4229,14 +4317,6 @@
       },
       "module.tasksWriteAccess": {
         "hash": "eee1e5ec38e8f878",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "module.unavailableDescription": {
-        "hash": "00386a12980a12a8",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "module.unavailableTitle": {
-        "hash": "3e2a3f5bd745e7a9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.unnamedAgent": {

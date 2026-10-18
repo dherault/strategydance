@@ -87,4 +87,18 @@ describe('createApp in production', () => {
       expect(own.headers.get('access-control-allow-origin')).toBe('https://strategydance.com')
     }
   })
+
+  test("lets the app's pages read `Retry-After`, which says when a daily cap has room again", async () => {
+    const refused = await fetch(
+      `${origin}/organizations/0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f/conversations/1a2b3c4d5e6f40718293a4b5c6d7e8f9/messages`,
+      {
+        method: 'POST',
+        headers: { Origin: 'https://strategydance.com', 'Content-Type': 'application/json' },
+        body: '{}',
+      },
+    )
+
+    expect(refused.headers.get('access-control-allow-origin')).toBe('https://strategydance.com')
+    expect(refused.headers.get('access-control-expose-headers')).toBe('Retry-After')
+  })
 })

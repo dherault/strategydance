@@ -51,7 +51,7 @@ const { default: runConversation } = await import('./runConversation')
 const { parsePendingToolResults } = await import('./conversationToolResults')
 
 const kit = createConversationTestKit(fake)
-const { start, readRun, readConversation, readMessages, readEntries, createClient } = kit
+const { start, seedStarts, readRun, readConversation, readMessages, readEntries, createClient } = kit
 
 const INTEGRATION_ID = '7c9e6679742540de944be07fc1f90ae7'
 const PRICE = { prompt: 'Which price should the beta start at?', options: ['€19', '€29', '€49'], multiple: false }
@@ -520,5 +520,18 @@ describe('sendConversationMessage while an approval waits', () => {
     expect(readCall(reference, 'toolu_a')).toMatchObject({ approvalState: 'ALLOWED', toolStatus: 'FAILED' })
     expect(readStoredResults(reference).get('toolu_a')).toBe('The member wrote instead before this call ran.')
     expect(server.calls).toEqual([])
+  })
+})
+
+describe('answerConversationApproval at the daily caps', () => {
+  test('records an Allow and starts nothing at one and a half times a cap, as an answer waits', async () => {
+    const reference = await startWaiting(createIssue())
+
+    seedStarts('RUN', 149)
+
+    expect(await decide(reference, 'toolu_a', true)).toEqual({ outcome: 'answered', runId: null, isChanged: false })
+    expect(readCall(reference, 'toolu_a')).toMatchObject({ approvalState: 'ALLOWED', toolStatus: null })
+    expect(readRun(reference)?.status).toBe('WAITING')
+    expect([...fake.runs.values()].filter(run => run.trigger === 'ANSWER')).toHaveLength(0)
   })
 })

@@ -1,6 +1,4 @@
 import {
-  ARE_CONVERSATIONS_STAFF_ONLY,
-  ARE_MODULES_STAFF_ONLY,
   DEVELOPMENT_API_PORT,
   DEVELOPMENT_API_URL,
   DEVELOPMENT_APP_URL,
@@ -32,20 +30,22 @@ export const PORT = Number(process.env.PORT) || DEVELOPMENT_API_PORT
 export const IS_WORKER = process.env.SERVICE === 'worker'
 
 /*
-  Whether conversations are open to Strategy Dance's administrators alone in this process: while
-  they are built (`ARE_CONVERSATIONS_STAFF_ONLY`), everywhere but the development backend, where
-  every member of every organization has them, so the whole feature can be tried locally without
-  granting anybody anything. Cloud Run and the tests keep the gate
+  Whether the daily caps hold in this process (`MAX_DAILY_…` in strategydance-core), which every
+  mutation that starts a conversation, a run or a subagent is told through `isUsageCapped`: they
+  guard spend, so everywhere, staff included, but on the development backend, where placeholder runs
+  cost nothing and a developer starts dozens. `USAGE_CAPPED=true` holds them there too, to try them.
+  The tests and the check scripts keep them. Rows are counted either way
 */
-export const IS_CONVERSATIONS_RELEASE_GATED = ARE_CONVERSATIONS_STAFF_ONLY && !IS_DEVELOPMENT
+export const IS_USAGE_CAPPED = !IS_DEVELOPMENT || process.env.USAGE_CAPPED === 'true'
 
 /*
-  Whether the modules reach external agents for Strategy Dance's administrators alone in this
-  process: while they are built (`ARE_MODULES_STAFF_ONLY`), everywhere but the development backend,
-  as conversations' gate is. The consent page's Allow and the token verifier ask it. Cloud Run and
-  the tests keep the gate
+  Whether a member starts or continues a run only once their ID token says their address is
+  confirmed (`verifiedEmailMiddleware`): an account costs nothing to make, and the daily caps'
+  allowance is an account's, so it is an address its owner confirmed. Everywhere but the development
+  backend, whose Auth emulator confirms nothing by itself, as the gates are lifted there.
+  `EMAIL_VERIFICATION_REQUIRED=true` holds it there too, to try it. The tests keep it
 */
-export const IS_MODULES_RELEASE_GATED = ARE_MODULES_STAFF_ONLY && !IS_DEVELOPMENT
+export const IS_EMAIL_VERIFICATION_REQUIRED = !IS_DEVELOPMENT || process.env.EMAIL_VERIFICATION_REQUIRED === 'true'
 
 /* ---
   ARCHITECTURE
@@ -180,6 +180,26 @@ export const CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS = 15 * 60
 export const CONVERSATION_RUN_MAX_REQUESTS = 25
 export const CONVERSATION_RUN_MAX_DURATION_MS = 10 * 60 * 1000
 export const CONVERSATION_RUN_STREAM_DEADLINE_MS = 14 * 60 * 1000
+
+/*
+  A run's cost limit, $10 in microdollars, as David chose on 2026-10-16, since a cap on starts
+  bounds nothing a single run spends: before each request, the run's ledger priced at list prices,
+  each request it has no answer for at the worst case its reservation recorded, plus the most the
+  request about to be sent can cost, is held to it. A run past it sends nothing more and fails with
+  its limits' note, and a subagent's run before its fourth chains, so a subagent costs $40 at most
+*/
+export const CONVERSATION_RUN_MAX_COST_MICRODOLLARS = 10_000_000
+
+/*
+  How many input tokens one web search may bring back, which a request is reserved for beside each of
+  its five searches: what a search retrieves is billed as input within the request, and nothing
+  counts or caps it beforehand. The largest `probe:claude` measured, with a margin: the one part of
+  the cost limit that rests on a measure rather than a proof, raised from what a request billed
+  past its reservation, which `bun run report:usage` lists. The probe measured at most 8729 tokens a
+  search over three research requests on 2026-10-18, and David set it at 16000 that day, from a
+  provisional 40000
+*/
+export const WEB_SEARCH_RESULT_TOKEN_ALLOWANCE = 16_000
 
 // How often a worker reads whether its run's member asked to stop it while a request streams. It
 // reads it before each request too

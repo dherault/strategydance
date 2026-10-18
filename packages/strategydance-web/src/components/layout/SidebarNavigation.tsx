@@ -17,8 +17,6 @@ import { SidebarGroup, SidebarGroupLabel, SidebarMenu } from 'strategydance-desi
 
 import { COMPANY_ASPECTS } from '~constants'
 
-import useCanUseConversations from '~hooks/conversation/useCanUseConversations'
-import useCanUseIntegrations from '~hooks/integration/useCanUseIntegrations'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 import useUser from '~hooks/user/useUser'
@@ -36,8 +34,6 @@ function SidebarNavigation() {
   const { organization, role } = useCurrentOrganization()
   const organizationSlug = useCurrentOrganizationSlug()
   const { data: user } = useUser()
-  const canUseConversations = useCanUseConversations()
-  const canUseIntegrations = useCanUseIntegrations()
 
   /*
     The organization's explored aspects, in `COMPANY_ASPECTS`'s order rather than the order they
@@ -104,15 +100,12 @@ function SidebarNavigation() {
           ) : null}
         </SidebarMenu>
       </SidebarGroup>
-      {/* Conversations are all it holds, so a reader who may not have them is not shown its heading */}
-      {canUseConversations ? (
-        <SidebarGroup>
-          <SidebarGroupLabel>{formatMessage(navigationMessages.guidance)}</SidebarGroupLabel>
-          <SidebarMenu>
-            <ConversationsNavigationLink />
-          </SidebarMenu>
-        </SidebarGroup>
-      ) : null}
+      <SidebarGroup>
+        <SidebarGroupLabel>{formatMessage(navigationMessages.guidance)}</SidebarGroupLabel>
+        <SidebarMenu>
+          <ConversationsNavigationLink />
+        </SidebarMenu>
+      </SidebarGroup>
       <SidebarGroup>
         <SidebarGroupLabel>{formatMessage(navigationMessages.company)}</SidebarGroupLabel>
         <SidebarMenu>
@@ -130,15 +123,13 @@ function SidebarNavigation() {
               link={{ to: '/$organizationSlug/profile', params: { organizationSlug } }}
             />
           ) : null}
-          {/* Every member reads the organization's servers, while the gate lets the reader in */}
-          {canUseIntegrations ? (
-            <NavigationLink
-              path={`/${organizationSlug}/integrations`}
-              label={formatMessage(navigationMessages.integrations)}
-              icon={<PlugIcon />}
-              link={{ to: '/$organizationSlug/integrations', params: { organizationSlug } }}
-            />
-          ) : null}
+          {/* Every member reads the organization's servers, and connects their own account to one */}
+          <NavigationLink
+            path={`/${organizationSlug}/integrations`}
+            label={formatMessage(navigationMessages.integrations)}
+            icon={<PlugIcon />}
+            link={{ to: '/$organizationSlug/integrations', params: { organizationSlug } }}
+          />
         </SidebarMenu>
       </SidebarGroup>
       {/* Only for an administrator of Strategy Dance itself, whatever they are in the organization */}

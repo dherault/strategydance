@@ -19,7 +19,7 @@ import { dataConnect } from '~data/firebase'
   last read on screen until the next lands. Whether a read is settled says it is the one for these
   very ids, and current, which only then says which of them are stored: closing a window can bring
   back the ids of an older read still cached, from before a draft among them was stored, which is
-  read again before it settles anything. Only a reader who may have conversations calls it
+  read again before it settles anything
 */
 function useDockConversations(conversationIds: string[]) {
   const { data: viewer } = useAuthentication()

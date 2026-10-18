@@ -18,6 +18,7 @@ import createIntegrationFetch, { type IntegrationNetwork } from '~domain/integra
 import decryptIntegrationKey from '~domain/integrations/decryptIntegrationKey'
 import describeIntegrationUnavailability from '~domain/integrations/describeIntegrationUnavailability'
 import IntegrationCallChanged from '~domain/integrations/IntegrationCallChanged'
+import IntegrationCallUnanswered from '~domain/integrations/IntegrationCallUnanswered'
 import readConversationIntegration from '~domain/integrations/readConversationIntegration'
 import type { ConversationIntegrationCaller } from '~domain/integrations/readConversationIntegrations'
 import readIntegrationAccessToken, { type IntegrationAccess } from '~domain/integrations/readIntegrationAccessToken'
@@ -237,7 +238,7 @@ function checkAccess(name: string, binding: IntegrationCallBinding, access: Inte
     case 'keyUnavailable':
       throw new Error(`The member's connection to ${name} could not be read. Try again later.`)
     case 'failed':
-      throw new Error(describeFailure(name, access.kind))
+      throw new Error(describeFailure(name, access.kind, { isRefused: true }))
   }
 }
 
@@ -251,11 +252,20 @@ type CallServerInput = {
   args: Record<string, unknown>
 }
 
+// The failures that say the server refused a call before running it: the address, or the credential
+const REFUSED_FAILURES: IntegrationError[] = [
+  IntegrationError.ADDRESS_REFUSED,
+  IntegrationError.KEY_REFUSED,
+  IntegrationError.AUTHENTICATION_REQUIRED,
+]
+
 /*
   One call of a tool, on a client connected for it and closed after, or `unauthorized` when the
   server refused the credential with a 401, before the call ran. Anything else that goes wrong throws
   a sentence naming the server and what to do, never what the server answered beyond its own error
-  message
+  message. A failure that does not say the server refused the call before running it, a refusal it
+  answered or a status of 4xx, leaves the call unanswered, since it may have run: one that timed out,
+  found no server, or brought an answer that could not be read (`IntegrationCallUnanswered`)
 */
 async function callServer({ name, url, credential, fetch, signal, toolName, args }: CallServerInput) {
   try {
@@ -282,7 +292,10 @@ async function callServer({ name, url, credential, fetch, signal, toolName, args
 
     logger.info(`Integrations: a call to ${new URL(url).origin} failed, ${failure.kind}`)
 
-    throw new Error(describeFailure(name, failure.kind))
+    const isRefused = REFUSED_FAILURES.includes(failure.kind) || isRequestRefused(error)
+    const sentence = describeFailure(name, failure.kind, { isRefused })
+
+    throw isRefused ? new Error(sentence) : new IntegrationCallUnanswered(sentence)
   }
 }
 
@@ -299,6 +312,22 @@ function isRefusal(error: unknown, status: 401 | 403) {
   )
 }
 
+// Whether the server answered the request with a status that refuses it, which it ran nothing for:
+// a 4xx, but a timeout's or a rate limit's, which may come once it ran
+function isRequestRefused(error: unknown) {
+  return Boolean(
+    findCause(
+      error,
+      cause =>
+        SdkHttpError.isInstance(cause)
+        && cause.status >= 400
+        && cause.status < 500
+        && cause.status !== 408
+        && cause.status !== 429,
+    ),
+  )
+}
+
 function findCause<T extends Error>(error: unknown, matches: (cause: Error) => cause is T): T | null
 function findCause(error: unknown, matches: (cause: Error) => boolean): Error | null
 function findCause(error: unknown, matches: (cause: Error) => boolean) {
@@ -310,7 +339,7 @@ function findCause(error: unknown, matches: (cause: Error) => boolean) {
 }
 
 // Why a server could not be called, as a sentence: whether the call may have run, and what to do
-function describeFailure(name: string, kind: IntegrationError) {
+function describeFailure(name: string, kind: IntegrationError, { isRefused }: { isRefused: boolean }) {
   switch (kind) {
     case IntegrationError.TIMED_OUT:
       return `${name} did not answer within ${INTEGRATION_OPERATION_TIMEOUT_MS / 1000} seconds. The call may still have run: check before you call it again.`
@@ -319,12 +348,14 @@ function describeFailure(name: string, kind: IntegrationError) {
     case IntegrationError.ADDRESS_REFUSED:
       return `${name}'s address is not one Strategy Dance reaches. Tell the member an administrator can check it.`
     case IntegrationError.TOO_MANY_TOOLS:
-      return `${name} answered more than Strategy Dance reads. Ask for less, if the tool lets you.`
+      return `${name} answered more than Strategy Dance reads, so its answer was not read. The call may have run: check before you call it again, and ask for less, if the tool lets you.`
     case IntegrationError.KEY_REFUSED:
     case IntegrationError.AUTHENTICATION_REQUIRED:
       return `${name} refused this call for the member's account.`
     default:
-      return `${name} did not answer as an MCP server does.`
+      return isRefused
+        ? `${name} did not answer as an MCP server does.`
+        : `${name} did not answer as an MCP server does, so its answer was not read. The call may have run: check before you call it again.`
   }
 }
 

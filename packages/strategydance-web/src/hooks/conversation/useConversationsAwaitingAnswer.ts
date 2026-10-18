@@ -14,7 +14,7 @@ const EMPTY_IDS: string[] = []
   The ids of the reader's conversations in the current organization where a question waits for
   their answer, kept live, for the sidebar's count. Read on every page of the app, so it reads the
   ids alone, and never behind a waiter: the sidebar draws no count until it lands, and none if it
-  fails. Only a reader who may have conversations calls it
+  fails
 */
 function useConversationsAwaitingAnswer() {
   const { data: viewer } = useAuthentication()

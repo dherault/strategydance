@@ -47,7 +47,7 @@ mock.module('~middleware/appCheck', () => ({
 }))
 mock.module('~middleware/authentication', () => ({
   default: (request: Request, _response: Response, next: NextFunction) => {
-    request.viewer = { id: MEMBER, email: null }
+    request.viewer = { id: MEMBER, email: null, isEmailVerified: true }
     next()
   },
 }))
@@ -212,7 +212,6 @@ function tasksOfOrganization() {
 beforeEach(() => {
   fake.reset()
   fake.addMember(MEMBER, ORGANIZATION_ID)
-  fake.setStaff(MEMBER)
 })
 
 describe('the Knowledge module for external agents', () => {

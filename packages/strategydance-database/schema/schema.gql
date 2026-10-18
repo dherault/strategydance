@@ -65,6 +65,11 @@ type User @table {
   # operation writes it, so no client can grant it to itself. Locally,
   # `bun run grant:administrator <email>` sets it in the emulators
   isAdministrator: Boolean! @default(value: false)
+  # When Strategy Dance's staff suspended the account's conversations, and null while they are not:
+  # it starts and continues no run in any organization, a worker claims none of its runs, and its
+  # agent launches no subagent, until staff lift it. Written by `bun run suspend:conversations` alone,
+  # through the backend's connector. The reader's own row carries it, so the page can say so
+  conversationsSuspendedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
@@ -125,6 +130,12 @@ type Organization @table {
   # yet: it keeps the administrators' choice for the public profile to come. On unless they turn
   # it off, as the design has it
   isPublic: Boolean! @default(value: true)
+  # When Strategy Dance's staff suspended conversations in the organization, and null while they are
+  # not: none of its members starts or continues a run there, a worker claims none of their runs
+  # there, and no agent of theirs there launches a subagent, until staff lift it. Written by
+  # `bun run suspend:conversations` alone, through the backend's connector. Its members' rows of it
+  # carry it, so the page can say so
+  conversationsSuspendedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
@@ -797,6 +808,12 @@ type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
   toolOutput: String
   toolStartedAt: Timestamp
   toolDurationMs: Int
+  # A call to an integration's that started and failed without its server refusing it before running
+  # it: it timed out, the server could not be reached or stopped answering, its answer could not be
+  # read, or the run was interrupted, so it may have run.
+  # A subagent's parent hears of it so, since a call to another company's server is what no restore
+  # undoes. Null for any other call, and for one finished before M36
+  isToolUnanswered: Boolean
   # A question's: its prompt and options as the agent wrote them, and whether several may be
   # chosen. They go back into the transcript as they are, so the backend refuses them, rather than
   # cuts them, past `MAX_QUESTION_PROMPT_LENGTH` and `MAX_QUESTION_OPTION_LENGTH`
@@ -943,6 +960,44 @@ type ConversationSearch @table @index(fields: ["userId", "organizationId", "crea
   user: User!
   # Implies an `organizationId: UUID!` column, cascade deleting
   organization: Organization!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# What a `CappedStart` counts. Append a value; never reorder
+enum CappedStartKind {
+  # A conversation a member's first message started
+  CONVERSATION
+  # A run a member's message, answer, Allow, Resume or Retry started, or a reaction to subagents'
+  # reports: every run but a subagent's own, which its launch counts
+  RUN
+  # A subagent launched
+  SUBAGENT
+}
+
+# One start the daily caps count: a conversation, a run or a subagent, kept so the backend can hold a
+# member, an account and an organization to what they may start in 24 hours (`MAX_DAILY_…` in
+# strategydance-core). Counted on a ledger of its own rather than on the conversations and runs,
+# which hold their member on the conversation alone, so a count reads one index range rather than
+# joining a team's conversations, and a row outlives what it counts: deleting a conversation or
+# retrying a run gets round nothing.
+#
+# Inserted by the mutation that starts what it counts, which counts the rows of the last 24 hours
+# first: the member's under the lock on their membership the mutation already takes, the account's
+# and the organization's without one. Read only by the backend. Its organization is a plain column,
+# never a reference, so deleting an organization keeps its rows, which its members' accounts are
+# still counted by until the daily sweep deletes the rows over a day old, which the index on
+# `createdAt` alone serves
+type CappedStart
+  @table
+  @index(fields: ["userId", "organizationId", "kind", "createdAt"])
+  @index(fields: ["userId", "kind", "createdAt"])
+  @index(fields: ["organizationId", "kind", "createdAt"])
+  @index(fields: ["createdAt"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  organizationId: UUID!
+  kind: CappedStartKind!
   createdAt: Timestamp! @default(expr: "request.time")
 }
 

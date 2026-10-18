@@ -24,6 +24,9 @@ export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategy
 export type Viewer = {
   id: string
   email: string | null
+  // Whether the token says their address is confirmed, which a token minted before they confirmed
+  // it does not, until the browser mints another
+  isEmailVerified: boolean
 }
 
 declare module 'express' {
@@ -60,6 +63,19 @@ export type ConversationRunReference = {
   userId: string
   conversationId: string
   runId: string
+}
+
+// What a daily cap counts (`MAX_DAILY_…` in strategydance-core), and whose starts it counts: the
+// member's in the organization, the account's across its organizations, or the organization's
+export type UsageCapKind = 'conversations' | 'runs' | 'subagents'
+export type UsageCapScope = 'member' | 'account' | 'organization'
+
+// A daily cap a start reached, its value as the start is held to it, and how long until it has room
+export type ReachedUsageCap = {
+  kind: UsageCapKind
+  scope: UsageCapScope
+  max: number
+  retryAfterMs: number
 }
 
 /*
@@ -433,6 +449,14 @@ export type SubagentStatus =
   | 'INTERRUPTED'
 
 /*
+  How a subagent's call to an integration ended, as the Subagents module and its parent's reports
+  name it: answered, answered with an error, never answered by its server, so it may have run, which
+  a timeout, a server out of reach, a crash or a stop leaves, or running still, while the subagent
+  works
+*/
+export type SubagentIntegrationCallEnding = 'SUCCEEDED' | 'FAILED' | 'UNANSWERED' | 'RUNNING'
+
+/*
   Why the Subagents module refused a call, which its tool words for the model: each is something the
   model can act on, by telling the member, carrying on without a subagent, or changing what it sent
 */
@@ -456,8 +480,14 @@ export type SubagentsRefusal =
   /** A launch past the 10 on the calling run's anchor, or past the 100 a conversation holds */
   | { outcome: 'tooManyOnAnchor' }
   | { outcome: 'tooMany' }
+  /** A launch past the 30 subagents the member launched in the organization in 24 hours, or the 60
+   * the account launched across its organizations, which have room again after `retryAfterMs` */
+  | { outcome: 'tooManyToday'; cap: ReachedUsageCap }
   /** A file the conversation has not sent */
   | { outcome: 'attachmentsInvalid' }
+  /** A launch for a member whose conversations staff suspended, their account's or the
+   * organization's */
+  | { outcome: 'suspended' }
   /** A launch whose first request, measured whole, would pass a send's budget */
   | { outcome: 'overBudget'; reason: string }
   /** A launch stored whose run could not be queued, which the same call sent again queues */

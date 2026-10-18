@@ -1,5 +1,6 @@
 import type { ConversationTextBlock, SubagentStatus } from '~types'
 
+import type { SubagentIntegrationCall } from '~domain/subagents/toSubagentIntegrationCall'
 import type { SubagentWrite } from '~domain/subagents/toSubagentWrite'
 
 // A subagent's report as its parent is delivered it
@@ -13,6 +14,10 @@ export type DeliveredSubagentReport = {
   // pages through
   writes: SubagentWrite[]
   total: number
+  // The first of the calls it made to the organization's integrations, oldest first, and how many it
+  // made, which `read_subagent` lists whole
+  integrationCalls: SubagentIntegrationCall[]
+  integrationCallTotal: number
 }
 
 /*
@@ -29,8 +34,15 @@ function buildSubagentReportBlock({
   report,
   writes,
   total,
+  integrationCalls,
+  integrationCallTotal,
 }: DeliveredSubagentReport): ConversationTextBlock {
-  return { type: 'text', text: JSON.stringify({ subagentReport: { id, title, ending, report, writes, total } }) }
+  return {
+    type: 'text',
+    text: JSON.stringify({
+      subagentReport: { id, title, ending, report, writes, total, integrationCalls, integrationCallTotal },
+    }),
+  }
 }
 
 export default buildSubagentReportBlock

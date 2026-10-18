@@ -21,7 +21,7 @@ merges, write its pull request number in the table below.
   its data, waiters keyed on the organization's id, no `useMemo` or `useCallback`.
 - Backend files: `routes/conversations.ts` (mounted at
   `/organizations/:organizationId/conversations` with `mergeParams`), `routes/internal.ts` (mounted
-  by the worker service only), `middleware/organizationMember.ts`, `middleware/staffOnly.ts`,
+  by the worker service only), `middleware/organizationMember.ts`,
   `middleware/conversationSearchRateLimit.ts`, `domain/conversations/`, `domain/agent/`; for the
   modules, `modules/` (one folder per module), `domain/knowledge/`, `domain/tasks/`, `domain/subagents/`,
   `routes/oauth.ts` (mounted at `/oauth`), `routes/modules.ts` (mounted at `/mcp`), `domain/oauth/`
@@ -86,10 +86,10 @@ nothing, rather than leave the daily sweep their only recovery.
 | M32 | The Subagents module | core, backend, database, web | M31 | #196 |
 | M33 | Subagents in conversations | backend, database, root | M11, M32 | #200 |
 | M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | #202 |
-| M35 | Usage caps | core, database, backend, web, root | M33 | |
-| M36 | Integrations in subagents | backend, web | M29, M33 | |
-| M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | |
-| M38 | Launch | all | all | |
+| M35 | Usage caps | core, database, backend, web, root | M33 | #207 |
+| M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
+| M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | #210 |
+| M38 | Launch | all | all | #211 |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 
@@ -2634,6 +2634,56 @@ he added on 2026-10-16.
   the account's count read across two organizations of one account.
 - **Verify**: with the caps on locally and lowered, start conversations and send past them, and read
   each refusal in the composer and in Resume's and Retry's note, at desktop and phone widths.
+- Built with these settled, on 2026-10-18:
+  - **The development lift goes through the mutations.** A count's `@check` lives in SQL, which
+    cannot read the backend's environment, so each capped mutation takes an optional
+    `$isUsageCapped`, which only `false` lifts: left out, as a backend from before M35 or a forgotten
+    call leaves it, the caps hold. The backend sends `IS_USAGE_CAPPED`, `!IS_DEVELOPMENT ||
+    USAGE_CAPPED=true`, the second for trying them locally. Rows are inserted either way. The test
+    kit's fixtures and the check scripts' helpers lift them, since they build past a cap to check
+    something else, and the checks of a cap go through the domain or leave the variable out.
+  - **The counts.** `GetCappedStarts` reads the eight lists a member's starts are counted in, the
+    runs to one and a half times each cap, the conversations and the subagents to each cap, which is
+    all a start's refusal needs to say when its cap has room; each mutation reads its own lists to
+    the threshold it holds, a start to its cap, a continuation or a reaction to one and a half times
+    it. `findReachedUsageCap` answers, of several caps reached, the one that has room last, since the
+    start can go only then. A mutation the counts refused starts another round of its domain
+    function, which reads them again and answers `capped`, or `waiting` for a continuation.
+  - **The refusals.** A send, a start, Resume and Retry answer 429 with the cap's code and
+    `Retry-After` (`respondUsageCapped`); a launch answers `tooManyToday`, whose sentence says when
+    in minutes or hours; a reaction past one and a half times a cap answers `capped`, which stops a
+    run's end from trying the member's other reactions, as `busy` does. The web keeps the time a cap
+    frees on the draft (`failureRetryAt`) and words it relatively, moving on as the reader waits
+    (`ConversationCapRefusal`), a run's cap as "Strategy Dance answered you 100 times", which reads
+    for a send, a Resume and a Retry alike.
+  - **The cost limit.** Each search's reading of the input again is priced at the cache-read rate,
+    as David chose on 2026-10-18, the first reading having cached it within the request: at the
+    cache-write rate no request past some 250000 tokens of context could be sent at all. A request
+    of some 1200 tokens reserves about $2.34 alone and $5.25 with its fallback at Opus 5's prices, so
+    a run drops the fallback past some $4.75 spent and ends past some $7.65; one at 700000 tokens
+    reserves $6.53, ending the run past $3.47. A request whose stream failed partway counts at its
+    worst case too, its output known only by the final delta, and one reserved before M35, with no
+    worst case, at its estimate. Tagging that would pass the limit is recorded as a request skipped
+    (`skipConversationRequest`, `stop_reason` `cost_limit`, no model), so the run tries it once all
+    the same. A model the price table lacks is priced as the dearest and logged.
+  - **The prices** sit beside the request's settings: Opus 5.5, Sonnet 5.5, Opus 5, Opus 4.8 and
+    Sonnet 5, and `CLAUDE_FALLBACK_MODELS`, Opus 5.5's to Opus 5 and Opus 4.8 as the claude-api skill
+    gave them, which `probe:claude` holds to the API's `allowed_fallback_models`.
+    `measure:subagents` prices its subagents with them.
+  - **The allowance** stays at a provisional 40000 tokens a search until `probe:claude` measures it:
+    the probe now measures what each search of three research requests brings back past its readings
+    of the input, and fails past the allowance, but could not run, gcloud asking David to sign in
+    again before it reads the API key.
+  - Verified: the four checks; `check:conversation-runs`, `check:subagent-runs`,
+    `check:subagents-module` and `check:conversation-attachments` against an emulator of the
+    branch's schema, every check passing, the caps' own among them: two sends at once at the
+    member's cap letting one through, the account's 200 across organizations, one of them gone, the
+    organization's 500 runs and 100 conversations, the window, the lift and the member's 30 launches.
+    In a browser against it, with the placeholder agent and `USAGE_CAPPED=true`, the starts seeded
+    near each cap: a new conversation past the 20 refused in a docked window's composer, and a
+    response's Resume, its Retry and a send past the 100 runs refused under the note and in the
+    page's composer, each saying when the cap has room and keeping the draft, at desktop and phone
+    widths.
 
 ### M36: Integrations in subagents
 
@@ -2682,6 +2732,63 @@ As David chose on 2026-10-12, written again on 2026-10-16 against M29 as it merg
 - **Verify** with the real model and DeepWiki added by its address: a subagent reading through a tool
   an administrator let run without approval, and one reporting a call it could not make, which the
   reaction proposes and the member allows.
+- Built with these settled, on 2026-10-18:
+  - **The calls the parent hears of are those that started**, `toolStartedAt` set, read by
+    `GetSubagentIntegrationCallsForAgent`: a call refused as it was drawn, the one needing an
+    approval among them, reached no server, and the report names it. Each is `{ integration, tool,
+    ending }`, the names as they were at call time, its ending `SUCCEEDED`, `FAILED` (answered with
+    an error), `UNANSWERED` (its server never answered, so it may have run) or `RUNNING`. A duration
+    could not tell the last two failures apart, since a timeout has one, so a call is recorded as
+    unanswered, `ConversationMessage.isToolUnanswered`, unless its failure says the server refused it
+    before running it, its address, its credential, a refusal it answered or a status of 4xx but 408
+    and 429: one that timed out, found no server or brought an answer that could not be read, too
+    large or compressed, throws `IntegrationCallUnanswered`, whose sentence says to check before
+    calling again, and so does one a crash interrupted, as Copilot pointed out over three rounds; a
+    call cancelled by its run's end reads unanswered too, and one finished as
+    interrupted before the column, by its missing duration. `read_subagent` lists them all with
+    every page, `integrationCalls` and `integrationCallTotal`, at most 200 for a chain; a report
+    names the first 20 with their total, after its writes, `{"subagentReport": {"id", "title",
+    "ending", "report", "writes", "total", "integrationCalls", "integrationCallTotal"}}`.
+  - **The conversation's system prompt moved too**, as David approved: it names the report's two new
+    keys and asks the agent to make itself, with `call_integration_tool`, a call a report says its
+    subagent could not make, when it still serves what the member asked, rather than first asking
+    whether to, a reaction's run included, so the reaction draws it as an approval. Told only to
+    propose it, the real model's reaction described the call and asked the member which way to go,
+    a message before the Allow it could have drawn at once. With `read_subagent`'s schema, the
+    conversation's tools' pinned bytes moved as well.
+  - **The refusal** reads "Not called: this call needs the member's approval, which nobody can give a
+    subagent. Say in your report what you would call, with which arguments, and why.", the prefix
+    every refusal at drawing has, and the call is drawn failed with its server, so the viewer's strip
+    says what fixes the server when it is off, missing or not connected.
+  - **A subagent's runners** are the integrations' and its modules' but those it never gets, the
+    integrations' closed over its own run's fence, so a call is started and finished under its
+    attempt and its member's membership, as a parent's is.
+  - **In the dock**, a subagent's viewer stayed open over the Integrations page once its strip's link
+    led there, since the dock outlives the page: the window now closes it at the reader's next
+    navigation (the router's `onBeforeNavigate`), a search alone changed or Back included, which
+    covers a document's link in it too.
+  - Verified: the four checks; `check:subagents-module`, `check:subagent-runs` and
+    `check:conversation-runs` against an emulator of the branch's schema, every check passing, the
+    new query's own among them: a subagent's started calls read in order with their status, duration
+    and answer, one refused as it was drawn left out, a parent's left out, and somebody else's and a
+    replaced membership reading nothing. In a browser against it, with the placeholder agent and a
+    subagent's calls to DeepWiki drawn in its thread, the server turned off: the viewer drawing the
+    failed call and the strip's Turn on at 1280 and 390 wide, on the page and in a dock window, where
+    Turn on turned DeepWiki on and the viewer closed over the Integrations page, as it did opened on
+    that page itself, staying closed on Back; and the switch's warning in the server's dialog.
+    `probe:claude` on the real API, every check passing, a subagent's request with the integration
+    tools among them; it also measured what a search brings back past its readings of the input,
+    8729 tokens at most over three research requests, against M35's provisional allowance of 40000.
+    On the real model, with DeepWiki added by its address on the Integrations page and
+    `ask_wiki_question` alone let run without approval: a subagent listing the integrations, reading
+    the tool and asking DeepWiki how the React compiler memoizes, its call drawn running and
+    answered in 14 seconds, and the reaction's entry carrying it, `{"integration": "DeepWiki",
+    "tool": "ask_wiki_question", "ending": "SUCCEEDED"}`; and a subagent told to use
+    `read_wiki_structure` alone, which read the tool, saw it needs an approval, made no call and
+    reported the call to make, with its arguments, which the reaction drew as an approval, the
+    member allowed, and the answer's run made, the parent then listing the wiki's topics. Asked
+    first, before the subagent was launched, the parent itself had warned that the tool needs an
+    approval a subagent cannot get.
 
 ### M37: Launch readiness
 
@@ -2762,6 +2869,75 @@ and Risks). It removes no gate: M38 does.
 - **Verify** against the emulators with the lifts off: an unverified password account refused and
   let through once its link is followed; an account suspended mid-run, its run stopping before its
   next request and a queued one never claimed, and lifted; and in production, before M38, `report:usage` read for the staff's own weeks.
+- Built with these settled, on 2026-10-18:
+  - **The suspension is read at the claim alone.** `takeStep` checks its author before it writes the
+    turn a request came to, so a suspension read there would throw away a turn already paid for, and
+    end the run interrupted rather than stopped. Both claims refuse it (`isClaimable`), and the runs
+    already going stop through the stop the suspension asked for.
+  - **The script runs one mutation, never the domain's Stop.** `stopConversationRun` and
+    `stopConversationSubagents` start reactions and promotions, which a script, run with no
+    `NODE_ENV`, would run in its own process against production. `SuspendUserConversations` and
+    `SuspendOrganizationConversations` write the column and set `stopRequestedAt` on every run in
+    flight of theirs, their own queued or running and their subagents' waiting for a slot too, in one
+    transaction: a running one stops before its next request, a queued one is refused at its claim,
+    and a waiting one is never promoted, the reconcile or the sweep ending it. The organization is
+    found by its id or by its slug in two queries, since one filter on an optional variable left out
+    would match every organization.
+  - **Reactions wait, and the launch says why first.** Each reaction refused at its claim would leave
+    an interrupted note and a run of the caps, so a suspended member's reports wait undelivered until
+    the lift, and `startDueSubagentReactions` stops at the first. `StartSubagentReaction` reads the
+    suspension again in its query step, after the membership's lock, and each suspension locks every
+    membership it reaches, after its own row, as Allow and a role change take theirs, and before any
+    run: whichever commits second sees the first, so a suspension landing between the reaction's read
+    and its write delivers none of the reports, which Copilot found in review. The launch reads the suspension
+    before its launcher, which the suspension asked to stop, so the agent reads the suspension's
+    sentence rather than the stop's.
+  - **The page reads the suspension from the rows, the address from the token.** `GetCurrentUser`
+    and `GetCurrentUserOrganizations` select the column, and a refusal for a suspension reads them
+    again, since neither is live; the composer's notice reads `emailVerified`, the token's claim the
+    backend reads, and against the emulators shows only once a send was refused for it. A file
+    refused for either waits in the tray to go up again rather than leaving it.
+  - **What micromark is slow on, measured.** Through `renderToStaticMarkup`, on the eleven shapes
+    `markdownToRichText` is held to, at 20000 characters: quote markers opening one line took 678 ms
+    at 1200 and 29 seconds at 5000, a run of asterisks or underscores overflowed the stack at 6000
+    each side, and 6700 closing brackets or 13000 list markers took half a second. The limits,
+    2000 brackets, 2000 list markers, 100 quote markers on one line and a run of 200, hold every shape
+    under 200 ms, and a list of 400 links still draws as Markdown. markdown-it's block parsing takes
+    all eleven at 200000 characters in well under a second.
+  - **The queues' alerts read depth and attempt delay**: Cloud Monitoring has no age for a queue's
+    oldest task. The worker's error rate leaves 503 out, which it answers by design for a run it
+    holds. The interrupted runs are counted from a line `finalizeDeadConversationRun` logs, which
+    nothing logged before.
+  - **`report:usage` reads through the Admin SDK's own GraphQL**, never a connector operation, so it
+    read production before this release: 7 runs from 2026-10-07 to 2026-10-15, $0.28, no subagent
+    and no file, too little to set the caps or the cache's lifetime from. It was read through Data
+    Connect's REST endpoint with gcloud's token, Application Default Credentials having expired.
+  - **Capacity**: the rate limit headers say Evaluation tier, 80,000 output tokens a minute on Opus
+    5.5, some twenty runs at once of the seventy the queues dispatch; output is counted as written,
+    never from `max_tokens`. Setup 14 asks for the Start tier before M38.
+  - **The decisions, David's on 2026-10-18.** The prompt cache keeps five minutes; subagents keep
+    Opus 5.5 at medium effort; web search keeps its filtering, David leaving it to the session, since
+    citations change the tools list and want the allowance measured again; the caps and the $10 limit
+    stand, and David sets the workspace's spend limit and the budget alert; he asks for the Start
+    tier; the modules go to the MCP Registry after launch; and the legal page is his to write, the
+    points it names in Risks. The searches' allowance went from a provisional 40000 to 16000 tokens
+    a search, against the 8729 the probe measured: a request of some 1200 tokens now reserves about
+    $1.74 alone and $3.90 with its fallback, so a run drops the fallback past some $6.10 spent and
+    ends past some $8.26, and one at 700000 tokens reserves $5.93, ending the run past $4.07.
+  - **The alerts are in production**, created from this session with David's approval: the email
+    channel, the log metric, which reads `textPayload`, where Cloud Run puts a JSON line's
+    `message`, and the four policies of Setup 13.
+  - Verified: the four checks; `check:conversation-runs`, `check:subagent-runs` and
+    `check:subagents-module` against an emulator of the branch's schema, every check passing, the
+    suspension's own among them. In a browser against it, a worktree backend started with
+    `EMAIL_VERIFICATION_REQUIRED=true` and the placeholder agent, at desktop and phone widths, in a
+    docked window and on the page: a password account's first send refused and the notice shown, the
+    message kept in the field; the link sent, followed from the Auth emulator, and "I confirmed it"
+    taking the notice away and letting the send through; `suspend:conversations` on the organization
+    stopping the response going, its notice shown and a send refused, the field keeping it; then on
+    the account, its own notice; and the lift taking either away. The `PastBound` story drawn from the
+    built Storybook. A suspension's stop reads "You stopped this response", the stopped note's words,
+    though staff stopped it: the notice beside it says why.
 
 ### M38: Launch
 
@@ -2781,3 +2957,45 @@ and Risks). It removes no gate: M38 does.
   not staff: a conversation, a fan-out, an integration call, and an external agent connected through
   `check:oauth`'s flow; then the same in production once released. Before merging, everything M37
   left for David is decided.
+- Built with these settled, on 2026-10-18:
+  - **The reads only the gates made went too**, as David chose over keeping them with nothing
+    calling them: `GetUserStaffStatus`, and the account's `isAdministrator` in
+    `GetConversationRunContext` and `GetAgentConnectionAccessToken`. Data Connect calls removing an
+    operation or a required field a breaking connector change, so the release stops at Deploy Data
+    Connect: David runs `bun run deploy:database`, acknowledges the three removals, then runs the
+    deploy of `main`'s tip again.
+  - **Every bouncer went, not only the conversations'**: the Integrations page's, Connected agents'
+    and the consent page's, whose notice that connecting agents was not available yet went with its
+    two messages, since nothing answers the request's read with 403 any more; and the staff checks
+    on the dock, the sidebar, the Connected agents tab, a module's agents button, a task's
+    delegation and the reads behind the last two. The conversations' layout route was deleted
+    rather than left a bare outlet, as knowledge has none, and the route tree generated again.
+  - **The worker's role check stood in two places**, the claim and the check before each step,
+    `isAuthorStill`, which now matches the membership alone.
+  - **The tests that pinned a gate** went with the middlewares, and every caller is a member nobody
+    made staff: the fakes hold no staff role any more, the run of an author who lost the role and the
+    verifier's lost role went, the verifier's refusal that marks nothing used is an expiry, the
+    consent read's metering is checked on an unknown request, and `check:oauth` grants nobody the
+    role.
+  - **`CLAUDE.md` gathers conversations' conventions** in a section of their own, as David chose over
+    adding only what was missing: the bullets of The database, Routing and Backend conventions moved
+    as they were written, under The data, The backend and The page, then A run, The transcript and A
+    new tool added from this document.
+  - **What M37 left for David**, read on 2026-10-18 before this merges: the rate limit headers of a
+    one-token request still say the Evaluation tier, 80,000 output tokens a minute on Opus 5.5, so
+    the Start tier has not landed; `/legal` still says Coming soon; and the workspace's spend limit
+    and the budget alert are his to confirm in their consoles.
+  - Verified: the four checks; `check:conversation-runs`, `check:subagent-runs`,
+    `check:subagents-module` and `check:integrations` against an emulator of the branch's schema,
+    every check passing; and `check:oauth` against a worktree backend on it, the whole flow and both
+    modules' endpoints, as an account nobody made staff. In a browser against them, the backend
+    started with `USAGE_CAPPED=true` and `EMAIL_VERIFICATION_REQUIRED=true`, as a password account
+    with a confirmed address, never granted the role, administering its own organization, at 1280
+    and 390 wide: the sidebar's Conversations and Integrations, and no Administration; the
+    conversations' list; the Integrations page with DeepWiki added by its address through the
+    backend; Account's Connected agents; the agents buttons on Knowledge and the board; a task's
+    Delegate; and the consent page of an external agent's request, Allow offered. On the real model,
+    with `ask_wiki_question` let run without approval: a conversation started from the dock, whose
+    agent listed the integrations and launched two subagents, each of which read the tool and called
+    DeepWiki, `call_integration_tool` succeeding, and the parent's reaction gathering both reports,
+    $0.37 by the ledger.

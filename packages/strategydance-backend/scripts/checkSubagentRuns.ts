@@ -309,6 +309,8 @@ async function startParent({ isIdle = true } = {}): Promise<Parent> {
     content: JSON.stringify([{ type: 'text', text: 'Checked message' }]),
     aspects: [CompanyAspect.FINANCES],
     aspectsSetBy: ConversationActor.MEMBER,
+    // The checks start more than the daily caps let a member start, which their own checks hold
+    isUsageCapped: false,
   })
 
   if (!isIdle) return parent
@@ -345,6 +347,7 @@ function launchVariables(parent: Parent, overrides: Partial<LaunchSubagentVariab
       text: 'Compare the pricing pages',
       content: JSON.stringify([{ type: 'text', text: 'Compare the pricing pages' }]),
       attachmentIds: [],
+      isUsageCapped: false,
       ...overrides,
     } satisfies LaunchSubagentVariables,
   }
@@ -1695,6 +1698,61 @@ async function checkReactions() {
 
   await settleConversationRuns()
 
+  // A suspension, the account's or the organization's, leaves the reports waiting
+  const suspendedParent = await startParent()
+  const suspendedSubagent = await launch(suspendedParent)
+
+  await report(suspendedParent, suspendedSubagent)
+
+  const suspendedReaction = {
+    ...reaction,
+    conversationId: suspendedParent.conversationId,
+    runId: createId(),
+    subagentIds: [suspendedSubagent.conversationId],
+  }
+
+  await write(
+    `mutation SuspendAccount($id: String!) { user_update(key: { id: $id }, data: { conversationsSuspendedAt_expr: "request.time" }) }`,
+    { id: userIds.author },
+  )
+
+  check(
+    'a reaction is refused while the member’s conversations are suspended',
+    await isRefused(
+      startSubagentReaction(dataConnect, suspendedReaction),
+      'Conversations are suspended for this account',
+    ),
+  )
+
+  await write(
+    `mutation SuspendOrganization($id: UUID!, $userId: String!) @transaction {
+      organization_update(id: $id, data: { conversationsSuspendedAt_expr: "request.time" })
+      user_update(key: { id: $userId }, data: { conversationsSuspendedAt: null })
+    }`,
+    { id: organizationId, userId: userIds.author },
+  )
+
+  check(
+    'a reaction is refused while the organization’s conversations are suspended',
+    await isRefused(
+      startSubagentReaction(dataConnect, suspendedReaction),
+      'Conversations are suspended in this organization',
+    ),
+  )
+  check(
+    'a suspended reaction delivers none of its reports',
+    (await readDeliveredAt(suspendedSubagent.conversationId)) === null,
+  )
+
+  await write(
+    `mutation LiftOrganization($id: UUID!) { organization_update(id: $id, data: { conversationsSuspendedAt: null }) }`,
+    {
+      id: organizationId,
+    },
+  )
+  await startSubagentReaction(dataConnect, suspendedReaction)
+  await settleConversationRuns()
+
   // A send names the reports it carries, exactly
   const sent = await startParent()
   const reported = await launch(sent)
@@ -2116,6 +2174,32 @@ async function checkLaunchOrders() {
   await settleSubagentRuns()
 }
 
+/*
+  The daily cap on launches, the member's 30 in the organization, which every launch's mutation counts
+  unless the caps are lifted, as the checks above lift them, and a lift left null holds. The
+  account's 60 is counted as `check:conversation-runs` checks the account's runs. Checked last, since
+  the starts it inserts count against the author
+*/
+async function checkDailyLaunches() {
+  const parent = await startParent()
+  const rows = Array.from({ length: 30 }, () => ({ userId: userIds.author, organizationId, kind: 'SUBAGENT' }))
+
+  // With what the checks above launched besides, the author's count here is past 30
+  await write(
+    `mutation SeedStarts($rows: [CappedStart_Data!]!) {
+      cappedStart_insertMany(data: $rows)
+    }`,
+    { rows },
+  )
+
+  check(
+    'a launch past the member’s 30 subagents in 24 hours is refused, a lift left null holding',
+    (await refusal(launchSubagent(dataConnect, launchVariables(parent, { isUsageCapped: null }).variables)))?.includes(
+      'Somebody launches at most 30 subagents in 24 hours in an organization',
+    ) ?? false,
+  )
+}
+
 try {
   await setUp()
   await checkLaunching()
@@ -2139,6 +2223,7 @@ try {
   await checkReactions()
   await checkCascades()
   await checkLaunchOrders()
+  await checkDailyLaunches()
 } finally {
   await tearDown()
 }

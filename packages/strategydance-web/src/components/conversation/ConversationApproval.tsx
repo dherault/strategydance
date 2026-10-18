@@ -6,8 +6,11 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { ConversationMessageBody, ConversationThreadEntry } from '~types'
 
+import { SUPPORT_CONTACT } from '~constants'
+
 import useAnswerConversationApproval from '~hooks/conversation/useAnswerConversationApproval'
 import useConversationApprovalAnswer from '~hooks/conversation/useConversationApprovalAnswer'
+import useRefreshConversationAccess from '~hooks/conversation/useRefreshConversationAccess'
 
 import formatConversationToolJson from '~utils/conversation/formatConversationToolJson'
 import getConversationAnswerFailure, {
@@ -39,6 +42,8 @@ const NOTICE_MESSAGES = {
   unavailable: conversationMessages.approvalUnavailable,
   error: conversationMessages.approvalError,
   queued: conversationMessages.approvalQueued,
+  unverified: conversationMessages.accessUnverified,
+  suspended: conversationMessages.accessSuspended,
 } as const
 
 /*
@@ -70,6 +75,7 @@ function ConversationApproval({
   const answerConversationApproval = useAnswerConversationApproval()
   const titleId = useId()
   const [{ sending }, changeAnswer] = useConversationApprovalAnswer(entry.id)
+  const refreshConversationAccess = useRefreshConversationAccess()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   /*
     What deciding came to when it did not start a run: a failure, a decision kept that the
@@ -105,7 +111,11 @@ function ConversationApproval({
     } catch (error) {
       console.error('The decision could not be sent', error)
 
-      setNotice({ kind: getConversationAnswerFailure(error), waitingRunId })
+      const failure = getConversationAnswerFailure(error)
+
+      setNotice({ kind: failure, waitingRunId })
+
+      if (failure === 'suspended') refreshConversationAccess()
     } finally {
       changeAnswer({ sending: null })
     }
@@ -123,7 +133,7 @@ function ConversationApproval({
       >
         {notice.kind === 'changed'
           ? formatMessage(conversationMessages.approvalChanged, { server: integrationName })
-          : formatMessage(NOTICE_MESSAGES[notice.kind])}
+          : formatMessage(NOTICE_MESSAGES[notice.kind], { email: SUPPORT_CONTACT.email })}
       </p>
     )
   }

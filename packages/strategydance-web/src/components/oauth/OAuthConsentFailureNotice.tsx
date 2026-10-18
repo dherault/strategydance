@@ -13,7 +13,6 @@ type Props = {
 const FAILURE_MESSAGES = {
   expired: { title: moduleMessages.expiredTitle, description: moduleMessages.expiredDescription },
   refused: { title: moduleMessages.refusedTitle, description: moduleMessages.refusedDescription },
-  unavailable: { title: moduleMessages.unavailableTitle, description: moduleMessages.unavailableDescription },
 } as const satisfies Record<OAuthConsentFailure, unknown>
 
 // Why the consent page has no request to answer, whether its read or the member's answer found out

@@ -9,12 +9,15 @@ export const LIST_INTEGRATIONS_TOOL_NAME = 'list_integrations'
 export const DESCRIBE_INTEGRATION_TOOL_TOOL_NAME = 'describe_integration_tool'
 export const CALL_INTEGRATION_TOOL_TOOL_NAME = 'call_integration_tool'
 
+// How many searches a request makes at most, which the run's cost limit reserves each of
+export const WEB_SEARCH_MAX_USES = 5
+
 // Claude's own web search, which filters what it fetches before it reaches the context, at most five
 // searches a request: the first tool of every list the agent sends, a conversation's and a subagent's
-export const WEB_SEARCH_TOOL: NonNullable<BetaMessageStreamParams['tools']>[number] = {
+const WEB_SEARCH_TOOL: NonNullable<BetaMessageStreamParams['tools']>[number] = {
   type: 'web_search_20260209',
   name: 'web_search',
-  max_uses: 5,
+  max_uses: WEB_SEARCH_MAX_USES,
 }
 
 /*

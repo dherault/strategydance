@@ -35,6 +35,9 @@ export type ConversationRequestUsage = {
   // `tagging` for the side request that tags the conversation with its aspects, which stores no
   // part, so its `turnPosition` stays null; absent for a request for the run's turn
   purpose?: 'tagging'
+  // The most it could cost, in microdollars, as its reservation priced it, which the run's cost
+  // limit counts it at until Claude's answer settles it; absent from a ledger written before M35
+  worstCaseMicrodollars?: number
 }
 
 // One attempt at a request a model declined partway, before the API fell back to another
@@ -87,6 +90,7 @@ export function reserveConversationRequest(
     configTokens: number
     inputEndPosition: number
     purpose?: ConversationRequestUsage['purpose']
+    worstCaseMicrodollars?: number
   },
 ) {
   const request: ConversationRequestUsage = {
@@ -155,6 +159,24 @@ export function settleInterruptedConversationRequest(usage: ConversationRunUsage
   return withTotals(
     settled.requests.map((request, requestIndex) =>
       requestIndex === index ? { ...request, stopReason: 'error', isEstimated: true } : request,
+    ),
+  )
+}
+
+/*
+  Records a request the run did not send, since the most it could cost would have taken the run
+  past its cost limit: settled at nothing, by no model, so a side request is tried once a run, as
+  one sent is
+*/
+export function skipConversationRequest(
+  usage: ConversationRunUsage,
+  skipped: { estimatedInputTokens: number; inputEndPosition: number; purpose?: ConversationRequestUsage['purpose'] },
+) {
+  const { usage: reserved, index } = reserveConversationRequest(usage, { ...skipped, configTokens: 0 })
+
+  return withTotals(
+    reserved.requests.map((request, requestIndex) =>
+      requestIndex === index ? { ...request, stopReason: 'cost_limit', isSettled: true } : request,
     ),
   )
 }

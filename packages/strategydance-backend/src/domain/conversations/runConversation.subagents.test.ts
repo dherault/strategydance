@@ -97,9 +97,13 @@ describe('runConversation, for a subagent', () => {
     expect(request.system).toEqual([
       { type: 'text', text: SUBAGENT_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
     ])
-    expect(toolNames[0]).toBe('web_search')
+    expect(toolNames.slice(0, 4)).toEqual([
+      'web_search',
+      'list_integrations',
+      'describe_integration_tool',
+      'call_integration_tool',
+    ])
     expect(toolNames).not.toContain('ask_user')
-    expect(toolNames).not.toContain('call_integration_tool')
     // Its one request, and no tagging after it
     expect(scripted.requests).toHaveLength(1)
     expect(kit.readRun(subagent)?.status).toBe('COMPLETED')
@@ -317,6 +321,23 @@ describe('runConversation, for a subagent', () => {
     expect(await runConversation(before.subagent, { client: kit.createClient([]).client })).toBe('finished')
     expect(kit.readRun(before.subagent)).toMatchObject({ status: 'INTERRUPTED', attempts: 0 })
     expect(readReport(before.subagent)).toBe('This subagent was interrupted before it finished.')
+  })
+
+  test('reports it was interrupted when its member’s conversations were suspended before its claim', async () => {
+    const { subagent } = await launch()
+    const scripted = kit.createClient([answer()])
+    const user = fake.users.get(AUTHOR)
+
+    if (user) user.conversationsSuspendedAt = new Date().toISOString()
+
+    expect(await runConversation(subagent, { client: scripted.client })).toBe('finished')
+    expect(scripted.requests).toHaveLength(0)
+    expect(kit.readRun(subagent)).toMatchObject({
+      status: 'INTERRUPTED',
+      attempts: 0,
+      failure: 'Its author’s conversations are suspended',
+    })
+    expect(readReport(subagent)).toBe('This subagent was interrupted before it finished.')
   })
 
   test('cuts a long last reply to 8000 characters, at a line break, marked cut', async () => {

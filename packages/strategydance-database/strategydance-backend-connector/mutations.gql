@@ -3088,8 +3088,9 @@ mutation StartConversationIntegrationCall(
 # Strategy Dance's own tools, with what that one never sees: a call that started and was left
 # unfinished, by a crash or a stop, `CANCELLED` or still `RUNNING`, is finished here as interrupted,
 # never made again, and an approval whose server, tool or credential changed since the member saw it
-# is denied, `$approvalState`. `$toolDurationMs` is left out for a call that was not timed. Fenced as
-# `RenewConversationRunLease` is
+# is denied, `$approvalState`. `$toolDurationMs` is left out for a call that was not timed, and
+# `$isToolUnanswered` says a call failed with no answer from its server, so it may have run, which a
+# backend from before M36 leaves out. Fenced as `RenewConversationRunLease` is
 mutation FinishConversationIntegrationCall(
   $organizationId: UUID!
   $userId: String!
@@ -3101,6 +3102,7 @@ mutation FinishConversationIntegrationCall(
   $toolStatus: ConversationToolStatus!
   $toolOutput: String!
   $toolDurationMs: Int
+  $isToolUnanswered: Boolean
   $approvalState: ConversationApprovalState
   $pendingToolResults: String!
   $preview: Any!
@@ -3142,6 +3144,7 @@ mutation FinishConversationIntegrationCall(
       toolStatus: $toolStatus
       toolOutput: $toolOutput
       toolDurationMs: $toolDurationMs
+      isToolUnanswered: $isToolUnanswered
       approvalState: $approvalState
     }
   ) @check(expr: "this == 1", message: "The call is no longer running")

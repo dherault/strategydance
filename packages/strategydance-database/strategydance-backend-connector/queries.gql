@@ -2385,9 +2385,9 @@ query GetSubagentWritesForAgent(
 
 # The calls a subagent made to the organization's integrations, oldest first: those that started,
 # since a call refused as it was drawn, or one waiting on an approval nobody gave it, reached no
-# server. Each with the server and the tool as they were named at call time, its status and whether
-# it finished. A chain makes at most 200 calls, so 200 is all of them, with their count. The
-# backend reads the subagent first, as the caller's and its parent's
+# server. Each with the server and the tool as they were named at call time, its status, whether it
+# finished and whether its server never answered. A chain makes at most 200 calls, so 200 is all of
+# them, with their count. The backend reads the subagent first, as the caller's and its parent's
 query GetSubagentIntegrationCallsForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -2419,6 +2419,7 @@ query GetSubagentIntegrationCallsForAgent(
     integrationToolName
     toolStatus
     toolDurationMs
+    isToolUnanswered
   }
   total: conversationMessages(
     where: {

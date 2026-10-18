@@ -131,7 +131,7 @@ function ConversationThread({
   // A subagent's, which the reader follows and never acts in
   const isReadOnly = conversation.parentId !== null
   const { formatMessage } = intl
-  const { entries, bodies, hasOlder, olderStatus, isFilling, loadOlder, dropRuns } = useConversationThread(conversation)
+  const { entries, bodies, hasOlder, olderStatus, loadOlder, dropRuns } = useConversationThread(conversation)
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
@@ -555,7 +555,7 @@ function ConversationThread({
         ref={listRef}
         role="log"
         aria-label={formatMessage(conversationMessages.threadLabel)}
-        aria-busy={olderStatus === 'loading' || isFilling}
+        aria-busy={olderStatus === 'loading'}
         className="flex flex-col gap-4"
       >
         {rows.map(({ id, content, isTight }) => (

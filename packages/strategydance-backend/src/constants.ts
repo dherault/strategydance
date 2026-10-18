@@ -205,6 +205,19 @@ export const WEB_SEARCH_RESULT_TOKEN_ALLOWANCE = 16_000
 // reads it before each request too
 export const CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS = 2000
 
+/*
+  How a run rides out Claude's API failing for a while, once the SDK's own two retries are spent: a
+  request refused before its stream started, as rate limited (429), overloaded (529), failing (5xx)
+  or unreachable, which costs nothing, is sent again up to four times in a row, after what the
+  answer's `retry-after` asks, at most a minute, or after five seconds doubled at each failure, while
+  the run's ten minutes allow it. Past that the run fails with its note, as any other failure of the
+  API does. The Evaluation tier's output tokens a minute refuse requests past some twenty runs at once
+  (Setup 14 in documents/conversations.md), which a member would otherwise meet as a failed run
+*/
+export const MAX_CONVERSATION_API_RETRIES = 4
+export const CONVERSATION_API_RETRY_DELAY_MS = 5000
+export const CONVERSATION_API_MAX_RETRY_DELAY_MS = 60 * 1000
+
 // How long the request that tags a conversation with its aspects may take before it is cut, and the
 // conversation is left untagged: a few seconds at low effort, so a minute is a request gone wrong
 export const CONVERSATION_TAGGING_TIMEOUT_MS = 60 * 1000

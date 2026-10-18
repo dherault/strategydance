@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { setTimeout as wait } from 'node:timers/promises'
 
 import Anthropic from '@anthropic-ai/sdk'
 import type { BetaContentBlock, BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
@@ -14,6 +15,8 @@ import {
 } from 'strategydance-database/backend'
 
 import type { ClaudeClient, ConversationRunFence } from '~types'
+
+import { CONVERSATION_API_MAX_RETRY_DELAY_MS, MAX_CONVERSATION_API_RETRIES } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -68,6 +71,9 @@ type RequestConversationTurnInput = {
   limits: ConversationRunLimits
   // How often a streaming request reads whether the run's member asked to stop it
   stopCheckIntervalMs: number
+  // How long it waits before sending again a request Claude's API refused for a while, when the
+  // answer does not say, doubled at each refusal in a row
+  apiRetryDelayMs: number
 }
 
 // How many requests a run sends at most, how long after it was first claimed it starts none, when
@@ -122,9 +128,14 @@ export type ConversationTurnOutcome =
     conversation marked so
   - `refusal`, which the API returns once the model it fell back to refused too: the run ends
     refused, with its note
-  - an error of Claude's API, after the SDK's own retries, `max_tokens`, a sixth pause and any other
-    stop: the run fails with its note, the request sent once, and charged what the stream reported
-    it used when it failed partway
+  - Claude's API refusing a request before its stream started, as rate limited, overloaded, failing
+    or unreachable, after the SDK's own retries: the request costs nothing and is sent again, after
+    what the answer's `retry-after` asks or a delay doubled at each refusal, up to four times in a
+    row while the run's time allows it, a stop its member asked for meanwhile ending it stopped
+  - any other error of Claude's API, those past the retries, `max_tokens`, a sixth pause and any
+    other stop: the run fails with its note, the request sent once, and charged what the stream
+    reported it used when it failed partway. An error of the worker's own before the request reached
+    the API settles it at nothing before the step fails
   - a run at one of its limits: 25 requests sent, or 10 minutes gone since it was first claimed,
     sends no further request, and a stream still going 14 minutes after the claim is cut, charged as
     one that failed partway. The run fails with its note
@@ -151,6 +162,7 @@ async function requestConversationTurn({
   startedAt,
   limits,
   stopCheckIntervalMs,
+  apiRetryDelayMs,
 }: RequestConversationTurnInput): Promise<ConversationTurnOutcome> {
   const reference = { organizationId: fence.organizationId, userId: fence.userId, conversationId: fence.conversationId }
   const [entries, { data: requestContext }] = await Promise.all([
@@ -199,6 +211,8 @@ async function requestConversationTurn({
   let usage = initialUsage
   let paused = pausedRequest
   let pauses = storedPauses
+  // How many requests in a row Claude's API refused before their stream started
+  let apiRetries = 0
 
   for (;;) {
     // A run at a limit sends no further request, which drops the parts of a turn held in memory
@@ -297,11 +311,7 @@ async function requestConversationTurn({
     const request = createConversationRequestSignal({
       signal,
       deadline: Date.parse(startedAt) + limits.streamDeadlineMs,
-      isStopRequested: async () => {
-        const { data } = await getConversationRunStop(dataConnect, toReference(fence))
-
-        return Boolean(data.conversationRuns[0]?.stopRequestedAt)
-      },
+      isStopRequested: () => isStopRequested(fence),
       stopCheckIntervalMs,
     })
 
@@ -344,7 +354,47 @@ async function requestConversationTurn({
         return { kind: 'ending', ending: fail(failure, settled, true) }
       }
 
-      if (signal.aborted || !(error instanceof Anthropic.APIError)) throw error
+      if (signal.aborted) throw error
+
+      // Never reached the API, so it is settled at nothing before the step fails and is read again,
+      // rather than charged at its worst case by the next step's ledger
+      if (!(error instanceof Anthropic.APIError)) {
+        if (!streamed.message) await writeSettled(fence, lease, settled)
+
+        throw error
+      }
+
+      const retryDelay = streamed.message ? null : readApiRetryDelay(error, apiRetries, apiRetryDelayMs)
+
+      if (
+        retryDelay !== null
+        && apiRetries < MAX_CONVERSATION_API_RETRIES
+        && Date.now() + retryDelay < Date.parse(startedAt) + limits.maxDurationMs
+      ) {
+        apiRetries++
+        usage = settled
+
+        logger.warn(
+          `Conversation run ${fence.runId}: Claude's API refused request ${reserved.index} (${describeApiError(error, false)}), sent again in ${retryDelay} ms`,
+        )
+
+        await wait(retryDelay, undefined, { signal })
+
+        if (await isStopRequested(fence)) {
+          return {
+            kind: 'ending',
+            ending: {
+              kind: 'noted',
+              status: ConversationRunStatus.STOPPED,
+              noteKind: ConversationNoteKind.STOPPED,
+              failure: `Its member stopped it while it waited to send request ${reserved.index} again`,
+              usage,
+            },
+          }
+        }
+
+        continue
+      }
 
       logger.error(`Conversation run ${fence.runId}: Claude's API failed request ${reserved.index}`, error)
 
@@ -352,6 +402,8 @@ async function requestConversationTurn({
     } finally {
       request.dispose()
     }
+
+    apiRetries = 0
 
     logRequest(fence.runId, reserved.index, message)
 
@@ -441,6 +493,46 @@ function describeApiError(error: InstanceType<typeof Anthropic.APIError>, hasSta
   const answer = error.status ? `answered ${error.status}${error.type ? ` ${error.type}` : ''}` : error.name
 
   return hasStarted ? `Claude's API failed the stream partway: ${answer}` : `Claude's API ${answer} after its retries`
+}
+
+/*
+  How long to wait before sending again a request Claude's API refused before its stream started, or
+  null when the refusal is not one to wait out: rate limited, overloaded or failing, the API's own
+  word, or unreachable. What its `retry-after` asks, at most a minute, or the base delay doubled at
+  each refusal in a row
+*/
+function readApiRetryDelay(error: InstanceType<typeof Anthropic.APIError>, retries: number, baseDelayMs: number) {
+  const isTransient =
+    error instanceof Anthropic.APIConnectionError
+    || error instanceof Anthropic.RateLimitError
+    || error instanceof Anthropic.InternalServerError
+
+  if (!isTransient) return null
+
+  const retryAfterSeconds = Number(error.headers?.get('retry-after'))
+
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    return Math.min(retryAfterSeconds * 1000, CONVERSATION_API_MAX_RETRY_DELAY_MS)
+  }
+
+  return Math.min(baseDelayMs * 2 ** retries, CONVERSATION_API_MAX_RETRY_DELAY_MS)
+}
+
+// Whether the run's member asked to stop it
+async function isStopRequested(fence: ConversationRunFence) {
+  const { data } = await getConversationRunStop(dataConnect, toReference(fence))
+
+  return Boolean(data.conversationRuns[0]?.stopRequestedAt)
+}
+
+// Writes the ledger with a request settled at nothing, best effort: the step fails either way, and
+// the worker that reads the run next charges the request at its estimate when this did not land
+async function writeSettled(fence: ConversationRunFence, lease: ConversationRunLease, usage: ConversationRunUsage) {
+  try {
+    await lease.write(() => renewConversationRunLease(dataConnect, { ...fence, usage }))
+  } catch (error) {
+    logger.warn(`Conversation run ${fence.runId}: a request that never reached the API could not be settled`, error)
+  }
 }
 
 // The context the run kept, built by a worker before a crash, so it is sent as the same bytes

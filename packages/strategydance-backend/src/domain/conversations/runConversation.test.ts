@@ -671,8 +671,8 @@ describe('runConversation', () => {
   test('fails a run, with its note, why, and after one request, when Claude’s API fails or stops it otherwise', async () => {
     for (const [failure, why] of [
       [
-        new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
-        'Claude’s API answered 529',
+        new Anthropic.BadRequestError(400, { type: 'invalid_request_error' }, 'Invalid', new Headers()),
+        'Claude’s API answered 400',
       ],
       [answer([{ type: 'text', text: 'Cut', citations: null }], { stopReason: 'max_tokens' }), 'on max_tokens'],
       [
@@ -691,6 +691,106 @@ describe('runConversation', () => {
       expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
       expect(readUsage(reference).requests).toHaveLength(1)
     }
+  })
+
+  test('sends again a request Claude’s API refused before its stream started, overloaded then rate limited, at no charge', async () => {
+    const reference = await start()
+    const scripted = createClient([
+      new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+      new Anthropic.RateLimitError(429, { type: 'rate_limit_error' }, 'Rate limited', new Headers()),
+      answer(),
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client, apiRetryDelayMs: 1 })).toBe('finished')
+    expect(scripted.requests).toHaveLength(3)
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'AGENT_TEXT', text: REPLY })
+    expect(readUsage(reference).requests).toMatchObject([
+      { inputTokens: 0, isSettled: true, isEstimated: false },
+      { inputTokens: 0, isSettled: true, isEstimated: false },
+      { inputTokens: 1000, outputTokens: 50, isSettled: true },
+    ])
+  })
+
+  test('settles at nothing a request that failed before it reached the API, rather than charge its worst case', async () => {
+    const reference = await start()
+    const scripted = createClient([new Error('The secret could not be read'), answer()])
+
+    expect(await runConversation(reference, { client: scripted.client, retryDelayMs: 1 })).toBe('finished')
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+    expect(readUsage(reference).requests).toMatchObject([
+      { inputTokens: 0, isSettled: true, isEstimated: false },
+      { inputTokens: 1000, outputTokens: 50, isSettled: true },
+    ])
+  })
+
+  test('waits what a refusal’s retry-after asks before sending the request again', async () => {
+    const reference = await start()
+    const scripted = createClient([
+      new Anthropic.RateLimitError(
+        429,
+        { type: 'rate_limit_error' },
+        'Rate limited',
+        new Headers({ 'retry-after': '0.1' }),
+      ),
+      answer(),
+    ])
+    const startedAt = Date.now()
+
+    expect(await runConversation(reference, { client: scripted.client, apiRetryDelayMs: 1 })).toBe('finished')
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(100)
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+  })
+
+  test('fails a run whose request Claude’s API kept refusing, once its four retries are spent', async () => {
+    const reference = await start()
+    const scripted = createClient(
+      Array.from(
+        { length: 5 },
+        () => new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+      ),
+    )
+
+    expect(await runConversation(reference, { client: scripted.client, apiRetryDelayMs: 1 })).toBe('finished')
+    expect(scripted.requests).toHaveLength(5)
+    expect(readRun(reference)?.status).toBe('FAILED')
+    expect(readRun(reference)?.failure?.replace("'", '’')).toContain('Claude’s API answered 529')
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
+  })
+
+  test('sends nothing again past the run’s minutes, failing it with its note instead', async () => {
+    const reference = await start()
+    const scripted = createClient([
+      new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+    ])
+
+    expect(
+      await runConversation(reference, {
+        client: scripted.client,
+        apiRetryDelayMs: 60 * 1000,
+        limits: { maxDurationMs: 30 * 1000 },
+      }),
+    ).toBe('finished')
+    expect(scripted.requests).toHaveLength(1)
+    expect(readRun(reference)?.status).toBe('FAILED')
+  })
+
+  test('ends stopped a run its member stopped while it waited to send a refused request again', async () => {
+    const reference = await start()
+    const scripted = createClient([
+      () => {
+        const run = readRun(reference)
+
+        if (run) run.stopRequestedAt = new Date().toISOString()
+
+        return new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers())
+      },
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client, apiRetryDelayMs: 1 })).toBe('finished')
+    expect(scripted.requests).toHaveLength(1)
+    expect(readRun(reference)?.status).toBe('STOPPED')
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'STOPPED' })
   })
 
   test('ends a run Claude refused, and so did its fallback, refused with its note, storing nothing of it', async () => {
@@ -813,7 +913,7 @@ describe('runConversation', () => {
 
     const refused = await start()
     const refusing = createClient([
-      new Anthropic.InternalServerError(529, { type: 'error' }, 'Overloaded', new Headers()),
+      new Anthropic.BadRequestError(400, { type: 'invalid_request_error' }, 'Invalid', new Headers()),
     ])
 
     await runConversation(refused, { client: refusing.client })

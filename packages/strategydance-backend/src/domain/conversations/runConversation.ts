@@ -38,6 +38,7 @@ import type {
 } from '~types'
 
 import {
+  CONVERSATION_API_RETRY_DELAY_MS,
   CONVERSATION_RUN_MAX_COST_MICRODOLLARS,
   CONVERSATION_RUN_MAX_DURATION_MS,
   CONVERSATION_RUN_MAX_REQUESTS,
@@ -108,6 +109,9 @@ type Options = {
   limits?: Partial<ConversationRunLimits>
   // How often a streaming request reads whether the run's member asked to stop it
   stopCheckIntervalMs?: number
+  // How long the worker waits before sending again a request Claude's API refused for a while, when
+  // the answer does not say, doubled at each refusal in a row
+  apiRetryDelayMs?: number
   // The modules the run's agent uses, connected for its member once the run is claimed, whose tools
   // its requests send and whose runners run its calls, which a test can bring in, and how long a
   // call may take
@@ -178,6 +182,7 @@ async function runConversation(
     retryDelayMs = 500,
     limits,
     stopCheckIntervalMs = CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
+    apiRetryDelayMs = CONVERSATION_API_RETRY_DELAY_MS,
     connectModules = connectConversationModules,
     toolTimeoutMs = CONVERSATION_TOOL_CALL_TIMEOUT_MS,
     createIntegrationRunners = createConversationIntegrationRunners,
@@ -253,6 +258,7 @@ async function runConversation(
       retryDelayMs,
       limits: { ...LIMITS, ...limits },
       stopCheckIntervalMs,
+      apiRetryDelayMs,
       config: isSubagent
         ? {
             system: SUBAGENT_SYSTEM_PROMPT,
@@ -302,6 +308,7 @@ type StepsInput = {
   retryDelayMs: number
   limits: ConversationRunLimits
   stopCheckIntervalMs: number
+  apiRetryDelayMs: number
   // What the run's requests send besides their messages, and what runs their calls
   config: ConversationRequestConfig
   runners: ConversationToolRunner[]
@@ -319,6 +326,7 @@ async function takeSteps({
   retryDelayMs,
   limits,
   stopCheckIntervalMs,
+  apiRetryDelayMs,
   config,
   runners,
   toolTimeoutMs,
@@ -346,6 +354,7 @@ async function takeSteps({
         client,
         limits,
         stopCheckIntervalMs,
+        apiRetryDelayMs,
         config,
         runners,
         toolTimeoutMs,
@@ -398,6 +407,7 @@ async function takeStep({
   client,
   limits,
   stopCheckIntervalMs,
+  apiRetryDelayMs,
   config,
   runners,
   toolTimeoutMs,
@@ -617,6 +627,7 @@ async function takeStep({
       startedAt,
       limits,
       stopCheckIntervalMs,
+      apiRetryDelayMs,
     })
   }
 
@@ -656,6 +667,7 @@ async function takeStep({
     startedAt: run?.startedAt ?? new Date().toISOString(),
     limits,
     stopCheckIntervalMs,
+    apiRetryDelayMs,
   })
 }
 

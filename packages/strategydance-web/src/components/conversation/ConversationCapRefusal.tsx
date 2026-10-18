@@ -42,13 +42,16 @@ type Props = {
 
 /*
   Which daily cap a send, a resume or a retry reached, and when it has room again, in the words of
-  the `conversation` catalogue: "in 3 hours", moving on as the reader waits. A refusal that said
-  nothing of when is a day at most away, as the caps count the 24 hours before each start
+  the `conversation` catalogue: "in 3 hours", moving on as the reader waits, and once that time has
+  passed, that the cap has room, so the reader tries again. A refusal that said nothing of when is a
+  day at most away, as the caps count the 24 hours before each start
 */
 function ConversationCapRefusal({ failure, retryAt }: Props) {
   const { formatMessage, formatRelativeTime } = useIntl()
   const now = useNow()
   const { message, max } = CAPS[failure]
+
+  if (retryAt !== null && retryAt <= now) return formatMessage(conversationMessages.capFreed)
   const { value, unit } = getTimeUntil(retryAt ?? now + DAILY_CAP_WINDOW_HOURS * 60 * 60 * 1000, now)
 
   return formatMessage(message, { max, time: formatRelativeTime(value, unit) })

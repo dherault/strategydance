@@ -30,6 +30,7 @@
   "conversation.cancel": "キャンセル",
   "conversation.cap.accountConversations": "過去24時間以内に所属組織全体で{max, number}件の会話を開始しました。現在の上限に達しています。{time}に新しい会話を開始できます。",
   "conversation.cap.accountRuns": "Strategy Danceは過去24時間以内に所属組織全体で{max, number}回回答しました。現在の上限に達しています。{time}に再度回答できるようになります。",
+  "conversation.cap.freed": "1日の利用上限に空きができました。もう一度お試しください。",
   "conversation.cap.memberConversations": "過去24時間以内にこの組織で{max, number}件の会話を開始しました。現在の上限に達しています。{time}に新しい会話を開始できます。",
   "conversation.cap.memberRuns": "Strategy Danceは過去24時間以内にこの組織で{max, number}回回答しました。現在の上限に達しています。{time}に再度回答できるようになります。",
   "conversation.cap.organizationConversations": "過去24時間以内にチームがこの組織で{max, number}件の会話を開始しました。現在の上限に達しています。{time}に新しい会話を開始できます。",

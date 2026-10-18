@@ -1497,6 +1497,10 @@
         "hash": "bd956b0c01beaa64",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.cap.freed": {
+        "hash": "71f8dc9195f93d18",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.cap.memberConversations": {
         "hash": "a6eaeb8bacdb972d",
         "locales": "DE,ES,FR,JA,PT,ZH"

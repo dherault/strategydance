@@ -30,6 +30,7 @@
   "conversation.cancel": "Abbrechen",
   "conversation.cap.accountConversations": "Du hast über deine Organisationen hinweg in den letzten 24 Stunden {max, number} Unterhaltungen begonnen, so viele wie im Moment möglich. Du kannst {time} eine weitere beginnen.",
   "conversation.cap.accountRuns": "Strategy Dance hat dir über deine Organisationen hinweg in den letzten 24 Stunden {max, number} Mal geantwortet, so oft wie im Moment möglich. Es kann {time} wieder antworten.",
+  "conversation.cap.freed": "Das Tageslimit hat wieder Kapazität. Versuche es noch einmal.",
   "conversation.cap.memberConversations": "Du hast in dieser Organisation in den letzten 24 Stunden {max, number} Unterhaltungen begonnen, so viele wie im Moment möglich. Du kannst {time} eine weitere beginnen.",
   "conversation.cap.memberRuns": "Strategy Dance hat dir in dieser Organisation in den letzten 24 Stunden {max, number} Mal geantwortet, so oft wie im Moment möglich. Es kann {time} wieder antworten.",
   "conversation.cap.organizationConversations": "Dein Team hat in dieser Organisation in den letzten 24 Stunden {max, number} Unterhaltungen begonnen, so viele wie im Moment möglich. Du kannst {time} eine weitere beginnen.",

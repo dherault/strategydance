@@ -1417,6 +1417,12 @@ const conversationMessages = defineMessages({
     description:
       'Shown above the message field when the server could not take the message for now. What the reader wrote stays in the field.',
   },
+  capFreed: {
+    id: 'conversation.cap.freed',
+    defaultMessage: 'The daily limit has room again. Try once more.',
+    description:
+      'Shown in place of a daily limit reached once the time it said it would have room again has passed, while the reader has not tried again yet. What they wrote stays in the field.',
+  },
   capMemberConversations: {
     id: 'conversation.cap.memberConversations',
     defaultMessage:

@@ -2911,6 +2911,18 @@ and Risks). It removes no gate: M38 does.
   - **Capacity**: the rate limit headers say Evaluation tier, 80,000 output tokens a minute on Opus
     5.5, some twenty runs at once of the seventy the queues dispatch; output is counted as written,
     never from `max_tokens`. Setup 14 asks for the Start tier before M38.
+  - **The decisions, David's on 2026-10-18.** The prompt cache keeps five minutes; subagents keep
+    Opus 5.5 at medium effort; web search keeps its filtering, David leaving it to the session, since
+    citations change the tools list and want the allowance measured again; the caps and the $10 limit
+    stand, and David sets the workspace's spend limit and the budget alert; he asks for the Start
+    tier; the modules go to the MCP Registry after launch; and the legal page is his to write, the
+    points it names in Risks. The searches' allowance went from a provisional 40000 to 16000 tokens
+    a search, against the 8729 the probe measured: a request of some 1200 tokens now reserves about
+    $1.74 alone and $3.90 with its fallback, so a run drops the fallback past some $6.10 spent and
+    ends past some $8.26, and one at 700000 tokens reserves $5.93, ending the run past $4.07.
+  - **The alerts are in production**, created from this session with David's approval: the email
+    channel, the log metric, which reads `textPayload`, where Cloud Run puts a JSON line's
+    `message`, and the four policies of Setup 13.
   - Verified: the four checks; `check:conversation-runs`, `check:subagent-runs` and
     `check:subagents-module` against an emulator of the branch's schema, every check passing, the
     suspension's own among them.

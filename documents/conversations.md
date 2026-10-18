@@ -100,7 +100,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 
 | Topic | Decision |
 | --- | --- |
-| Model | Claude Opus 5.5, `claude-opus-5-5`. A subagent's model and effort are chosen by David from what M33 measures, as he chose on 2026-10-16, Opus 5.5 at medium effort until then |
+| Model | Claude Opus 5.5, `claude-opus-5-5`. A subagent's model and effort are chosen by David from what M33 measures, as he chose on 2026-10-16: Opus 5.5 at medium effort, the parent's, as he chose on 2026-10-18 in M37 |
 | Where it runs | Anthropic's Claude API, directly, through `@anthropic-ai/sdk`. Its key is the `anthropic-api-key` secret, read through `retrieveSecret`, and the workspace it belongs to has a spend limit. Vertex was the first choice, for credentials nothing stores and one bill, until Google gave the project no Claude quota and refused one. The API also has what Vertex lacks: server-side refusal fallbacks, the Files API and the newer web search |
 | How a run executes | In the background. The backend queues a Cloud Tasks task, and the task's request runs the agent loop on a private worker service, the backend's image deployed a second time, writing each step to Data Connect. Locally it runs in the backend's process |
 | What the agent reads | Knowledge, through the Knowledge module, every task on the team's board, through the Tasks module, the organization's profile (name, brief) and the member's own (name, job title, role, bio), never a document the team keeps from AI (`isAiReadable` off), which search leaves out and reading refuses. A task carries no such permission. Not the rest of the team's profiles, the log or top priorities, as David chose on 2026-10-10, nor the checklist, which is going away |
@@ -854,7 +854,11 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   its replies cited nothing, not even as the links the system prompt asks for. With
   `allowed_callers: ["direct"]` on the tool, search stays out of code, the results reach Claude, and
   its reply cited them, drawn with their numbers and sources. Whether to send that, giving up the
-  filtering for citations, is David's call, open when M9's pull request was opened. Each
+  filtering for citations, is David's call, open when M9's pull request was opened. M37 kept the
+  filtering, on 2026-10-18, David leaving it to the session: sending it changes the tools list, which
+  costs every conversation its cached prefix once, and lets a search's raw results reach Claude,
+  past the allowance measured with the filtering, which `probe:claude` measures again first. Before
+  launch, with staff's few conversations alone, is when switching costs least. Each
   `AGENT_TEXT` and `QUESTION` adds one to
   `unreadCount` and replaces `preview`, in the write that claims its position.
 - **A long reply is drawn in pieces.** Agent text keeps the bound every message keeps,
@@ -1897,8 +1901,9 @@ cost of a search step before a deferred tool's first use; Knowledge's and the Ta
 7381 (M17), and with the Subagents module's 9021, the whole list 16017 (M33). A tool declared deferred that nothing has used yet is also outside what a replay's
 thinking is checked against, so a module joining that way would cost no conversation its earlier
 reasoning.
-Listing the modules in the MCP Registry, under the `com.strategydance` name a DNS record proves, is
-David's call in M37.
+Listing the modules in the MCP Registry, under the `com.strategydance` name a DNS record proves,
+waits until after launch, as David chose on 2026-10-18 in M37: until M38 removes the gates, a
+listing would lead people to a sign-in they cannot pass.
 
 ### Subagents
 
@@ -2639,7 +2644,10 @@ account, and until both exist every send in production answers 503.
       --add-exclusion='name=integration-oauth-callback,filter=logName="projects/strategydance/logs/run.googleapis.com%2Frequests" AND httpRequest.requestUrl:"/integrations/oauth/callback"'
     ```
 
-13. For M37, alerts in Cloud Monitoring, mailed to `david@strategydance.com`. Cloud Tasks publishes
+13. For M37, alerts in Cloud Monitoring, mailed to `david@strategydance.com`, done on 2026-10-18
+    with the commands and policies below, the channel `notificationChannels/1619287137291601807`.
+    Cloud Run turns a JSON line's `message` into the entry's `textPayload`, which the metric's filter
+    reads, never `jsonPayload`. Cloud Tasks publishes
     no age for the oldest task a queue holds, only its depth and how late each attempt ran past its
     schedule, so those two stand for it. The worker answers 503 by design for a run it holds, a
     chain's or one delivered twice, which Cloud Tasks retries, so its error rate leaves 503 out:
@@ -2649,11 +2657,11 @@ account, and until both exist every send in production answers 503.
       --type email --channel-labels email_address=david@strategydance.com
     gcloud logging metrics create conversation-runs-interrupted --project strategydance \
       --description 'Conversation runs that died with their worker, finalized as interrupted' \
-      --log-filter 'resource.type="cloud_run_revision" AND jsonPayload.message:"Interrupted a dead conversation run"'
+      --log-filter 'resource.type="cloud_run_revision" AND textPayload:"Interrupted a dead conversation run"'
     ```
 
-    Then four policies (`gcloud alpha monitoring policies create --policy-from-file`), each naming the
-    channel: the worker's 5xx but 503 above two in ten minutes
+    Then four policies (`gcloud monitoring policies create --policy-from-file`), each naming the
+    channel and closing itself after a day: the worker's 5xx but 503 above two in ten minutes
     (`run.googleapis.com/request_count`, `service_name="strategydance-worker"`); each queue's depth
     above its dispatches for fifteen minutes, 50 on `conversation-runs` and 20 on `subagent-runs`
     (`cloudtasks.googleapis.com/queue/depth`); each queue's attempts running five minutes past their
@@ -2671,7 +2679,8 @@ account, and until both exist every send in production answers 503.
     429 and retried twice by the SDK before the run fails. Input holds either way while the cache
     does, the Start tier's 2,000,000 taking ten cold reactions of 200,000 tokens a minute. So the
     tier is raised to Start or above before M38, through Request tier increase on the Console's Rate
-    limits page, and while it is not, a queue's `max-concurrent-dispatches` is never raised. The
+    limits page, which David asks for, as he chose on 2026-10-18, and while it is not, a queue's
+    `max-concurrent-dispatches` is never raised. The
     worker's 20 instances are Cloud Run's default, which `deploy.sh` leaves as it is.
 
 ### Usage caps
@@ -2713,7 +2722,8 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
   reserved by measure (below) and can pass its allowance within the request that retrieves it. The
   figures that follow from them, a subagent's, a fan-out's and a day's, are bounds in the same sense.
   Reserving for a cold cache stops a run over a very large context sooner, some $3.50 into a run at
-  700000 tokens once its searches are reserved too (M35), which is the price of that bound. Three
+  700000 tokens once its searches are reserved too, some $4.07 at the allowance M37 set, which is the
+  price of that bound. Three
   things keep it:
   - **The reservation is stored, and stands while what was billed is unknown.** The lease's write
     that reserves a request records its worst case in the ledger beside its estimate, and the cost
@@ -2731,7 +2741,8 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
     setting caps. Each of the five searches is reserved as one more reading of the whole input, at
     the cache-read rate, since the request's first reading cached it, as David chose on 2026-10-18,
     and an allowance for its results, `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`, the largest M35 measures with
-    `probe:claude` and a margin. The tools list cannot drop search for one request without costing
+    `probe:claude` and a margin: 16000 tokens, as David set it on 2026-10-18 in M37, against the 8729
+    the probe measured that day. The tools list cannot drop search for one request without costing
     every conversation its cache, so a run whose next request cannot hold the allowance ends with
     its limits' note. Here alone the bound rests on a measure rather than a proof: `report:usage`
     (M37) shows any request that passed its reservation, and the allowance is raised from it. A run's side request is priced
@@ -2803,8 +2814,9 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
   750 runs, $7500, beside its members' subagents. The typical day stays near $15 a member. M37 reads
   the recorded usage against them, and David sets them again from it. Read on 2026-10-18 with
   `bun run report:usage --production --days 14`, production held staff's trials alone, 7 runs for
-  $0.28, no subagent and no file, which says nothing yet of members' days: the caps stand until there
-  is usage to read.
+  $0.28, no subagent and no file, which says nothing yet of members' days: the caps and the $10
+  limit stand, as David chose on 2026-10-18, until there is usage to read, and he sets the
+  workspace's spend limit and the budget alert himself before M38.
 - The spend limit and the budget alert stay the guard above them, across organizations.
 
 ### Cost
@@ -2838,7 +2850,9 @@ member's messages it holds only for five minutes, the default lifetime: a reply 
 pause writes the whole conversation to the cache again, at $5 a million, which for a 100000-token
 conversation is $0.50 a message. A one-hour lifetime on the conversation's breakpoint costs $8 a
 million to write and survives a coffee break. M9 records cache reads and writes per request, and
-the lifetime is chosen from what members' pauses turn out to be.
+the lifetime is chosen from what members' pauses turn out to be. It stays at five minutes, as David
+chose on 2026-10-18 in M37: staff's three pauses measured say nothing yet, and `report:usage` buckets
+members' once they write.
 
 ## Risks and open questions
 

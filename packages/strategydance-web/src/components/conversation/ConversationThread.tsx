@@ -58,6 +58,7 @@ import ConversationAgentMessage from '~components/conversation/ConversationAgent
 import ConversationApproval from '~components/conversation/ConversationApproval'
 import ConversationAspectsNote from '~components/conversation/ConversationAspectsNote'
 import ConversationBrief from '~components/conversation/ConversationBrief'
+import ConversationDecidedApproval from '~components/conversation/ConversationDecidedApproval'
 import ConversationDocumentRestore from '~components/conversation/ConversationDocumentRestore'
 import ConversationIntegrationIssue from '~components/conversation/ConversationIntegrationIssue'
 import ConversationMemberMessage from '~components/conversation/ConversationMemberMessage'
@@ -443,7 +444,8 @@ function ConversationThread({
 
         // Decided, it is the call it became: allowed and waiting to run, run, or denied
         return (
-          <ConversationToolCall
+          <ConversationDecidedApproval
+            messageId={entry.id}
             toolName={entry.toolName ?? ''}
             status={entry.toolStatus ?? ConversationToolStatus.RUNNING}
             onOpen={() => setOpenToolCall(entry)}

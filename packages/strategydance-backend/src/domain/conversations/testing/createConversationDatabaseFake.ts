@@ -421,16 +421,22 @@ function createConversationDatabaseFake() {
   }
 
   // Asks the runs in flight that `isReached` reaches to stop, as a suspension does, the account's or
-  // the organization's: their own queued or running, and their subagents' waiting for a slot too
+  // the organization's: their own queued or running, and their subagents' waiting for a slot too.
+  // Answers how many of each it asked, as the mutation's two steps do
   function requestSuspendedRunsStop(isReached: (conversation: FakeConversation) => boolean) {
+    const asked = { runs: 0, subagentRuns: 0 }
+
     for (const run of runs.values()) {
       const conversation = conversations.get(run.conversationId)
       const states = conversation?.parentId ? ['QUEUED', 'RUNNING', 'PENDING'] : RUN_IN_FLIGHT
 
       if (conversation && isReached(conversation) && states.includes(run.status) && run.stopRequestedAt === null) {
         run.stopRequestedAt = now()
+        asked[conversation.parentId ? 'subagentRuns' : 'runs']++
       }
     }
+
+    return asked
   }
 
   function addMember(userId: string, organizationId: string, { isAdministrator = true } = {}) {
@@ -1615,9 +1621,11 @@ function createConversationDatabaseFake() {
       const user = users.get(userId) ?? refuse('No such account')
 
       user.conversationsSuspendedAt = now()
-      requestSuspendedRunsStop(conversation => conversation.userId === userId)
 
-      return { user_update: { id: userId } }
+      return {
+        user_update: { id: userId },
+        ...requestSuspendedRunsStop(conversation => conversation.userId === userId),
+      }
     },
 
     LiftUserConversationsSuspension: ({ userId }) => {
@@ -1633,9 +1641,11 @@ function createConversationDatabaseFake() {
       const organization = organizations.get(organizationId) ?? refuse('No such organization')
 
       organization.conversationsSuspendedAt = now()
-      requestSuspendedRunsStop(conversation => conversation.organizationId === organizationId)
 
-      return { organization_update: { id: organizationId } }
+      return {
+        organization_update: { id: organizationId },
+        ...requestSuspendedRunsStop(conversation => conversation.organizationId === organizationId),
+      }
     },
 
     LiftOrganizationConversationsSuspension: variables => {

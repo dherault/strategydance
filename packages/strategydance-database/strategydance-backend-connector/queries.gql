@@ -2383,6 +2383,60 @@ query GetSubagentWritesForAgent(
   }
 }
 
+# The calls a subagent made to the organization's integrations, oldest first: those that started,
+# since a call refused as it was drawn, or one waiting on an approval nobody gave it, reached no
+# server. Each with the server and the tool as they were named at call time, its status and whether
+# it finished. A chain makes at most 200 calls, so 200 is all of them, with their count. The
+# backend reads the subagent first, as the caller's and its parent's
+query GetSubagentIntegrationCallsForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $subagentId: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  calls: conversationMessages(
+    where: {
+      conversation: {
+        id: { eq: $subagentId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+      }
+      kind: { in: [TOOL_CALL, APPROVAL] }
+      integrationToolName: { isNull: false }
+      toolStartedAt: { isNull: false }
+    }
+    orderBy: [{ position: ASC }]
+    limit: 200
+  ) {
+    integrationName
+    integrationToolName
+    toolStatus
+    toolDurationMs
+  }
+  total: conversationMessages(
+    where: {
+      conversation: {
+        id: { eq: $subagentId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        parentId: { isNull: false }
+      }
+      kind: { in: [TOOL_CALL, APPROVAL] }
+      integrationToolName: { isNull: false }
+      toolStartedAt: { isNull: false }
+    }
+  ) {
+    _count
+  }
+}
+
 # What a parent's reaction to its subagents' reports reads before it starts, and what a send, an
 # answer and a full ending read of the reports waiting:
 #

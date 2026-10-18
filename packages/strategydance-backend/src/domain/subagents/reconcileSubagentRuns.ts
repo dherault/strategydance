@@ -4,6 +4,8 @@ import type { ConversationRunReference } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import logger from '~utils/logger'
+
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import decidePendingSubagentRun from '~domain/subagents/decidePendingSubagentRun'
 import endPendingSubagentRun from '~domain/subagents/endPendingSubagentRun'
@@ -27,28 +29,52 @@ type Member = Pick<ConversationRunReference, 'organizationId' | 'userId'>
     or its subagent was deleted, interrupted when its member's membership changed or went, a hundred
     at a time, read again until none is left
   - then the oldest runs waiting are promoted into the slots free, while the member still is one
+
+  A run that cannot be finalized or ended is logged and left, read no more this time, so the runs
+  after it and the promotion still go: the reconcile throws once done, naming how many it left, so
+  its route and the sweep report it, and the next reconcile tries them again
 */
 async function reconcileSubagentRuns(member: Member) {
   const { data } = await getSubagentSlots(dataConnect, member)
   const membershipCreatedAt = data.userOrganization?.createdAt ?? null
+  // The runs it could not end, which it reads past from then on
+  const failed = new Set<string>()
 
-  await finalizeDeadConversationRuns(member, data.activeRuns, 'subagent-runs')
+  try {
+    await finalizeDeadConversationRuns(member, data.activeRuns, 'subagent-runs')
+  } catch (error) {
+    logger.error(`Member ${member.userId}: their dead subagent runs could not all be finalized`, error)
+
+    failed.add('dead runs')
+  }
 
   for (let round = 1; round <= MAX_ROUNDS; round++) {
-    const runs = await readSkippedRuns(member, membershipCreatedAt)
+    const runs = (await readSkippedRuns(member, membershipCreatedAt)).filter(({ id }) => !failed.has(id))
 
     if (!runs.length) break
 
     for (const run of runs) {
       const fate = decidePendingSubagentRun(run, membershipCreatedAt)
 
-      if (fate !== 'promoted') {
+      if (fate === 'promoted') continue
+
+      try {
         await endPendingSubagentRun({ ...member, conversationId: run.conversation.id, runId: run.id }, fate)
+      } catch (error) {
+        logger.error(`Subagent run ${run.id}: it could not be ended ${fate}, and is left for the next reconcile`, error)
+
+        failed.add(run.id)
       }
     }
   }
 
   if (membershipCreatedAt) await promoteSubagentRuns(member)
+
+  if (failed.size) {
+    throw new Error(
+      `Member ${member.userId}: ${failed.size} of its runs could not be ended, left for the next reconcile`,
+    )
+  }
 }
 
 // The runs waiting for a slot that the promotion skips, oldest first: every one once the member is

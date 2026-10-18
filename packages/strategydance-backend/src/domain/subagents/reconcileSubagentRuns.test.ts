@@ -169,6 +169,30 @@ describe('reconcileSubagentRuns', () => {
     expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: waiting?.runId }), 'subagent-runs')
   })
 
+  test('promotes into the slot free though a run it should end cannot be, and throws once done', async () => {
+    const { running, pending } = await fillSlots(2)
+    const [ofBefore, waiting] = pending
+    const run = kit.readRun(ofBefore ?? MEMBER_RUN)
+
+    // A run of a membership since replaced, whose ending the database refuses every time
+    if (run) run.membershipCreatedAt = '2026-01-01T00:00:00.000000Z'
+
+    fake.beforeOperation = async name => {
+      if (name === 'InterruptPendingSubagentRun') throw new Error('The database is unreachable')
+    }
+
+    await kit.call('finishSubagentRun', {
+      ...(await kit.claim(running[0] ?? MEMBER_RUN)),
+      status: 'COMPLETED',
+      report: 'Done.',
+    })
+
+    await expect(reconcileSubagentRuns(MEMBER)).rejects.toThrow('1 of its runs could not be ended')
+
+    expect(readStatuses(pending)).toEqual(['PENDING', 'QUEUED'])
+    expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: waiting?.runId }), 'subagent-runs')
+  })
+
   test('ends every run the promotion skips, a hundred at a time, past the first hundred', async () => {
     await fillSlots(0)
 

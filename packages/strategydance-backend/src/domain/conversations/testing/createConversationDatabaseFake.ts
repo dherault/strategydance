@@ -2638,6 +2638,7 @@ function createConversationDatabaseFake() {
 
       end(run, 'STOPPED')
       run.failure = 'Its member stopped it while it was queued'
+      cancelRunningCalls(run.conversationId)
       writeNote(conversation, variables, 'STOPPED')
       askSubagentRunsToStop(conversation.id, { anchorPosition: variables.anchorPosition })
 
@@ -4363,6 +4364,7 @@ function createConversationDatabaseFake() {
 
       end(run, 'STOPPED')
       assignGiven(run, { failure: variables.failure })
+      cancelRunningCalls(run.conversationId)
       writeNote(conversation, variables, 'STOPPED')
       writeReport(conversation, variables)
 

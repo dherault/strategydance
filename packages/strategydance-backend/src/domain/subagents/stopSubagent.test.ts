@@ -185,6 +185,38 @@ describe('stopSubagent', () => {
     expect(fake.runs.get(nextRunId)?.status).toBe('STOPPED')
   })
 
+  test('cancels the calls a chain left running for its queued run, when it ends that run stopped', async () => {
+    const parent = await startRunning()
+    const subagent = await kit.launch(parent)
+
+    await kit.claim(subagent)
+
+    // The run chained at its limits with a call still running, which its next run would have run
+    const nextRunId = createId()
+    const chained = fake.runs.get(subagent.runId)!
+
+    chained.status = 'CHAINED'
+    fake.runs.set(nextRunId, { ...chained, id: nextRunId, number: 1, trigger: 'CONTINUE', status: 'QUEUED' })
+    fake.conversations.get(subagent.conversationId)!.activeRunId = nextRunId
+    fake.messages.set('call', {
+      id: 'call',
+      conversationId: subagent.conversationId,
+      runId: subagent.runId,
+      kind: 'TOOL_CALL',
+      text: null,
+      noteKind: null,
+      toolStatus: 'RUNNING',
+      position: 1,
+      toolUseId: 'toolu_running',
+      toolName: 'read_document',
+    })
+
+    await stop(parent, subagent.conversationId)
+
+    expect(fake.runs.get(nextRunId)?.status).toBe('STOPPED')
+    expect(fake.messages.get('call')?.toolStatus).toBe('CANCELLED')
+  })
+
   test('answers a stop whose answer was lost from its key, rather than as a stop asked before', async () => {
     const parent = await startRunning()
     const subagent = await kit.launch(parent)

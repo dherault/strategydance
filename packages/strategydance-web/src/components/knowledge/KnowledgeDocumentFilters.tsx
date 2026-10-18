@@ -16,8 +16,14 @@ type Props = {
   onAspectsChange: (aspects: CompanyAspect[]) => void
 }
 
-// What narrows the Knowledge page: words its documents' titles hold, and the aspects they are
-// tagged with. Laid in the page's toolbar, from its left. Escape empties the search
+/*
+  What narrows the Knowledge page: words its documents' titles hold, and the aspects they are
+  tagged with. Laid in the page's toolbar, from its left. Escape empties the search.
+
+  The search is as wide as the first column of cards under it, so it ends where that card ends: its
+  container queries read the page's container, as wide as the grid's own, at the grid's breakpoints
+  and gap (`KnowledgeDocumentGrid`), which change with them
+*/
 function KnowledgeDocumentFilters({ query, aspects, onQueryChange, onAspectsChange }: Props) {
   const { formatMessage } = useIntl()
 
@@ -34,7 +40,7 @@ function KnowledgeDocumentFilters({ query, aspects, onQueryChange, onAspectsChan
         value={query}
         placeholder={formatMessage(knowledgeMessages.searchPlaceholder)}
         aria-label={formatMessage(knowledgeMessages.searchPlaceholder)}
-        className="min-w-50 flex-[0_1_320px]"
+        className="w-[calc((100%-2rem)/3)] flex-none @max-[720px]:w-[calc((100%-1rem)/2)] @max-[460px]:w-full"
         onChange={event => onQueryChange(event.target.value)}
         onKeyDown={handleKeyDown}
       />

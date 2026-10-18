@@ -113,7 +113,7 @@ function KnowledgeDocuments() {
             : undefined
         }
       />
-      <div className="flex flex-col gap-3">
+      <div className="@container flex flex-col gap-3">
         <PageToolbar
           actions={
             <>

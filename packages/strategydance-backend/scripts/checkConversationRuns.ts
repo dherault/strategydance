@@ -3344,8 +3344,9 @@ try {
   await checkTagging()
   await checkIntegrationCalls()
   await checkApprovals()
-  await checkDailyCaps()
+  // Before the caps' checks, which fill the organization's daily caps
   await checkSuspension()
+  await checkDailyCaps()
 } finally {
   await tearDown()
 }

@@ -661,7 +661,7 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   userId, activeRunId: { isNull: true } })` and `@check(this == 1)`, then inserts the run; a
   conversation already running answers `ERROR_CODE_CONVERSATION_BUSY`.
 - **Leases.** A claimed run's `leaseExpiresAt` is sixty seconds out, renewed every twenty; past it,
-  the run is dead. A queued run's lease (twenty minutes) only says when to ask Cloud Tasks again,
+  the run is dead. A queued run's lease (two minutes) only says when to ask Cloud Tasks again,
   since a backlog can outlast any deadline: past it, a route looks the named task up and pushes the
   lease back while the task exists; once it is gone, or never existed, the run is dead. Send,
   answer, stop, resume and retry first finalize a dead active run as `INTERRUPTED` (running calls
@@ -716,7 +716,12 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   then queues a run whose task is gone again while the run is under twenty minutes old, pushing its
   lease back, and the page asks every two minutes while it fails, so a passing outage recovers
   with nothing asked of the member. Past twenty minutes, a run with no task is finalized as
-  interrupted. A task name stays taken for up to 24 hours after its task ends (Cloud Tasks'
+  interrupted. M8 made the queued lease twenty minutes too, which left the window unreachable but
+  through a failed queueing: a run whose process went between storing it and queueing it reached
+  its lease already too old, and was finalized after twenty minutes of the thinking indicator, or,
+  a run no page watches, at the daily sweep. The review of M1 to M38 brought the lease to two
+  minutes, the window staying twenty, and the worker's reconcile, every five minutes, finds what no
+  page watches (Setup 15), so such a run is queued again within minutes. A task name stays taken for up to 24 hours after its task ends (Cloud Tasks'
   `CreateTask` reference), so queueing a run whose task has come and gone reads as `ALREADY_EXISTS`,
   and the next reconcile finds no task and, the run being older by then, finalizes it. That is
   rare: the worker claims a queued run it is delivered, so a young queued run with no task is
@@ -2069,12 +2074,13 @@ way (see The orchestrator).
   whose task is gone while it is under twenty minutes old, as the run reconcile does, finalizes the
   `PENDING` runs the promotion skips, promotes `PENDING` runs into free slots, and starts the
   parent's reaction when one is due. A worker's crash is delivered again by Cloud Tasks, as for any
-  run. With no page open, the daily sweep is the backstop: it finalizes subagent runs past their
+  run. With no page open, the worker's reconcile every five minutes is the backstop, and the daily
+  sweep does the same before it prunes: it finalizes subagent runs past their
   lease and promotes as the route does, and it reconciles every queued run past its lease that no
   page will, a reaction's above all: a reaction whose task could not be created has its lease
   brought in to now, as `enqueueRun` does, but its reports are already marked delivered, so nothing
-  of its parent's page polls for it. The sweep asks Cloud Tasks for its task and queues it again, or
-  finalizes it as interrupted once it is twenty minutes old, as the run reconcile does. A subagent finalized as interrupted reports so, and its
+  of its parent's page polls for it. The reconcile asks Cloud Tasks for its task and queues it again,
+  or finalizes it as interrupted once it is twenty minutes old, as the run reconcile does. A subagent finalized as interrupted reports so, and its
   parent reacts.
 - **The parent reacts.** `launch_subagent` answers at once with the subagent's id, and the parent's
   turn goes on or ends: nothing waits on subagents. David chose both a wait tool and a reaction to
@@ -2675,6 +2681,19 @@ account, and until both exist every send in production answers 503.
     limits page, which David asks for, as he chose on 2026-10-18, and while it is not, a queue's
     `max-concurrent-dispatches` is never raised. The
     worker's 20 instances are Cloud Run's default, which `deploy.sh` leaves as it is.
+15. After the review of M1 to M38, once its release has deployed the worker's
+    `POST /internal/runs-reconcile`: a Cloud Scheduler job calling it every five minutes, as step 6's
+    job calls the sweep, so the runs no page watches, a subagent's, a promotion's, a chain's or a
+    reaction's, are reconciled within minutes rather than at the daily sweep:
+
+    ```sh
+    gcloud scheduler jobs create http conversations-runs-reconcile --location us-central1 --project strategydance \
+      --schedule '*/5 * * * *' --time-zone Etc/UTC --http-method POST \
+      --uri https://strategydance-worker-995028545701.us-central1.run.app/internal/runs-reconcile \
+      --oidc-service-account-email conversation-tasks@strategydance.iam.gserviceaccount.com \
+      --oidc-token-audience https://strategydance-worker-995028545701.us-central1.run.app \
+      --attempt-deadline 5m
+    ```
 
 ### Usage caps
 

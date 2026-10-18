@@ -793,11 +793,11 @@ A conversation is kept twice, once for Claude and once for the page, and
   subagent's module writes and of its calls to integrations, with their totals, in the key order the
   system prompt names, and `read_subagent` pages the writes and lists every call: the calls are those
   that started (`GetSubagentIntegrationCallsForAgent`), each with its server, its tool and how it
-  ended, since a call to another company's server is what no restore undoes: a call its server never
-  answered, which timed out, could not reach it, was interrupted or brought an answer too large to
-  read, is recorded so on its message
-  (`isToolUnanswered`, from `IntegrationCallUnanswered`), since it may have run, which its duration
-  cannot say. A subagent's end starts its parent's;
+  ended, since a call to another company's server is what no restore undoes: a call that failed
+  without its server refusing it before running it, its address, its credential, a refusal it
+  answered or a 4xx, is recorded as unanswered on its message (`isToolUnanswered`, from
+  `IntegrationCallUnanswered`), since it may have run, which its duration cannot say: one that timed
+  out, found no server, was interrupted or brought an answer that could not be read. A subagent's end starts its parent's;
   any other run's end, the route-side ones included, starts the member's oldest due
   (`startDueSubagentReactions`), its own conversation's first; the subagents' reconcile route and
   the daily sweep (`sweepSubagentReactions`) start them too, the sweep every one. A new way to end a

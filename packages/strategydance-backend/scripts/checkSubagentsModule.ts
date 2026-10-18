@@ -208,7 +208,7 @@ async function insertCallResult(idempotencyScope: string, idempotencyKey: string
 async function insertIntegrationCall(
   conversationId: string,
   position: number,
-  call: { toolStatus: string; isStarted?: boolean; toolDurationMs?: number | null },
+  call: { toolStatus: string; isStarted?: boolean; toolDurationMs?: number | null; isToolUnanswered?: boolean },
 ) {
   await write(
     `mutation InsertIntegrationCall(
@@ -218,12 +218,14 @@ async function insertIntegrationCall(
       $toolStatus: ConversationToolStatus!
       $toolStartedAt: Timestamp
       $toolDurationMs: Int
+      $isToolUnanswered: Boolean
       $integrationToolName: String!
     ) {
       conversationMessage_insert(data: {
         conversationId: $conversationId, kind: TOOL_CALL, position: $position, toolUseId: $toolUseId,
         toolName: "call_integration_tool", toolStatus: $toolStatus, toolStartedAt: $toolStartedAt,
-        toolDurationMs: $toolDurationMs, integrationName: "DeepWiki", integrationToolName: $integrationToolName
+        toolDurationMs: $toolDurationMs, isToolUnanswered: $isToolUnanswered, integrationName: "DeepWiki",
+        integrationToolName: $integrationToolName
       })
     }`,
     {
@@ -233,6 +235,7 @@ async function insertIntegrationCall(
       toolStatus: call.toolStatus,
       toolStartedAt: call.isStarted === false ? null : new Date().toISOString(),
       toolDurationMs: call.toolDurationMs ?? null,
+      isToolUnanswered: call.isToolUnanswered ?? null,
       integrationToolName: `tool_${position}`,
     },
   )
@@ -653,7 +656,11 @@ async function checkReading() {
   // parent's own, which is no subagent's
   await insertIntegrationCall(first.conversationId, 1030, { toolStatus: 'RUNNING' })
   await insertIntegrationCall(first.conversationId, 1010, { toolStatus: 'SUCCEEDED', toolDurationMs: 800 })
-  await insertIntegrationCall(first.conversationId, 1020, { toolStatus: 'FAILED' })
+  await insertIntegrationCall(first.conversationId, 1020, {
+    toolStatus: 'FAILED',
+    toolDurationMs: 30000,
+    isToolUnanswered: true,
+  })
   await insertIntegrationCall(first.conversationId, 1025, { toolStatus: 'FAILED', isStarted: false })
   await insertIntegrationCall(second.conversationId, 1010, { toolStatus: 'SUCCEEDED', toolDurationMs: 100 })
   await insertIntegrationCall(parent.conversationId, 1010, { toolStatus: 'SUCCEEDED', toolDurationMs: 100 })
@@ -664,12 +671,14 @@ async function checkReading() {
   })
 
   check(
-    'the calls read those the subagent started, oldest first, with their status, duration and count',
+    'the calls read those the subagent started, oldest first, with their status, duration, answer and count',
     calls.membership.length === 1
       && calls.calls.map(({ integrationToolName }) => integrationToolName).join() === 'tool_1010,tool_1020,tool_1030'
       && calls.calls.map(({ toolStatus }) => toolStatus).join() === 'SUCCEEDED,FAILED,RUNNING'
       && calls.calls[0]?.toolDurationMs === 800
-      && calls.calls[1]?.toolDurationMs === null
+      && calls.calls[0].isToolUnanswered === null
+      && calls.calls[1]?.toolDurationMs === 30000
+      && calls.calls[1].isToolUnanswered === true
       && calls.calls.every(({ integrationName }) => integrationName === 'DeepWiki')
       && calls.total[0]?._count === 3,
   )

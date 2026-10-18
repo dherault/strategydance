@@ -30,7 +30,7 @@ export const statusSchema = z.enum(SUBAGENT_STATUSES)
 export const SUBAGENT_INTEGRATION_CALL_ENDINGS = [
   'SUCCEEDED',
   'FAILED',
-  'INTERRUPTED',
+  'UNANSWERED',
   'RUNNING',
 ] as const satisfies readonly SubagentIntegrationCallEnding[]
 

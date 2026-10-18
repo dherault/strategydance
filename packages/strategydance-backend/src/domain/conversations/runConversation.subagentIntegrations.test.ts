@@ -342,8 +342,43 @@ describe('runConversation, a subagent calling an integration', () => {
     expect(server.calls).toHaveLength(1)
     expect(readCall(subagent, 'toolu_1')?.toolStatus).toBe('FAILED')
     expect(readCall(subagent, 'toolu_1')?.toolDurationMs ?? null).toBeNull()
+    expect(readCall(subagent, 'toolu_1')?.isToolUnanswered).toBe(true)
     expect(readResults(client.readRequests()[1]).get('toolu_1')).toEqual({ content: INTERRUPTED, isError: true })
     expect(readRun(next)?.status).toBe('COMPLETED')
+  })
+
+  test('records a call its server never answered, which may have run, apart from one it answered with an error', async () => {
+    const answered = await kit.launch(await startParent())
+
+    server.switches.isFailing = true
+    await run(answered, createClient([calling(callTool('toolu_1')), answer()]))
+    server.switches.isFailing = false
+
+    expect(readCall(answered, 'toolu_1')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: false })
+
+    // The server holds the call past the 60 seconds a call has, here a tenth of a second
+    const held = await kit.launch(await startParent())
+
+    server.switches.isHeld = true
+    await runConversation(held, {
+      client: createClient([calling(callTool('toolu_2')), answer()]).client,
+      retryDelayMs: 1,
+      connectModules: connectTestModules([]),
+      toolTimeoutMs: 100,
+    })
+    server.release()
+
+    expect(readCall(held, 'toolu_2')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: true })
+
+    // The server answers with an error page, as one down does
+    const unreachable = await kit.launch(await startParent())
+    const client = createClient([calling(callTool('toolu_3')), answer()])
+
+    network = { ...server, send: async () => ({ status: 503, headers: {}, body: (async function* () {})() }) }
+    await run(unreachable, client)
+
+    expect(readCall(unreachable, 'toolu_3')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: true })
+    expect(String(readResults(client.readRequests()[1]).get('toolu_3')?.content)).toContain('The call may have run')
   })
 
   test('refreshes the member’s token once when five subagents call one OAuth server at once', async () => {

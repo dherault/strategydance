@@ -206,6 +206,8 @@ export type FakeMessage = {
   toolOutput?: string | null
   toolStartedAt?: string | null
   toolDurationMs?: number | null
+  // A call to an integration's its server never answered, so it may have run
+  isToolUnanswered?: boolean | null
   questionPrompt?: string | null
   questionOptions?: string[] | null
   isMultipleChoice?: boolean | null
@@ -3213,6 +3215,7 @@ function createConversationDatabaseFake() {
         toolStatus: variables.toolStatus,
         toolOutput: variables.toolOutput,
         ...(variables.toolDurationMs === undefined ? {} : { toolDurationMs: variables.toolDurationMs }),
+        ...(variables.isToolUnanswered === undefined ? {} : { isToolUnanswered: variables.isToolUnanswered }),
         ...(approvalState === null ? {} : { approvalState }),
       })
 
@@ -4017,6 +4020,7 @@ function createConversationDatabaseFake() {
           integrationToolName: message.integrationToolName ?? null,
           toolStatus: message.toolStatus,
           toolDurationMs: message.toolDurationMs ?? null,
+          isToolUnanswered: message.isToolUnanswered ?? null,
         })),
         total: [{ _count: calls.length }],
       }

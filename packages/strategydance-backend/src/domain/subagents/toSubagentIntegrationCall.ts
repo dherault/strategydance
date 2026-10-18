@@ -14,39 +14,42 @@ type IntegrationCallRow = {
   integrationToolName?: string | null
   toolStatus?: ConversationToolStatus | null
   toolDurationMs?: number | null
+  isToolUnanswered?: boolean | null
 }
 
 /*
-  A call that started, as `read_subagent` and the reports a parent is delivered name it: a call that
-  finished has its duration, and one finished as interrupted, or cancelled by the end of its run while
-  it was under way, has none
+  A call that started, as `read_subagent` and the reports a parent is delivered name it: a call its
+  server never answered is recorded so, and one finished as interrupted before that was has no
+  duration, as one cancelled by the end of its run while it was under way has none
 */
 function toSubagentIntegrationCall({
   integrationName,
   integrationToolName,
   toolStatus,
   toolDurationMs,
+  isToolUnanswered,
 }: IntegrationCallRow): SubagentIntegrationCall {
   return {
     integration: integrationName ?? '',
     tool: integrationToolName ?? '',
-    ending: toEnding(toolStatus, toolDurationMs),
+    ending: toEnding({ toolStatus, toolDurationMs, isToolUnanswered }),
   }
 }
 
-function toEnding(
-  toolStatus: IntegrationCallRow['toolStatus'],
-  toolDurationMs: IntegrationCallRow['toolDurationMs'],
-): SubagentIntegrationCallEnding {
+function toEnding({
+  toolStatus,
+  toolDurationMs,
+  isToolUnanswered,
+}: Pick<IntegrationCallRow, 'toolStatus' | 'toolDurationMs' | 'isToolUnanswered'>): SubagentIntegrationCallEnding {
   switch (toolStatus) {
     case ConversationToolStatus.SUCCEEDED:
       return 'SUCCEEDED'
     case ConversationToolStatus.FAILED:
-      return toolDurationMs === null || toolDurationMs === undefined ? 'INTERRUPTED' : 'FAILED'
+      return isToolUnanswered || toolDurationMs === null || toolDurationMs === undefined ? 'UNANSWERED' : 'FAILED'
     case ConversationToolStatus.RUNNING:
       return 'RUNNING'
     default:
-      return 'INTERRUPTED'
+      return 'UNANSWERED'
   }
 }
 

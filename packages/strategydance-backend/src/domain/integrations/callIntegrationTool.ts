@@ -18,6 +18,7 @@ import createIntegrationFetch, { type IntegrationNetwork } from '~domain/integra
 import decryptIntegrationKey from '~domain/integrations/decryptIntegrationKey'
 import describeIntegrationUnavailability from '~domain/integrations/describeIntegrationUnavailability'
 import IntegrationCallChanged from '~domain/integrations/IntegrationCallChanged'
+import IntegrationCallUnanswered from '~domain/integrations/IntegrationCallUnanswered'
 import readConversationIntegration from '~domain/integrations/readConversationIntegration'
 import type { ConversationIntegrationCaller } from '~domain/integrations/readConversationIntegrations'
 import readIntegrationAccessToken, { type IntegrationAccess } from '~domain/integrations/readIntegrationAccessToken'
@@ -282,7 +283,12 @@ async function callServer({ name, url, credential, fetch, signal, toolName, args
 
     logger.info(`Integrations: a call to ${new URL(url).origin} failed, ${failure.kind}`)
 
-    throw new Error(describeFailure(name, failure.kind))
+    const sentence = describeFailure(name, failure.kind)
+
+    // A server that never answered may have run the call, which the call is recorded as
+    throw failure.kind === IntegrationError.TIMED_OUT || failure.kind === IntegrationError.UNREACHABLE
+      ? new IntegrationCallUnanswered(sentence)
+      : new Error(sentence)
   }
 }
 

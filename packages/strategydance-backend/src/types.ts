@@ -469,6 +469,9 @@ export type SubagentsRefusal =
   /** A launch past the 10 on the calling run's anchor, or past the 100 a conversation holds */
   | { outcome: 'tooManyOnAnchor' }
   | { outcome: 'tooMany' }
+  /** A launch past the 30 subagents the member launched in the organization in 24 hours, or the 60
+   * the account launched across its organizations, which have room again after `retryAfterMs` */
+  | { outcome: 'tooManyToday'; cap: ReachedUsageCap }
   /** A file the conversation has not sent */
   | { outcome: 'attachmentsInvalid' }
   /** A launch whose first request, measured whole, would pass a send's budget */

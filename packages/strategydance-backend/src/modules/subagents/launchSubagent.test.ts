@@ -106,6 +106,25 @@ describe('launch_subagent', () => {
     )
   })
 
+  it('refuses a launch past the member’s thirty in a day, and the account’s sixty, saying when they can launch again', async () => {
+    const parent = await conversation.startRunning()
+    const kit = await conversation.connect(parent)
+
+    // The thirtieth newest launched an hour and 29 seconds ago, so the cap has room in 23 hours less
+    conversation.kit.seedStarts('SUBAGENT', 30)
+
+    expect(await kit.refusal('launch_subagent', LAUNCH, 'toolu_01')).toBe(
+      'The member launched 30 subagents in this organization in the last 24 hours, the most they may. They can launch again in about 23 hours: do the work yourself meanwhile.',
+    )
+
+    fake.cappedStarts.clear()
+    conversation.kit.seedStarts('SUBAGENT', 60, { organization: '7d6c5b4a39284f1e8d7c6b5a49382716', hoursAgo: 23.9 })
+
+    expect(await kit.refusal('launch_subagent', LAUNCH, 'toolu_02')).toBe(
+      'The member launched 60 subagents across their organizations in the last 24 hours, the most they may. They can launch again in 6 minutes: do the work yourself meanwhile.',
+    )
+  })
+
   it("refuses a launch from a reaction to subagents' reports, read first and inside its mutation, and serves its reads and its stop", async () => {
     const REFUSAL =
       "This run reacts to subagents' reports, and launches no subagents: every one starts from the member's word. Do the work yourself, or tell the member what you would hand off."

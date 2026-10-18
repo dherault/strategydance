@@ -86,7 +86,7 @@ nothing, rather than leave the daily sweep their only recovery.
 | M32 | The Subagents module | core, backend, database, web | M31 | #196 |
 | M33 | Subagents in conversations | backend, database, root | M11, M32 | #200 |
 | M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | #202 |
-| M35 | Usage caps | core, database, backend, web, root | M33 | |
+| M35 | Usage caps | core, database, backend, web, root | M33 | #207 |
 | M36 | Integrations in subagents | backend, web | M29, M33 | |
 | M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | |
 | M38 | Launch | all | all | |

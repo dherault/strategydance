@@ -42,7 +42,7 @@ mock.module('~middleware/appCheck', () => ({ default: passThrough }))
 
 mock.module('~middleware/authentication', () => ({
   default: (request: Request, _response: Response, next: NextFunction) => {
-    request.viewer = { id: request.header('x-viewer') ?? MEMBER, email: null }
+    request.viewer = { id: request.header('x-viewer') ?? MEMBER, email: null, isEmailVerified: true }
     next()
   },
 }))

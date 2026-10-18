@@ -24,6 +24,9 @@ export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategy
 export type Viewer = {
   id: string
   email: string | null
+  // Whether the token says their address is confirmed, which a token minted before they confirmed
+  // it does not, until the browser mints another
+  isEmailVerified: boolean
 }
 
 declare module 'express' {

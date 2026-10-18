@@ -21,7 +21,7 @@ merges, write its pull request number in the table below.
   its data, waiters keyed on the organization's id, no `useMemo` or `useCallback`.
 - Backend files: `routes/conversations.ts` (mounted at
   `/organizations/:organizationId/conversations` with `mergeParams`), `routes/internal.ts` (mounted
-  by the worker service only), `middleware/organizationMember.ts`, `middleware/staffOnly.ts`,
+  by the worker service only), `middleware/organizationMember.ts`,
   `middleware/conversationSearchRateLimit.ts`, `domain/conversations/`, `domain/agent/`; for the
   modules, `modules/` (one folder per module), `domain/knowledge/`, `domain/tasks/`, `domain/subagents/`,
   `routes/oauth.ts` (mounted at `/oauth`), `routes/modules.ts` (mounted at `/mcp`), `domain/oauth/`

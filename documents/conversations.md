@@ -74,7 +74,9 @@ what getting ready for launch settled, in Release gate, Setup and Risks: a suspe
 where a worker claims a run, never at the steps after, and asks the runs in flight to stop in the
 write that records it; the thread's bound on Markdown counts what micromark was measured slow on,
 quote markers and runs of asterisks beside brackets and list markers; and the organization's rate
-limits, read from the API, hold some twenty runs at once, not the seventy the queues dispatch. When a
+limits, read from the API, hold some twenty runs at once, not the seventy the queues dispatch.
+Revised on 2026-10-18, in M38, with the launch: every release gate removed by name, so every member
+of every organization has conversations, integrations and the modules (see Release gate). When a
 decision changes, change it here first.
 
 ## The design
@@ -116,7 +118,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Subagents | Strategy Dance's agent hands work off to subagents, runs of its own that carry out a brief it writes, in parallel, and report back, as David chose on 2026-10-12: through the Subagents module, an MCP server of Strategy Dance's that only its own agents reach, in process (M30 to M34). A subagent acts as the member, is one level deep, has every tool the agent has but `ask_user`, the Subagents module's own and, as David chose on 2026-10-16, the two deletes, and takes up to four chained runs. The parent reacts to their reports in a run of its own, the first run no member starts, and never launches from it (see Subagents) |
 | The orchestrator | Later, with no milestones yet: once a day in each organization that turns it on, a run acting as the organization, through an agent membership, reads its documents and tasks, launches subagents, reorganizes what it finds and keeps a log (see The orchestrator). Until then nothing starts without a member, except a parent's reaction to its subagents |
 | The aspect page | Unchanged: no Conversations section and no suggestions in this plan, as David chose on 2026-10-11, since their design will likely change. The agent still tags each conversation's aspects (M23) |
-| Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone opens it to everyone, modules' connections from external agents included |
+| Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone, M38, opened it to everyone, modules' connections from external agents included |
 | Pull requests | Small, one concern each |
 
 ## What the design asks for
@@ -462,8 +464,8 @@ MiB), `MAX_CONVERSATION_PDF_PAGES_TOTAL` (300). Per run: `MAX_CONVERSATION_RUN_E
 `MAX_CONVERSATION_PDF_PAGES` (100), `MAX_CONVERSATION_TEXT_ATTACHMENT_LENGTH` (200000),
 `MAX_QUESTION_OPTIONS` (6), `MAX_QUESTION_PROMPT_LENGTH` (1000), `MAX_QUESTION_OPTION_LENGTH` (200),
 `MAX_ANSWER_OTHER_LENGTH` (500). And `CONVERSATION_ATTACHMENT_CONTENT_TYPES`, the release gate
-`ARE_CONVERSATIONS_STAFF_ONLY`, and the error codes `ERROR_CODE_CONVERSATION_BUSY` and
-`ERROR_CODE_CONVERSATION_FULL`. M25 added, per conversation, `MAX_CONVERSATION_ATTACHMENTS` (100)
+`ARE_CONVERSATIONS_STAFF_ONLY`, which M38 removed, and the error codes
+`ERROR_CODE_CONVERSATION_BUSY` and `ERROR_CODE_CONVERSATION_FULL`. M25 added, per conversation, `MAX_CONVERSATION_ATTACHMENTS` (100)
 and `MAX_CONVERSATION_IMAGES` (20); per file, `MAX_CONVERSATION_IMAGE_DIMENSION` (8000),
 `MAX_CONVERSATION_IMAGE_SIZE` (5 MB) and `MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH` (200); per send,
 `MAX_CONVERSATION_SEND_INPUT_TOKENS` (700000); and the error codes
@@ -858,7 +860,8 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   filtering, on 2026-10-18, David leaving it to the session: sending it changes the tools list, which
   costs every conversation its cached prefix once, and lets a search's raw results reach Claude,
   past the allowance measured with the filtering, which `probe:claude` measures again first. Before
-  launch, with staff's few conversations alone, is when switching costs least. Each
+  launch, with staff's few conversations alone, was when switching cost least, and M38 launched
+  with the filtering. Each
   `AGENT_TEXT` and `QUESTION` adds one to
   `unreadCount` and replaces `preview`, in the write that claims its position.
 - **A long reply is drawn in pieces.** Agent text keeps the bound every message keeps,
@@ -1870,7 +1873,8 @@ authorization server from M18 and a consent page from M19:
   unlike every other table, which
   references the account and the organization apart: a connection belongs to the membership, so
   removing the member or deleting the organization deletes it with its tokens, and a member invited
-  back connects again. The verifier still checks the membership and the staff gate on every request.
+  back connects again. The verifier still checks the membership on every request, and checked the
+  staff gate until M38 removed it.
 - **Connected agents**, a tab of the account page, lists the member's connections, live, refreshed
   by connecting, disconnecting and `RemoveOrganizationMember` for the member they concern, and by
   `DeleteOrganization` for every reader, since it names only the administrator deleting and every
@@ -1902,8 +1906,9 @@ cost of a search step before a deferred tool's first use; Knowledge's and the Ta
 thinking is checked against, so a module joining that way would cost no conversation its earlier
 reasoning.
 Listing the modules in the MCP Registry, under the `com.strategydance` name a DNS record proves,
-waits until after launch, as David chose on 2026-10-18 in M37: until M38 removes the gates, a
-listing would lead people to a sign-in they cannot pass.
+waited until after launch, as David chose on 2026-10-18 in M37, since before M38 removed the gates
+a listing would have led people to a sign-in they could not pass. It is David's to take up once
+M38's release is out.
 
 ### Subagents
 
@@ -2463,53 +2468,37 @@ address, and whatever an injected instruction wrote into it, out from the reader
 
 ### Release gate
 
-Until M38, conversations exist for Strategy Dance administrators only. The gate hides an unfinished
-feature; it protects no data, since a conversation is its owner's own. A staff member who loses the
-role keeps reading the conversations they wrote, which exposes nothing of anybody else's, while the
-backend's routes, checked on every action, stop them starting or continuing runs, and the
-worker's claim checks the role again, so a queued run stops too:
+Until M38, conversations existed for Strategy Dance's administrators alone, a gate that hid an
+unfinished feature and protected no data, since a conversation is its owner's own. M38 removed it,
+by name, so none outlived the launch, and every member of every organization has conversations,
+integrations and the modules since:
 
-- The sidebar item and the dock show for `user.isAdministrator` only. The
-  sidebar's `useConversationsAwaitingAnswer` runs for staff only and never behind a waiter.
-- The routes sit behind a release bouncer that redirects anybody else to `/today`, as
-  `AdministrationBouncer` does, mounted once in the parent layout route
-  `_app/$organizationSlug/conversations.tsx` around its `<Outlet />`, as `administration.tsx` mounts
-  its bouncer, so the list, a conversation's page and any page added under `/conversations/` later
-  are all behind it.
-- The backend's conversation routes run `staffOnlyMiddleware`, and so do the integration routes of
-  M27 and M28, the OAuth initiation and its finish included: an authorization's state only exists
-  once a staff member started it, so the callback is gated through it, and only that member's own
-  signed-in page finishes it. The integration list query checks
-  membership alone, as David chose on 2026-10-13 (M27): the page's bouncer (`useCanUseIntegrations`)
-  and the routes gate integrations as they gate conversations, the list holds nothing secret, and a
-  connector cannot tell the emulators from production, so a staff filter would have broken the local
-  lift.
-- The web connector's conversation operations need no gate of their own: a conversation only comes
-  into being through the backend's gated routes, so a caller who skips the interface reads and
-  changes nothing.
-- All of it keys off `ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core, which M38 removes.
-  Locally it is lifted, so every member of every organization has conversations: the web against
-  the emulators (`EMULATORS_REQUESTED`) and the development backend
-  (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
-  the tests keep the gate.
-- Modules have a gate of their own, `ARE_MODULES_STAFF_ONLY`, lifted on the development backend as
-  conversations' is (`IS_MODULES_RELEASE_GATED`, M18), also removed in M38, since an
-  external agent reaches them without any conversation: the consent page's Allow refuses anybody
-  else, the token verifier checks the role on every call, so a connection outlives no lost role,
-  and the Connected agents tab and the Use with your agents button show for staff only. The
-  authorization endpoints before consent cannot know who is asking, and need no gate: nothing they
-  hand out opens anything until a staff member allows it. Strategy Dance's agent reaches a module
-  behind conversations' own gate.
-- Subagents need no gate of their own: only a conversation's agent launches them, behind
-  conversations' gate, their routes (the reconcile and the stops) are conversations' routes, behind
-  `staffOnlyMiddleware`, and a subagent's worker checks the role at its claim, as every run's does.
-  The Subagents module is served to no external agent, so `ARE_MODULES_STAFF_ONLY` never meets it.
-  Launches had a gate of their own between M33 and M34 alone, `IS_SUBAGENT_LAUNCH_GATED`, lifted on
+- `ARE_CONVERSATIONS_STAFF_ONLY` and `ARE_MODULES_STAFF_ONLY` in strategydance-core, which the web's
+  `useCanUseConversations`, `useCanUseIntegrations` and `useCanUseModules` keyed off, lifted against
+  the emulators (`EMULATORS_REQUESTED`), and the backend's `IS_CONVERSATIONS_RELEASE_GATED` and
+  `IS_MODULES_RELEASE_GATED`, lifted on the development backend.
+- On the web, the release bouncers: the conversations' layout route,
+  `_app/$organizationSlug/conversations.tsx`, deleted with its bouncer, since the pages under it need
+  no layout of their own, as knowledge's need none; the Integrations page's, Connected agents' and
+  the consent page's, whose notice that connecting agents was not available yet went with it; and
+  the staff checks on the sidebar's item and its badge (`useConversationsAwaitingAnswer`), the dock,
+  the Connected agents tab, a module's agents button and a task's delegation.
+- On the backend, `staffOnlyMiddleware` on the conversations' and the integrations' routes, the
+  worker's role check, which interrupted a run whose author had lost the role, at its claim and
+  before each step, `modulesStaffOnlyMiddleware` on the consent page's routes, and the role check in
+  `createAgentConnectionTokenVerifier`, with the reads only they made: `GetUserStaffStatus`, and the
+  account's `isAdministrator` in `GetConversationRunContext` and `GetAgentConnectionAccessToken`.
+  Data Connect calls removing an operation or a required field a breaking connector change, so
+  M38's release stops at its deploy for David to acknowledge, as he chose on 2026-10-18, rather
+  than keep reads nothing calls.
+- Subagents had a gate of their own between M33 and M34 alone, `IS_SUBAGENT_LAUNCH_GATED`, lifted on
   the development backend: M33 let the agent launch, and only M34 had the page reconcile a parent's
   subagents and Retry ask before it discards them, so in production `launch_subagent` refused with a
   sentence telling the agent to do the work itself, and a release cut between the two launched
   nothing. M34 removed it.
-- What replaces the gate is M37's, before M38 removes it:
+- The tests that pinned a gate run as members nobody made staff, and `check:oauth` runs its flow as
+  one.
+- What replaced the gate is M37's:
   - **A confirmed address.** The send, an answer, an approval, Resume, Retry and a file's upload
     refuse a caller whose ID token carries no `email_verified` (`verifiedEmailMiddleware`, 403,
     `ERROR_CODE_EMAIL_NOT_VERIFIED`), since an account costs nothing to make and the caps' allowance
@@ -2808,8 +2797,8 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
   the backend's `cors` exposes it, since `Retry-After` is no header a browser lets a page of another
   origin read unless it is told. The composer, or Resume's and Retry's note, says which cap was reached and when it
   frees, from the `conversation` catalogue, and keeps the draft.
-- **Staff are capped too**: the caps guard spend, not a release. The development backend lifts them,
-  as it lifts the gates (`IS_USAGE_CAPPED`), since placeholder runs cost nothing and a developer
+- **Everybody is capped**, staff included: the caps guard spend, not a release. The development
+  backend lifts them (`IS_USAGE_CAPPED`), since placeholder runs cost nothing and a developer
   starts dozens; the tests and `check:conversation-runs` turn them on.
 - **The worst cases they leave**, each the spend limit stays above: a member's day in an
   organization at 150 runs and thirty subagents, $1500 and $1200 at the cost limits; an account's

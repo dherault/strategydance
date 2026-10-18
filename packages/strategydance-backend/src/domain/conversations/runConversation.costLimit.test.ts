@@ -169,8 +169,9 @@ describe('runConversation, at the cost limit of a run', () => {
 
   test('skips tagging the conversation when its request would pass the limit, and tries it no more', async () => {
     const reference = await kit.start('Help me price the beta', { aspects: null })
-    // A reply that cost some $2.20, after which the tagging's worst case no longer fits
-    const scripted = kit.createClient([answer(undefined, { outputTokens: 110_000 })])
+    // A reply that cost some $2.50, which leaves nothing for even the tagging's worst case, a fraction
+    // of a cent on Haiku 5.5
+    const scripted = kit.createClient([answer(undefined, { outputTokens: 125_000 })])
 
     await spend(reference, [dollars(7.5)])
     await runConversation(reference, { client: scripted.client })

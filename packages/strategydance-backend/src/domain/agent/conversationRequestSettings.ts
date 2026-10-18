@@ -28,6 +28,9 @@ export const CLAUDE_MODEL_PRICES: Record<string, ClaudeModelPrice> = {
   'claude-opus-5': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
   'claude-opus-4-8': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
   'claude-sonnet-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
+  // Its rates for a prompt of 100000 tokens or fewer, five times them past that: only the tagging
+  // request names it, whose prompt quotes 8000 characters of each side of an exchange
+  'claude-haiku-5-5': { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
 }
 
 /*
@@ -38,6 +41,8 @@ export const CLAUDE_MODEL_PRICES: Record<string, ClaudeModelPrice> = {
 export const CLAUDE_FALLBACK_MODELS: Record<string, string[]> = {
   'claude-opus-5-5': ['claude-opus-5', 'claude-opus-4-8'],
   'claude-sonnet-5-5': ['claude-sonnet-5'],
+  // None: the API offers no server-side fallback for it, so a request naming it sends none
+  'claude-haiku-5-5': [],
 }
 
 // What one web search costs, a hundredth of a dollar, in microdollars
@@ -82,11 +87,16 @@ export const MAX_CONVERSATION_PAUSES = 5
   What the request that tags a conversation with its aspects sends, beside the run's own
 --- */
 
+/*
+  The model it asks, as David chose on 2026-10-18 after the review of M1 to M38: picking three
+  aspects of nine needs no Opus, and the run holds its conversation while it goes, so a faster model
+  lets the member send their next message sooner. It has no server-side fallback, so a refusal leaves
+  the conversation untagged, as any failure of the request does
+*/
+export const CONVERSATION_TAGGING_MODEL = 'claude-haiku-5-5'
+
 // Its thinking, at low effort, and its answer, a few aspects, fit well inside it
 export const CONVERSATION_TAGGING_MAX_TOKENS = 8000
-
-// The fallback model the API runs a refused request on, as the run's own requests have it
-export const CONVERSATION_TAGGING_BETAS = ['server-side-fallback-2026-07-01'] as const
 
 // How many aspects the agent tags a conversation with at most
 export const MAX_CONVERSATION_TAGGED_ASPECTS = 3

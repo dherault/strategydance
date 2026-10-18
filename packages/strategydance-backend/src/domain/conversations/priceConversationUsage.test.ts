@@ -6,8 +6,13 @@ const warn = mock((_message: string) => {})
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn, error: () => {} } }))
 
-const { CLAUDE_FALLBACK_MODELS, CLAUDE_MODEL_PRICES, CONVERSATION_MODEL, CONVERSATION_REQUEST_SETTINGS } =
-  await import('~domain/agent/conversationRequestSettings')
+const {
+  CLAUDE_FALLBACK_MODELS,
+  CLAUDE_MODEL_PRICES,
+  CONVERSATION_MODEL,
+  CONVERSATION_REQUEST_SETTINGS,
+  CONVERSATION_TAGGING_MODEL,
+} = await import('~domain/agent/conversationRequestSettings')
 const { SUBAGENT_REQUEST_SETTINGS } = await import('~domain/agent/subagentRequestSettings')
 const { chargeUnsettledRequests, parseConversationRunUsage, reserveConversationRequest, settleConversationRequest } =
   await import('./conversationRunUsage')
@@ -52,6 +57,7 @@ describe('CLAUDE_MODEL_PRICES', () => {
       CONVERSATION_MODEL,
       CONVERSATION_REQUEST_SETTINGS.model,
       SUBAGENT_REQUEST_SETTINGS.model,
+      CONVERSATION_TAGGING_MODEL,
       // What `measure:subagents` runs a subagent on besides
       'claude-sonnet-5-5',
       // The fallback the tests' declined attempts name

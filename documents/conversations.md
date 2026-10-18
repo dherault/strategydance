@@ -2240,10 +2240,10 @@ way (see The orchestrator).
   the first 20 with their total and `read_subagent` every one. The conversation's system prompt asks
   the parent to propose a call a report says its subagent could not make, which a reaction draws as
   an approval the member answers. The switch that lets a tool run without approval says it runs in
-  subagents too, with nobody watching. A call its server never answered, which timed out, could not
-  reach its server, was interrupted or brought an answer too large to read, is recorded so
-  (`isToolUnanswered`), and the parent hears it as
-  `UNANSWERED`, apart from one answered with an error, since it may have run. In the dock, a
+  subagents too, with nobody watching. A call that failed without its server refusing it before
+  running it, one that timed out, found no server, was interrupted or brought an answer that could
+  not be read, is recorded as unanswered (`isToolUnanswered`), and the parent hears it as
+  `UNANSWERED`, apart from one refused, since it may have run. In the dock, a
   subagent's viewer closes at the reader's next navigation, as its warning strip's link, or any
   other, leads them elsewhere.
 - **Cost.** A subagent's run costs what a conversation's does, about $0.15 for three cached requests

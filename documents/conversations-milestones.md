@@ -2739,10 +2739,12 @@ As David chose on 2026-10-12, written again on 2026-10-16 against M29 as it merg
     ending }`, the names as they were at call time, its ending `SUCCEEDED`, `FAILED` (answered with
     an error), `UNANSWERED` (its server never answered, so it may have run) or `RUNNING`. A duration
     could not tell the last two failures apart, since a timeout has one, so a call is recorded as
-    unanswered, `ConversationMessage.isToolUnanswered`, when it timed out, its server could not be
-    reached, stopped answering or answered more than Strategy Dance reads (`IntegrationCallUnanswered`,
-    whose sentence says to check before calling again), or a crash interrupted it, as Copilot pointed
-    out; a call cancelled by its run's end reads unanswered too, and one finished as
+    unanswered, `ConversationMessage.isToolUnanswered`, unless its failure says the server refused it
+    before running it, its address, its credential, a refusal it answered or a status of 4xx but 408
+    and 429: one that timed out, found no server or brought an answer that could not be read, too
+    large or compressed, throws `IntegrationCallUnanswered`, whose sentence says to check before
+    calling again, and so does one a crash interrupted, as Copilot pointed out over three rounds; a
+    call cancelled by its run's end reads unanswered too, and one finished as
     interrupted before the column, by its missing duration. `read_subagent` lists them all with
     every page, `integrationCalls` and `integrationCallTotal`, at most 200 for a chain; a report
     names the first 20 with their total, after its writes, `{"subagentReport": {"id", "title",

@@ -3677,6 +3677,11 @@ function createConversationDatabaseFake() {
         refuse('The membership changed since the reaction read it')
       }
 
+      const suspension = readSuspension(variables)
+
+      if (suspension.user?.conversationsSuspendedAt) refuse('Conversations are suspended for this account')
+      if (suspension.organization?.conversationsSuspendedAt) refuse('Conversations are suspended in this organization')
+
       if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
         refuse('Somebody has at most 3 runs in flight in an organization')
       }

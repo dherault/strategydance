@@ -2936,7 +2936,7 @@ function readMutationSteps(path: string) {
       const field = start[1] ?? ''
       const end = starts[index + 1]?.index ?? body.length
       const stepText = body.slice(start.index, end)
-      const kind = /^userOrganization_(update|upsert)$/.test(field)
+      const kind = /^userOrganization_(update|updateMany|upsert)$/.test(field)
         ? 'membership'
         : /^conversationRun_update(Many)?$/.test(field)
           ? 'run'
@@ -3314,6 +3314,8 @@ function checkLockOrder() {
       'RetryConversationRun',
       'RequestConversationRunStopWithSubagents',
       'StartSubagentReaction',
+      'SuspendUserConversations',
+      'SuspendOrganizationConversations',
     ].every(name => connectors.some(mutations => (mutations.get(name)?.length ?? 0) > 0)),
   )
 }

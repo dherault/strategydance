@@ -367,6 +367,30 @@ describe('reactToSubagentReports at the daily caps', () => {
     }
   })
 
+  // The reaction's mutation reads the suspension under the membership's lock, which a suspension takes too
+  test('starts no reaction when a suspension lands between its read and its write, and leaves the reports waiting', async () => {
+    const parent = await startParent()
+    const subagent = await kit.launch(parent)
+    const startCount = fake.cappedStarts.size
+
+    await report(subagent)
+
+    fake.beforeOperation = async name => {
+      if (name === 'StartSubagentReaction') fake.users.get(AUTHOR)!.conversationsSuspendedAt = new Date().toISOString()
+    }
+
+    expect((await reactToSubagentReports(parent)).outcome).toBe('suspended')
+    expect(readReactions(parent)).toHaveLength(0)
+    expect(isDelivered(subagent)).toBe(false)
+    expect(fake.cappedStarts.size).toBe(startCount)
+
+    fake.beforeOperation = async () => {}
+    fake.users.get(AUTHOR)!.conversationsSuspendedAt = null
+
+    expect((await reactToSubagentReports(parent)).outcome).toBe('started')
+    expect(isDelivered(subagent)).toBe(true)
+  })
+
   test('holds a reaction back at one and a half times a cap, and starts it at the next run end that finds room', async () => {
     const parent = await startParent()
     const subagent = await kit.launch(parent)

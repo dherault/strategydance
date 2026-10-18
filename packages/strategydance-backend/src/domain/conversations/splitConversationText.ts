@@ -1,6 +1,4 @@
-import { fromMarkdown } from 'mdast-util-from-markdown'
-import { gfmFromMarkdown } from 'mdast-util-gfm'
-import { gfm } from 'micromark-extension-gfm'
+import MarkdownIt, { type Token } from 'markdown-it'
 import { MAX_CONVERSATION_MESSAGE_LENGTH } from 'strategydance-core'
 
 // A piece of a text, by its offsets, and what it is drawn with around them, when a cut runs through
@@ -26,13 +24,25 @@ const MAX_CARRIED_HEAD = 2000
 const GRAPHEME_LOOKAHEAD = 64
 
 /*
+  Reads where a reply's top-level blocks start and end, and nothing inside them: inline parsing,
+  where micromark takes minutes on closing brackets by the thousand, never runs, and markdown-it's
+  block parsing takes list markers by the thousand in time growing with their number, where
+  micromark's grows with its square. A reply is Claude's, but text it read on the web can tell it
+  what to write, and a subagent reads the web with nobody watching. HTML blocks are read as blocks,
+  as the thread's Markdown reads them, which then draws them as text
+*/
+const markdownIt = new MarkdownIt({ html: true })
+
+markdownIt.core.ruler.enableOnly(['normalize', 'block'])
+
+/*
   Splits a reply's text into the pieces the thread draws, each at most 20000 characters, the bound
   every message keeps, which one turn may pass many times over. A piece ends at the last boundary
   before the bound, trying in order:
 
   1. the end of one of the model's text blocks (`blockEnds`)
-  2. the start of a top-level Markdown block, as the thread's Markdown reads them (GFM, no single
-     tilde), so a list or a table is never cut when it need not be
+  2. the start of a top-level Markdown block, as markdown-it reads them, where the thread's
+     Markdown reads them alike, so a list or a table is never cut when it need not be
   3. a line break, for a single Markdown block past the bound
   4. a space, for a single line past it
   5. a grapheme boundary (`Intl.Segmenter`), so a piece never splits a character or a cluster
@@ -106,17 +116,72 @@ function cutPiece({ text, blockEnds, blocks, markdownStarts, start, before, maxL
   }
 }
 
-function readMarkdownBlocks(text: string): MarkdownBlock[] {
-  const tree = fromMarkdown(text, {
-    extensions: [gfm({ singleTilde: false })],
-    mdastExtensions: [gfmFromMarkdown()],
-  })
+/*
+  The top-level blocks, each from the start of its first line to the end of its last line holding
+  anything, since markdown-it counts the blank lines after a list as the list's, but a fence's,
+  which holds its blank lines to its closing line, or to the text's end when it has none, as the
+  thread's Markdown reads it. Its lines are the text's, a CRLF or a lone CR ending one as a newline
+  does, which its normalization keeps
+*/
+export function readMarkdownBlocks(text: string): MarkdownBlock[] {
+  const lines = readLines(text)
 
-  return tree.children.flatMap(({ type, position }) =>
-    position?.start.offset === undefined || position.end.offset === undefined
-      ? []
-      : [{ type, start: position.start.offset, end: position.end.offset }],
-  )
+  return markdownIt.parse(text, {}).flatMap(token => {
+    if (token.level !== 0 || token.nesting === -1 || !token.map) return []
+
+    const [startLine, endLine] = token.map
+    let lastLine = Math.min(endLine, lines.length) - 1
+
+    while (
+      token.type !== 'fence'
+      && lastLine > startLine
+      && !text.slice(lines[lastLine]?.start, lines[lastLine]?.end).trim()
+    ) {
+      lastLine--
+    }
+
+    const start = lines[startLine]?.start
+    const last = lines[lastLine]
+    // A fence never closed runs to the text's end, its last line break included
+    const end =
+      token.type === 'fence'
+      && last
+      && (lastLine === startLine || !isClosingFence(text.slice(last.start, last.end), token.markup))
+        ? text.length
+        : last?.end
+
+    return start === undefined || end === undefined ? [] : [{ type: readBlockType(token), start, end }]
+  })
+}
+
+// Whether a line closes a fence opened with `markup`: as many of its characters or more, and nothing else
+function isClosingFence(line: string, markup: string) {
+  const closing = /^ {0,3}(`+|~+)[ \t]*$/.exec(line)?.[1]
+
+  return Boolean(closing && closing[0] === markup[0] && closing.length >= markup.length)
+}
+
+// Where each line of a text starts and ends, its line break left out
+function readLines(text: string) {
+  const lines: { start: number; end: number }[] = []
+  const breaks = /\r\n|\r|\n/g
+  let start = 0
+
+  for (const { index, 0: lineBreak } of text.matchAll(breaks)) {
+    lines.push({ start, end: index })
+    start = index + lineBreak.length
+  }
+
+  lines.push({ start, end: text.length })
+
+  return lines
+}
+
+// A block's kind, as the cuts read it: a code block, fenced or indented, a table, or anything else
+function readBlockType(token: Token) {
+  if (token.type === 'fence' || token.type === 'code_block') return 'code'
+
+  return token.type.replace(/_open$/, '')
 }
 
 // The top-level block a cut runs through, if any

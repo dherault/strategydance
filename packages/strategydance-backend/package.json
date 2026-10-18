@@ -51,9 +51,7 @@
     "firebase-admin": "^14.5.0",
     "google-gax": "^6.10.0",
     "ipaddr.js": "^2.5.0",
-    "mdast-util-from-markdown": "^2.1.0",
-    "mdast-util-gfm": "^3.1.0",
-    "micromark-extension-gfm": "^3.0.0",
+    "markdown-it": "^15.0.2",
     "pdf-lib": "^1.17.1",
     "resend": "^6.32.0",
     "strategydance-core": "workspace:*",
@@ -69,6 +67,9 @@
     "@types/bun": "^1.4.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "mdast-util-from-markdown": "^2.1.0",
+    "mdast-util-gfm": "^3.1.0",
+    "micromark-extension-gfm": "^3.0.0",
     "typescript": "^7.0.2"
   }
 }

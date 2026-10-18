@@ -6,7 +6,7 @@ import { gfm } from 'micromark-extension-gfm'
 
 import readPieceText from './readPieceText'
 import selectPieceCitations from './selectPieceCitations'
-import splitConversationText from './splitConversationText'
+import splitConversationText, { readMarkdownBlocks } from './splitConversationText'
 
 const BOUND = 20000
 
@@ -163,4 +163,84 @@ describe('selectPieceCitations', () => {
       selectPieceCitations([{ start: 130, end: 140, sources }], { start: 100, end: 200, before: '```ts\n' }),
     ).toEqual([{ start: 36, end: 46, sources }])
   })
+})
+
+describe('readMarkdownBlocks', () => {
+  /*
+    Where each top-level block starts, as markdown-it reads it, is where the thread's Markdown, on
+    micromark, reads it too, and a code block or a table, which the cuts close and open again, ends
+    where micromark ends it, CRLF and lone CR line breaks included
+  */
+  const shapes: [string, string][] = [
+    ['paragraphs', 'One paragraph\nwrapped.\n\nAnother.\n'],
+    ['headings', '# Title\n\nText under it\n\nSetext\n===\n\n## Second'],
+    ['a loose list and what follows', '- a\n\n- b\n\n  more of b\n\n\nAfter the list'],
+    ['a nested list', '1. one\n   - inner\n   - inner\n2. two\n\ntext'],
+    ['a fenced code block with blank lines', 'Before\n\n```ts\nconst a = 1\n\nconst b = 2\n```\n\nAfter'],
+    ['a fence never closed', 'Before\n\n~~~\ncode\n\nmore code\n'],
+    ['an indented code block', 'Before\n\n    code\n    more\n\nAfter'],
+    ['a table and a paragraph', '| a | b |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |\n\nAfter the table'],
+    ['a quote', '> one\n> two\n\nafter'],
+    ['an HTML block', '<div>\nraw\n</div>\n\nparagraph'],
+    ['a rule', 'a\n\n---\n\nb'],
+  ]
+
+  for (const [name, markdown] of shapes) {
+    for (const [lineBreak, label] of [
+      ['\n', ''],
+      ['\r\n', ', with CRLF'],
+      ['\r', ', with lone CRs'],
+    ] as const) {
+      test(`${name}${label}`, () => {
+        const text = markdown.replaceAll('\n', lineBreak)
+        const expected = parse(text)
+        const blocks = readMarkdownBlocks(text)
+
+        expect(blocks.map(({ start }) => start)).toEqual(expected.map(({ position }) => position?.start.offset ?? -1))
+
+        for (const [index, node] of expected.entries()) {
+          if (node.type === 'code' || node.type === 'table') {
+            expect(blocks[index]).toEqual({
+              type: node.type,
+              start: expect.any(Number),
+              end: node.position?.end.offset ?? -1,
+            })
+          }
+        }
+      })
+    }
+  }
+})
+
+/*
+  Shapes micromark reads in time growing with the square of their length or worse, as
+  `markdownToRichText`'s tests have them, at the length of a long reply: what injected text could get
+  the agent to write. markdown-it's block reading takes them in well under a second, and the
+  timeout is generous, so a loaded machine does not fail it
+*/
+describe('splitConversationText on long shapes', () => {
+  const length = 200000
+  const cases: [string, string][] = [
+    ['closing brackets', ']a '.repeat(length / 3)],
+    ['closing brackets among words', ']a word word word word word word word word word '.repeat(length / 51)],
+    ['list markers on every line', '- - a\n'.repeat(length / 6)],
+    ['list markers nested deep on every line', `${'- '.repeat(32)}a\n`.repeat(length / 66)],
+    ['a list item on every line', '- a\n'.repeat(length / 4)],
+    [
+      'lists nested by indentation',
+      `${Array.from({ length: 64 }, (_, index) => `${' '.repeat(2 * index)}- a`).join('\n')}\n`.repeat(45),
+    ],
+    ['one run of asterisks', `${'*'.repeat(length / 2)}a${'*'.repeat(length / 2)}`],
+    ['asterisks between words', '2*3 '.repeat(length / 4)],
+    [
+      'runs of backticks of every length',
+      Array.from({ length: 600 }, (_, index) => `${'`'.repeat(index + 1)}a`).join(' '),
+    ],
+    ['quotes nested deep', `${'>'.repeat(length)} a`],
+    ['links never closed', '[a]('.repeat(length / 4)],
+  ]
+
+  for (const [name, markdown] of cases) {
+    test(name, () => expect(split(markdown).length).toBeGreaterThan(1), 20000)
+  }
 })

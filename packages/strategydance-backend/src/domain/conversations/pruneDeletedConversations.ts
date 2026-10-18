@@ -101,7 +101,7 @@ async function pruneDeletedConversations() {
     })
 
     // A parent whose subagents are still there, which deleting it would leave conversations of their own
-    for (const { parentId } of holding.conversations) if (parentId) kept.add(parentId)
+    for (const { id: parentId } of holding.conversations) kept.add(parentId)
 
     for (const conversation of data.conversations) {
       if (kept.has(conversation.id)) continue

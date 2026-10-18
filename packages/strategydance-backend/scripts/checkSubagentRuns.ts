@@ -1994,9 +1994,13 @@ async function checkCascades() {
       ({ id }) => id === idleSubagent.conversationId,
     ),
   )
+  const holding = (
+    await getConversationsWithSubagents(dataConnect, { ids: [pruned.conversationId, idleSubagent.conversationId] })
+  ).data.conversations.map(({ id }) => id)
+
   check(
-    'a parent still holding a subagent is read as one',
-    (await getConversationsWithSubagents(dataConnect, { ids: [pruned.conversationId] })).data.conversations.length > 0,
+    'a parent still holding a subagent is read as one, and a conversation holding none is not',
+    holding.length === 1 && holding[0] === pruned.conversationId,
   )
   check(
     'a prune counting what it does not delete is refused',

@@ -3790,12 +3790,11 @@ function createConversationDatabaseFake() {
     }),
 
     GetConversationsWithSubagents: ({ ids }) => ({
-      conversations: [...conversations.values()]
-        .filter(
-          conversation => conversation.parentId != null && (ids as string[]).map(id).includes(conversation.parentId),
-        )
-        .slice(0, 1000)
-        .map(({ parentId }) => ({ parentId })),
+      conversations: (ids as string[])
+        .map(id)
+        .filter(parentId => [...conversations.values()].some(conversation => conversation.parentId === parentId))
+        .slice(0, 100)
+        .map(parentId => ({ id: parentId })),
     }),
 
     PruneClaimedSubagents: variables => {

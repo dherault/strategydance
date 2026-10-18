@@ -800,10 +800,15 @@ query GetClaimedSubagents @auth(level: NO_ACCESS) {
 }
 
 # Which of the conversations a prune is about to delete still hold a subagent, claimed or not, which
-# it keeps for the next sweep rather than leave the subagent a conversation of its own
+# it keeps for the next sweep rather than leave the subagent a conversation of its own: the parents
+# themselves, so a limit never cuts one off, as one on their subagents' rows could, twenty claimed
+# parents holding up to 100 subagents each
 query GetConversationsWithSubagents($ids: [UUID!]!) @auth(level: NO_ACCESS) {
-  conversations(where: { parentId: { in: $ids } }, limit: 1000) {
-    parentId
+  conversations(
+    where: { id: { in: $ids }, conversations_on_parent: { exist: { id: { isNull: false } } } }
+    limit: 100
+  ) {
+    id
   }
 }
 

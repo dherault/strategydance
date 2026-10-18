@@ -7,7 +7,6 @@ import parseOAuthConsentRequestId from '~utils/oauth/parseOAuthConsentRequestId'
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 import OAuthConsent from '~components/oauth/OAuthConsent'
 import OAuthConsentLayout from '~components/oauth/OAuthConsentLayout'
-import OAuthConsentReleaseBouncer from '~components/oauth/OAuthConsentReleaseBouncer'
 import OAuthConsentRequestBouncer from '~components/oauth/OAuthConsentRequestBouncer'
 import OAuthConsentRequestWait from '~components/oauth/OAuthConsentRequestWait'
 
@@ -44,13 +43,11 @@ function OAuthConsentRoute() {
   return (
     <IntlMessagesRegistration messageTypes={CONSENT_MESSAGE_TYPES}>
       <OAuthConsentLayout>
-        <OAuthConsentReleaseBouncer>
-          <OAuthConsentRequestWait requestId={requestId}>
-            <OAuthConsentRequestBouncer requestId={requestId}>
-              {requestId ? <OAuthConsent requestId={requestId} /> : null}
-            </OAuthConsentRequestBouncer>
-          </OAuthConsentRequestWait>
-        </OAuthConsentReleaseBouncer>
+        <OAuthConsentRequestWait requestId={requestId}>
+          <OAuthConsentRequestBouncer requestId={requestId}>
+            {requestId ? <OAuthConsent requestId={requestId} /> : null}
+          </OAuthConsentRequestBouncer>
+        </OAuthConsentRequestWait>
       </OAuthConsentLayout>
     </IntlMessagesRegistration>
   )

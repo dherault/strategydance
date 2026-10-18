@@ -726,7 +726,7 @@ A conversation is kept twice, once for Claude and once for the page, and
   mutation, and the web's delete, restore, read and aspects mutations, while a read of one
   conversation by its id reads one as any other. A new read, count or action of a member's does the
   same. A subagent's run sends `SUBAGENT_SYSTEM_PROMPT` and `buildSubagentTools`, both pinned by
-  their bytes, asks nothing, tags nothing, draws its text with no unread count
+  their bytes, the agent's own tools but `ask_user` among them, asks nothing, tags nothing, draws its text with no unread count
   (`DrawSubagentAgentText`), and ends only through `FinishSubagentRun`, `FinishSubagentRunWithNote`
   and `InterruptSubagentRun`, which write its `report` in the write that ends it, however it ends:
   every other ending's fence matches a conversation that is no subagent, and a dead one only through
@@ -789,7 +789,11 @@ A conversation is kept twice, once for Claude and once for the page, and
   marks exactly the reports its entry carries delivered (`reportDeliveredAt`), so two subagents
   ending at once start one reaction. Its entry holds one JSON block per report
   (`buildSubagentReportBlock`, `{"subagentReport": {...}}`), which the thread draws as nothing, and
-  the run counts toward the three like any of the member's. A subagent's end starts its parent's;
+  the run counts toward the three like any of the member's. A report names the first 20 of the
+  subagent's module writes and of its calls to integrations, with their totals, in the key order the
+  system prompt names, and `read_subagent` pages the writes and lists every call: the calls are those
+  that started (`GetSubagentIntegrationCallsForAgent`), each with its server, its tool and how it
+  ended, since a call to another company's server is what no restore undoes. A subagent's end starts its parent's;
   any other run's end, the route-side ones included, starts the member's oldest due
   (`startDueSubagentReactions`), its own conversation's first; the subagents' reconcile route and
   the daily sweep (`sweepSubagentReactions`) start them too, the sweep every one. A new way to end a
@@ -1284,9 +1288,12 @@ in `utils/`, one concern per file.
 - What a call to an integration becomes is decided once, when it is drawn, from the server as it is
   then (`decideConversationIntegrationCall`): refused, drawn failed with the server it named; run at
   once, when an administrator lets its tool run without approval; or an `APPROVAL` the member allows
-  or denies. Both of the last two are bound to the server's `configRevision`, the tool's definition
-  hash and the credential's generation, recorded on the message, which Allow and the call right
-  before it is made check again: a mismatch denies an approval, its result saying the server changed.
+  or denies. A subagent's that would wait is drawn failed instead, since nobody can approve one, its
+  result asking it to say in its report what it would call, so a subagent never waits and its parent
+  proposes the call. Both of the last two are bound to the server's `configRevision`, the tool's
+  definition hash and the credential's generation, recorded on the message, which Allow and the call
+  right before it is made check again, the run carrying a subagent on included: a mismatch denies an
+  approval, its result saying the server changed.
   An approval waits as a question does, in every waiting count (`kind in [QUESTION, APPROVAL]`, not
   answered), its `toolStatus` null until a run starts its call. A turn's other calls run beside it, as
   David chose. A call to an integration that started is never made again: one a crash or a stop left

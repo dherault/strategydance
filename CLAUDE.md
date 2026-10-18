@@ -957,6 +957,120 @@ its agent launches, and the modules and integrations it calls.
 [conversations.md](documents/conversations.md) says what each part does and why, and
 [conversations-milestones.md](documents/conversations-milestones.md) how each was built.
 
+### A run
+
+```text
+member's action ─▶ route ─▶ run QUEUED, activeRunId set, task queued ─▶ 202
+worker: claim (RUNNING, lease) ─▶ loop: request Claude ▸ store the turn ▸ draw it ▸ run its calls ─▶ end
+end: COMPLETED │ WAITING │ STOPPED │ FAILED │ REFUSED │ INTERRUPTED, activeRunId let go
+later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
+```
+
+- A run is triggered by a member's `MESSAGE`, `ANSWER`, `RESUME` or `RETRY`, a subagent's by its
+  launch, `LAUNCH`, or the chain carrying it on, `CONTINUE`, and a parent's reaction to its
+  subagents' reports by `REPORTS`. `PENDING` and `CHAINED` are a subagent's alone (see The data)
+- One run goes at a time in a conversation. The first send inserts the conversation with its
+  `activeRunId` set, and every later start takes the row with a `conversation_updateMany` matching
+  `activeRunId: { isNull: true }` under `@check(this == 1)`, refused with
+  `ERROR_CODE_CONVERSATION_BUSY`. A member has three runs in flight in an organization
+  (`MAX_ACTIVE_RUNS_PER_MEMBER`), counted under their membership's lock once their dead runs are
+  finalized, so a crash elsewhere never locks them out
+- The worker claims a run `QUEUED`, or `RUNNING` past its lease, in a conditional update that adds
+  one to `attempts`, the attempt each of its writes after is fenced on, and answers Cloud Tasks 200
+  once the run is finished, or was already, and 503 while another worker holds its lease, so the
+  task comes back after the queue's backoff
+- A run's limits are the backend's: 25 requests (`CONVERSATION_RUN_MAX_REQUESTS`) and 10 minutes
+  from its first claim (`CONVERSATION_RUN_MAX_DURATION_MS`), a stream still going 14 minutes after
+  the claim cut (`CONVERSATION_RUN_STREAM_DEADLINE_MS`), inside the task's 15, 60 seconds a call
+  (`CONVERSATION_TOOL_CALL_TIMEOUT_MS`), and its $10. A conversation holds 2000 entries
+  (`MAX_CONVERSATION_MESSAGES`) and a run draws 100 (`MAX_CONVERSATION_RUN_ENTRIES`). Each is
+  checked before a request, never after one, so a turn paid for is always stored and drawn, and a
+  run at a limit ends `FAILED` with its note, the full note for a conversation at its 2000 or a
+  context past what Claude takes
+- The loop is the worker's own, never the SDK's tool runner, since a run stops for an answer and
+  writes each step as it happens: read the stop flag, build the request and check it, stream it,
+  writing its progress lines to `run.step` at most once a second, store the turn and draw it, then
+  by `stop_reason`:
+  - `end_turn`: `COMPLETED`
+  - `tool_use`: run the calls (see A new tool), store one `USER` entry with every result in the
+    turn's order, and go round again. A turn holding `ask_user` runs its other calls, keeps their
+    results in `pendingToolResults`, and ends `WAITING`
+  - `pause_turn`: send the turn back as it is, five times at most, its parts held in memory until
+    it ends
+  - `max_tokens`: run nothing, `FAILED` with its note
+  - `refusal`: the request's server-side fallback runs it again on another model, and a refusal
+    that survives it ends `REFUSED`
+- Every write that ends a run cancels the calls still `RUNNING` in its conversation, not only those
+  its run drew, and lets go of `activeRunId` where it still names the run, in the write that sets
+  `isAwaitingAnswer` when it ends `WAITING`
+
+### The transcript
+
+- `checkTranscript` (`domain/agent/`) checks every request before it is sent, and a route the entry
+  it adds, against the rules every flow keeps, since Claude refuses a history that breaks them:
+  1. the first entry is the member's, `USER`
+  2. a `SYSTEM` entry sits right after a `USER` one and right before an `ASSISTANT` one, never beside
+     another, and last only as a request's context message, before it is stored
+  3. an `ASSISTANT` entry with `tool_use` blocks is followed by a `USER` entry opening with one
+     `tool_result` per call, in their order, before any text, image or document
+  4. so only the last entry holds calls with no result
+
+  A `server_tool_use`, web search's or the code around it, carries its result within its turn and is
+  none of their business
+- A run's context message is built when the run starts, kept on the run, and sent last, unstored,
+  until the run's first turn lands, then stored with it, `SYSTEM` then `ASSISTANT` at consecutive
+  positions, in one mutation. A turn that never lands stores neither. Its profile part, the member,
+  the organization and the conversation's aspects, goes only when its hash differs from the
+  `contextHash` of the last context message still in the transcript, so a Retry that cut one sends
+  it again
+- The `USER` entry that answers a turn, a send's, an answer's continuation's or the worker's, comes
+  from `buildConversationToolResults`: a result for each call in the turn's order, a call kept from
+  running answered `STOPPED_CALL_RESULT`, one that started and has none `INTERRUPTED_CALL_RESULT`,
+  unless its module write's key holds one, and a question still waiting `SKIPPED_QUESTION_RESULT`
+  (`conversationToolResults.ts`), then the subagents' reports waiting, then the member's file
+  names, files and text
+- A turn a fallback model finished is stored without the thinking, redacted thinking, `tool_use`
+  and unpaired `server_tool_use` blocks the declining model wrote before its boundary, and drawn as
+  it is stored
+
+### A new tool
+
+A tool the agent calls is its own, a module's or an integration's, and each kind takes what its
+kind says, beside what every tool takes:
+
+- **Every tool**:
+  - a description saying when to call it, which is what the model decides by
+  - its running and done labels in the `conversation` catalogue, in `getConversationToolLabel`,
+    whose test names every tool
+  - a result as JSON, cut at `MAX_TOOL_RESULT_LENGTH` (50000 characters) with a note, a long read
+    paging itself well short of it, and a failure answered `is_error: true` with a sentence the
+    model can act on, never one that fails the run
+  - `eager_input_streaming: true`, which the agent's own tools declare in `CONVERSATION_TOOLS` and
+    `toConversationModuleTool` gives a module's, so its input is checked before it runs, since it
+    streams in unchecked
+  - a place within ten calls a turn and fifty a run (`MAX_TOOL_CALLS_PER_TURN`,
+    `MAX_TOOL_CALLS_PER_RUN`): a call past either is drawn failed, its result saying so, and never
+    runs
+  - whether it only reads: reads run four at a time beside the reads next to them, and a write or an
+    integration call alone, so writes land in the order Claude made them. A tool reads only when
+    running it twice changes nothing, which a module's says with `readOnlyHint`
+  - whether a subagent gets it: `isSubagentTool` withholds the deletes and the Subagents module's
+    tools from a subagent, which works with nobody watching, as `buildSubagentTools` withholds
+    `ask_user`, nobody being there to answer, so a new tool that deletes or reaches subagents joins
+    them
+  - its bytes pinned: the conversation's and the subagent's tools are, so the list's tests move with
+    it and the release costs every conversation its earlier reasoning once (`drop_block`), and
+    `bun run probe:claude` runs after, since a list the API refuses fails every run
+- **The agent's own**, in `CONVERSATION_TOOLS`: strict, within a request's 20 strict tools, 24
+  optional and 16 union parameters, which `buildConversationTools.test.ts` holds it to, and run by a
+  `ConversationToolRunner` (see The backend)
+- **A module's**: registered by its module's server, as [Module conventions](#module-conventions)
+  says, after the agent's own and not strict. Past some 10000 tokens of definitions Claude's tool
+  search (`defer_loading`) keeps tools out of the context, and the list held 16017 from M33: a module
+  added later weighs it (`documents/conversations.md` § Modules)
+- **An integration's**: none. Integrations reach the agent through its three fixed tools, so what an
+  organization adds never changes the list
+
 ### The data
 
 A conversation is kept twice, once for Claude and once for the page, and

@@ -40,7 +40,11 @@ function useReconcileConversationSubagents(
 
     let interval: ReturnType<typeof setInterval> | undefined
 
+    // A hidden tab asks nothing: the worker reconciles every few minutes what no page watches, and
+    // the tab asks again at its next tick once it is in view
     function reconcile() {
+      if (document.visibilityState === 'hidden') return
+
       requestApi({
         method: 'POST',
         path: `/organizations/${organizationId}/conversations/${conversationId}/subagents/reconcile`,

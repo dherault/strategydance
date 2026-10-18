@@ -20,7 +20,9 @@ import { getConversationComposerDraftKey, readConversationComposerDraft } from '
 const NO_WINDOWS: ConversationDockWindow[] = []
 
 /*
-  Holds the dock's windows, kept in localStorage so a reload finds them as they were.
+  Holds the dock's windows, kept in localStorage so a reload finds them as they were, and in step
+  across the tabs, so one writing its windows never writes over what another wrote, another
+  organization's or account's above all.
 
   Every member's windows in every organization sit under one key, each set under
   `${userId}:${organizationId}`: neither is known when the provider mounts, and the key a persisted
@@ -36,7 +38,7 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
   const [dock, setDock] = usePersistedState<ConversationDockWindows>(
     'conversationDock',
     {},
-    { parser: parseConversationDock },
+    { parser: parseConversationDock, isSyncedAcrossTabs: true },
   )
   const [focusRequest, setFocusRequest] = useState<ConversationDockContextType['focusRequest']>(null)
   const discardConversationDraft = useDiscardConversationDraft()

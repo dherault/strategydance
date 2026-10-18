@@ -797,8 +797,9 @@ type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
   toolOutput: String
   toolStartedAt: Timestamp
   toolDurationMs: Int
-  # A call to an integration's that started and that its server never answered: it timed out, the
-  # server could not be reached or stopped answering, or the run was interrupted, so it may have run.
+  # A call to an integration's that started and whose server's answer never came or could not be
+  # read: it timed out, the server could not be reached, stopped answering or answered more than
+  # Strategy Dance reads, or the run was interrupted, so it may have run.
   # A subagent's parent hears of it so, since a call to another company's server is what no restore
   # undoes. Null for any other call, and for one finished before M36
   isToolUnanswered: Boolean

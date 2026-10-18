@@ -12,8 +12,7 @@ import ConversationWait from '~components/conversation/ConversationWait'
 
 /*
   One of the reader's conversations in the current organization, or a draft of one at the id it
-  will have. It sits under the conversations' layout route, behind the bouncer that keeps them to
-  whoever may have them until they launch.
+  will have.
 
   A draft is this route rather than one of its own, so storing it is a change of search on the same
   route and the same params, which keeps the page mounted, as knowledge's is. So is a subagent's work

@@ -27,7 +27,6 @@ import { Route as AuthenticatedInvitationInvitationIdRouteImport } from './route
 import { Route as AuthenticatedOauthConsentRouteImport } from './routes/_authenticated/oauth.consent'
 import { Route as AuthenticatedAppOrganizationSlugIndexRouteImport } from './routes/_authenticated/_app/$organizationSlug/index'
 import { Route as AuthenticatedAppOrganizationSlugBuildInPublicRouteImport } from './routes/_authenticated/_app/$organizationSlug/build-in-public'
-import { Route as AuthenticatedAppOrganizationSlugConversationsRouteImport } from './routes/_authenticated/_app/$organizationSlug/conversations'
 import { Route as AuthenticatedAppOrganizationSlugExploreRouteImport } from './routes/_authenticated/_app/$organizationSlug/explore'
 import { Route as AuthenticatedAppOrganizationSlugIntegrationsRouteImport } from './routes/_authenticated/_app/$organizationSlug/integrations'
 import { Route as AuthenticatedAppOrganizationSlugProfileRouteImport } from './routes/_authenticated/_app/$organizationSlug/profile'
@@ -143,12 +142,6 @@ const AuthenticatedAppOrganizationSlugBuildInPublicRoute =
     path: '/build-in-public',
     getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
   } as any)
-const AuthenticatedAppOrganizationSlugConversationsRoute =
-  AuthenticatedAppOrganizationSlugConversationsRouteImport.update({
-    id: '/conversations',
-    path: '/conversations',
-    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
-  } as any)
 const AuthenticatedAppOrganizationSlugExploreRoute =
   AuthenticatedAppOrganizationSlugExploreRouteImport.update({
     id: '/explore',
@@ -229,16 +222,16 @@ const AuthenticatedAppOrganizationSlugAspectsAspectRoute =
   } as any)
 const AuthenticatedAppOrganizationSlugConversationsIndexRoute =
   AuthenticatedAppOrganizationSlugConversationsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAppOrganizationSlugConversationsRoute,
+    id: '/conversations/',
+    path: '/conversations/',
+    getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
   } as any)
 const AuthenticatedAppOrganizationSlugConversationsConversationIdRoute =
   AuthenticatedAppOrganizationSlugConversationsConversationIdRouteImport.update(
     {
-      id: '/$conversationId',
-      path: '/$conversationId',
-      getParentRoute: () => AuthenticatedAppOrganizationSlugConversationsRoute,
+      id: '/conversations/$conversationId',
+      path: '/conversations/$conversationId',
+      getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
     } as any,
   )
 const AuthenticatedAppOrganizationSlugKnowledgeIndexRoute =
@@ -276,7 +269,6 @@ export interface FileRoutesByFullPath {
   '/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
   '/oauth/consent': typeof AuthenticatedOauthConsentRoute
   '/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
-  '/$organizationSlug/conversations': typeof AuthenticatedAppOrganizationSlugConversationsRouteWithChildren
   '/$organizationSlug/explore': typeof AuthenticatedAppOrganizationSlugExploreRoute
   '/$organizationSlug/integrations': typeof AuthenticatedAppOrganizationSlugIntegrationsRoute
   '/$organizationSlug/profile': typeof AuthenticatedAppOrganizationSlugProfileRoute
@@ -348,7 +340,6 @@ export interface FileRoutesById {
   '/_authenticated/invitation/$invitationId': typeof AuthenticatedInvitationInvitationIdRoute
   '/_authenticated/oauth/consent': typeof AuthenticatedOauthConsentRoute
   '/_authenticated/_app/$organizationSlug/build-in-public': typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
-  '/_authenticated/_app/$organizationSlug/conversations': typeof AuthenticatedAppOrganizationSlugConversationsRouteWithChildren
   '/_authenticated/_app/$organizationSlug/explore': typeof AuthenticatedAppOrganizationSlugExploreRoute
   '/_authenticated/_app/$organizationSlug/integrations': typeof AuthenticatedAppOrganizationSlugIntegrationsRoute
   '/_authenticated/_app/$organizationSlug/profile': typeof AuthenticatedAppOrganizationSlugProfileRoute
@@ -387,7 +378,6 @@ export interface FileRouteTypes {
     | '/invitation/$invitationId'
     | '/oauth/consent'
     | '/$organizationSlug/build-in-public'
-    | '/$organizationSlug/conversations'
     | '/$organizationSlug/explore'
     | '/$organizationSlug/integrations'
     | '/$organizationSlug/profile'
@@ -458,7 +448,6 @@ export interface FileRouteTypes {
     | '/_authenticated/invitation/$invitationId'
     | '/_authenticated/oauth/consent'
     | '/_authenticated/_app/$organizationSlug/build-in-public'
-    | '/_authenticated/_app/$organizationSlug/conversations'
     | '/_authenticated/_app/$organizationSlug/explore'
     | '/_authenticated/_app/$organizationSlug/integrations'
     | '/_authenticated/_app/$organizationSlug/profile'
@@ -617,13 +606,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppOrganizationSlugBuildInPublicRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
-    '/_authenticated/_app/$organizationSlug/conversations': {
-      id: '/_authenticated/_app/$organizationSlug/conversations'
-      path: '/conversations'
-      fullPath: '/$organizationSlug/conversations'
-      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugConversationsRouteImport
-      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
-    }
     '/_authenticated/_app/$organizationSlug/explore': {
       id: '/_authenticated/_app/$organizationSlug/explore'
       path: '/explore'
@@ -717,17 +699,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/_app/$organizationSlug/conversations/': {
       id: '/_authenticated/_app/$organizationSlug/conversations/'
-      path: '/'
+      path: '/conversations'
       fullPath: '/$organizationSlug/conversations/'
       preLoaderRoute: typeof AuthenticatedAppOrganizationSlugConversationsIndexRouteImport
-      parentRoute: typeof AuthenticatedAppOrganizationSlugConversationsRoute
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
     '/_authenticated/_app/$organizationSlug/conversations/$conversationId': {
       id: '/_authenticated/_app/$organizationSlug/conversations/$conversationId'
-      path: '/$conversationId'
+      path: '/conversations/$conversationId'
       fullPath: '/$organizationSlug/conversations/$conversationId'
       preLoaderRoute: typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRouteImport
-      parentRoute: typeof AuthenticatedAppOrganizationSlugConversationsRoute
+      parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
     '/_authenticated/_app/$organizationSlug/knowledge/': {
       id: '/_authenticated/_app/$organizationSlug/knowledge/'
@@ -753,24 +735,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedAppOrganizationSlugConversationsRouteChildren {
-  AuthenticatedAppOrganizationSlugConversationsConversationIdRoute: typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRoute
-  AuthenticatedAppOrganizationSlugConversationsIndexRoute: typeof AuthenticatedAppOrganizationSlugConversationsIndexRoute
-}
-
-const AuthenticatedAppOrganizationSlugConversationsRouteChildren: AuthenticatedAppOrganizationSlugConversationsRouteChildren =
-  {
-    AuthenticatedAppOrganizationSlugConversationsConversationIdRoute:
-      AuthenticatedAppOrganizationSlugConversationsConversationIdRoute,
-    AuthenticatedAppOrganizationSlugConversationsIndexRoute:
-      AuthenticatedAppOrganizationSlugConversationsIndexRoute,
-  }
-
-const AuthenticatedAppOrganizationSlugConversationsRouteWithChildren =
-  AuthenticatedAppOrganizationSlugConversationsRoute._addFileChildren(
-    AuthenticatedAppOrganizationSlugConversationsRouteChildren,
-  )
-
 interface AuthenticatedAppOrganizationSlugTasksRouteChildren {
   AuthenticatedAppOrganizationSlugTasksTaskIdRoute: typeof AuthenticatedAppOrganizationSlugTasksTaskIdRoute
 }
@@ -788,7 +752,6 @@ const AuthenticatedAppOrganizationSlugTasksRouteWithChildren =
 
 interface AuthenticatedAppOrganizationSlugRouteChildren {
   AuthenticatedAppOrganizationSlugBuildInPublicRoute: typeof AuthenticatedAppOrganizationSlugBuildInPublicRoute
-  AuthenticatedAppOrganizationSlugConversationsRoute: typeof AuthenticatedAppOrganizationSlugConversationsRouteWithChildren
   AuthenticatedAppOrganizationSlugExploreRoute: typeof AuthenticatedAppOrganizationSlugExploreRoute
   AuthenticatedAppOrganizationSlugIntegrationsRoute: typeof AuthenticatedAppOrganizationSlugIntegrationsRoute
   AuthenticatedAppOrganizationSlugProfileRoute: typeof AuthenticatedAppOrganizationSlugProfileRoute
@@ -797,7 +760,9 @@ interface AuthenticatedAppOrganizationSlugRouteChildren {
   AuthenticatedAppOrganizationSlugTodayRoute: typeof AuthenticatedAppOrganizationSlugTodayRoute
   AuthenticatedAppOrganizationSlugIndexRoute: typeof AuthenticatedAppOrganizationSlugIndexRoute
   AuthenticatedAppOrganizationSlugAspectsAspectRoute: typeof AuthenticatedAppOrganizationSlugAspectsAspectRoute
+  AuthenticatedAppOrganizationSlugConversationsConversationIdRoute: typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRoute
   AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute: typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute
+  AuthenticatedAppOrganizationSlugConversationsIndexRoute: typeof AuthenticatedAppOrganizationSlugConversationsIndexRoute
   AuthenticatedAppOrganizationSlugKnowledgeIndexRoute: typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRoute
 }
 
@@ -805,8 +770,6 @@ const AuthenticatedAppOrganizationSlugRouteChildren: AuthenticatedAppOrganizatio
   {
     AuthenticatedAppOrganizationSlugBuildInPublicRoute:
       AuthenticatedAppOrganizationSlugBuildInPublicRoute,
-    AuthenticatedAppOrganizationSlugConversationsRoute:
-      AuthenticatedAppOrganizationSlugConversationsRouteWithChildren,
     AuthenticatedAppOrganizationSlugExploreRoute:
       AuthenticatedAppOrganizationSlugExploreRoute,
     AuthenticatedAppOrganizationSlugIntegrationsRoute:
@@ -823,8 +786,12 @@ const AuthenticatedAppOrganizationSlugRouteChildren: AuthenticatedAppOrganizatio
       AuthenticatedAppOrganizationSlugIndexRoute,
     AuthenticatedAppOrganizationSlugAspectsAspectRoute:
       AuthenticatedAppOrganizationSlugAspectsAspectRoute,
+    AuthenticatedAppOrganizationSlugConversationsConversationIdRoute:
+      AuthenticatedAppOrganizationSlugConversationsConversationIdRoute,
     AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute:
       AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute,
+    AuthenticatedAppOrganizationSlugConversationsIndexRoute:
+      AuthenticatedAppOrganizationSlugConversationsIndexRoute,
     AuthenticatedAppOrganizationSlugKnowledgeIndexRoute:
       AuthenticatedAppOrganizationSlugKnowledgeIndexRoute,
   }

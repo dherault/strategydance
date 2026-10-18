@@ -908,9 +908,10 @@ in `utils/`, one concern per file.
   reconciles the runs no page watches: every member's subagent runs past their lease or waiting for
   a slot (`sweepSubagentRuns`), the runs of members' conversations past their lease
   (`sweepDeadConversationRuns`), and the reactions to subagents' reports no run's end started
-  (`sweepSubagentReactions`), each step on its own (`runSweepSteps`). A queued run whose task never
-  came is queued again while it is young, and a slot freed is promoted into within minutes. A new
-  kind of run no page watches is reconciled there too
+  (`sweepSubagentReactions`), each step on its own (`runSweepSteps`), each going on past what fails
+  in it and throwing once done when anything did (`SweepIncomplete`), so the route answers 500. A
+  queued run whose task never came is queued again while it is young, and a slot freed is promoted
+  into within minutes. A new kind of run no page watches is reconciled there too
 - The worker's `POST /internal/directories-check`, which Cloud Scheduler calls once a day, checks
   a day's directories and commits what it found to one rolling pull request into `dev`, from the
   branch `directories-check`, which only it writes (`publishDirectoryCheck` in

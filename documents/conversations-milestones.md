@@ -87,7 +87,7 @@ nothing, rather than leave the daily sweep their only recovery.
 | M33 | Subagents in conversations | backend, database, root | M11, M32 | #200 |
 | M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | #202 |
 | M35 | Usage caps | core, database, backend, web, root | M33 | #207 |
-| M36 | Integrations in subagents | backend, web | M29, M33 | |
+| M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
 | M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | |
 | M38 | Launch | all | all | |
 
@@ -2732,6 +2732,48 @@ As David chose on 2026-10-12, written again on 2026-10-16 against M29 as it merg
 - **Verify** with the real model and DeepWiki added by its address: a subagent reading through a tool
   an administrator let run without approval, and one reporting a call it could not make, which the
   reaction proposes and the member allows.
+- Built with these settled, on 2026-10-18:
+  - **The calls the parent hears of are those that started**, `toolStartedAt` set, read by
+    `GetSubagentIntegrationCallsForAgent`: a call refused as it was drawn, the one needing an
+    approval among them, reached no server, and the report names it. Each is `{ integration, tool,
+    ending }`, the names as they were at call time, its ending `SUCCEEDED`, `FAILED` (answered with
+    an error), `UNANSWERED` (its server never answered, so it may have run) or `RUNNING`. A duration
+    could not tell the last two failures apart, since a timeout has one, so a call is recorded as
+    unanswered, `ConversationMessage.isToolUnanswered`, unless its failure says the server refused it
+    before running it, its address, its credential, a refusal it answered or a status of 4xx but 408
+    and 429: one that timed out, found no server or brought an answer that could not be read, too
+    large or compressed, throws `IntegrationCallUnanswered`, whose sentence says to check before
+    calling again, and so does one a crash interrupted, as Copilot pointed out over three rounds; a
+    call cancelled by its run's end reads unanswered too, and one finished as
+    interrupted before the column, by its missing duration. `read_subagent` lists them all with
+    every page, `integrationCalls` and `integrationCallTotal`, at most 200 for a chain; a report
+    names the first 20 with their total, after its writes, `{"subagentReport": {"id", "title",
+    "ending", "report", "writes", "total", "integrationCalls", "integrationCallTotal"}}`.
+  - **The conversation's system prompt moved too**, as David approved: it names the report's two new
+    keys and asks the agent to propose itself a call a report says its subagent could not make, so
+    a reaction draws it as an approval. With `read_subagent`'s schema, the conversation's tools'
+    pinned bytes moved as well.
+  - **The refusal** reads "Not called: this call needs the member's approval, which nobody can give a
+    subagent. Say in your report what you would call, with which arguments, and why.", the prefix
+    every refusal at drawing has, and the call is drawn failed with its server, so the viewer's strip
+    says what fixes the server when it is off, missing or not connected.
+  - **A subagent's runners** are the integrations' and its modules' but those it never gets, the
+    integrations' closed over its own run's fence, so a call is started and finished under its
+    attempt and its member's membership, as a parent's is.
+  - **In the dock**, a subagent's viewer stayed open over the Integrations page once its strip's link
+    led there, since the dock outlives the page: the window now closes it at the reader's next
+    navigation (the router's `onBeforeNavigate`), a search alone changed or Back included, which
+    covers a document's link in it too.
+  - Verified: the four checks; `check:subagents-module`, `check:subagent-runs` and
+    `check:conversation-runs` against an emulator of the branch's schema, every check passing, the
+    new query's own among them: a subagent's started calls read in order with their status, duration
+    and answer, one refused as it was drawn left out, a parent's left out, and somebody else's and a
+    replaced membership reading nothing. In a browser against it, with the placeholder agent and a
+    subagent's calls to DeepWiki drawn in its thread, the server turned off: the viewer drawing the
+    failed call and the strip's Turn on at 1280 and 390 wide, on the page and in a dock window, where
+    Turn on turned DeepWiki on and the viewer closed over the Integrations page, as it did opened on
+    that page itself, staying closed on Back; and the switch's warning in the server's dialog. Not yet: `probe:claude` and the real model with DeepWiki, gcloud
+    asking David to sign in again before it reads the API key.
 
 ### M37: Launch readiness
 

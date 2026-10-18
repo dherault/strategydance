@@ -2140,6 +2140,7 @@ type StoredCall = {
   approvalState: string | null
   approvalToolHash: string | null
   argumentsPreview: string | null
+  isToolUnanswered: boolean | null
 }
 
 async function readCall(id: string) {
@@ -2147,6 +2148,7 @@ async function readCall(id: string) {
     `query ReadCall($id: UUID!) {
       conversationMessage(id: $id) {
         id kind toolStatus toolStartedAt integrationId integrationName approvalState approvalToolHash argumentsPreview
+        isToolUnanswered
       }
     }`,
     { id },
@@ -2395,10 +2397,16 @@ async function checkIntegrationCalls() {
           toolStatus: ConversationToolStatus.FAILED,
           toolOutput: '{"error":"This call was interrupted and may have run."}',
           toolDurationMs: null,
+          isToolUnanswered: true,
           approvalState: 'DENIED',
         }),
       )) === null
-      && (await readCall(approvalId))?.approvalState === 'DENIED',
+      && (await readCall(approvalId))?.approvalState === 'DENIED'
+      && (await readCall(approvalId))?.isToolUnanswered === true,
+  )
+  check(
+    'a call finished by a backend from before M36, saying nothing of its answer, records none',
+    (await readCall(autoId))?.isToolUnanswered === null,
   )
 
   await write(`mutation Prune($id: UUID!) { organizationIntegration_delete(id: $id) }`, { id: integrationId })

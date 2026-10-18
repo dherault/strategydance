@@ -797,6 +797,12 @@ type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
   toolOutput: String
   toolStartedAt: Timestamp
   toolDurationMs: Int
+  # A call to an integration's that started and failed without its server refusing it before running
+  # it: it timed out, the server could not be reached or stopped answering, its answer could not be
+  # read, or the run was interrupted, so it may have run.
+  # A subagent's parent hears of it so, since a call to another company's server is what no restore
+  # undoes. Null for any other call, and for one finished before M36
+  isToolUnanswered: Boolean
   # A question's: its prompt and options as the agent wrote them, and whether several may be
   # chosen. They go back into the transcript as they are, so the backend refuses them, rather than
   # cuts them, past `MAX_QUESTION_PROMPT_LENGTH` and `MAX_QUESTION_OPTION_LENGTH`

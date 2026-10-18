@@ -57,6 +57,8 @@ describe('list_subagents and read_subagent', () => {
       report: null,
       writes: [],
       total: 0,
+      integrationCalls: [],
+      integrationCallTotal: 0,
     })
   })
 

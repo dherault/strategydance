@@ -65,8 +65,11 @@ its launch, and their
 model and effort are chosen from what M33 measures (see Subagents); and M36 is written again against
 M29 as it was built, the parent hearing of every integration call a subagent made. Revised on
 2026-10-17, in M34, with what bringing subagents into the thread settled, in Subagents § In the
-parent's thread, and the launch gate removed (see Release gate). When a decision changes, change it
-here first.
+parent's thread, and the launch gate removed (see Release gate). Revised on 2026-10-18, in M36, with
+what bringing integrations to subagents settled, in Subagents: the parent hears of the calls that
+started, a reaction's entry naming the first 20 and `read_subagent` all of them, and the
+conversation's system prompt asks it to propose a call its subagent could not make. When a decision
+changes, change it here first.
 
 ## The design
 
@@ -1579,7 +1582,7 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
 | Tool | What it does | Scope |
 | --- | --- | --- |
 | `list_subagents` | `{ cursor? }`: the subagents the calling conversation launched and a Retry did not delete, newest first, 20 a page, with a `cursor` while more remain. Each has its id, its title, its status (queued, waiting for a slot, working, reported, stopped, failed or interrupted), when it started and ended, whether it reported and, from M33, whether its report was delivered | read |
-| `read_subagent` | `{ id, cursor? }`: one of them, with its status and its step, how many runs it took, its report once written, and what it wrote: the documents and tasks its successful module writes named, each with its tool, read from what those writes keep under its own scope, `conversation:<subagentId>`, and from M36 the integration calls it made, each with its server, its tool and how it ended, oldest first, 50 a page, with `total` and a `cursor` while more remain, since a chain can make 200 calls. The cursor pages the writes alone, the rest coming with every page. Refused for a subagent of another conversation, or one a Retry deleted, whose launch the transcript no longer holds, as for one that does not exist | read |
+| `read_subagent` | `{ id, cursor? }`: one of them, with its status and its step, how many runs it took, its report once written, and what it wrote: the documents and tasks its successful module writes named, each with its tool, read from what those writes keep under its own scope, `conversation:<subagentId>`, oldest first, 50 a page, with `total` and a `cursor` while more remain, since a chain can make 200 calls, and from M36 the calls it made to the organization's integrations that started, oldest first, each with its server and its tool as they were named then and how it ended (`SUCCEEDED`, `FAILED`, `UNANSWERED`, when its server never answered, so it may have run, or `RUNNING`), with `integrationCallTotal`, at most 200. The cursor pages the writes alone, the rest coming with every page. Refused for a subagent of another conversation, or one a Retry deleted, whose launch the transcript no longer holds, as for one that does not exist | read |
 | `launch_subagent` | `{ title, brief, attachments? }`: a new subagent of the calling conversation. The title is one line of at most 120 characters, the brief at most 20000 (`MAX_SUBAGENT_BRIEF_LENGTH`), and `attachments` the ids of at most ten files the conversation has sent, as the member's entries name them. Answers its id and whether it is queued or waiting for a slot. Refused from a subagent, from a parent's reaction (a `REPORTS` run), from a run that has ended or was asked to stop, past ten on the launching run's anchor (`MAX_SUBAGENTS_PER_ACTION`), those a Retry deleted left out, past 100 in the conversation (`MAX_CONVERSATION_SUBAGENTS`), for a file the conversation has not sent, and for a first request, measured whole when it carries files, past a send's budget, `MAX_CONVERSATION_SEND_INPUT_TOKENS` | write |
 | `stop_subagent` | `{ id }`: asks it to stop, as its row's Stop does. One already ended is answered as such, and changes nothing | write |
 
@@ -1941,7 +1944,8 @@ way (see The orchestrator).
     with `doc:` and `task:` links, and what it needs when it could not finish.
   - Its tools are everything its launcher has but `ask_user`, the Subagents module's, and from M33
     `delete_document` and `delete_task`: web search, the Knowledge and Tasks modules but their
-    deletes, and from M36 the integration tools. Every subagent sends the same system prompt and the
+    deletes, and from M36 the three integration tools, after web search, in `CONVERSATION_TOOLS`' order.
+    Every subagent sends the same system prompt and the
     same tools list, pinned like the conversation's, so their requests share a cached prefix, which
     tools granted per launch would split: David chose every tool over a grant (see Risks). The
     deletes are left out of that one list, which every subagent still shares, as David chose on
@@ -2065,8 +2069,9 @@ way (see The orchestrator).
   starts in the
   parent, triggered `REPORTS`. Its `USER` entry holds one text block per undelivered report of every
   batch that is complete, never one of a batch still working, so each batch is reacted to whole: the
-  subagent's id, title, ending and report, and the first 20 of what it wrote with their `total`,
-  `read_subagent` paging the rest, each block one JSON object, from M33, so no report, written from
+  subagent's id, title, ending and report, the first 20 of what it wrote with their `total`,
+  `read_subagent` paging the rest, and from M36 the first 20 calls it made to integrations with their
+  `integrationCallTotal`, `read_subagent` listing them all, each block one JSON object, from M33, so no report, written from
   whatever its subagent read, can pass for the member's words or for another block, in a reaction's
   entry or beside a member's text in a send. The mutation that stores the entry and
   starts the run marks those reports delivered (`reportDeliveredAt`), under the conversation's lock
@@ -2227,10 +2232,20 @@ way (see The orchestrator).
   subagent. Any other call is refused with a sentence asking it to say in its report what it would
   call and why, and the parent proposes the call in its own thread, where M29's approval applies.
   The decision is M29's, made once when the call is drawn, a call that would wait drawn failed
-  instead, and a started call is never made again, a `CONTINUE` run's included. `read_subagent` and a
-  reaction's entry list the calls a subagent made, server, tool and ending, since a call to another
-  company's server is what no restore undoes, and the switch that lets a tool run without approval
-  says it runs in subagents too, with nobody watching.
+  instead, and a started call is never made again, a `CONTINUE` run's included, while one drawn to
+  run and never started is made by the run carrying the subagent on, its binding checked again
+  first. `read_subagent` and a reaction's entry list the calls a subagent made, server, tool and
+  ending, since a call to another company's server is what no restore undoes: those that started,
+  since a call refused as it was drawn reached no server and the report names it, a reaction's entry
+  the first 20 with their total and `read_subagent` every one. The conversation's system prompt asks
+  the parent to propose a call a report says its subagent could not make, which a reaction draws as
+  an approval the member answers. The switch that lets a tool run without approval says it runs in
+  subagents too, with nobody watching. A call that failed without its server refusing it before
+  running it, one that timed out, found no server, was interrupted or brought an answer that could
+  not be read, is recorded as unanswered (`isToolUnanswered`), and the parent hears it as
+  `UNANSWERED`, apart from one refused, since it may have run. In the dock, a
+  subagent's viewer closes at the reader's next navigation, as its warning strip's link, or any
+  other, leads them elsewhere.
 - **Cost.** A subagent's run costs what a conversation's does, about $0.15 for three cached requests
   (see Cost), but a subagent may take four runs of 25 requests over a context that grows with what it
   reads, some $1.50 a full run over a modest context: a fan-out of ten subagents that each use their

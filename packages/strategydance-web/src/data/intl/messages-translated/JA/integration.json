@@ -120,7 +120,7 @@
   "integration.statusNeedsAuthentication": "要認証",
   "integration.statusOff": "オフ",
   "integration.toggleError": "{name}を変更できませんでした。もう一度お試しください。",
-  "integration.toolsApprovalWarning": "承認なしで実行されるツールは、WebページやドキュメントなどStrategy Danceが読み込んだコンテンツによって、任意の引数で即座に呼び出される可能性があります。影響を許容できるツールのみを許可してください。",
+  "integration.toolsApprovalWarning": "承認なしで実行されるツールは、WebページやドキュメントなどStrategy Danceが読み込んだあらゆるコンテンツや、誰も監視していない状態で動作するサブエージェントによって、任意の引数で即座に呼び出される可能性があります。影響を許容できるツールのみを許可してください。",
   "integration.toolsCount": "{count, plural, other {#個のツール}}",
   "integration.toolsEmpty": "このサーバーにはツールがありません。",
   "integration.toolsLoadError": "サーバーのツールを読み込めませんでした。",

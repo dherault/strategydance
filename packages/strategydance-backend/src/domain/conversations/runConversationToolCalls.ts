@@ -32,6 +32,7 @@ import {
 } from '~domain/conversations/conversationToolResults'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import IntegrationCallChanged from '~domain/integrations/IntegrationCallChanged'
+import IntegrationCallUnanswered from '~domain/integrations/IntegrationCallUnanswered'
 
 type RunConversationToolCallsInput = {
   fence: ConversationRunFence
@@ -255,9 +256,10 @@ async function runCall(input: RunCallInput) {
 /*
   Makes a call to an integration's tool, as `runCall` makes any other, through the integration's own
   start and finish: the start marks the server used, and only a call never started starts. A call
-  that started and has no result is finished as interrupted rather than made. An approval whose
-  server, tool or credential changed since the member saw it is denied as it is answered, so the
-  thread shows why
+  that started and has no result is finished as interrupted rather than made, and recorded, as one
+  that timed out or whose server could not be reached, as unanswered, since it may have run. An
+  approval whose server, tool or credential changed since the member saw it is denied as it is
+  answered, so the thread shows why
 */
 async function runIntegrationCall({
   fence,
@@ -278,6 +280,8 @@ async function runIntegrationCall({
   let result: ConversationToolResult
   let toolOutput: string
   let isDenied = false
+  // Whether its server never answered, so it may have run: interrupted, timed out, or not reached
+  let isUnanswered = isInterrupted
 
   if (isInterrupted) {
     toolOutput = toFailedOutput(INTERRUPTED_CALL_RESULT)
@@ -311,6 +315,7 @@ async function runIntegrationCall({
           : 'The call failed.'
 
       isDenied = isApproval && error instanceof IntegrationCallChanged
+      isUnanswered = timeout.aborted || error instanceof IntegrationCallUnanswered
       toolOutput = toFailedOutput(reason)
       result = toFailedResult(call.id, reason)
     }
@@ -327,6 +332,7 @@ async function runIntegrationCall({
       toolStatus,
       toolOutput,
       ...(!isInterrupted && { toolDurationMs: Date.now() - startedAt }),
+      isToolUnanswered: isUnanswered,
       ...(isDenied && { approvalState: ConversationApprovalState.DENIED }),
       pendingToolResults: serializePendingToolResults(kept),
       preview: buildConversationPreview(

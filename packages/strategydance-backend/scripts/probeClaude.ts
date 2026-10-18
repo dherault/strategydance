@@ -723,7 +723,7 @@ await check(
 )
 
 await check(
-  "A subagent's request is accepted, with its own system prompt and tools, the deletes left out",
+  "A subagent's request is accepted, with its own system prompt and tools, the integration tools in, the deletes left out",
   async () => {
     assert(moduleTools.length, 'no module tools listed')
 
@@ -742,6 +742,10 @@ await check(
     finding("The subagent's request's usage", message.usage)
     assert(message.stop_reason !== 'refusal', 'the request was refused')
     assert(!names.includes('delete_task') && !names.includes('launch_subagent'), 'it sends a tool it never gets')
+    assert(
+      !names.includes('ask_user') && names.includes('call_integration_tool'),
+      'it sends ask_user, or not the integration tools',
+    )
 
     return `${tools.length} tools, stopped on ${message.stop_reason}`
   },

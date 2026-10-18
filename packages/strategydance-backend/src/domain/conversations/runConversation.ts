@@ -156,8 +156,9 @@ type ConversationRunContext = GetConversationRunContextData
   A run whose member asked it to stop sends no further request: it ends stopped, with its note, once
   what was paid for is written and drawn. One whose conversation was deleted stops without a note.
 
-  A subagent's run sends the subagent's own system prompt and tools, which leave out `ask_user` and
-  the integrations', never tags its conversation, draws no reply as unread, and ends through the
+  A subagent's run sends the subagent's own system prompt and tools, which leave out `ask_user`, draws
+  a call to an integration that would wait for an approval failed, since nobody can give one, never
+  tags its conversation, draws no reply as unread, and ends through the
   subagent's own endings, which write its report, however it ends. At one of its limits before its
   fourth run it chains instead, to a run that carries it on, which is queued once this one has let
   go of its lease, the run answering `held` while it cannot be, so the delivery comes back to queue
@@ -259,11 +260,13 @@ async function runConversation(
           }
         : { system: CONVERSATION_SYSTEM_PROMPT, tools: buildConversationTools(modules.tools) },
       // The integration tools' runners always, whatever the organization added, so a turn is planned
-      // the same by whoever takes it over. A subagent is sent none of their tools, nor the module
-      // tools it never gets, so a call to one is planned as a call to a tool nobody runs
-      runners: isSubagent
-        ? modules.runners.filter(runner => isSubagentTool(runner.name))
-        : [...createIntegrationRunners(fence), ...modules.runners],
+      // the same by whoever takes it over, a subagent's acting as its member under its own fence. A
+      // subagent is sent none of the module tools it never gets, so a call to one is planned as a call
+      // to a tool nobody runs
+      runners: [
+        ...createIntegrationRunners(fence),
+        ...(isSubagent ? modules.runners.filter(runner => isSubagentTool(runner.name)) : modules.runners),
+      ],
       toolTimeoutMs,
       isSubagent,
     })

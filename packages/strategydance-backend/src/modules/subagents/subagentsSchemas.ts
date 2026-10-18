@@ -5,7 +5,7 @@ import {
 } from 'strategydance-core'
 import { z } from 'zod'
 
-import type { SubagentStatus } from '~types'
+import type { SubagentIntegrationCallEnding, SubagentStatus } from '~types'
 
 import { UUID_PATTERN } from '~constants'
 
@@ -26,6 +26,15 @@ export const SUBAGENT_STATUSES = [
 ] as const satisfies readonly SubagentStatus[]
 
 export const statusSchema = z.enum(SUBAGENT_STATUSES)
+
+export const SUBAGENT_INTEGRATION_CALL_ENDINGS = [
+  'SUCCEEDED',
+  'FAILED',
+  'UNANSWERED',
+  'RUNNING',
+] as const satisfies readonly SubagentIntegrationCallEnding[]
+
+export const integrationCallEndingSchema = z.enum(SUBAGENT_INTEGRATION_CALL_ENDINGS)
 
 export const titleSchema = z
   .string()

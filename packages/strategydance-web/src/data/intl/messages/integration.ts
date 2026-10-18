@@ -711,9 +711,9 @@ const integrationMessages = defineMessages({
   toolsApprovalWarning: {
     id: 'integration.toolsApprovalWarning',
     defaultMessage:
-      'A tool that runs without approval can be called at once, with any arguments, by anything Strategy Dance reads, such as a web page or a document. Allow only tools whose effects you accept.',
+      'A tool that runs without approval can be called at once, with any arguments, by anything Strategy Dance reads, such as a web page or a document, and by its subagents, which work with nobody watching. Allow only tools whose effects you accept.',
     description:
-      "Warning above the switches that let a server's tools run without a member approving each call, since text Strategy Dance reads could get such a tool called.",
+      "Warning above the switches that let a server's tools run without a member approving each call, since text Strategy Dance reads could get such a tool called, and Strategy Dance's subagents, which work on their own with nobody reading along, call such tools too.",
   },
   runWithoutApproval: {
     id: 'integration.runWithoutApproval',

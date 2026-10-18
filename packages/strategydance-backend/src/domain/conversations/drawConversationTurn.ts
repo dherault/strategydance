@@ -166,7 +166,8 @@ async function drawConversationTurn({ fence, lease, entries, plans, position, is
     if (drawing.kind === 'none') continue
     if (drawing.kind === 'waiting') return 'waiting'
 
-    const decided = drawing.kind === 'integrationCall' ? await decideIntegrationDrawing(fence, drawing) : drawing
+    const decided =
+      drawing.kind === 'integrationCall' ? await decideIntegrationDrawing(fence, drawing, isSubagent) : drawing
 
     await lease.write(() => write(fence, entry.id, position, decided, isSubagent))
 
@@ -291,15 +292,17 @@ function drawCall(
 
 /*
   What a call to an integration's tool is drawn as, from the server as the run's member reads it now:
-  decided once, since the message drawn keeps it for a worker taking over
+  decided once, since the message drawn keeps it for a worker taking over. A subagent's that would
+  wait for an approval is drawn failed, since nobody can give one
 */
 async function decideIntegrationDrawing(
   fence: ConversationRunFence,
   drawing: Extract<Drawing, { kind: 'integrationCall' }>,
+  isSubagent: boolean,
 ): Promise<Drawing> {
   const { integrationCall, ...move } = drawing
   const read = await readConversationIntegration(fence, integrationCall.integrationId)
-  const decided = decideConversationIntegrationCall(read, integrationCall)
+  const decided = decideConversationIntegrationCall(read, integrationCall, { isSubagent })
 
   switch (decided.kind) {
     case 'refused':

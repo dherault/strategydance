@@ -446,6 +446,14 @@ export type SubagentStatus =
   | 'INTERRUPTED'
 
 /*
+  How a subagent's call to an integration ended, as the Subagents module and its parent's reports
+  name it: answered, answered with an error, never answered by its server, so it may have run, which
+  a timeout, a server out of reach, a crash or a stop leaves, or running still, while the subagent
+  works
+*/
+export type SubagentIntegrationCallEnding = 'SUCCEEDED' | 'FAILED' | 'UNANSWERED' | 'RUNNING'
+
+/*
   Why the Subagents module refused a call, which its tool words for the model: each is something the
   model can act on, by telling the member, carrying on without a subagent, or changing what it sent
 */

@@ -39,11 +39,14 @@ describe('buildSubagentTools', () => {
     to them makes every existing subagent lose its earlier reasoning once. Change this hash only with
     a release that means to change the tools
   */
-  it('keeps its bytes, web search then the Knowledge module’s and the Tasks module’s, their deletes left out', async () => {
+  it('keeps its bytes, web search and the integration tools then the Knowledge module’s and the Tasks module’s, their deletes left out', async () => {
     const tools = buildSubagentTools(await readModuleTools())
 
     expect(tools.map(readName)).toEqual([
       'web_search',
+      'list_integrations',
+      'describe_integration_tool',
+      'call_integration_tool',
       'search_documents',
       'list_documents',
       'read_document',
@@ -60,21 +63,23 @@ describe('buildSubagentTools', () => {
       'restore_task',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '98a726a1d2a88b819af2c467bf7e5a98dcc3c80c4d42bb872c769d3c1dfa1552',
+      'cc7a7f506e2cf62555a371c23dbc52f862f58f051d4cb5c826813b65193ea173',
     )
   })
 
-  // Nobody answers a subagent's question or approves its call, what it would delete it proposes, and
-  // it is one level deep
-  it('sends every tool of a conversation’s but the agent’s own, web search aside, the deletes and the Subagents module’s, each as a conversation sends it', async () => {
+  // Nobody answers a subagent's question, what it would delete it proposes, and it is one level deep.
+  // Its calls to integrations it reaches as its agent does, those that would wait refused when drawn
+  it('sends every tool of a conversation’s but ask_user, the deletes and the Subagents module’s, each as a conversation sends it, in its order', async () => {
     const moduleTools = await readModuleTools()
     const subagent = buildSubagentTools(moduleTools).map(tool => JSON.stringify(tool))
     const conversation = buildConversationTools(moduleTools).map(tool => JSON.stringify(tool))
-    const ownNames = CONVERSATION_TOOLS.map(readName).filter(name => name !== 'web_search')
 
-    expect(subagent.every(tool => conversation.includes(tool))).toBe(true)
+    expect(conversation.filter(tool => subagent.includes(tool))).toEqual(subagent)
+    expect(subagent.slice(0, 4)).toEqual(
+      CONVERSATION_TOOLS.filter(tool => readName(tool) !== 'ask_user').map(tool => JSON.stringify(tool)),
+    )
     expect(conversation.filter(tool => !subagent.includes(tool)).map(tool => JSON.parse(tool).name)).toEqual([
-      ...ownNames,
+      'ask_user',
       'delete_document',
       'delete_task',
       'list_subagents',

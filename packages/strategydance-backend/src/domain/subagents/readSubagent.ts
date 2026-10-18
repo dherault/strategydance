@@ -10,7 +10,9 @@ import encodeCursor from '~utils/encodeCursor'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import toConversationModuleScope from '~domain/agent/toConversationModuleScope'
+import readSubagentIntegrationCalls from '~domain/subagents/readSubagentIntegrationCalls'
 import readSubagentLauncher from '~domain/subagents/readSubagentLauncher'
+import type { SubagentIntegrationCall } from '~domain/subagents/toSubagentIntegrationCall'
 import toSubagentStatus from '~domain/subagents/toSubagentStatus'
 import toSubagentWrite, { type SubagentWrite } from '~domain/subagents/toSubagentWrite'
 
@@ -37,18 +39,21 @@ export type ReadSubagent = {
   writes: SubagentWrite[]
   total: number
   cursor?: string
+  integrationCalls: SubagentIntegrationCall[]
+  integrationCallTotal: number
 }
 
 export type ReadSubagentResult = { outcome: 'read'; subagent: ReadSubagent } | SubagentsRefusal
 
 /*
   One subagent of the calling conversation: where it stands, its step while it works, how many runs
-  its chain took, its report once written, and what it wrote, oldest first, 50 a page, with `total`
-  and a cursor while more remain, the rest coming with every page. What it wrote is what its
-  successful module writes keep under its idempotency scope: every write of an agent carries a key,
-  and only a write that went through keeps one. A subagent of another conversation, somebody else's,
-  or one a retry deleted, whose launch the transcript no longer holds, reads as one that does not
-  exist
+  its chain took, its report once written, what it wrote, oldest first, 50 a page, with `total` and a
+  cursor while more remain, and the calls it made to the organization's integrations, the rest coming
+  with every page. What it wrote is what its successful module writes keep under its idempotency
+  scope: every write of an agent carries a key, and only a write that went through keeps one. Its
+  calls are every one that started, at most 200 for a chain, each with its server, its tool and how
+  it ended (`readSubagentIntegrationCalls`). A subagent of another conversation, somebody else's, or
+  one a retry deleted, whose launch the transcript no longer holds, reads as one that does not exist
 */
 async function readSubagent(
   caller: ModuleCaller,
@@ -90,6 +95,10 @@ async function readSubagent(
 
   if (written.membership.length === 0) return { outcome: 'notMember' }
 
+  const called = await readSubagentIntegrationCalls(member, subagentId)
+
+  if (!called) return { outcome: 'notMember' }
+
   const page = written.writes.slice(0, PAGE_SIZE)
   const last = page.at(-1)
   const status = toSubagentStatus(run.status)
@@ -111,6 +120,8 @@ async function readSubagent(
         && written.writes.length > PAGE_SIZE && {
           cursor: encodeCursor({ createdAt: last.createdAt, key: last.idempotencyKey }),
         }),
+      integrationCalls: called.calls,
+      integrationCallTotal: called.total,
     },
   }
 }

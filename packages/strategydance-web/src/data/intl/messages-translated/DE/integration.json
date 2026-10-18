@@ -120,7 +120,7 @@
   "integration.statusNeedsAuthentication": "Authentifizierung erforderlich",
   "integration.statusOff": "Aus",
   "integration.toggleError": "{name} konnte nicht geändert werden. Versuchen Sie es erneut.",
-  "integration.toolsApprovalWarning": "Ein Tool, das ohne Freigabe ausgeführt wird, kann von allem, was Strategy Dance liest (wie Webseiten oder Dokumente), sofort mit beliebigen Argumenten aufgerufen werden. Erlauben Sie nur Tools, deren Auswirkungen Sie akzeptieren.",
+  "integration.toolsApprovalWarning": "Ein Tool, das ohne Freigabe ausgeführt wird, kann von allem, was Strategy Dance liest (wie einer Webseite oder einem Dokument), sowie von seinen Subagenten, die unbeaufsichtigt arbeiten, sofort mit beliebigen Argumenten aufgerufen werden. Erlauben Sie nur Tools, deren Auswirkungen Sie akzeptieren.",
   "integration.toolsCount": "{count, plural, one {# Tool} other {# Tools}}",
   "integration.toolsEmpty": "Dieser Server listet keine Tools.",
   "integration.toolsLoadError": "Die Tools des Servers konnten nicht geladen werden.",

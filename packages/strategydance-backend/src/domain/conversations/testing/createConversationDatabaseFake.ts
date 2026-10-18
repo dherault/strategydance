@@ -206,6 +206,8 @@ export type FakeMessage = {
   toolOutput?: string | null
   toolStartedAt?: string | null
   toolDurationMs?: number | null
+  // A call to an integration's its server never answered, so it may have run
+  isToolUnanswered?: boolean | null
   questionPrompt?: string | null
   questionOptions?: string[] | null
   isMultipleChoice?: boolean | null
@@ -3213,6 +3215,7 @@ function createConversationDatabaseFake() {
         toolStatus: variables.toolStatus,
         toolOutput: variables.toolOutput,
         ...(variables.toolDurationMs === undefined ? {} : { toolDurationMs: variables.toolDurationMs }),
+        ...(variables.isToolUnanswered === undefined ? {} : { isToolUnanswered: variables.isToolUnanswered }),
         ...(approvalState === null ? {} : { approvalState }),
       })
 
@@ -3989,6 +3992,37 @@ function createConversationDatabaseFake() {
           .slice(0, 51)
           .map(({ idempotencyKey, tool, result, createdAt }) => ({ idempotencyKey, tool, result, createdAt })),
         total: [{ _count: written.length }],
+      }
+    },
+
+    GetSubagentIntegrationCallsForAgent: variables => {
+      const subagent = conversations.get(id(variables.subagentId))
+      const isTheirs =
+        subagent !== undefined
+        && subagent.userId === variables.userId
+        && subagent.organizationId === id(variables.organizationId)
+        && subagent.parentId != null
+      const calls = isTheirs
+        ? conversationMessages(subagent.id)
+            .filter(
+              message =>
+                ['TOOL_CALL', 'APPROVAL'].includes(message.kind)
+                && message.integrationToolName != null
+                && message.toolStartedAt != null,
+            )
+            .sort((a, b) => a.position - b.position)
+        : []
+
+      return {
+        membership: moduleMembership(variables),
+        calls: calls.slice(0, 200).map(message => ({
+          integrationName: message.integrationName ?? null,
+          integrationToolName: message.integrationToolName ?? null,
+          toolStatus: message.toolStatus,
+          toolDurationMs: message.toolDurationMs ?? null,
+          isToolUnanswered: message.isToolUnanswered ?? null,
+        })),
+        total: [{ _count: calls.length }],
       }
     },
 

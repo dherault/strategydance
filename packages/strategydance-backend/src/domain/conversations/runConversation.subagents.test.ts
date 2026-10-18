@@ -97,9 +97,13 @@ describe('runConversation, for a subagent', () => {
     expect(request.system).toEqual([
       { type: 'text', text: SUBAGENT_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
     ])
-    expect(toolNames[0]).toBe('web_search')
+    expect(toolNames.slice(0, 4)).toEqual([
+      'web_search',
+      'list_integrations',
+      'describe_integration_tool',
+      'call_integration_tool',
+    ])
     expect(toolNames).not.toContain('ask_user')
-    expect(toolNames).not.toContain('call_integration_tool')
     // Its one request, and no tagging after it
     expect(scripted.requests).toHaveLength(1)
     expect(kit.readRun(subagent)?.status).toBe('COMPLETED')

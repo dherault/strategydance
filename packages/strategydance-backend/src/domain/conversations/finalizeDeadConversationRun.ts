@@ -33,6 +33,14 @@ import buildSubagentReport from '~domain/subagents/buildSubagentReport'
 // How many times a run is read and finalized before the caller is told it could not be
 const MAX_TRIES = 4
 
+/*
+  What the line logged for each run finalized here begins with, which a log-based metric in Cloud
+  Monitoring counts, and an alert watches the rate of (`conversation-runs-interrupted`, Setup in
+  documents/conversations.md): runs dying with their worker in numbers say a deploy, a crash or the
+  queue went wrong. Its words are the metric's filter, so they change with it
+*/
+export const DEAD_RUN_LOG_PREFIX = 'Interrupted a dead conversation run'
+
 type Options = {
   // How long it waits after a refusal, times the refusals so far
   retryDelayMs?: number
@@ -65,7 +73,8 @@ type Options = {
 
   A refusal is read again, since something can move the counter or end the run meanwhile: a worker
   that renewed its lease keeps it, and a run something else ended is left as it is. Throws once the
-  counter keeps moving
+  counter keeps moving. Each run it ends is logged, a warning, which an alert counts
+  (`DEAD_RUN_LOG_PREFIX`)
 */
 async function finalizeDeadConversationRun(
   reference: ConversationRunReference,
@@ -118,6 +127,8 @@ async function finalizeDeadConversationRun(
 
       continue
     }
+
+    logger.warn(`${DEAD_RUN_LOG_PREFIX} ${reference.runId} on ${queue}: ${interruption.failure}`)
 
     try {
       await settleStartedWrites(reference, run.membershipCreatedAt, data.conversationTranscriptEntries[0])

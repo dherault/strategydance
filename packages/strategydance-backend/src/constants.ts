@@ -56,6 +56,15 @@ export const IS_MODULES_RELEASE_GATED = ARE_MODULES_STAFF_ONLY && !IS_DEVELOPMEN
 */
 export const IS_USAGE_CAPPED = !IS_DEVELOPMENT || process.env.USAGE_CAPPED === 'true'
 
+/*
+  Whether a member starts or continues a run only once their ID token says their address is
+  confirmed (`verifiedEmailMiddleware`): an account costs nothing to make, and the daily caps'
+  allowance is an account's, so it is an address its owner confirmed. Everywhere but the development
+  backend, whose Auth emulator confirms nothing by itself, as the gates are lifted there.
+  `EMAIL_VERIFICATION_REQUIRED=true` holds it there too, to try it. The tests keep it
+*/
+export const IS_EMAIL_VERIFICATION_REQUIRED = !IS_DEVELOPMENT || process.env.EMAIL_VERIFICATION_REQUIRED === 'true'
+
 /* ---
   ARCHITECTURE
 --- */
@@ -204,9 +213,11 @@ export const CONVERSATION_RUN_MAX_COST_MICRODOLLARS = 10_000_000
   its five searches: what a search retrieves is billed as input within the request, and nothing
   counts or caps it beforehand. The largest `probe:claude` measured, with a margin: the one part of
   the cost limit that rests on a measure rather than a proof, raised from what a request billed
-  past its reservation
+  past its reservation, which `bun run report:usage` lists. The probe measured at most 8729 tokens a
+  search over three research requests on 2026-10-18, and David set it at 16000 that day, from a
+  provisional 40000
 */
-export const WEB_SEARCH_RESULT_TOKEN_ALLOWANCE = 40_000
+export const WEB_SEARCH_RESULT_TOKEN_ALLOWANCE = 16_000
 
 // How often a worker reads whether its run's member asked to stop it while a request streams. It
 // reads it before each request too

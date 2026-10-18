@@ -148,6 +148,65 @@ describe('Markdown', () => {
     ).toStartWith('<div class="text-sm/[1.6] ')
   })
 
+  /*
+    A piece of a reply as long as one may be, 20000 characters, holding more of what micromark is
+    slow on than any reply written for a reader holds, is drawn as its text, not parsed
+  */
+  describe('past the bound micromark is quick within', () => {
+    it('draws brackets by the thousand as their text, its line breaks kept', () => {
+      const markup = render(`Some page wrote this:\n${']a '.repeat(6600)}`)
+
+      expect(markup).toStartWith('<div class="')
+      expect(markup).toContain('whitespace-pre-wrap')
+      expect(markup).toContain('Some page wrote this:\n]a ]a ')
+      expect(markup).not.toContain('<p')
+    })
+
+    it('draws list markers by the thousand, deep quotes and a long run of asterisks as their text', () => {
+      for (const value of [
+        '- - a\n'.repeat(3300),
+        `${'>'.repeat(5000)} a`,
+        `${'*'.repeat(9000)}a${'*'.repeat(9000)}`,
+      ]) {
+        const markup = renderElements(value)
+
+        expect(markup).not.toContain('<ul')
+        expect(markup).not.toContain('<blockquote')
+        expect(markup).not.toContain('<p')
+      }
+    })
+
+    it('still draws a long list a reader asked for as Markdown', () => {
+      const markup = renderElements(
+        Array.from({ length: 400 }, (_, index) => `- [Source ${index}](https://example.com/${index}) a note`).join(
+          '\n',
+        ),
+      )
+
+      expect(markup).toContain('<ul>')
+      expect(markup).toContain('<a href="https://example.com/399"')
+    })
+
+    it('draws each citation’s marker after the span it cites, and none before any text', () => {
+      const value = `Notion charges 10${']'.repeat(2001)} and Coda 12.`
+      const markup = renderToStaticMarkup(
+        <Markdown
+          value={value}
+          citations={[
+            { offset: 0, key: 'none' },
+            { offset: value.indexOf(']'), key: '1' },
+            { offset: value.length, key: '2' },
+          ]}
+          renderCitation={key => <sup>{key}</sup>}
+        />,
+      )
+
+      expect(markup).toContain('Notion charges 10<sup>1</sup>]]')
+      expect(markup).toEndWith('Coda 12.<sup>2</sup></div>')
+      expect(markup).not.toContain('<sup>none</sup>')
+    })
+  })
+
   describe('citations', () => {
     function renderCited(value: string, citations: { offset: number; key: string }[], withRenderer = true) {
       return renderToStaticMarkup(

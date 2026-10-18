@@ -30,14 +30,17 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import type { Conversation, ConversationRun } from '~types'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
+import useConversationAccessNotice from '~hooks/conversation/useConversationAccessNotice'
 import useConversationComposerAttachments from '~hooks/conversation/useConversationComposerAttachments'
 import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useConversationMentions from '~hooks/conversation/useConversationMentions'
+import useRefreshConversationAccess from '~hooks/conversation/useRefreshConversationAccess'
 import useSendConversationMessage from '~hooks/conversation/useSendConversationMessage'
 import useStopConversationRun from '~hooks/conversation/useStopConversationRun'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import createId from '~utils/common/createId'
+import type { ConversationAccessFailure } from '~utils/conversation/getConversationAccessFailure'
 import getConversationAttachmentQueryKey from '~utils/conversation/getConversationAttachmentQueryKey'
 import getConversationFailureRetryAt from '~utils/conversation/getConversationFailureRetryAt'
 import getConversationSendFailure, {
@@ -46,6 +49,7 @@ import getConversationSendFailure, {
 } from '~utils/conversation/getConversationSendFailure'
 import getConversationSendStartedRun from '~utils/conversation/getConversationSendStartedRun'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
+import isConversationAccessFailure from '~utils/conversation/isConversationAccessFailure'
 import isConversationCapFailure from '~utils/conversation/isConversationCapFailure'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import isConversationSendKey from '~utils/conversation/isConversationSendKey'
@@ -57,8 +61,10 @@ import Spinner from '~components/common/Spinner'
 import ConversationCapRefusal from '~components/conversation/ConversationCapRefusal'
 import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
 import ConversationComposerTray from '~components/conversation/ConversationComposerTray'
+import ConversationEmailConfirmation from '~components/conversation/ConversationEmailConfirmation'
 import ConversationMentionList from '~components/conversation/ConversationMentionList'
 import ConversationSubagentsStrip from '~components/conversation/ConversationSubagentsStrip'
+import ConversationSuspensionNotice from '~components/conversation/ConversationSuspensionNotice'
 
 import type { ConversationAttachmentRefusal } from '~data/conversationComposerDrafts'
 import conversationMessages from '~data/intl/messages/conversation'
@@ -71,7 +77,10 @@ const FAILURE_MESSAGES = {
   filesGone: conversationMessages.composerFilesGone,
   unavailable: conversationMessages.composerUnavailable,
   error: conversationMessages.composerError,
-} satisfies Record<Exclude<ConversationSendFailure, ConversationCapFailure>, MessageDescriptor>
+} satisfies Record<
+  Exclude<ConversationSendFailure, ConversationCapFailure | ConversationAccessFailure>,
+  MessageDescriptor
+>
 
 const REFUSAL_MESSAGES = {
   unsupported: conversationMessages.composerAttachmentUnsupported,
@@ -153,7 +162,10 @@ type Props = {
   wherever the reader sends it.
 
   Above it all, the strip that says how many of the conversation's subagents still work, with Stop
-  all, and how many of their reports wait for the next message (`ConversationSubagentsStrip`)
+  all, and how many of their reports wait for the next message (`ConversationSubagentsStrip`), and
+  a notice when something stands between the reader and Strategy Dance whatever they write: an
+  address to confirm, which it sends the link to, or conversations staff suspended
+  (`useConversationAccessNotice`). A send, or a file's upload, refused for either says so there
 */
 function ConversationComposer({
   conversationId,
@@ -172,6 +184,7 @@ function ConversationComposer({
   const { organization } = useCurrentOrganization()
   const sendConversationMessage = useSendConversationMessage()
   const stopConversationRun = useStopConversationRun()
+  const refreshConversationAccess = useRefreshConversationAccess()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   // The message being written and its send, shared by every composer that draws the conversation,
   // and what changes it there, should this composer have gone meanwhile
@@ -200,7 +213,9 @@ function ConversationComposer({
   const goingRunId = isAwaiting ? (startedRun?.runId ?? null) : isConversationRunGoing(run) ? (run?.id ?? null) : null
   const isStopping =
     goingRunId !== null && (stoppingRunId === goingRunId || (run?.id === goingRunId && !!run.stopRequestedAt))
-  const shownFailure = isFull ? 'full' : failure
+  const accessNotice = useConversationAccessNotice(failure)
+  // A failure the notice says is not said again
+  const shownFailure = isFull ? 'full' : isConversationAccessFailure(failure) ? null : failure
 
   async function send() {
     if (!canSend) return
@@ -308,6 +323,7 @@ function ConversationComposer({
       }))
 
       if (failure === 'filesGone') attachments.retry(sentAttachmentIds)
+      if (failure === 'suspended') refreshConversationAccess()
     }
   }
 
@@ -393,6 +409,10 @@ function ConversationComposer({
           onPick={mentions.pick}
         />
       ) : null}
+      {accessNotice === 'unverified' ? <ConversationEmailConfirmation /> : null}
+      {accessNotice && accessNotice !== 'unverified' ? (
+        <ConversationSuspensionNotice suspension={accessNotice} />
+      ) : null}
       {shownFailure ? (
         <p
           role="alert"
@@ -423,7 +443,7 @@ function ConversationComposer({
           })}
         </p>
       ) : null}
-      {hasFailedFiles ? (
+      {hasFailedFiles && !accessNotice ? (
         <p
           role="alert"
           className="m-0 text-sm text-danger"

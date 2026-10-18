@@ -61,7 +61,7 @@ mock.module('~middleware/authentication', () => ({
       return
     }
 
-    request.viewer = { id: viewer, email: null }
+    request.viewer = { id: viewer, email: null, isEmailVerified: true }
     next()
   },
 }))

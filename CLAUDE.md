@@ -93,6 +93,10 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   text, links only to web, mail, `doc:` and `task:` addresses, `renderLink` drawing the last two (the
   thread draws a `doc:` link from the organization's live document list, `ConversationDocumentLink`,
   and a `task:` link from its live board, `ConversationTaskLink`), and never loads an image: draw the agent's text through it, never through `react-markdown` directly.
+  It draws a text past `MARKDOWN_HAZARD_LIMITS` (`lib/countMarkdownHazards`) as plain text, its line
+  breaks and citations kept, rather than hand it to micromark: brackets, list markers, quote markers
+  opening a line and runs of asterisks, counted in one pass, at the counts measured on a piece's
+  20000 characters (M37). A shape found slow later joins the count, measured the same way.
   A member's message is not Markdown: the thread draws it as typed, its knowledge mentions,
   `[Title](doc:<id>)` as the composer sends them, alone drawn as links (`parseConversationMemberText`). An
   agent reads and writes a document's text in Markdown through the pair in its `lib/`,
@@ -103,7 +107,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   names, `[title](doc:<id>)` or `[name](task:<id>)`, which reads back as the mention. `markdownToRichText` parses with markdown-it,
   never micromark, which `react-markdown` runs on: micromark takes minutes on lists or brackets by
   the thousand, text an agent could be told to write, and its tests hold markdown-it to the
-  length of a document. It
+  length of a document. The backend's `splitConversationText` reads a long reply's blocks with
+  markdown-it too, its block parsing alone, micromark kept to its tests' parity checks. It
   imports itself by its package name, `strategydance-design-system/*` mapped to its `src/`, the
   alias shadcn writes with, so a component resolves the same when another package reads it as
   source. Its tokens and components
@@ -641,6 +646,23 @@ A conversation is kept twice, once for Claude and once for the page, and
   lifts them (`IS_USAGE_CAPPED`, `USAGE_CAPPED=true` holding them there), through each mutation's
   optional `$isUsageCapped`, which left out holds them, as the tests and the check scripts do: a
   test or a check that builds past a cap lifts it in its fixtures
+- A member starts or continues a run only with a confirmed address and conversations not suspended:
+  every route that starts or continues one, the send, an answer, an approval, Resume, Retry and a
+  file's upload, mounts `verifiedEmailMiddleware`, which reads the ID token's `email_verified`, then
+  `conversationsSuspensionMiddleware`, which reads `User.conversationsSuspendedAt` and
+  `Organization.conversationsSuspendedAt`, after `staffOnlyMiddleware`, and a new one mounts both,
+  while the stops, the reconciles and the reads mount neither. The development backend asks for no
+  confirmed address (`IS_EMAIL_VERIFICATION_REQUIRED`, `EMAIL_VERIFICATION_REQUIRED=true` holding it
+  there), and the route tests' viewer carries `isEmailVerified`. A suspension is read where a worker
+  claims a run (`isClaimable`), never at the steps after, which would throw away a turn paid for, by
+  a launch (`suspended`) and by a reaction, which waits: a new way to start a run that no member's
+  route starts reads it too, or its runs are interrupted at their claim, each a run of the caps.
+  Only `bun run suspend:conversations` writes the columns, through one transaction that locks the
+  account's or the organization's row, then every membership it reaches, which every start of a run
+  locks first, then asks every run in flight of theirs to stop. A start that must not commit for a
+  suspended member reads the columns in its query step, after the membership's lock, as
+  `StartSubagentReaction` does, since a suspension landing between a domain's read and its write is
+  otherwise a run the claim refuses
 - A turn `pause_turn` paused is held in memory until it ends, then stored as consecutive `ASSISTANT`
   entries, one write each, the first with the run's context message. A crash between two leaves
   the turn paused at its last stored part, which the ledger says, and the next worker sends its
@@ -1452,6 +1474,14 @@ Modules says what each does and why.
   tasks stored before `descriptionText` did, and `bun run backfill:task-done-at --production` stamps
   the tasks done before `doneAt` existed with their last change, each run by hand once, after the
   release that added it
+- `bun run suspend:conversations --production <email | organization id or slug> [--lift]`, in the
+  backend's package, is staff's suspension of an account's or an organization's conversations, and
+  `bun run report:usage --production [--days <n>] [--workspace-usage <dollars>]` what conversations
+  cost from the runs' ledgers, by organization and by account, which the decisions left for the
+  recorded usage are taken with. The second reads through the Admin SDK's own GraphQL, so it reads
+  production whatever its release. `finalizeDeadConversationRun` logs a line beginning with
+  `DEAD_RUN_LOG_PREFIX` for each run it ends, which a log-based metric counts and an alert watches
+  (Setup 13 in conversations.md): its words change with the metric's filter
 
 ## Email conventions
 

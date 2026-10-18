@@ -340,6 +340,57 @@ describe('reactToSubagentReports at the daily caps', () => {
     expect((await reactToSubagentReports(parent)).outcome).toBe('started')
   })
 
+  test('holds every reaction back while the member’s conversations are suspended, and starts it once lifted', async () => {
+    const user = fake.users.get(AUTHOR)!
+    const organization = fake.organizations.get(ORGANIZATION_ID)!
+
+    for (const suspended of [user, organization]) {
+      const parent = await startParent()
+      const subagent = await kit.launch(parent)
+      const runCount = fake.runs.size
+      const startCount = fake.cappedStarts.size
+
+      await report(subagent)
+      suspended.conversationsSuspendedAt = new Date().toISOString()
+
+      expect((await reactToSubagentReports(parent)).outcome).toBe('suspended')
+      expect(await reconcileConversationSubagents(parent)).toEqual({ outcome: 'reconciled' })
+      expect(readReactions(parent)).toHaveLength(0)
+      expect(isDelivered(subagent)).toBe(false)
+      // No run started, so none of the caps' rows either
+      expect([fake.runs.size, fake.cappedStarts.size]).toEqual([runCount, startCount])
+
+      suspended.conversationsSuspendedAt = null
+
+      expect((await reactToSubagentReports(parent)).outcome).toBe('started')
+      expect(isDelivered(subagent)).toBe(true)
+    }
+  })
+
+  // The reaction's mutation reads the suspension under the membership's lock, which a suspension takes too
+  test('starts no reaction when a suspension lands between its read and its write, and leaves the reports waiting', async () => {
+    const parent = await startParent()
+    const subagent = await kit.launch(parent)
+    const startCount = fake.cappedStarts.size
+
+    await report(subagent)
+
+    fake.beforeOperation = async name => {
+      if (name === 'StartSubagentReaction') fake.users.get(AUTHOR)!.conversationsSuspendedAt = new Date().toISOString()
+    }
+
+    expect((await reactToSubagentReports(parent)).outcome).toBe('suspended')
+    expect(readReactions(parent)).toHaveLength(0)
+    expect(isDelivered(subagent)).toBe(false)
+    expect(fake.cappedStarts.size).toBe(startCount)
+
+    fake.beforeOperation = async () => {}
+    fake.users.get(AUTHOR)!.conversationsSuspendedAt = null
+
+    expect((await reactToSubagentReports(parent)).outcome).toBe('started')
+    expect(isDelivered(subagent)).toBe(true)
+  })
+
   test('holds a reaction back at one and a half times a cap, and starts it at the next run end that finds room', async () => {
     const parent = await startParent()
     const subagent = await kit.launch(parent)

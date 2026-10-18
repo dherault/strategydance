@@ -88,7 +88,7 @@ nothing, rather than leave the daily sweep their only recovery.
 | M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | #202 |
 | M35 | Usage caps | core, database, backend, web, root | M33 | #207 |
 | M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
-| M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | |
+| M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | #210 |
 | M38 | Launch | all | all | |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
@@ -2869,6 +2869,75 @@ and Risks). It removes no gate: M38 does.
 - **Verify** against the emulators with the lifts off: an unverified password account refused and
   let through once its link is followed; an account suspended mid-run, its run stopping before its
   next request and a queued one never claimed, and lifted; and in production, before M38, `report:usage` read for the staff's own weeks.
+- Built with these settled, on 2026-10-18:
+  - **The suspension is read at the claim alone.** `takeStep` checks its author before it writes the
+    turn a request came to, so a suspension read there would throw away a turn already paid for, and
+    end the run interrupted rather than stopped. Both claims refuse it (`isClaimable`), and the runs
+    already going stop through the stop the suspension asked for.
+  - **The script runs one mutation, never the domain's Stop.** `stopConversationRun` and
+    `stopConversationSubagents` start reactions and promotions, which a script, run with no
+    `NODE_ENV`, would run in its own process against production. `SuspendUserConversations` and
+    `SuspendOrganizationConversations` write the column and set `stopRequestedAt` on every run in
+    flight of theirs, their own queued or running and their subagents' waiting for a slot too, in one
+    transaction: a running one stops before its next request, a queued one is refused at its claim,
+    and a waiting one is never promoted, the reconcile or the sweep ending it. The organization is
+    found by its id or by its slug in two queries, since one filter on an optional variable left out
+    would match every organization.
+  - **Reactions wait, and the launch says why first.** Each reaction refused at its claim would leave
+    an interrupted note and a run of the caps, so a suspended member's reports wait undelivered until
+    the lift, and `startDueSubagentReactions` stops at the first. `StartSubagentReaction` reads the
+    suspension again in its query step, after the membership's lock, and each suspension locks every
+    membership it reaches, after its own row, as Allow and a role change take theirs, and before any
+    run: whichever commits second sees the first, so a suspension landing between the reaction's read
+    and its write delivers none of the reports, which Copilot found in review. The launch reads the suspension
+    before its launcher, which the suspension asked to stop, so the agent reads the suspension's
+    sentence rather than the stop's.
+  - **The page reads the suspension from the rows, the address from the token.** `GetCurrentUser`
+    and `GetCurrentUserOrganizations` select the column, and a refusal for a suspension reads them
+    again, since neither is live; the composer's notice reads `emailVerified`, the token's claim the
+    backend reads, and against the emulators shows only once a send was refused for it. A file
+    refused for either waits in the tray to go up again rather than leaving it.
+  - **What micromark is slow on, measured.** Through `renderToStaticMarkup`, on the eleven shapes
+    `markdownToRichText` is held to, at 20000 characters: quote markers opening one line took 678 ms
+    at 1200 and 29 seconds at 5000, a run of asterisks or underscores overflowed the stack at 6000
+    each side, and 6700 closing brackets or 13000 list markers took half a second. The limits,
+    2000 brackets, 2000 list markers, 100 quote markers on one line and a run of 200, hold every shape
+    under 200 ms, and a list of 400 links still draws as Markdown. markdown-it's block parsing takes
+    all eleven at 200000 characters in well under a second.
+  - **The queues' alerts read depth and attempt delay**: Cloud Monitoring has no age for a queue's
+    oldest task. The worker's error rate leaves 503 out, which it answers by design for a run it
+    holds. The interrupted runs are counted from a line `finalizeDeadConversationRun` logs, which
+    nothing logged before.
+  - **`report:usage` reads through the Admin SDK's own GraphQL**, never a connector operation, so it
+    read production before this release: 7 runs from 2026-10-07 to 2026-10-15, $0.28, no subagent
+    and no file, too little to set the caps or the cache's lifetime from. It was read through Data
+    Connect's REST endpoint with gcloud's token, Application Default Credentials having expired.
+  - **Capacity**: the rate limit headers say Evaluation tier, 80,000 output tokens a minute on Opus
+    5.5, some twenty runs at once of the seventy the queues dispatch; output is counted as written,
+    never from `max_tokens`. Setup 14 asks for the Start tier before M38.
+  - **The decisions, David's on 2026-10-18.** The prompt cache keeps five minutes; subagents keep
+    Opus 5.5 at medium effort; web search keeps its filtering, David leaving it to the session, since
+    citations change the tools list and want the allowance measured again; the caps and the $10 limit
+    stand, and David sets the workspace's spend limit and the budget alert; he asks for the Start
+    tier; the modules go to the MCP Registry after launch; and the legal page is his to write, the
+    points it names in Risks. The searches' allowance went from a provisional 40000 to 16000 tokens
+    a search, against the 8729 the probe measured: a request of some 1200 tokens now reserves about
+    $1.74 alone and $3.90 with its fallback, so a run drops the fallback past some $6.10 spent and
+    ends past some $8.26, and one at 700000 tokens reserves $5.93, ending the run past $4.07.
+  - **The alerts are in production**, created from this session with David's approval: the email
+    channel, the log metric, which reads `textPayload`, where Cloud Run puts a JSON line's
+    `message`, and the four policies of Setup 13.
+  - Verified: the four checks; `check:conversation-runs`, `check:subagent-runs` and
+    `check:subagents-module` against an emulator of the branch's schema, every check passing, the
+    suspension's own among them. In a browser against it, a worktree backend started with
+    `EMAIL_VERIFICATION_REQUIRED=true` and the placeholder agent, at desktop and phone widths, in a
+    docked window and on the page: a password account's first send refused and the notice shown, the
+    message kept in the field; the link sent, followed from the Auth emulator, and "I confirmed it"
+    taking the notice away and letting the send through; `suspend:conversations` on the organization
+    stopping the response going, its notice shown and a send refused, the field keeping it; then on
+    the account, its own notice; and the lift taking either away. The `PastBound` story drawn from the
+    built Storybook. A suspension's stop reads "You stopped this response", the stopped note's words,
+    though staff stopped it: the notice beside it says why.
 
 ### M38: Launch
 

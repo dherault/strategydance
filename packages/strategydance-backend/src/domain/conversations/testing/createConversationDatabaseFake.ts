@@ -252,6 +252,9 @@ export type FakeUser = {
   timezone: string | null
   locale: string
   bio: string | null
+  email?: string
+  // When staff suspended the account's conversations, null or absent while they are not
+  conversationsSuspendedAt?: string | null
 }
 
 export type FakeMembership = {
@@ -324,6 +327,9 @@ export type FakeOrganization = {
   name: string
   brief: string | null
   exploredAspects: string[]
+  slug?: string | null
+  // When staff suspended conversations there, null or absent while they are not
+  conversationsSuspendedAt?: string | null
 }
 
 type Variables = Record<string, unknown>
@@ -401,6 +407,36 @@ function createConversationDatabaseFake() {
 
   function refuse(message: string): never {
     throw new Error(message)
+  }
+
+  // Whether staff suspended the account's conversations, and the organization's, as the contexts read
+  function readSuspension(variables: AnyVariables) {
+    const user = users.get(variables.userId)
+    const organization = organizations.get(id(variables.organizationId))
+
+    return {
+      user: user ? { conversationsSuspendedAt: user.conversationsSuspendedAt ?? null } : null,
+      organization: organization ? { conversationsSuspendedAt: organization.conversationsSuspendedAt ?? null } : null,
+    }
+  }
+
+  // Asks the runs in flight that `isReached` reaches to stop, as a suspension does, the account's or
+  // the organization's: their own queued or running, and their subagents' waiting for a slot too.
+  // Answers how many of each it asked, as the mutation's two steps do
+  function requestSuspendedRunsStop(isReached: (conversation: FakeConversation) => boolean) {
+    const asked = { runs: 0, subagentRuns: 0 }
+
+    for (const run of runs.values()) {
+      const conversation = conversations.get(run.conversationId)
+      const states = conversation?.parentId ? ['QUEUED', 'RUNNING', 'PENDING'] : RUN_IN_FLIGHT
+
+      if (conversation && isReached(conversation) && states.includes(run.status) && run.stopRequestedAt === null) {
+        run.stopRequestedAt = now()
+        asked[conversation.parentId ? 'subagentRuns' : 'runs']++
+      }
+    }
+
+    return asked
   }
 
   function addMember(userId: string, organizationId: string, { isAdministrator = true } = {}) {
@@ -1541,6 +1577,86 @@ function createConversationDatabaseFake() {
   const operations: Record<string, (variables: AnyVariables) => unknown> = {
     GetUserStaffStatus: ({ userId }) => ({ user: users.get(userId) ?? null }),
 
+    GetConversationsSuspension: readSuspension,
+
+    GetUserByEmail: ({ email }) => ({
+      users: [...users.entries()]
+        .filter(([, user]) => user.email === email)
+        .slice(0, 1)
+        .map(([userId, user]) => ({
+          id: userId,
+          email: user.email,
+          conversationsSuspendedAt: user.conversationsSuspendedAt ?? null,
+        })),
+    }),
+
+    GetOrganizationById: variables => {
+      const organization = organizations.get(id(variables.id))
+
+      return {
+        organization: organization
+          ? {
+              id: id(variables.id),
+              name: organization.name,
+              slug: organization.slug ?? null,
+              conversationsSuspendedAt: organization.conversationsSuspendedAt ?? null,
+            }
+          : null,
+      }
+    },
+
+    GetOrganizationBySlug: ({ slug }) => ({
+      organizations: [...organizations.entries()]
+        .filter(([, organization]) => organization.slug === slug)
+        .slice(0, 1)
+        .map(([organizationId, organization]) => ({
+          id: organizationId,
+          name: organization.name,
+          slug: organization.slug ?? null,
+          conversationsSuspendedAt: organization.conversationsSuspendedAt ?? null,
+        })),
+    }),
+
+    SuspendUserConversations: ({ userId }) => {
+      const user = users.get(userId) ?? refuse('No such account')
+
+      user.conversationsSuspendedAt = now()
+
+      return {
+        user_update: { id: userId },
+        ...requestSuspendedRunsStop(conversation => conversation.userId === userId),
+      }
+    },
+
+    LiftUserConversationsSuspension: ({ userId }) => {
+      const user = users.get(userId) ?? refuse('No such account')
+
+      user.conversationsSuspendedAt = null
+
+      return { user_update: { id: userId } }
+    },
+
+    SuspendOrganizationConversations: variables => {
+      const organizationId = id(variables.organizationId)
+      const organization = organizations.get(organizationId) ?? refuse('No such organization')
+
+      organization.conversationsSuspendedAt = now()
+
+      return {
+        organization_update: { id: organizationId },
+        ...requestSuspendedRunsStop(conversation => conversation.organizationId === organizationId),
+      }
+    },
+
+    LiftOrganizationConversationsSuspension: variables => {
+      const organizationId = id(variables.organizationId)
+      const organization = organizations.get(organizationId) ?? refuse('No such organization')
+
+      organization.conversationsSuspendedAt = null
+
+      return { organization_update: { id: organizationId } }
+    },
+
     GetConversationSendContext: variables => {
       const conversation = conversations.get(id(variables.conversationId))
       const message = messages.get(id(variables.messageId))
@@ -1604,7 +1720,10 @@ function createConversationDatabaseFake() {
         conversationRuns: isTheirs ? [{ context: null, usage: null, ...run }] : [],
         conversation: conversation ? { ...conversation } : null,
         userOrganization: memberships.get(membershipKey(variables.userId, variables.organizationId)) ?? null,
-        user: users.get(variables.userId) ?? null,
+        ...readSuspension(variables),
+        user: users.has(variables.userId)
+          ? { ...users.get(variables.userId), ...readSuspension(variables).user }
+          : null,
         conversationTranscriptEntries: lastEntry
           ? [{ drawnPieces: 0, ...lastEntry, run: { id: lastEntry.runId } }]
           : [],
@@ -3424,6 +3543,7 @@ function createConversationDatabaseFake() {
 
       return {
         userOrganization: memberships.get(membershipKey(variables.userId, variables.organizationId)) ?? null,
+        ...readSuspension(variables),
         conversation: conversation
           ? { ...conversation, isAwaitingAnswer: conversation.isAwaitingAnswer ?? false }
           : null,
@@ -3556,6 +3676,11 @@ function createConversationDatabaseFake() {
       if (membership.createdAt !== variables.membershipCreatedAt) {
         refuse('The membership changed since the reaction read it')
       }
+
+      const suspension = readSuspension(variables)
+
+      if (suspension.user?.conversationsSuspendedAt) refuse('Conversations are suspended for this account')
+      if (suspension.organization?.conversationsSuspendedAt) refuse('Conversations are suspended in this organization')
 
       if (runsInFlight(variables.userId, variables.organizationId).length >= MAX_ACTIVE_RUNS_PER_MEMBER) {
         refuse('Somebody has at most 3 runs in flight in an organization')
@@ -3835,6 +3960,7 @@ function createConversationDatabaseFake() {
 
       return {
         userOrganization: membership ? { createdAt: membership.createdAt } : null,
+        ...readSuspension(variables),
         parent: parent
           ? {
               userId: parent.userId,
@@ -4775,6 +4901,9 @@ function createConversationDatabaseFake() {
     ]) {
       table.clear()
     }
+
+    // The organizations stay, as `addMember` made them, but none suspended
+    for (const organization of organizations.values()) organization.conversationsSuspendedAt = null
 
     calls.length = 0
     fake.beforeOperation = async () => {}

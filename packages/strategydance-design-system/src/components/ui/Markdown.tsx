@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react'
+import { type ComponentProps, Fragment, type ReactNode } from 'react'
 import ReactMarkdown, { type Components, type ExtraProps } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from 'strategydance-design-system/components/ui/Table'
+import { isWithinMarkdownHazardLimits } from 'strategydance-design-system/lib/countMarkdownHazards'
 import remarkCitationMarkers, {
   CITATION_MARKER_ELEMENT,
   type MarkdownCitationMarker,
@@ -107,9 +108,28 @@ const APP_PROTOCOLS = ['doc:', 'task:']
   and read elsewhere, rather than running two lines into one.
 
   A citation's marker goes right after the span it cites, drawn by `renderCitation`, and outside a
-  link, which it would break
+  link, which it would break.
+
+  A text holding more of what micromark is slow on than any reply written for a reader holds,
+  brackets, list markers, quote markers opening a line or a run of asterisks, is drawn as the text it
+  is, its line breaks kept, rather than parsed for seconds or minutes in the reader's browser
+  (`MARKDOWN_HAZARD_LIMITS`): text the agent read on the web can tell it what to write
 */
 function Markdown({ value, size = 'md', renderLink, citations = [], renderCitation, className }: Props) {
+  const wrapperClassName = cn(
+    sizeClassNames[size],
+    'wrap-anywhere text-pretty text-foreground [&>:last-child]:mb-0',
+    className,
+  )
+
+  if (!isWithinMarkdownHazardLimits(value)) {
+    return (
+      <div className={cn(wrapperClassName, 'whitespace-pre-wrap')}>
+        {renderPlainText(value, citations, renderCitation)}
+      </div>
+    )
+  }
+
   const components = {
     ...staticComponents,
     a: ({ href, children }) => renderAnchor(href, children, renderLink),
@@ -119,9 +139,7 @@ function Markdown({ value, size = 'md', renderLink, citations = [], renderCitati
   } as Components
 
   return (
-    <div
-      className={cn(sizeClassNames[size], 'wrap-anywhere text-pretty text-foreground [&>:last-child]:mb-0', className)}
-    >
+    <div className={wrapperClassName}>
       <ReactMarkdown
         remarkPlugins={buildRemarkPlugins(citations)}
         allowedElements={allowedElements}
@@ -133,6 +151,31 @@ function Markdown({ value, size = 'md', renderLink, citations = [], renderCitati
       </ReactMarkdown>
     </div>
   )
+}
+
+// The text as it is, each citation's marker after the span it cites, one before any text dropped
+function renderPlainText(value: string, citations: MarkdownCitationMarker[], renderCitation: Props['renderCitation']) {
+  if (!renderCitation) return value
+
+  const offsets = [...new Set(citations.map(({ offset }) => offset))]
+    .filter(offset => offset > 0 && offset <= value.length)
+    .toSorted((a, b) => a - b)
+  const nodes: ReactNode[] = []
+  let start = 0
+
+  for (const offset of offsets) {
+    nodes.push(<Fragment key={`text:${start}`}>{value.slice(start, offset)}</Fragment>)
+
+    for (const { key } of citations.filter(citation => citation.offset === offset)) {
+      nodes.push(<Fragment key={`citation:${offset}:${key}`}>{renderCitation(key)}</Fragment>)
+    }
+
+    start = offset
+  }
+
+  nodes.push(<Fragment key={`text:${start}`}>{value.slice(start)}</Fragment>)
+
+  return nodes
 }
 
 // The address as the URL parser writes it, when it is one a link may keep

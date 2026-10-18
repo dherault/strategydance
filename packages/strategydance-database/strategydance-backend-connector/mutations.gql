@@ -1796,6 +1796,79 @@ mutation RequestConversationSubagentsStop(
   )
 }
 
+# Suspends an account's conversations, as staff's `bun run suspend:conversations` does, and asks
+# every run of theirs in flight to stop, in every organization, as Stop does: their own runs queued or
+# running, and their subagents' queued, running or waiting for a slot, none asked yet. A running run
+# stops before its next request, or cuts the one streaming; a worker claims no queued one, nor any
+# started after, since its claim reads the suspension; a run waiting for a slot is never promoted, and
+# the parent's reconcile or the sweep ends it. Its locks go the account's row, as Allow takes it
+# before a membership, then every membership of theirs, which every start of a run locks first, so a
+# start that commits second reads the suspension and one that commits first is a run in flight it
+# asks to stop, then the parents' runs, then the subagents' runs. Suspending again stamps it again
+# and asks again
+mutation SuspendUserConversations($userId: String!) @auth(level: NO_ACCESS) @transaction {
+  user_update(key: { id: $userId }, data: { conversationsSuspendedAt_expr: "request.time" })
+    @check(expr: "this != null", message: "No such account")
+  memberships: userOrganization_updateMany(where: { userId: { eq: $userId } }, data: { updatedAt_expr: "request.time" })
+  runs: conversationRun_updateMany(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      stopRequestedAt: { isNull: true }
+      conversation: { userId: { eq: $userId }, parentId: { isNull: true } }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+  subagentRuns: conversationRun_updateMany(
+    where: {
+      status: { in: [QUEUED, RUNNING, PENDING] }
+      stopRequestedAt: { isNull: true }
+      conversation: { userId: { eq: $userId }, parentId: { isNull: false } }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+}
+
+# Lifts an account's suspension, and only that: the runs it stopped stay stopped, for their member to
+# resume
+mutation LiftUserConversationsSuspension($userId: String!) @auth(level: NO_ACCESS) @transaction {
+  user_update(key: { id: $userId }, data: { conversationsSuspendedAt: null })
+    @check(expr: "this != null", message: "No such account")
+}
+
+# Suspends conversations in an organization, for every member of it, as `SuspendUserConversations`
+# does for an account, and asks every run in flight there to stop: the organization's row, as a
+# member's role change takes it before the membership, then every membership of it, then the runs
+mutation SuspendOrganizationConversations($organizationId: UUID!) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { conversationsSuspendedAt_expr: "request.time" })
+    @check(expr: "this != null", message: "No such organization")
+  memberships: userOrganization_updateMany(
+    where: { organizationId: { eq: $organizationId } }
+    data: { updatedAt_expr: "request.time" }
+  )
+  runs: conversationRun_updateMany(
+    where: {
+      status: { in: [QUEUED, RUNNING] }
+      stopRequestedAt: { isNull: true }
+      conversation: { organizationId: { eq: $organizationId }, parentId: { isNull: true } }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+  subagentRuns: conversationRun_updateMany(
+    where: {
+      status: { in: [QUEUED, RUNNING, PENDING] }
+      stopRequestedAt: { isNull: true }
+      conversation: { organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+    }
+    data: { stopRequestedAt_expr: "request.time" }
+  )
+}
+
+# Lifts an organization's suspension, and only that
+mutation LiftOrganizationConversationsSuspension($organizationId: UUID!) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { conversationsSuspendedAt: null })
+    @check(expr: "this != null", message: "No such organization")
+}
+
 # Resumes a run its member stopped, or that died with its worker, from its note: the note goes,
 # which is the thread's newest message, and a run starts on the anchor of the run it resumes, which
 # carries that run's response on. In one mutation:
@@ -4805,6 +4878,20 @@ mutation StartSubagentReaction(
       limit: 1
     ) @check(expr: "size(this) == 1", message: "The membership changed since the reaction read it") {
       userId
+    }
+    # Whether staff suspended conversations for the account or in the organization since the
+    # reaction read it: a suspension locks every membership it reaches before anything else of
+    # theirs, so whichever of the two commits second sees the first, and a suspension that wins
+    # leaves the reports waiting for the lift
+    suspendedAccounts: users(where: { id: { eq: $userId }, conversationsSuspendedAt: { isNull: false } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "Conversations are suspended for this account") {
+      id
+    }
+    suspendedOrganizations: organizations(
+      where: { id: { eq: $organizationId }, conversationsSuspendedAt: { isNull: false } }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "Conversations are suspended in this organization") {
+      id
     }
     inFlight: conversationRuns(
       where: {

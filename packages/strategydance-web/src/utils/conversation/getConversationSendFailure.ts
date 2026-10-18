@@ -14,6 +14,10 @@ import {
   ERROR_CODE_TOO_MANY_CONVERSATIONS,
 } from 'strategydance-core'
 
+import getConversationAccessFailure, {
+  type ConversationAccessFailure,
+} from '~utils/conversation/getConversationAccessFailure'
+
 import { ApiError } from '~data/api'
 
 // A daily cap a start reached: on the conversations or the runs the reader starts, theirs in the
@@ -36,6 +40,7 @@ export type ConversationSendFailure =
   | 'unavailable'
   | 'error'
   | ConversationCapFailure
+  | ConversationAccessFailure
 
 const CAP_FAILURES: Record<string, ConversationCapFailure> = {
   [ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED]: 'memberConversationsCapped',
@@ -52,12 +57,17 @@ const CAP_FAILURES: Record<string, ConversationCapFailure> = {
   a server that cannot take it now. A message sending files that is refused as malformed, or as in
   conflict, names files the backend no longer holds ready, as when one waited past the two days an
   unsent file is kept: they have to go up again. A daily cap reached says which, its refusal's
-  `Retry-After` saying when it has room (`getConversationFailureRetryAt`). Any other failure, a connection lost on the way
-  included, is one the same send may get past later, so it reads as such
+  `Retry-After` saying when it has room (`getConversationFailureRetryAt`). An address not confirmed,
+  or conversations suspended, says so. Any other failure, a connection lost on the way included, is
+  one the same send may get past later, so it reads as such
 */
 function getConversationSendFailure(error: unknown, hasFiles = false): ConversationSendFailure {
   if (!(error instanceof ApiError)) return 'error'
   if (CAP_FAILURES[error.code]) return CAP_FAILURES[error.code]!
+
+  const accessFailure = getConversationAccessFailure(error)
+
+  if (accessFailure) return accessFailure
   if (error.code === ERROR_CODE_CONVERSATION_BUSY) return 'busy'
   if (error.code === ERROR_CODE_CONVERSATION_FULL) return 'full'
   if (error.code === ERROR_CODE_TOO_MANY_CONVERSATIONS) return 'tooMany'

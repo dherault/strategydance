@@ -3,6 +3,9 @@ import { useState } from 'react'
 import { useIntl } from 'react-intl'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 
+import { SUPPORT_CONTACT } from '~constants'
+
+import useRefreshConversationAccess from '~hooks/conversation/useRefreshConversationAccess'
 import useResumeConversationRun from '~hooks/conversation/useResumeConversationRun'
 import useRetryConversationRun from '~hooks/conversation/useRetryConversationRun'
 
@@ -40,7 +43,8 @@ type Props = {
   either starts counts as going at once, so the note's actions go and the composer offers Stop
   before the page's live read shows it; a Retry's deleted messages leave the thread at once too.
   A click the server did not take says so, and can be made again, which is the same resume or retry,
-  and one a daily cap held back says which cap and when it has room again.
+  and one a daily cap held back says which cap and when it has room again, one refused for an
+  address not confirmed or conversations suspended says that.
   A Retry that discards subagents the response launched asks first
   (`ConversationRetryDialog`)
 */
@@ -55,6 +59,7 @@ function ConversationNoteActions({
   const { formatMessage } = useIntl()
   const resumeConversationRun = useResumeConversationRun()
   const retryConversationRun = useRetryConversationRun()
+  const refreshConversationAccess = useRefreshConversationAccess()
   const [pendingAction, setPendingAction] = useState<'resume' | 'retry' | null>(null)
   const [failure, setFailure] = useState<ConversationSendFailure | null>(null)
   // When the daily cap a resume or a retry reached has room again
@@ -81,8 +86,12 @@ function ConversationNoteActions({
     } catch (error) {
       console.error(`The response could not be ${action === 'resume' ? 'resumed' : 'retried'}`, error)
 
-      setFailure(getConversationSendFailure(error))
+      const failure = getConversationSendFailure(error)
+
+      setFailure(failure)
       setFailureRetryAt(getConversationFailureRetryAt(error))
+
+      if (failure === 'suspended') refreshConversationAccess()
     } finally {
       setPendingAction(null)
     }
@@ -110,14 +119,18 @@ function ConversationNoteActions({
         ? conversationMessages.composerBusy
         : failure === 'unavailable'
           ? conversationMessages.composerUnavailable
-          : conversationMessages.noteActionError
+          : failure === 'unverified'
+            ? conversationMessages.accessUnverified
+            : failure === 'suspended'
+              ? conversationMessages.accessSuspended
+              : conversationMessages.noteActionError
 
     return (
       <p
         role="alert"
         className="m-0 text-center text-xs text-danger"
       >
-        {formatMessage(message)}
+        {formatMessage(message, { email: SUPPORT_CONTACT.email })}
       </p>
     )
   }

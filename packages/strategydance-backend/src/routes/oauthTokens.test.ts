@@ -49,7 +49,7 @@ mock.module('~middleware/appCheck', () => ({
 }))
 mock.module('~middleware/authentication', () => ({
   default: (request: Request, _response: Response, next: NextFunction) => {
-    request.viewer = { id: MEMBER, email: null }
+    request.viewer = { id: MEMBER, email: null, isEmailVerified: true }
     next()
   },
 }))

@@ -8,6 +8,8 @@ import {
   ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET,
   ERROR_CODE_CONVERSATION_BUSY,
   ERROR_CODE_CONVERSATION_FULL,
+  ERROR_CODE_CONVERSATIONS_SUSPENDED,
+  ERROR_CODE_EMAIL_NOT_VERIFIED,
   ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_MEMBER_DAILY_RUNS_REACHED,
   ERROR_CODE_NOT_FOUND,
@@ -25,6 +27,7 @@ const { ApiError } = await import('~data/api')
 const { default: getConversationSendFailure } = await import('~utils/conversation/getConversationSendFailure')
 const { default: getConversationFailureRetryAt } = await import('~utils/conversation/getConversationFailureRetryAt')
 const { default: isConversationCapFailure } = await import('~utils/conversation/isConversationCapFailure')
+const { default: isConversationAccessFailure } = await import('~utils/conversation/isConversationAccessFailure')
 
 describe('getConversationSendFailure', () => {
   test('reads each refusal the reader can do something about', () => {
@@ -59,6 +62,17 @@ describe('getConversationSendFailure', () => {
     expect(isConversationCapFailure(null)).toBe(false)
     expect(getConversationFailureRetryAt(new ApiError(409, ERROR_CODE_CONVERSATION_BUSY, 'Busy'), now)).toBeNull()
     expect(getConversationFailureRetryAt(new TypeError('Failed to fetch'), now)).toBeNull()
+  })
+
+  test('reads an address not confirmed and conversations suspended, which the composer’s notice says', () => {
+    const unverified = getConversationSendFailure(new ApiError(403, ERROR_CODE_EMAIL_NOT_VERIFIED, 'Confirm'), true)
+    const suspended = getConversationSendFailure(new ApiError(403, ERROR_CODE_CONVERSATIONS_SUSPENDED, 'Suspended'))
+
+    expect([unverified, suspended]).toEqual(['unverified', 'suspended'])
+    expect([unverified, suspended].every(failure => isConversationAccessFailure(failure))).toBe(true)
+    expect(isConversationAccessFailure('busy')).toBe(false)
+    expect(isConversationAccessFailure(null)).toBe(false)
+    expect(isConversationCapFailure(unverified)).toBe(false)
   })
 
   test('reads files the conversation has no room for, whether the message sends files or not', () => {

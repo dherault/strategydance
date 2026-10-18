@@ -1698,6 +1698,61 @@ async function checkReactions() {
 
   await settleConversationRuns()
 
+  // A suspension, the account's or the organization's, leaves the reports waiting
+  const suspendedParent = await startParent()
+  const suspendedSubagent = await launch(suspendedParent)
+
+  await report(suspendedParent, suspendedSubagent)
+
+  const suspendedReaction = {
+    ...reaction,
+    conversationId: suspendedParent.conversationId,
+    runId: createId(),
+    subagentIds: [suspendedSubagent.conversationId],
+  }
+
+  await write(
+    `mutation SuspendAccount($id: String!) { user_update(key: { id: $id }, data: { conversationsSuspendedAt_expr: "request.time" }) }`,
+    { id: userIds.author },
+  )
+
+  check(
+    'a reaction is refused while the member’s conversations are suspended',
+    await isRefused(
+      startSubagentReaction(dataConnect, suspendedReaction),
+      'Conversations are suspended for this account',
+    ),
+  )
+
+  await write(
+    `mutation SuspendOrganization($id: UUID!, $userId: String!) @transaction {
+      organization_update(id: $id, data: { conversationsSuspendedAt_expr: "request.time" })
+      user_update(key: { id: $userId }, data: { conversationsSuspendedAt: null })
+    }`,
+    { id: organizationId, userId: userIds.author },
+  )
+
+  check(
+    'a reaction is refused while the organization’s conversations are suspended',
+    await isRefused(
+      startSubagentReaction(dataConnect, suspendedReaction),
+      'Conversations are suspended in this organization',
+    ),
+  )
+  check(
+    'a suspended reaction delivers none of its reports',
+    (await readDeliveredAt(suspendedSubagent.conversationId)) === null,
+  )
+
+  await write(
+    `mutation LiftOrganization($id: UUID!) { organization_update(id: $id, data: { conversationsSuspendedAt: null }) }`,
+    {
+      id: organizationId,
+    },
+  )
+  await startSubagentReaction(dataConnect, suspendedReaction)
+  await settleConversationRuns()
+
   // A send names the reports it carries, exactly
   const sent = await startParent()
   const reported = await launch(sent)

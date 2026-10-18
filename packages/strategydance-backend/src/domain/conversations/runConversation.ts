@@ -194,7 +194,7 @@ async function runConversation(
   if (!run || !isInFlight(run.status)) return 'finished'
   if (run.status === ConversationRunStatus.RUNNING && !isPast(run.leaseExpiresAt)) return 'held'
 
-  if (!isAuthorStill(context, run.membershipCreatedAt)) {
+  if (!isClaimable(context, run.membershipCreatedAt)) {
     return interruptBeforeClaiming(reference, run.attempts, context, retryDelayMs, isSubagent)
   }
 
@@ -206,7 +206,9 @@ async function runConversation(
   })
 
   // Another worker claimed it first, or its author changed between the read and the claim, whose
-  // run nothing else would end: a removed author's can no longer reach its page to reconcile it
+  // run nothing else would end: a removed author's can no longer reach its page to reconcile it. A
+  // suspension landing between the two claims it all the same, and asked it to stop, which its first
+  // step reads
   if (data.conversationRun_updateMany !== 1) {
     const claimedContext = await readContext(reference)
     const [claimedRun] = claimedContext.conversationRuns
@@ -215,7 +217,7 @@ async function runConversation(
       claimedRun
       && isInFlight(claimedRun.status)
       && claimedRun.attempts === run.attempts
-      && !isAuthorStill(claimedContext, claimedRun.membershipCreatedAt)
+      && !isClaimable(claimedContext, claimedRun.membershipCreatedAt)
     ) {
       return interruptBeforeClaiming(reference, claimedRun.attempts, claimedContext, retryDelayMs, isSubagent)
     }
@@ -975,8 +977,24 @@ function describeAuthorChange(context: ConversationRunContext, membershipCreated
   if (!context.userOrganization) return 'Its author left the organization'
   if (context.userOrganization.createdAt !== membershipCreatedAt)
     return 'Its author was invited back since it was queued'
+  if (context.user?.conversationsSuspendedAt) return 'Its author’s conversations are suspended'
+  if (context.organization?.conversationsSuspendedAt) return 'Its organization’s conversations are suspended'
 
   return 'Its author is no longer staff'
+}
+
+/*
+  Whether a worker may claim the run: its author still passes for it, and staff suspended
+  conversations neither for their account nor in the organization. Only the claim reads the
+  suspension, never the steps after it, which would throw away a turn already paid for: the
+  suspension asked the runs in flight to stop, which each reads before its next request
+*/
+function isClaimable(context: ConversationRunContext, membershipCreatedAt: string) {
+  return (
+    isAuthorStill(context, membershipCreatedAt)
+    && !context.user?.conversationsSuspendedAt
+    && !context.organization?.conversationsSuspendedAt
+  )
 }
 
 // Whether the run's author is still the member it was queued under, and still staff while

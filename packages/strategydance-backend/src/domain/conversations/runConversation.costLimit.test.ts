@@ -98,14 +98,14 @@ describe('runConversation, at the cost limit of a run', () => {
     const scripted = kit.createClient()
 
     // Charged for the credits at its input and 64000 output tokens, some $1.28, which would leave
-    // room for the next request; its worst case, $8, does not
+    // room for the next request, some $1.74; its worst case, $8.50, does not
     await spend(reference, [
       request({
         model: null,
         stopReason: null,
         isSettled: false,
         estimatedInputTokens: 1000,
-        worstCaseMicrodollars: 8_000_000,
+        worstCaseMicrodollars: 8_500_000,
       }),
     ])
 
@@ -116,7 +116,7 @@ describe('runConversation, at the cost limit of a run', () => {
     expect(kit.readUsage(reference).requests[0]).toMatchObject({
       outputTokens: 64000,
       isEstimated: true,
-      worstCaseMicrodollars: 8_000_000,
+      worstCaseMicrodollars: 8_500_000,
     })
   })
 
@@ -124,7 +124,8 @@ describe('runConversation, at the cost limit of a run', () => {
     const reference = await kit.start()
     const scripted = kit.createClient([answer([], { stopReason: 'refusal' })])
 
-    await spend(reference, [dollars(6)])
+    // Its one attempt, some $1.74, fits in what $7 leaves, and its two, some $3.90, do not
+    await spend(reference, [dollars(7)])
     await runConversation(reference, { client: scripted.client })
 
     const sent = readRequest(scripted.requests)
@@ -134,11 +135,11 @@ describe('runConversation, at the cost limit of a run', () => {
     expect(sent.betas).toContain('server-side-fallback-2026-07-01')
     expect(kit.readRun(reference)?.status).toBe('REFUSED')
 
-    // Its reservation was the single attempt's worst case, some $2.34
+    // Its reservation was the single attempt's worst case, some $1.74
     const reserved = kit.readUsage(reference).requests[1]?.worstCaseMicrodollars ?? 0
 
-    expect(reserved).toBeGreaterThan(2_000_000)
-    expect(reserved).toBeLessThan(3_000_000)
+    expect(reserved).toBeGreaterThan(1_500_000)
+    expect(reserved).toBeLessThan(2_000_000)
   })
 
   test('sends a request with its fallback while both attempts fit, reserved at both', async () => {
@@ -150,16 +151,16 @@ describe('runConversation, at the cost limit of a run', () => {
 
     expect(readRequest(scripted.requests).fallbacks).toBe('default')
     expect(kit.readRun(reference)?.status).toBe('COMPLETED')
-    expect(kit.readUsage(reference).requests[1]?.worstCaseMicrodollars).toBeGreaterThan(5_000_000)
+    expect(kit.readUsage(reference).requests[1]?.worstCaseMicrodollars).toBeGreaterThan(3_500_000)
   })
 
   test('refuses a request whose input and output fit but whose five searches’ allowance does not', async () => {
     const reference = await kit.start()
     const scripted = kit.createClient()
 
-    // Its input and its 64000 output tokens come to some $1.29, which $7.80 leaves room for, and its
-    // searches to some $1.05 more, which it does not
-    await spend(reference, [dollars(7.8)])
+    // Its input and its 64000 output tokens come to some $1.29, which $8.50 leaves room for, and its
+    // searches to some $0.45 more, which it does not
+    await spend(reference, [dollars(8.5)])
     await runConversation(reference, { client: scripted.client })
 
     expect(scripted.requests).toHaveLength(0)

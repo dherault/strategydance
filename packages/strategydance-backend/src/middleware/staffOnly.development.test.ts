@@ -23,7 +23,11 @@ describe('staffOnlyMiddleware on the development backend', () => {
   test('lets everybody through, staff or not, without reading their account', async () => {
     const next = mock(() => {})
 
-    await staffOnlyMiddleware({ viewer: { id: 'viewer', email: null } } as Request, {} as Response, next)
+    await staffOnlyMiddleware(
+      { viewer: { id: 'viewer', email: null, isEmailVerified: true } } as Request,
+      {} as Response,
+      next,
+    )
 
     expect(IS_CONVERSATIONS_RELEASE_GATED).toBe(false)
     expect(next).toHaveBeenCalledTimes(1)

@@ -16,6 +16,8 @@ query GetCurrentUser @auth(level: USER) {
     welcomeEmailSentAt
     # Whether to show the administration section. The pages' own queries check it again
     isAdministrator
+    # Whether to say in a conversation's composer that staff suspended the account's conversations
+    conversationsSuspendedAt
     createdAt
   }
 }
@@ -73,6 +75,8 @@ query GetCurrentUserOrganizations @auth(level: USER) {
       color
       brief
       isPublic
+      # Whether to say in a conversation's composer that staff suspended conversations there
+      conversationsSuspendedAt
       # When it was made, which the build in public page counts its days from
       createdAt
     }
@@ -2104,7 +2108,8 @@ query GetConversationMessagesBefore($organizationId: UUID!, $id: UUID!, $beforeP
 # A live query of its own, so the progress lines and lease renewals a run writes wake this small
 # read rather than the thread. The backend's run mutations join its `@refresh` list as they arrive,
 # a subagent's among them. The stops a parent sends its subagents name the parent alone, so they wake
-# every run read of the member's in the organization, a subagent's viewer's among them
+# every run read of the member's in the organization, a subagent's viewer's among them. A suspension
+# asks every run of the account or the organization to stop, and wakes every run read of theirs
 query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 @auth(level: USER)
 @refresh(
@@ -2243,6 +2248,18 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
   onMutationExecuted: {
     operation: "RequestConversationSubagentsStop"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SuspendUserConversations"
+    condition: "mutation.variables.userId == request.auth.uid"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SuspendOrganizationConversations"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
 )
 @refresh(
@@ -2544,9 +2561,10 @@ query GetConversationToolCall($organizationId: UUID!, $messageId: UUID!) @auth(l
 # a subagent's run that change its status wake every list of its member's in the organization, as a
 # run starting or ending wakes their conversations' list. Those that name the parent wake its list
 # alone: its launches and its agent's stop by `parentId`; its stops, its retry and every write that
-# delivers its reports by `conversationId`; its delete and its restore by `id`. A write added later
-# that changes what it selects names itself here. Removing a member empties theirs, and deleting the
-# organization empties everybody's
+# delivers its reports by `conversationId`; its delete and its restore by `id`. A suspension, which
+# asks every run of the account or the organization to stop, wakes every list of theirs. A write
+# added later that changes what it selects names itself here. Removing a member empties theirs, and
+# deleting the organization empties everybody's
 query GetConversationSubagents($organizationId: UUID!, $conversationId: UUID!)
 @auth(level: USER)
 @refresh(
@@ -2643,6 +2661,18 @@ query GetConversationSubagents($organizationId: UUID!, $conversationId: UUID!)
   onMutationExecuted: {
     operation: "RequestConversationSubagentsStop"
     condition: "mutation.variables.userId == request.auth.uid && mutation.variables.conversationId == request.variables.conversationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SuspendUserConversations"
+    condition: "mutation.variables.userId == request.auth.uid"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SuspendOrganizationConversations"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
 )
 @refresh(

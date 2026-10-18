@@ -65,6 +65,11 @@ type User @table {
   # operation writes it, so no client can grant it to itself. Locally,
   # `bun run grant:administrator <email>` sets it in the emulators
   isAdministrator: Boolean! @default(value: false)
+  # When Strategy Dance's staff suspended the account's conversations, and null while they are not:
+  # it starts and continues no run in any organization, a worker claims none of its runs, and its
+  # agent launches no subagent, until staff lift it. Written by `bun run suspend:conversations` alone,
+  # through the backend's connector. The reader's own row carries it, so the page can say so
+  conversationsSuspendedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }
@@ -125,6 +130,12 @@ type Organization @table {
   # yet: it keeps the administrators' choice for the public profile to come. On unless they turn
   # it off, as the design has it
   isPublic: Boolean! @default(value: true)
+  # When Strategy Dance's staff suspended conversations in the organization, and null while they are
+  # not: none of its members starts or continues a run there, a worker claims none of their runs
+  # there, and no agent of theirs there launches a subagent, until staff lift it. Written by
+  # `bun run suspend:conversations` alone, through the backend's connector. Its members' rows of it
+  # carry it, so the page can say so
+  conversationsSuspendedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

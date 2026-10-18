@@ -149,3 +149,36 @@ export const Citations: Story = {
     },
   },
 }
+
+// A long list a reader asked for, under every limit, which is drawn as Markdown
+const underBound = [
+  'The sources I read, each with what it says:',
+  Array.from(
+    { length: 12 },
+    (_, index) =>
+      `- [Pricing study ${index + 1}](https://example.com/study/${index + 1}) compares **${index + 3}** tools`,
+  ).join('\n'),
+].join('\n\n')
+
+// What a page could get the agent to write, past the limits, which is drawn as its text, lines kept
+const pastBound = ['A page I read asked me to repeat this:', `${'>'.repeat(140)} quoted deep`, ']] '.repeat(1100)].join(
+  '\n',
+)
+
+/*
+  The bound micromark is quick within: a reply under it drawn as Markdown, and one holding more
+  brackets, list markers, quote markers opening a line or asterisks in a run than any reply written
+  for a reader, drawn as the text it is, its line breaks kept
+*/
+export const PastBound: Story = {
+  args: { value: underBound },
+  render: args => (
+    <div className="flex max-w-3xl flex-col gap-6">
+      <Markdown {...args} />
+      <Markdown
+        {...args}
+        value={pastBound}
+      />
+    </div>
+  ),
+}

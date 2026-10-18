@@ -31,7 +31,7 @@ function createResponse() {
   return response as unknown as Response
 }
 
-const request = { viewer: { id: 'viewer', email: null } } as Request
+const request = { viewer: { id: 'viewer', email: null, isEmailVerified: true } } as Request
 
 beforeEach(() => {
   user = null

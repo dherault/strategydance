@@ -10,8 +10,11 @@ import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { ConversationMessageBody, ConversationThreadEntry } from '~types'
 
+import { SUPPORT_CONTACT } from '~constants'
+
 import useAnswerConversationQuestion from '~hooks/conversation/useAnswerConversationQuestion'
 import useConversationQuestionAnswer from '~hooks/conversation/useConversationQuestionAnswer'
+import useRefreshConversationAccess from '~hooks/conversation/useRefreshConversationAccess'
 
 import getConversationAnswerFailure, {
   type ConversationAnswerFailure,
@@ -38,6 +41,8 @@ const NOTICE_MESSAGES = {
   unavailable: conversationMessages.questionUnavailable,
   error: conversationMessages.questionError,
   queued: conversationMessages.questionQueued,
+  unverified: conversationMessages.accessUnverified,
+  suspended: conversationMessages.accessSuspended,
 } as const
 
 /*
@@ -60,6 +65,7 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
   const promptId = useId()
   const name = useId()
   const [{ selected, isOtherChosen, other, isSending }, changeAnswer] = useConversationQuestionAnswer(entry.id)
+  const refreshConversationAccess = useRefreshConversationAccess()
   /*
     What sending the answer came to when it did not start a run: a failure, or an answer kept that
     the conversation goes on from later, the reader having runs going elsewhere. Each is said while
@@ -124,7 +130,11 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
     } catch (error) {
       console.error('The answer could not be sent', error)
 
-      setNotice({ kind: getConversationAnswerFailure(error), waitingRunId })
+      const failure = getConversationAnswerFailure(error)
+
+      setNotice({ kind: failure, waitingRunId })
+
+      if (failure === 'suspended') refreshConversationAccess()
     } finally {
       changeAnswer(() => ({ isSending: false }))
     }
@@ -222,7 +232,7 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
         role={isFailure ? 'alert' : 'status'}
         className={cn('m-0 text-xs', isFailure ? 'text-danger' : 'text-muted-foreground')}
       >
-        {formatMessage(NOTICE_MESSAGES[notice.kind])}
+        {formatMessage(NOTICE_MESSAGES[notice.kind], { email: SUPPORT_CONTACT.email })}
       </p>
     )
   }

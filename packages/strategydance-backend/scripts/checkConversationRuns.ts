@@ -43,8 +43,11 @@ import {
   getConversationSendContext,
   getConversationTurnContext,
   getCappedStarts,
+  getConversationsSuspension,
   interruptConversationRun,
   interruptDeadConversationRun,
+  liftOrganizationConversationsSuspension,
+  liftUserConversationsSuspension,
   reclaimConversationRun,
   renewConversationRunLease,
   renewQueuedConversationRunLease,
@@ -61,6 +64,8 @@ import {
   storeConversationTurn,
   storeConversationToolResults,
   storeConversationTurnWithContext,
+  suspendOrganizationConversations,
+  suspendUserConversations,
   tagConversationAspects,
 } from 'strategydance-database/backend'
 
@@ -104,6 +109,9 @@ function createId() {
 
 const checkId = createId().slice(0, 8)
 const organizationId = createId()
+// A second organization, which the suspension's checks suspend whole without asking the runs the
+// other checks leave in flight in the first to stop
+const suspendedOrganizationId = createId()
 
 // One account per group of checks, so the runs one leaves in flight never count against another's
 const userIds = {
@@ -128,6 +136,8 @@ const userIds = {
   traveler: `check-conversation-runs-${checkId}-traveler`,
   organizer: `check-conversation-runs-${checkId}-organizer`,
   teammate: `check-conversation-runs-${checkId}-teammate`,
+  suspended: `check-conversation-runs-${checkId}-suspended`,
+  bystander: `check-conversation-runs-${checkId}-bystander`,
 }
 
 const failures: string[] = []
@@ -349,11 +359,12 @@ async function setUp() {
 
 async function tearDown() {
   await write(
-    `mutation TearDown($organizationId: UUID!, $ids: [String!]!) {
+    `mutation TearDown($organizationId: UUID!, $suspendedOrganizationId: UUID!, $ids: [String!]!) {
       organization_delete(id: $organizationId)
+      suspended: organization_deleteMany(where: { id: { eq: $suspendedOrganizationId } })
       user_deleteMany(where: { id: { in: $ids } })
     }`,
-    { organizationId, ids: Object.values(userIds) },
+    { organizationId, suspendedOrganizationId, ids: Object.values(userIds) },
   )
 }
 
@@ -2925,7 +2936,7 @@ function readMutationSteps(path: string) {
       const field = start[1] ?? ''
       const end = starts[index + 1]?.index ?? body.length
       const stepText = body.slice(start.index, end)
-      const kind = /^userOrganization_(update|upsert)$/.test(field)
+      const kind = /^userOrganization_(update|updateMany|upsert)$/.test(field)
         ? 'membership'
         : /^conversationRun_update(Many)?$/.test(field)
           ? 'run'
@@ -3087,6 +3098,177 @@ async function checkDailyCaps() {
   )
 }
 
+type StopRequest = { stopRequestedAt: string | null }
+
+async function readStopRequestedAt(runId: string) {
+  const data = await read<{ conversationRun: StopRequest | null }>(
+    `query ReadStopRequest($id: UUID!) { conversationRun(id: $id) { stopRequestedAt } }`,
+    { id: runId },
+  )
+
+  return data.conversationRun?.stopRequestedAt ?? null
+}
+
+// A subagent of a conversation, its run waiting for a slot, as a pending launch leaves one
+async function insertPendingSubagent(started: Started, inOrganizationId: string) {
+  const subagentId = createId()
+  const runId = createId()
+
+  await write(
+    `mutation InsertPendingSubagent(
+      $id: UUID!, $userId: String!, $organizationId: UUID!, $parentId: UUID!, $runId: UUID!, $membershipCreatedAt: Timestamp!
+    ) @transaction {
+      conversation_insert(data: { id: $id, userId: $userId, organizationId: $organizationId, parentId: $parentId, title: "Checked subagent" })
+      conversationRun_insert(data: {
+        id: $runId, conversationId: $id, number: 0, trigger: LAUNCH, status: PENDING, membershipCreatedAt: $membershipCreatedAt, anchorPosition: 0
+      })
+    }`,
+    {
+      id: subagentId,
+      userId: started.userId,
+      organizationId: inOrganizationId,
+      parentId: started.conversationId,
+      runId,
+      membershipCreatedAt: started.membershipCreatedAt,
+    },
+  )
+
+  return runId
+}
+
+async function checkSuspension() {
+  await write(
+    `mutation SetUpSuspended($id: UUID!, $suspended: String!, $bystander: String!) @transaction {
+      organization_insert(data: { id: $id, name: "Checked suspended organization" })
+      suspended: userOrganization_insert(data: { userId: $suspended, organizationId: $id, role: MEMBER })
+      bystander: userOrganization_insert(data: { userId: $bystander, organizationId: $id, role: MEMBER })
+    }`,
+    { id: suspendedOrganizationId, suspended: userIds.suspended, bystander: userIds.bystander },
+  )
+
+  // In the first organization, the suspended account's run queued, another running with a subagent
+  // waiting for a slot, and a bystander's run queued
+  const queued = await start(userIds.suspended, await readMembershipCreatedAt(userIds.suspended))
+  const running = await start(userIds.suspended, queued.membershipCreatedAt)
+
+  await claimQueuedConversationRun(dataConnect, fence(running, 0))
+
+  const pendingRunId = await insertPendingSubagent(running, organizationId)
+  const bystander = await start(userIds.bystander, await readMembershipCreatedAt(userIds.bystander))
+  const suspension = await suspendUserConversations(dataConnect, { userId: userIds.suspended })
+
+  check(
+    'suspending an account asks its runs in flight to stop, its own and its subagents’, and answers how many',
+    suspension.data.runs === 2
+      && suspension.data.subagentRuns === 1
+      && Boolean(await readStopRequestedAt(queued.runId))
+      && Boolean(await readStopRequestedAt(running.runId))
+      && Boolean(await readStopRequestedAt(pendingRunId)),
+  )
+  check('suspending an account leaves another member’s runs going', !(await readStopRequestedAt(bystander.runId)))
+
+  const { data: context } = await getConversationRunContext(dataConnect, {
+    organizationId,
+    userId: userIds.suspended,
+    conversationId: queued.conversationId,
+    runId: queued.runId,
+  })
+  const { data: routed } = await getConversationsSuspension(dataConnect, { organizationId, userId: userIds.suspended })
+
+  check(
+    'a run’s context and the routes’ read say the account is suspended, and the organization not',
+    Boolean(context.user?.conversationsSuspendedAt)
+      && !context.organization?.conversationsSuspendedAt
+      && Boolean(routed.user?.conversationsSuspendedAt)
+      && !routed.organization?.conversationsSuspendedAt,
+  )
+  check(
+    'suspending an account nobody has is refused',
+    await isRefused(
+      suspendUserConversations(dataConnect, { userId: `${userIds.suspended}-nobody` }),
+      'No such account',
+    ),
+  )
+
+  await liftUserConversationsSuspension(dataConnect, { userId: userIds.suspended })
+
+  check(
+    'lifting an account’s suspension clears it, and leaves its runs asked to stop',
+    !(await getConversationsSuspension(dataConnect, { organizationId, userId: userIds.suspended })).data.user
+      ?.conversationsSuspendedAt && Boolean(await readStopRequestedAt(queued.runId)),
+  )
+
+  // In the second organization, both members' runs, the bystander's in the first going on
+  const membership = async (userId: string) =>
+    (
+      await getConversationSendContext(dataConnect, {
+        organizationId: suspendedOrganizationId,
+        userId,
+        conversationId: createId(),
+        messageId: createId(),
+      })
+    ).data.userOrganization?.createdAt ?? ''
+  const startThere = async (userId: string) => {
+    const started: Started = {
+      userId,
+      membershipCreatedAt: await membership(userId),
+      conversationId: createId(),
+      messageId: createId(),
+      runId: createId(),
+    }
+
+    await startConversation(dataConnect, {
+      ...started,
+      organizationId: suspendedOrganizationId,
+      title: 'Checked conversation',
+      text: 'Checked message',
+      preview: { kind: 'MEMBER_TEXT', text: 'Checked message' },
+      content: JSON.stringify([{ type: 'text', text: 'Checked message' }]),
+    })
+
+    return started
+  }
+  const theirs = await startThere(userIds.suspended)
+  const bystanders = await startThere(userIds.bystander)
+  const theirPendingRunId = await insertPendingSubagent(theirs, suspendedOrganizationId)
+  const organizationSuspension = await suspendOrganizationConversations(dataConnect, {
+    organizationId: suspendedOrganizationId,
+  })
+
+  check(
+    'suspending an organization asks every member’s runs in flight there to stop, and nobody’s elsewhere',
+    organizationSuspension.data.runs === 2
+      && organizationSuspension.data.subagentRuns === 1
+      && Boolean(await readStopRequestedAt(theirs.runId))
+      && Boolean(await readStopRequestedAt(bystanders.runId))
+      && Boolean(await readStopRequestedAt(theirPendingRunId))
+      && !(await readStopRequestedAt(bystander.runId)),
+  )
+  check(
+    'the routes’ read says the organization is suspended, for any member of it',
+    Boolean(
+      (
+        await getConversationsSuspension(dataConnect, {
+          organizationId: suspendedOrganizationId,
+          userId: userIds.bystander,
+        })
+      ).data.organization?.conversationsSuspendedAt,
+    ),
+  )
+
+  await liftOrganizationConversationsSuspension(dataConnect, { organizationId: suspendedOrganizationId })
+
+  check(
+    'lifting an organization’s suspension clears it',
+    !(
+      await getConversationsSuspension(dataConnect, {
+        organizationId: suspendedOrganizationId,
+        userId: userIds.bystander,
+      })
+    ).data.organization?.conversationsSuspendedAt,
+  )
+}
+
 function checkLockOrder() {
   const connectors = ['strategydance-backend-connector', 'strategydance-web-connector'].map(connector =>
     readMutationSteps(new URL(`../../strategydance-database/${connector}/mutations.gql`, import.meta.url).pathname),
@@ -3132,6 +3314,8 @@ function checkLockOrder() {
       'RetryConversationRun',
       'RequestConversationRunStopWithSubagents',
       'StartSubagentReaction',
+      'SuspendUserConversations',
+      'SuspendOrganizationConversations',
     ].every(name => connectors.some(mutations => (mutations.get(name)?.length ?? 0) > 0)),
   )
 }
@@ -3162,6 +3346,8 @@ try {
   await checkTagging()
   await checkIntegrationCalls()
   await checkApprovals()
+  // Before the caps' checks, which fill the organization's daily caps
+  await checkSuspension()
   await checkDailyCaps()
 } finally {
   await tearDown()

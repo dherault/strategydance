@@ -90,6 +90,8 @@ export type LaunchSubagentResult =
   | { outcome: 'tooManyToday'; cap: ReachedUsageCap }
   // A file it names is not one its parent sent
   | { outcome: 'attachmentsInvalid' }
+  // Staff suspended the member's conversations, or the organization's
+  | { outcome: 'suspended' }
   // Its first request, measured whole, would pass a send's budget
   | { outcome: 'overBudget'; reason: string }
   // Its id, derived from the launch, names a conversation that is not this launch's subagent
@@ -228,6 +230,11 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
 
     // Its subagent was pruned since, which a launch called again never makes anew
     if (stored) return stored
+
+    // Read before the launcher, which the suspension asked to stop: no run of theirs would be claimed
+    if (data.user?.conversationsSuspendedAt || data.organization?.conversationsSuspendedAt) {
+      return { outcome: 'suspended' }
+    }
 
     const launcher = input.module ? await readSubagentLauncher(input.module.caller) : null
 

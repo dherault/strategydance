@@ -37,6 +37,8 @@ other line but Artifact Registry rounds to zero.
   App Check $820.50 of a $1,091.44 month at 10,000 users.
 - Past 6,575 users, where reCAPTCHA's flat band ends, each additional user adds about $0.020 a
   month, plus the steps the database takes.
+- Conversations are priced apart, in [Conversations](#conversations): Claude costs some $0.15 a
+  response, which outweighs every line above as soon as members use them.
 
 ## What runs
 
@@ -283,6 +285,54 @@ it. At 10,000 they matter more. In the heavy case App Check becomes the largest 
 two devices mint two tokens a day, and Data Connect operations come to $114.75. That case also needs
 the 4-core database described above, which makes its month $901.36.
 
+## Conversations
+
+Conversations, built after the figures above, add Claude, which outweighs everything else, and two
+lines that stay small: Cloud Tasks, which delivers each run to the worker, and the files members
+send. Read on 2026-10-18: usage from the runs' own ledgers with `bun run report:usage`, at Anthropic's
+list prices, as the credits will count them, and the rest from production's tables and the catalog.
+
+**What production recorded is too little to price a user by.** Between 2026-10-07 and 2026-10-15,
+staff's own trials, 4 conversations and 7 runs: 9 requests to Claude Opus 5.5 reading 1,445
+uncached input tokens, 79,300 from the cache and writing 40,960 to it, and writing 2,661 output
+tokens, with no web search, no subagent and no file, $0.28 in all, $0.04 a run. The figures below
+take the typical run `conversations.md` works out under Cost instead, three requests over a cached
+15,000-token conversation at medium effort, about $0.15, and want measuring again once members use
+them, with the same script.
+
+| Service | Price | Free each month |
+| --- | --- | --- |
+| Claude Opus 5.5 | $4 a million input tokens, $20 a million output, $0.20 a million read from the cache, $5 a million written to it for five minutes or $8 for an hour | |
+| Web search | $10 a thousand searches | |
+| Cloud Tasks | $0.40 a million operations | 1 million |
+| Cloud Run, the worker | As the backend: 1 vCPU and 512 MiB, up to 20 instances, 4 runs at a time on each | Shared with the backend |
+| Storage, `NAM4` | $0.044 a GiB-month, as the pictures | none |
+
+| Responses a member asks for on an active day | Per active user-day | 10,000 users |
+| ---: | ---: | ---: |
+| 1 | $0.15 | $22,800 a month |
+| 5 | $0.75 | $114,000 a month |
+| 10 | $1.50 | $228,000 a month |
+
+- **Claude is the price of a response, not of a user.** The rest of this document scales with
+  users; this scales with what they ask, and a subagent's work, some $0.10 for a piece of web
+  research, adds to its parent's. The credit system is what has to recover it. Until it exists, the
+  daily caps bound a member's day, and a run stops at $10 (Usage caps, `conversations.md`), with the
+  workspace's spend limit above both.
+- **The prompt cache is the lever.** A conversation's history is read from the cache at a twentieth
+  of the input price while a member writes within its lifetime, five minutes, and written again in
+  full after a longer pause: $0.50 a message for a 100,000-token conversation. The lifetime is chosen
+  from how long members pause, which `report:usage` buckets.
+- **Cloud Tasks stays free a long while.** A run is a task created and delivered, a few operations
+  with the lookups a page's reconcile makes, so the free million covers a few hundred thousand runs a
+  month, and each past it costs well under a thousandth of a dollar.
+- **The worker is a hundredth of Claude.** A run holds its request open for the whole run, so an
+  instance is billed while any of its four runs goes: a minute-long run alone on one comes to about
+  $0.0015 at the backend's prices.
+- **Files cost their storage until their conversation goes.** A conversation holds at most 100
+  files of at most 10 MiB, 1 GiB and $0.044 a month at most, kept until the daily sweep prunes the
+  conversation a day after its deletion; a file uploaded and never sent goes after two days.
+
 ## Not included
 
 - The domain, the `strategydance.com` mailbox, GitHub, and the Gemini calls `bun run translate`
@@ -305,7 +355,9 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: strategydance
 The service ids: Cloud SQL `9662-B51E-5089`, Data Connect `3C58-66D1-EF70`, Hosting
 `2662-232A-AC11`, Cloud Storage `95FF-2EF5-5EA1`, Cloud Run `152E-C115-5142`, reCAPTCHA
 `1B17-0E4A-E355`, Artifact Registry `149C-F9EC-3994`, Cloud Build `8B5D-EF7D-EB12`, Cloud Logging
-`5490-F7B7-8DF6`. Adding `&currencyCode=EUR` returns the euro prices and the conversion rate.
+`5490-F7B7-8DF6`, Cloud Tasks `F3A6-D7B7-9BDA`. Claude's prices are Anthropic's, which the
+backend's `CLAUDE_MODEL_PRICES` holds, and conversations' usage is `bun run report:usage --production
+--days <n>`, in the backend's package. Adding `&currencyCode=EUR` returns the euro prices and the conversion rate.
 
 The configuration:
 

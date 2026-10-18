@@ -1,5 +1,7 @@
 {
   "landing.beta": "Maintenant en bêta",
+  "landing.companyLabel": "À propos de votre entreprise",
+  "landing.companyPlaceholder": "Écrivez ou collez tout ce que vous avez sur votre entreprise",
   "landing.copyright": "© {year} Strategy Dance",
   "landing.github": "GitHub",
   "landing.legal": "Mentions légales",

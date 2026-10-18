@@ -1,5 +1,7 @@
 {
   "landing.beta": "Beta 测试中",
+  "landing.companyLabel": "关于您的公司",
+  "landing.companyPlaceholder": "输入或粘贴关于您公司的所有内容",
   "landing.copyright": "© {year} Strategy Dance",
   "landing.github": "GitHub",
   "landing.legal": "法律信息",

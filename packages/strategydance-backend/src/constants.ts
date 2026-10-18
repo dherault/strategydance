@@ -56,6 +56,15 @@ export const IS_MODULES_RELEASE_GATED = ARE_MODULES_STAFF_ONLY && !IS_DEVELOPMEN
 */
 export const IS_USAGE_CAPPED = !IS_DEVELOPMENT || process.env.USAGE_CAPPED === 'true'
 
+/*
+  Whether a member starts or continues a run only once their ID token says their address is
+  confirmed (`verifiedEmailMiddleware`): an account costs nothing to make, and the daily caps'
+  allowance is an account's, so it is an address its owner confirmed. Everywhere but the development
+  backend, whose Auth emulator confirms nothing by itself, as the gates are lifted there.
+  `EMAIL_VERIFICATION_REQUIRED=true` holds it there too, to try it. The tests keep it
+*/
+export const IS_EMAIL_VERIFICATION_REQUIRED = !IS_DEVELOPMENT || process.env.EMAIL_VERIFICATION_REQUIRED === 'true'
+
 /* ---
   ARCHITECTURE
 --- */

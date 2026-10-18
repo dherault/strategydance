@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net'
 import Anthropic from '@anthropic-ai/sdk'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { PDFDocument } from 'pdf-lib'
-import { MAX_PENDING_CONVERSATION_ATTACHMENTS } from 'strategydance-core'
+import { ERROR_CODE_EMAIL_NOT_VERIFIED, MAX_PENDING_CONVERSATION_ATTACHMENTS } from 'strategydance-core'
 
 import createClaudeFilesFake from '~domain/agent/testing/createClaudeFilesFake'
 import createScriptedClaudeClient from '~domain/agent/testing/createScriptedClaudeClient'
@@ -42,7 +42,11 @@ mock.module('~middleware/appCheck', () => ({ default: passThrough }))
 
 mock.module('~middleware/authentication', () => ({
   default: (request: Request, _response: Response, next: NextFunction) => {
-    request.viewer = { id: request.header('x-viewer') ?? MEMBER, email: null, isEmailVerified: true }
+    request.viewer = {
+      id: request.header('x-viewer') ?? MEMBER,
+      email: null,
+      isEmailVerified: request.header('x-email-verified') !== 'false',
+    }
     next()
   },
 }))
@@ -191,6 +195,24 @@ afterAll(() => {
 })
 
 describe('PUT /:conversationId/attachments/:attachmentId', () => {
+  test('refuses a caller whose address is not confirmed, before anything is stored', async () => {
+    const attachmentId = newId()
+    const response = await fetch(
+      `${origin}/organizations/${ORGANIZATION_ID}/conversations/${CONVERSATION_ID}/attachments/${attachmentId}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/png', 'X-File-Name': 'Board.png', 'X-Email-Verified': 'false' },
+        body: new Uint8Array(png()),
+      },
+    )
+
+    expect(response.status).toBe(403)
+    expect(((await response.json()) as { code: string }).code).toBe(ERROR_CODE_EMAIL_NOT_VERIFIED)
+    expect(fake.attachments.size).toBe(0)
+    expect(storage.objects.size).toBe(0)
+    expect(files.files.size).toBe(0)
+  })
+
   test('stores an image, a PDF and a text file, counted, uploaded to the Files API and ready', async () => {
     const image = newId()
     const document = newId()

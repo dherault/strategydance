@@ -383,31 +383,58 @@ describe('runConversation, a subagent calling an integration', () => {
     expect(String(readResults(client.readRequests()[1]).get('toolu_1')?.content)).toContain('The call may have run')
   })
 
-  test('records a call whose answer was more than Strategy Dance reads as unanswered, since it may have run', async () => {
-    const subagent = await kit.launch(await startParent())
-    const client = createClient([calling(callTool('toolu_1')), answer()])
-
-    network = {
-      ...server,
-      send: async (url, address, headers, signal, request) => {
-        if (!new TextDecoder().decode(request.body ?? new Uint8Array()).includes('"tools/call"')) {
-          return server.send(url, address, headers, signal, request)
-        }
-
-        return {
+  test('records a call whose answer could not be read as unanswered, since it may have run', async () => {
+    const cases: [string, Awaited<ReturnType<typeof server.send>>, string][] = [
+      [
+        'more than Strategy Dance reads',
+        {
           status: 200,
           headers: { 'content-type': 'application/json' },
           body: (async function* () {
             for (let index = 0; index < 5; index++) yield new Uint8Array(1024 * 1024).fill(32)
           })(),
-        }
-      },
+        },
+        'Issues answered more than Strategy Dance reads, so its answer was not read. The call may have run',
+      ],
+      [
+        'compressed, which the guard reads no further',
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json', 'content-encoding': 'gzip' },
+          body: (async function* () {
+            yield new Uint8Array([31, 139])
+          })(),
+        },
+        'Issues did not answer as an MCP server does, so its answer was not read. The call may have run',
+      ],
+    ]
+
+    for (const [what, response, sentence] of cases) {
+      const subagent = await kit.launch(await startParent())
+      const client = createClient([calling(callTool('toolu_1')), answer()])
+
+      answerToolCall(response)
+      await run(subagent, client)
+
+      expect(readCall(subagent, 'toolu_1'), what).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: true })
+      expect(String(readResults(client.readRequests()[1]).get('toolu_1')?.content), what).toContain(sentence)
+
+      fake.reset()
+      fake.addMember(AUTHOR, ORGANIZATION_ID)
+      addIntegration()
     }
+  })
+
+  test('records a call its server refused with a status as answered, since it ran nothing', async () => {
+    const subagent = await kit.launch(await startParent())
+    const client = createClient([calling(callTool('toolu_1')), answer()])
+
+    answerToolCall({ status: 404, headers: {}, body: (async function* () {})() })
     await run(subagent, client)
 
-    expect(readCall(subagent, 'toolu_1')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: true })
-    expect(String(readResults(client.readRequests()[1]).get('toolu_1')?.content)).toContain(
-      'Issues answered more than Strategy Dance reads, so its answer was not read. The call may have run',
+    expect(readCall(subagent, 'toolu_1')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: false })
+    expect(String(readResults(client.readRequests()[1]).get('toolu_1')?.content)).toBe(
+      'Issues did not answer as an MCP server does.',
     )
   })
 
@@ -446,6 +473,17 @@ describe('runConversation, a subagent calling an integration', () => {
     }
   })
 })
+
+// The server, which answers its handshake as it does, answering a call to its tool with the response given
+function answerToolCall(response: Awaited<ReturnType<typeof server.send>>) {
+  network = {
+    ...server,
+    send: async (url, address, headers, signal, request) =>
+      new TextDecoder().decode(request.body ?? new Uint8Array()).includes('"tools/call"')
+        ? response
+        : server.send(url, address, headers, signal, request),
+  }
+}
 
 // The member's account at the OAuth server, as a test names its generation
 function addConnection(generation: string) {

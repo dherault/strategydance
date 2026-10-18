@@ -1849,6 +1849,26 @@
         "hash": "7d6a3e4f53fe2a93",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.note.subagentFailed": {
+        "hash": "8f3b80dc0b155b85",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.subagentFull": {
+        "hash": "80177ff8b1cf632d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.subagentInterrupted": {
+        "hash": "a3a9b02381c7487a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.subagentRefused": {
+        "hash": "05fe638bc9cc1ee3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.subagentStopped": {
+        "hash": "ddd1d78a677f1234",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.olderError": {
         "hash": "410b2e2f9b9d16e3",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1993,6 +2013,34 @@
         "hash": "1f65e210a1787c7c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.retryDialog.allWorking": {
+        "hash": "5179cafd0820a3bc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.cancel": {
+        "hash": "9cf8832040036351",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.confirm": {
+        "hash": "06c90d2d2dd29af3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.discarded": {
+        "hash": "0aa3504512424bf6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.kept": {
+        "hash": "766b35e41501b756",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.someWorking": {
+        "hash": "502c7eba7fc405c3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.retryDialog.title": {
+        "hash": "1f4ade78010942f7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.save": {
         "hash": "f70380a62bf55317",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2051,6 +2099,110 @@
       },
       "conversation.stopping": {
         "hash": "d1718c83e5d1df00",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.badge": {
+        "hash": "c5993f0642d225c1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.brief": {
+        "hash": "abc91b95e233df17",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.report": {
+        "hash": "c77bca40c4735eba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.reportCopy": {
+        "hash": "008119bd38e86d19",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.reportEmpty": {
+        "hash": "fa4bd4edff07f287",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.reportLoadError": {
+        "hash": "f60c545dd1402c9c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.failed": {
+        "hash": "9701543883b71186",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.interrupted": {
+        "hash": "1f2501366e319000",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.queued": {
+        "hash": "f1e782eb5515f7b4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.reported": {
+        "hash": "bc64bbb80c2705e5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.stopped": {
+        "hash": "8da575cfcc68a825",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.stopping": {
+        "hash": "2364fb03bb367a1d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.waitingForSlot": {
+        "hash": "5f01cfbfd959545e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.status.working": {
+        "hash": "854893bc2ac54363",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.stop": {
+        "hash": "674e0a1808fa350c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.stopError": {
+        "hash": "be6420ea7b0c8217",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.stopLabel": {
+        "hash": "b035a9754ef8089e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.viewWork": {
+        "hash": "a4b029566886cd00",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.viewWorkLabel": {
+        "hash": "7393557f430e011f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.workDescription": {
+        "hash": "92f1bacf81933551",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.workLoadError": {
+        "hash": "0fb66359736193bc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagent.workMissing": {
+        "hash": "c7c0795940bb35c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagents.reportsWaiting": {
+        "hash": "dc2654e989395ac4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagents.stopAll": {
+        "hash": "00cfb78e47214033",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagents.stopAllError": {
+        "hash": "d6724e1056a43793",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.subagents.working": {
+        "hash": "1627970cf4d770a5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.taskGone": {
@@ -2121,6 +2273,14 @@
         "hash": "8152483c9f173472",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.launchSubagent.done": {
+        "hash": "27913bed96337c7f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.launchSubagent.running": {
+        "hash": "f9e57681c290b67d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.linkTasks.done": {
         "hash": "d24cd134aa3eecd3",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2145,6 +2305,14 @@
         "hash": "ec3949d2f18fd1b8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.listSubagents.done": {
+        "hash": "3d89ca49bb3999d3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listSubagents.running": {
+        "hash": "211711354443df2c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.listTasks.done": {
         "hash": "bd244ddcc02ce242",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2159,6 +2327,14 @@
       },
       "conversation.tool.readKnowledge.running": {
         "hash": "64c2f903f021241f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readSubagent.done": {
+        "hash": "32bac3cbbeae3914",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readSubagent.running": {
+        "hash": "6494176f4efcbfa5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.readTask.done": {
@@ -2191,6 +2367,14 @@
       },
       "conversation.tool.searchKnowledge.running": {
         "hash": "ad4aa23eae02d820",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.stopSubagent.done": {
+        "hash": "7efc38c7a3c08815",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.stopSubagent.running": {
+        "hash": "0d8d92650a40f7f7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.tagKnowledge.done": {
@@ -4755,6 +4939,22 @@
       },
       "task.created": {
         "hash": "cb095b4c6d26801c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.delegate": {
+        "hash": "03fb5b01acbbddba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.delegatePrompt": {
+        "hash": "e45b0816b8ef2945",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.delegatePromptCopied": {
+        "hash": "c90c7e2522c30f49",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.delegateToAgents": {
+        "hash": "03f7213d1064524d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.deleteTask": {

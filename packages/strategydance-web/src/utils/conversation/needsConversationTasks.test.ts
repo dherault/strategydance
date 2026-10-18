@@ -22,6 +22,15 @@ describe('needsConversationTasks', () => {
     expect(needsConversationTasks(entries, bodies({ b: '[Post](TASK:1a2b3c4d5e6f40718293a4b5c6d7e8f9)' }))).toBe(true)
   })
 
+  it('needs it once a subagent’s brief links a task', () => {
+    expect(
+      needsConversationTasks(
+        [entry('a', 'BRIEF')],
+        bodies({ a: 'Take up [Post](task:1a2b3c4d5e6f40718293a4b5c6d7e8f9).' }),
+      ),
+    ).toBe(true)
+  })
+
   it('needs it for a row that deleted a task, in a reply that links no task', () => {
     const entries = [entry('a', 'TOOL_CALL', 'delete_task'), entry('b', 'AGENT_TEXT')]
 

@@ -56,6 +56,8 @@ function toBody({
   integrationName,
   integrationToolName,
   argumentsPreview,
+  toolUseId,
+  attachmentIds,
   conversationAttachments_on_message,
 }: ConversationPageMessage): ConversationMessageBody {
   return {
@@ -69,6 +71,8 @@ function toBody({
     integrationName,
     integrationToolName,
     argumentsPreview,
+    toolUseId,
+    attachmentIds,
     conversationAttachments_on_message,
   }
 }

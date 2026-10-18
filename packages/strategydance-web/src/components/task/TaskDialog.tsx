@@ -29,6 +29,7 @@ import getMemberName from '~utils/team/getMemberName'
 
 import TaskAspectsField from '~components/task/TaskAspectsField'
 import TaskAssigneeSelect from '~components/task/TaskAssigneeSelect'
+import TaskDelegation from '~components/task/TaskDelegation'
 import TaskDependencyField from '~components/task/TaskDependencyField'
 import TaskDescriptionField from '~components/task/TaskDescriptionField'
 import TaskDialogLayout from '~components/task/TaskDialogLayout'
@@ -174,6 +175,7 @@ function TaskDialog({ taskId }: Props) {
             onChange={ids => report(changes.setTaskBlocks(taskId, ids))}
             onOpen={open}
           />
+          <TaskDelegation task={task} />
         </>
       }
       side={

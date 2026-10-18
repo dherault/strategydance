@@ -373,7 +373,7 @@ function subagentFence(parent: Parent, subagent: Subagent, attempts: number) {
 }
 
 // Inserts a file of a conversation's, as an upload stores one, sent by a message or waiting in a draft
-async function insertFile(conversationId: string, messageId: string | null) {
+async function insertFile(conversationId: string, messageId: string | null, userId = userIds.author) {
   const id = createId()
 
   await write(
@@ -391,7 +391,7 @@ async function insertFile(conversationId: string, messageId: string | null) {
         size: 2000, pageCount: 1, tokenCount: 1594, claudeFileId: $claudeFileId
       })
     }`,
-    { id, userId: userIds.author, organizationId, conversationId, messageId, claudeFileId: `file_${id}` },
+    { id, userId, organizationId, conversationId, messageId, claudeFileId: `file_${id}` },
   )
 
   return id
@@ -738,6 +738,195 @@ async function checkReading({ parent, completed }: { parent: Parent; completed: 
     'the dock leaves a subagent out',
     !listed(dock).includes(completed.conversationId) && listed(dock).includes(parent.conversationId),
   )
+}
+
+/*
+  What the parent's page reads of its subagents through the web connector, as its member: its own
+  subagents alone, with the call that launched each and its latest run, a subagent's report, which
+  conversation a subagent's is, the call's id and a brief's files with the bodies, and a brief's files
+  among the parent's sent ones, never one waiting in a draft or anybody else's
+*/
+async function checkPageReads() {
+  const author = asMember(userIds.author)
+  const other = asMember(userIds.other)
+  const parent = await startParent()
+  const sent = await insertFile(parent.conversationId, parent.messageId)
+  const draft = await insertFile(parent.conversationId, null)
+  const othersFile = await insertFile(parent.conversationId, parent.messageId, userIds.other)
+  const handed = await launch(parent, { launchToolUseId: `toolu_${checkId}`, attachmentIds: [sent] })
+  const reported = await launch(parent)
+  const deleted = await launch(parent)
+  const elsewhere = await launch(await startParent())
+
+  await write(
+    `mutation Delete($id: UUID!) { conversation_update(id: $id, data: { deletedAt_expr: "request.time" }) }`,
+    {
+      id: deleted.conversationId,
+    },
+  )
+
+  const reportedFence = subagentFence(parent, reported, 1)
+
+  await claimQueuedConversationRun(dataConnect, { ...reportedFence, attempts: 0 })
+  await finishSubagentRun(dataConnect, {
+    ...reportedFence,
+    status: ConversationRunStatus.COMPLETED,
+    report: `Reported ${MARK}`,
+  })
+
+  type Subagents = {
+    conversations: {
+      id: string
+      launchToolUseId: string | null
+      launchAnchorPosition: number | null
+      activeRunId: string | null
+      reportedAt: string | null
+      reportDeliveredAt: string | null
+      latestRuns: { id: string; status: string; trigger: string }[]
+    }[]
+  }
+  const listVariables = { organizationId, conversationId: parent.conversationId }
+  const { conversations: subagents } = await author.read<Subagents>('GetConversationSubagents', listVariables)
+  const [first, second] = subagents
+
+  check(
+    'the page reads its own subagents alone, oldest first, never a deleted one or another parent’s',
+    subagents.map(({ id }) => id).join() === [handed.conversationId, reported.conversationId].join(),
+  )
+  check(
+    'a listed subagent carries the call that launched it, its anchor, and its run going',
+    first?.launchToolUseId === `toolu_${checkId}`
+      && first.launchAnchorPosition === 0
+      && first.activeRunId === handed.runId
+      && first.latestRuns[0]?.id === handed.runId
+      && first.latestRuns[0].status === ConversationRunStatus.QUEUED
+      && first.latestRuns[0].trigger === 'LAUNCH'
+      && first.reportedAt === null,
+  )
+  check(
+    'a listed subagent that reported carries its ended run, its report written and not delivered',
+    second?.activeRunId === null
+      && second.latestRuns[0]?.status === ConversationRunStatus.COMPLETED
+      && second.reportedAt !== null
+      && second.reportDeliveredAt === null,
+  )
+  check(
+    'another member reads none of a conversation’s subagents',
+    (await other.read<Subagents>('GetConversationSubagents', listVariables)).conversations.length === 0,
+  )
+
+  type Report = { conversations: { id: string; report: string | null }[] }
+  const report = await author.read<Report>('GetConversationSubagentReport', {
+    ...listVariables,
+    subagentId: reported.conversationId,
+  })
+
+  check('the page reads a subagent’s report through its parent', report.conversations[0]?.report === `Reported ${MARK}`)
+  check(
+    'a report reads nothing through another conversation, nor for another member',
+    (
+      await author.read<Report>('GetConversationSubagentReport', {
+        organizationId,
+        conversationId: elsewhere.conversationId,
+        subagentId: reported.conversationId,
+      })
+    ).conversations.length === 0
+      && (
+        await other.read<Report>('GetConversationSubagentReport', {
+          ...listVariables,
+          subagentId: reported.conversationId,
+        })
+      ).conversations.length === 0,
+  )
+
+  type Tail = {
+    conversations: {
+      parentId: string | null
+      subagentCount: number
+      conversationMessages_on_conversation: { id: string; kind: string }[]
+    }[]
+  }
+  const parentTail = await author.read<Tail>('GetConversation', { organizationId, id: parent.conversationId })
+  const subagentTail = await author.read<Tail>('GetConversation', { organizationId, id: handed.conversationId })
+
+  check(
+    'the tail reads a subagent’s parent, and how many subagents a conversation holds, a deleted one included',
+    subagentTail.conversations[0]?.parentId === parent.conversationId
+      && parentTail.conversations[0]?.parentId === null
+      && parentTail.conversations[0].subagentCount === 3,
+  )
+
+  const briefId =
+    subagentTail.conversations[0]?.conversationMessages_on_conversation.find(({ kind }) => kind === 'BRIEF')?.id ?? ''
+  const callId = createId()
+
+  await write(
+    `mutation InsertCall($id: UUID!, $conversationId: UUID!, $toolUseId: String!) {
+      conversationMessage_insert(data: {
+        id: $id, conversationId: $conversationId, kind: TOOL_CALL, position: 500, toolUseId: $toolUseId,
+        toolName: "launch_subagent", toolStatus: SUCCEEDED
+      })
+    }`,
+    { id: callId, conversationId: parent.conversationId, toolUseId: `toolu_${checkId}` },
+  )
+
+  type Bodies = { conversationMessages: { id: string; toolUseId: string | null; attachmentIds: string[] | null }[] }
+  const briefBodies = await author.read<Bodies>('GetConversationMessageBodies', {
+    organizationId,
+    id: handed.conversationId,
+    messageIds: [briefId],
+  })
+  const callBodies = await author.read<Bodies>('GetConversationMessageBodies', {
+    organizationId,
+    id: parent.conversationId,
+    messageIds: [callId],
+  })
+  const briefHistory = await author.read<Bodies>('GetConversationMessagesBefore', {
+    organizationId,
+    id: handed.conversationId,
+    beforePosition: 1000,
+  })
+  const callHistory = await author.read<Bodies>('GetConversationMessagesBefore', {
+    organizationId,
+    id: parent.conversationId,
+    beforePosition: 1000,
+  })
+
+  check(
+    'the bodies and the history read a brief’s files and a call’s id',
+    briefBodies.conversationMessages[0]?.attachmentIds?.join() === sent
+      && callBodies.conversationMessages[0]?.toolUseId === `toolu_${checkId}`
+      && briefHistory.conversationMessages.find(({ id }) => id === briefId)?.attachmentIds?.join() === sent
+      && callHistory.conversationMessages.find(({ id }) => id === callId)?.toolUseId === `toolu_${checkId}`,
+  )
+
+  type Files = { conversationAttachments: { id: string; name: string }[] }
+  const files = await author.read<Files>('GetConversationBriefAttachments', {
+    ...listVariables,
+    ids: [sent, draft, othersFile],
+  })
+
+  check(
+    'a brief’s files are read among its parent’s sent ones, never one waiting in a draft or another member’s',
+    files.conversationAttachments.map(({ id }) => id).join() === sent,
+  )
+  check(
+    'a brief’s files read nothing under another conversation',
+    (
+      await author.read<Files>('GetConversationBriefAttachments', {
+        organizationId,
+        conversationId: elsewhere.conversationId,
+        ids: [sent],
+      })
+    ).conversationAttachments.length === 0,
+  )
+
+  const run = await author.read<{ conversationRuns: { anchorPosition: number }[] }>('GetConversationRun', {
+    organizationId,
+    conversationId: parent.conversationId,
+  })
+
+  check('the latest run reads its anchor', run.conversationRuns[0]?.anchorPosition === 0)
 }
 
 async function checkMemberActions() {
@@ -1935,6 +2124,8 @@ try {
   const ended = await checkEnding()
 
   await checkReading(ended)
+  await settleSubagentRuns()
+  await checkPageReads()
   await settleSubagentRuns()
   await checkMemberActions()
   await settleSubagentRuns()

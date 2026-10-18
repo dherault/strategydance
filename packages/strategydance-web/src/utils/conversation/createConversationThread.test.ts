@@ -31,7 +31,15 @@ function createConversationTestServer({ pageLength }: { pageLength: number }) {
         runId,
         kind = ConversationMessageKind.AGENT_TEXT,
         files = [],
-      }: { runId?: string; kind?: ConversationMessageKind; files?: string[] } = {},
+        toolUseId = null,
+        attachmentIds = null,
+      }: {
+        runId?: string
+        kind?: ConversationMessageKind
+        files?: string[]
+        toolUseId?: string | null
+        attachmentIds?: string[] | null
+      } = {},
     ) {
       for (let index = 0; index < count; index++) {
         const position = counter++
@@ -57,6 +65,8 @@ function createConversationTestServer({ pageLength }: { pageLength: number }) {
           questionPrompt: null,
           questionOptions: null,
           isMultipleChoice: null,
+          toolUseId,
+          attachmentIds,
           conversationAttachments_on_message: files.map(name => ({
             id: `${name}-${position}`,
             name,
@@ -102,6 +112,8 @@ function createConversationTestServer({ pageLength }: { pageLength: number }) {
             questionPrompt,
             questionOptions,
             isMultipleChoice,
+            toolUseId,
+            attachmentIds,
             conversationAttachments_on_message,
           }) => ({
             id,
@@ -110,6 +122,8 @@ function createConversationTestServer({ pageLength }: { pageLength: number }) {
             questionPrompt,
             questionOptions,
             isMultipleChoice,
+            toolUseId,
+            attachmentIds,
             conversationAttachments_on_message,
           }),
         )
@@ -498,6 +512,26 @@ describe('createConversationThread', () => {
     expect(names('message-8')).toEqual(['deck.pdf'])
     expect(names('message-0')).toEqual(['plan.pdf', 'notes.md'])
     expect(names('message-4')).toEqual([])
+  })
+
+  it("keeps a call's id and the files a brief hands over, from its body and from a page alike", async () => {
+    const server = createConversationTestServer({ pageLength: PAGE_LENGTH })
+
+    server.insert(1, { kind: ConversationMessageKind.BRIEF, attachmentIds: ['file-a', 'file-b'] })
+    server.insert(7)
+    server.insert(1, { kind: ConversationMessageKind.MEMBER_TEXT, toolUseId: 'toolu_launch' })
+
+    const { thread, readAll } = open(server)
+
+    await settle()
+    await readAll()
+
+    const { bodies } = thread.getSnapshot()
+
+    // From the bodies' read, then from the oldest page
+    expect(bodies.get('message-8')?.toolUseId).toBe('toolu_launch')
+    expect(bodies.get('message-0')?.attachmentIds).toEqual(['file-a', 'file-b'])
+    expect(bodies.get('message-4')?.attachmentIds).toBeNull()
   })
 
   it('says a page read failed, and reads it again when asked', async () => {

@@ -9,8 +9,6 @@ import {
 
 import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
-import * as constants from '~constants'
-
 import createClaudeFilesFake from '~domain/agent/testing/createClaudeFilesFake'
 import createAttachmentStorageFake from '~domain/conversations/testing/createAttachmentStorageFake'
 import createConversationDatabaseFake from '~domain/conversations/testing/createConversationDatabaseFake'
@@ -31,8 +29,6 @@ mock.module('~domain/conversations/conversationAttachmentStorage', () => ({
   default: createAttachmentStorageFake().storage,
 }))
 mock.module('~domain/agent/conversationClaudeFiles', () => ({ default: createClaudeFilesFake().claudeFiles }))
-// Launches are closed outside development until M34, and open here
-mock.module('~constants', () => ({ ...constants, IS_SUBAGENT_LAUNCH_GATED: false }))
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 mock.module('strategydance-database/backend', () => fake.sdk)
 mock.module('~domain/conversations/enqueueRun', () => ({ default: enqueueRun }))

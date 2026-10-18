@@ -961,10 +961,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsobserver.com/",
     "submissionUrl": "https://aitoolsobserver.com/submit/add-url/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category and pricing, with AI news and comparisons, where makers submit their tools for editorial review.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-18",
     "unreachableSince": null
   },
   {
@@ -1121,10 +1123,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://anyfp.com/",
     "submissionUrl": "https://anyfp.com/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Human-reviewed catalog of AI tools, services and websites sorted into categories and use cases, where makers can submit their own tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE",
+    "lastChecked": "2026-10-18",
     "unreachableSince": null
   },
   {
@@ -1404,10 +1408,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://bestwebsites.info/",
     "submissionUrl": "https://bestwebsites.info/en/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
+    "description": "Multilingual directory of websites of all kinds, sorted into categories such as AI, tools, business and resources, where owners submit their own sites.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_FOR_LIMITED_TIME",
+    "lastChecked": "2026-10-18",
     "unreachableSince": null
   },
   {
@@ -1693,11 +1699,13 @@
     "name": "ConfettiSaaS",
     "type": "WEBSITE",
     "rootUrl": "https://confettisaas.com/",
-    "submissionUrl": "https://confettisaas.com/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://confettisaas.com/submit",
+    "description": "Directory of SaaS products and startups sorted by category and pricing tier, where founders submit their own projects for a listing with a dofollow backlink.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-18",
     "unreachableSince": null
   },
   {
@@ -2223,10 +2231,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://fastlaunch.io/",
     "submissionUrl": "https://fastlaunch.io/projects/submit",
-    "description": "",
-    "categories": [],
+    "description": "Daily launch platform where makers schedule and submit tech products, AI tools and SaaS, and the community upvotes them by category.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-18",
     "unreachableSince": null
   },
   {
@@ -3021,10 +3031,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.kickproduct.com/",
     "submissionUrl": "https://www.kickproduct.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "description": "Product launch platform where founders sign up and publish their SaaS products to a community of makers and founders.",
+    "categories": [
+      "SAAS"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-10-18",
     "unreachableSince": null
   },
   {
@@ -4188,10 +4200,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.promoteproject.com/",
     "submissionUrl": "https://www.promoteproject.com/submit-startup",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_ENGAGEMENT",
-    "lastChecked": null,
+    "description": "Startup directory and community where registered users submit their startups by category for others to vote on, alongside articles, jobs and a forum.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-10-18",
     "unreachableSince": null
   },
   {
@@ -4574,10 +4588,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://saasboard.app/",
     "submissionUrl": "https://saasboard.app/",
-    "description": "",
-    "categories": [],
+    "description": "Visual pixel-grid directory where startups, websites and apps buy tiles to show their logo and link to founders, builders and early adopters.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-18",
     "unreachableSince": null
   },
   {
@@ -5545,10 +5561,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.tapscape.com/",
     "submissionUrl": "https://www.tapscape.com/submit-app-review/",
-    "description": "",
-    "categories": [],
+    "description": "Tech blog publishing reviews of iPhone, iPad, Mac and Android apps, where developers can send in their apps for review.",
+    "categories": [
+      "MOBILE_APPS"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-18",
     "unreachableSince": null
   },
   {
@@ -6511,10 +6529,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://zumvu.com/",
     "submissionUrl": "https://zumvu.com/",
-    "description": "",
-    "categories": [],
+    "description": "Business platform with web, shopping and B2B directories and classifieds, where businesses create profiles and list their websites, products and services.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_FOR_LIMITED_TIME",
-    "lastChecked": null,
+    "lastChecked": "2026-10-18",
     "unreachableSince": null
   }
 ]

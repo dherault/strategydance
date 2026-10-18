@@ -163,6 +163,15 @@ export const CONVERSATION_RUN_RECONCILE_INTERVAL_MS = 2 * 60 * 1000
 */
 export const CONVERSATION_ANSWER_RECONCILE_DELAY_MS = 5000
 
+/*
+  How long a page waits before it asks the backend to reconcile a conversation's subagents once a
+  batch of them has reported whole while the conversation could react, which the last subagent's
+  end starts itself unless its worker stopped first or the reader had their runs going elsewhere,
+  and how often it asks while any subagent is busy, so a run that died with its worker ends
+*/
+export const CONVERSATION_REACTION_RECONCILE_DELAY_MS = 5000
+export const CONVERSATION_SUBAGENTS_RECONCILE_INTERVAL_MS = 2 * 60 * 1000
+
 // How long the conversations' search field waits after the last keystroke before it searches, so
 // a word typed is one search rather than one a letter
 export const CONVERSATION_SEARCH_DELAY_MS = 300

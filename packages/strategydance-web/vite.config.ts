@@ -40,11 +40,14 @@ export default defineConfig({
       source locale from the faster of its two paths and never parses ICU syntax in the browser.
 
       Purely an optimization: react-intl parses the strings at runtime without it, and dropping
-      this plugin changes nothing that is rendered
+      this plugin changes nothing that is rendered. That takes `preserveWhitespace`, since the
+      plugin otherwise collapses a message's whitespace, its line breaks included, where the
+      translated catalogues keep them, as a prompt a member copies needs them
     */
     formatjs({
       idInterpolationPattern: '[sha512:contenthash:base64:6]',
       ast: true,
+      preserveWhitespace: true,
     }),
   ],
 })

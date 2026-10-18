@@ -29,6 +29,10 @@ describe('getConversationToolLabel', () => {
       ['list_integrations', 'Listing integrations', 'Listed integrations'],
       ['describe_integration_tool', 'Reading an integration’s tool', 'Read an integration’s tool'],
       ['call_integration_tool', 'Calling an integration', 'Called an integration'],
+      ['list_subagents', 'Listing subagents', 'Listed subagents'],
+      ['read_subagent', 'Reading a subagent’s work', 'Read a subagent’s work'],
+      ['launch_subagent', 'Launching a subagent', 'Launched a subagent'],
+      ['stop_subagent', 'Stopping a subagent', 'Stopped a subagent'],
     ] as const
 
     for (const [toolName, running, done] of tools) {

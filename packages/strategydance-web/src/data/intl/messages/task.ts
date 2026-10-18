@@ -2,7 +2,8 @@ import { defineMessages } from 'react-intl'
 
 /*
   The Tasks page: the organization's board of tasks in four columns, its filters, and the dialog a
-  task opens in, where it is written, assigned, dated, tagged and linked to the tasks it waits on
+  task opens in, where it is written, assigned, dated, tagged, linked to the tasks it waits on and
+  handed to an agent of the member's own
 */
 const taskMessages = defineMessages({
   eyebrow: {
@@ -241,6 +242,31 @@ const taskMessages = defineMessages({
     id: 'task.blocks',
     defaultMessage: 'Blocks',
     description: "Title of the list of tasks that wait on this one, in a task's dialog.",
+  },
+  delegate: {
+    id: 'task.delegate',
+    defaultMessage: 'Delegate',
+    description:
+      "Title of the section of a task's dialog that hands the task to an AI agent of the member's own, such as Claude or ChatGPT.",
+  },
+  delegateToAgents: {
+    id: 'task.delegateToAgents',
+    defaultMessage: 'To your agents',
+    description:
+      'Button in a task\'s dialog, under "Delegate", that copies a prompt asking an AI agent of the member\'s own to do the task, or explains how to connect one when they have none.',
+  },
+  delegatePromptCopied: {
+    id: 'task.delegatePromptCopied',
+    defaultMessage: 'Prompt copied',
+    description:
+      'Shown on the "To your agents" button for a few seconds once it copied the prompt, to paste into an AI agent.',
+  },
+  delegatePrompt: {
+    id: 'task.delegatePrompt',
+    defaultMessage:
+      'Tackle Strategy Dance task {id} using the Strategy Dance Tasks MCP server.\nThe task name is "{name}".\nMark it as ongoing as soon as you start working on it.',
+    description:
+      'Prompt the "To your agents" button copies, which the member pastes into an AI agent of their own that is connected to the team\'s task board. {id} is the task\'s id and {name} its name. Keep the line breaks, and keep "Strategy Dance Tasks MCP server" as it is: it names the server the agent reads the board through. "Ongoing" is the column of the board for work under way.',
   },
   editDependsOn: {
     id: 'task.editDependsOn',

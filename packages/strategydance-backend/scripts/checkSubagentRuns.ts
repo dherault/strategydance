@@ -1301,6 +1301,25 @@ async function checkSlots() {
       && !skippedIds.includes(pending.runId),
   )
 
+  const readSkippedPast = async (skipped: string[]) =>
+    (
+      await getSubagentPendingRuns(dataConnect, {
+        organizationId,
+        userId: userIds.author,
+        membershipCreatedAt: parent.membershipCreatedAt,
+        skippedIds: skipped,
+      })
+    ).data.skippedRuns.map(({ id }) => id)
+  const pastNone = await readSkippedPast([])
+  const pastStopped = await readSkippedPast([stopped.runId])
+
+  check(
+    'the runs a reconcile could not end are read past before the limit, and none when it names none',
+    pastNone.join() === skippedIds.join()
+      && !pastStopped.includes(stopped.runId)
+      && [deleted, ofBefore].every(({ runId }) => pastStopped.includes(runId)),
+  )
+
   for (const [name, subagent] of [
     ['asked to stop', stopped],
     ['whose subagent is deleted', deleted],

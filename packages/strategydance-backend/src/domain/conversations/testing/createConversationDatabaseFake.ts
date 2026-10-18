@@ -388,6 +388,11 @@ function createConversationDatabaseFake() {
     return now().replace('Z', `${String(stamps % 1000).padStart(3, '0')}Z`)
   }
 
+  // Whether a read's optional `$skippedIds` leaves a run out, none when it is left out
+  function isSkipped(variables: AnyVariables, run: FakeRun) {
+    return ((variables.skippedIds as string[] | undefined) ?? []).map(id).includes(run.id)
+  }
+
   function inSeconds(seconds: number) {
     return new Date(Date.now() + seconds * 1000).toISOString()
   }
@@ -4210,6 +4215,7 @@ function createConversationDatabaseFake() {
             conversation: { id: conversationId },
           })),
         pendingRuns: subagentRuns(variables.userId, variables.organizationId, ['PENDING'])
+          .filter(run => !isSkipped(variables, run))
           .slice(0, 100)
           .map(({ id: runId, createdAt, membershipCreatedAt, stopRequestedAt, conversationId }) => ({
             id: runId,
@@ -4236,7 +4242,7 @@ function createConversationDatabaseFake() {
           .slice(0, MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER)
           .map(({ id: runId, conversationId }) => ({ id: runId, conversation: { id: conversationId } })),
         skippedRuns: pending
-          .filter(run => !isPromotable(run))
+          .filter(run => !isPromotable(run) && !isSkipped(variables, run))
           .slice(0, 100)
           .map(({ id: runId, membershipCreatedAt, stopRequestedAt, conversationId }) => ({
             id: runId,

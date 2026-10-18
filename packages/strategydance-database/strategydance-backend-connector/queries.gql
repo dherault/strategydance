@@ -1072,7 +1072,13 @@ query GetSubagentLaunchContext(
 #   asked to stop and whether its subagent was deleted
 #
 # `$userId` is the uid the backend verified, or the author a sweep found
-query GetSubagentSlots($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+query GetSubagentSlots(
+  $organizationId: UUID!
+  $userId: String!
+  # The waiting runs a reconcile could not end, which it reads past. Optional: left out, nothing is
+  # skipped
+  $skippedIds: [UUID!]
+) @auth(level: NO_ACCESS) {
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     createdAt
   }
@@ -1093,6 +1099,7 @@ query GetSubagentSlots($organizationId: UUID!, $userId: String!) @auth(level: NO
   pendingRuns: conversationRuns(
     where: {
       status: { eq: PENDING }
+      id: { nin: $skippedIds }
       conversation: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, parentId: { isNull: false } }
     }
     orderBy: [{ createdAt: ASC }, { id: ASC }]
@@ -1119,8 +1126,14 @@ query GetSubagentSlots($organizationId: UUID!, $userId: String!) @auth(level: NO
 #   left: asked to stop, their subagent deleted, or launched under another membership
 #
 # `$userId` is the uid the backend verified, or the author a sweep found
-query GetSubagentPendingRuns($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
-@auth(level: NO_ACCESS) {
+query GetSubagentPendingRuns(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  # The runs a reconcile could not end, which it reads past, so a hundred it fails on never hide the
+  # rest. Optional: left out, nothing is skipped
+  $skippedIds: [UUID!]
+) @auth(level: NO_ACCESS) {
   activeRuns: conversationRuns(
     where: {
       status: { in: [QUEUED, RUNNING] }
@@ -1169,6 +1182,7 @@ query GetSubagentPendingRuns($organizationId: UUID!, $userId: String!, $membersh
             { membershipCreatedAt: { ne: $membershipCreatedAt } }
           ]
         }
+        { id: { nin: $skippedIds } }
       ]
     }
     orderBy: [{ createdAt: ASC }, { id: ASC }]

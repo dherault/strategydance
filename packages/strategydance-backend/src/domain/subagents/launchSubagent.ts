@@ -19,6 +19,8 @@ import {
 
 import type { ConversationContentBlock, ModuleCall, ModuleCaller, SubagentStatus } from '~types'
 
+import { IS_USAGE_CAPPED } from '~constants'
+
 import { dataConnect } from '~firebase'
 
 import deriveUuid from '~utils/deriveUuid'
@@ -312,6 +314,7 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
       text,
       content: serializeTranscriptContent(content),
       attachmentIds,
+      isUsageCapped: IS_USAGE_CAPPED,
     }
 
     const result: LaunchedSubagent = { id: subagentId, title, status: isPending ? 'WAITING_FOR_SLOT' : 'QUEUED' }

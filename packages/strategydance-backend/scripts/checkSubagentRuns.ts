@@ -309,6 +309,8 @@ async function startParent({ isIdle = true } = {}): Promise<Parent> {
     content: JSON.stringify([{ type: 'text', text: 'Checked message' }]),
     aspects: [CompanyAspect.FINANCES],
     aspectsSetBy: ConversationActor.MEMBER,
+    // The checks start more than the daily caps let a member start, which their own checks hold
+    isUsageCapped: false,
   })
 
   if (!isIdle) return parent
@@ -345,6 +347,7 @@ function launchVariables(parent: Parent, overrides: Partial<LaunchSubagentVariab
       text: 'Compare the pricing pages',
       content: JSON.stringify([{ type: 'text', text: 'Compare the pricing pages' }]),
       attachmentIds: [],
+      isUsageCapped: false,
       ...overrides,
     } satisfies LaunchSubagentVariables,
   }

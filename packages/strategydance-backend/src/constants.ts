@@ -47,6 +47,15 @@ export const IS_CONVERSATIONS_RELEASE_GATED = ARE_CONVERSATIONS_STAFF_ONLY && !I
 */
 export const IS_MODULES_RELEASE_GATED = ARE_MODULES_STAFF_ONLY && !IS_DEVELOPMENT
 
+/*
+  Whether the daily caps hold in this process (`MAX_DAILY_…` in strategydance-core), which every
+  mutation that starts a conversation, a run or a subagent is told through `isUsageCapped`: they
+  guard spend, so everywhere, staff included, but on the development backend, where placeholder runs
+  cost nothing and a developer starts dozens. `USAGE_CAPPED=true` holds them there too, to try them.
+  The tests and the check scripts keep them. Rows are counted either way
+*/
+export const IS_USAGE_CAPPED = !IS_DEVELOPMENT || process.env.USAGE_CAPPED === 'true'
+
 /* ---
   ARCHITECTURE
 --- */

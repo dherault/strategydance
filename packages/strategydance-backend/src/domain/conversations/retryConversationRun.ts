@@ -11,6 +11,8 @@ import {
 
 import type { ConversationRunReference } from '~types'
 
+import { IS_USAGE_CAPPED } from '~constants'
+
 import { dataConnect } from '~firebase'
 
 import buildKeptConversationPreview from '~domain/conversations/buildKeptConversationPreview'
@@ -161,6 +163,7 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
         ...buildKeptConversationPreview(retryContext.keptMessages[0]),
         runId: retryingRunId,
         runNumber: conversation.nextRunNumber,
+        isUsageCapped: IS_USAGE_CAPPED,
       })
     } catch (error) {
       if (round === MAX_ROUNDS) throw error

@@ -11,6 +11,8 @@ import {
 
 import type { ConversationRunReference } from '~types'
 
+import { IS_USAGE_CAPPED } from '~constants'
+
 import { dataConnect } from '~firebase'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
@@ -133,6 +135,7 @@ async function reactToSubagentReports(parent: Omit<ConversationRunReference, 'ru
         content: serializeTranscriptContent(blocks),
         transcriptPosition: (data.lastEntries[0]?.position ?? -1) + 1,
         subagentIds: due.map(({ id }) => toCanonicalUuid(id)),
+        isUsageCapped: IS_USAGE_CAPPED,
       })
 
       if (!(await enqueueRun({ ...parent, conversationId, runId }, 'conversation-runs'))) {

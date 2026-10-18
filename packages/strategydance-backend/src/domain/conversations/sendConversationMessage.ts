@@ -21,6 +21,8 @@ import {
 
 import type { ConversationContentBlock } from '~types'
 
+import { IS_USAGE_CAPPED } from '~constants'
+
 import { dataConnect } from '~firebase'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
@@ -245,6 +247,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       runId,
       content: serializeTranscriptContent(follows),
       attachmentIds: attachments.map(({ id }) => id),
+      isUsageCapped: IS_USAGE_CAPPED,
     }
 
     try {

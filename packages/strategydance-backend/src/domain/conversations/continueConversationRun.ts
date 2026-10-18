@@ -11,6 +11,8 @@ import {
 
 import type { ConversationRunReference } from '~types'
 
+import { IS_USAGE_CAPPED } from '~constants'
+
 import { dataConnect } from '~firebase'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
@@ -136,6 +138,7 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
       waitingRunId: runId,
       runId: continuingRunId,
       runNumber: conversation.nextRunNumber,
+      isUsageCapped: IS_USAGE_CAPPED,
     }
 
     try {

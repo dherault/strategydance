@@ -128,11 +128,11 @@ describe('priceRequestWorstCase', () => {
       maxSearches: 5,
     })
 
-    // $3.50 of input, $1.28 of output, and each search $0.14 of cache reads, $0.20 for its allowance
-    // of 40000 tokens and its own cent
-    expect(single).toBeCloseTo(3_500_000 + 1_280_000 + 5 * (140_000 + 200_000 + 10_000))
-    // Opus 5, the dearest fallback: $4.375, $1.60, and each search $0.35, $0.25 and a cent
-    expect(withFallback - single).toBeCloseTo(4_375_000 + 1_600_000 + 5 * (350_000 + 250_000 + 10_000))
+    // $3.50 of input, $1.28 of output, and each search $0.14 of cache reads, $0.08 for its allowance
+    // of 16000 tokens and its own cent
+    expect(single).toBeCloseTo(3_500_000 + 1_280_000 + 5 * (140_000 + 80_000 + 10_000))
+    // Opus 5, the dearest fallback: $4.375, $1.60, and each search $0.35, $0.10 and a cent
+    expect(withFallback - single).toBeCloseTo(4_375_000 + 1_600_000 + 5 * (350_000 + 100_000 + 10_000))
   })
 
   test('prices a request without searches, as tagging is, at its input and output alone', () => {

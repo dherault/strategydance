@@ -213,9 +213,11 @@ export const CONVERSATION_RUN_MAX_COST_MICRODOLLARS = 10_000_000
   its five searches: what a search retrieves is billed as input within the request, and nothing
   counts or caps it beforehand. The largest `probe:claude` measured, with a margin: the one part of
   the cost limit that rests on a measure rather than a proof, raised from what a request billed
-  past its reservation
+  past its reservation, which `bun run report:usage` lists. The probe measured at most 8729 tokens a
+  search over three research requests on 2026-10-18, and David set it at 16000 that day, from a
+  provisional 40000
 */
-export const WEB_SEARCH_RESULT_TOKEN_ALLOWANCE = 40_000
+export const WEB_SEARCH_RESULT_TOKEN_ALLOWANCE = 16_000
 
 // How often a worker reads whether its run's member asked to stop it while a request streams. It
 // reads it before each request too

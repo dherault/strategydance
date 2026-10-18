@@ -125,10 +125,11 @@ export, port the styles from `conversations.css` onto the design system's compon
 
 ### Navigation
 
-- The sidebar gains a "Guidance" group after "Aspects", holding **Conversations**, which carries a
-  badge counting the conversations waiting for an answer, and drawn only for a reader who may have
-  them. **Knowledge** sits in the top group, after Tasks. Both were a "Reflection" group until
-  David chose otherwise on 2026-10-15.
+- The sidebar gains a "Guidance" group right after the top group, which keeps Today and Build in
+  public, and before "Aspects", holding **Tasks**, **Knowledge** and **Conversations**, which
+  carries a badge counting the conversations waiting for an answer. Conversations and Knowledge
+  were a "Reflection" group until David chose otherwise on 2026-10-15, and Guidance followed
+  "Aspects", with Tasks and Knowledge in the top group, until the design of 2026-10-18.
 - "Company" gains **Integrations**, in the MCP milestones.
 - The account gains a **Connected agents** tab, beside Profile and Security, listing the external
   agents the member connected to a module, with Disconnect, and the Knowledge page a **Use with

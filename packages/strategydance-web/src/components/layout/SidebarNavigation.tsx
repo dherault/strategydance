@@ -57,6 +57,17 @@ function SidebarNavigation() {
             link={{ to: '/$organizationSlug/today', params: { organizationSlug } }}
           />
           <NavigationLink
+            path={`/${organizationSlug}/build-in-public`}
+            label={formatMessage(navigationMessages.buildInPublic)}
+            icon={<LighthouseIcon />}
+            link={{ to: '/$organizationSlug/build-in-public', params: { organizationSlug } }}
+          />
+        </SidebarMenu>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>{formatMessage(navigationMessages.guidance)}</SidebarGroupLabel>
+        <SidebarMenu>
+          <NavigationLink
             path={`/${organizationSlug}/tasks`}
             isNested
             label={formatMessage(navigationMessages.tasks)}
@@ -70,12 +81,7 @@ function SidebarNavigation() {
             icon={<FileTextIcon />}
             link={{ to: '/$organizationSlug/knowledge', params: { organizationSlug } }}
           />
-          <NavigationLink
-            path={`/${organizationSlug}/build-in-public`}
-            label={formatMessage(navigationMessages.buildInPublic)}
-            icon={<LighthouseIcon />}
-            link={{ to: '/$organizationSlug/build-in-public', params: { organizationSlug } }}
-          />
+          <ConversationsNavigationLink />
         </SidebarMenu>
       </SidebarGroup>
       <SidebarGroup>
@@ -98,12 +104,6 @@ function SidebarNavigation() {
               link={{ to: '/$organizationSlug/explore', params: { organizationSlug } }}
             />
           ) : null}
-        </SidebarMenu>
-      </SidebarGroup>
-      <SidebarGroup>
-        <SidebarGroupLabel>{formatMessage(navigationMessages.guidance)}</SidebarGroupLabel>
-        <SidebarMenu>
-          <ConversationsNavigationLink />
         </SidebarMenu>
       </SidebarGroup>
       <SidebarGroup>

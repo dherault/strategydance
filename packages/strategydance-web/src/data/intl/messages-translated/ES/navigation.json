@@ -32,7 +32,7 @@
   "navigation.githubStar": "Destacar",
   "navigation.githubStarLabel": "Destacar {repository} en GitHub",
   "navigation.githubStargazers": "{count, plural, one {# persona que destacó} other {# personas que destacaron}} en GitHub",
-  "navigation.guidance": "Orientación",
+  "navigation.guidance": "Guía",
   "navigation.integrations": "Integraciones",
   "navigation.knowledge": "Conocimiento",
   "navigation.logOut": "Cerrar sesión",

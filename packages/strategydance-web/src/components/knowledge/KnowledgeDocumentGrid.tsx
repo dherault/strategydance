@@ -8,7 +8,9 @@ type Props = {
   knowledgeDocuments: KnowledgeDocumentSummary[]
 }
 
-// Documents as cards, three to a row where there is room for them, fewer in a narrower column
+// Documents as cards, three to a row where there is room for them, fewer in a narrower column. The
+// Knowledge page's search is as wide as a column, at the same breakpoints and gap
+// (`KnowledgeDocumentFilters`): a change to either changes both
 function KnowledgeDocumentGrid({ knowledgeDocuments }: Props) {
   const now = useNow()
 

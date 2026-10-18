@@ -3,6 +3,8 @@ import { type PropsWithChildren, useEffect, useState } from 'react'
 
 import AuthenticationContext, { type AuthenticationContextType } from '~contexts/AuthenticationContext'
 
+import useForgetPreviousAccount from '~hooks/authentication/useForgetPreviousAccount'
+
 import { authentication } from '~data/firebase'
 
 /*
@@ -19,6 +21,8 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
   const [viewer, setViewer] = useState<Viewer | null>(null)
   const [emailVerified, setEmailVerified] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  useForgetPreviousAccount(viewer?.uid ?? null, loading)
 
   // Reads `currentUser` rather than the state above, which keeps the callback identity stable
   // across a sign-in and lets a consumer put it in a dependency list without re-running

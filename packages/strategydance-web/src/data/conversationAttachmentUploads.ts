@@ -14,3 +14,6 @@ const uploads = createTaskQueue(CONVERSATION_ATTACHMENT_UPLOADS_AT_ONCE)
 export const runConversationAttachmentUpload = uploads.run
 
 export const abortConversationAttachmentUpload = uploads.abort
+
+// Every upload, waiting or under way, as an account leaving the tab stops them
+export const abortConversationAttachmentUploads = uploads.abortAll

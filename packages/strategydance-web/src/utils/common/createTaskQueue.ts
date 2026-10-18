@@ -49,7 +49,14 @@ function createTaskQueue(limit: number) {
     next()
   }
 
-  return { run, abort }
+  // Takes every task out of the line, and aborts those under way
+  function abortAll() {
+    waiting.length = 0
+
+    for (const entry of running) entry.controller.abort(new DOMException('The task was aborted', 'AbortError'))
+  }
+
+  return { run, abort, abortAll }
 }
 
 export default createTaskQueue

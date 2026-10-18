@@ -2925,7 +2925,15 @@ and Risks). It removes no gate: M38 does.
     `message`, and the four policies of Setup 13.
   - Verified: the four checks; `check:conversation-runs`, `check:subagent-runs` and
     `check:subagents-module` against an emulator of the branch's schema, every check passing, the
-    suspension's own among them.
+    suspension's own among them. In a browser against it, a worktree backend started with
+    `EMAIL_VERIFICATION_REQUIRED=true` and the placeholder agent, at desktop and phone widths, in a
+    docked window and on the page: a password account's first send refused and the notice shown, the
+    message kept in the field; the link sent, followed from the Auth emulator, and "I confirmed it"
+    taking the notice away and letting the send through; `suspend:conversations` on the organization
+    stopping the response going, its notice shown and a send refused, the field keeping it; then on
+    the account, its own notice; and the lift taking either away. The `PastBound` story drawn from the
+    built Storybook. A suspension's stop reads "You stopped this response", the stopped note's words,
+    though staff stopped it: the notice beside it says why.
 
 ### M38: Launch
 

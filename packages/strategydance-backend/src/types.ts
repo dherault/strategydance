@@ -62,6 +62,19 @@ export type ConversationRunReference = {
   runId: string
 }
 
+// What a daily cap counts (`MAX_DAILY_…` in strategydance-core), and whose starts it counts: the
+// member's in the organization, the account's across its organizations, or the organization's
+export type UsageCapKind = 'conversations' | 'runs' | 'subagents'
+export type UsageCapScope = 'member' | 'account' | 'organization'
+
+// A daily cap a start reached, its value as the start is held to it, and how long until it has room
+export type ReachedUsageCap = {
+  kind: UsageCapKind
+  scope: UsageCapScope
+  max: number
+  retryAfterMs: number
+}
+
 /*
   The Cloud Tasks queue a run goes through, named as Cloud Tasks names it: a subagent's runs go
   through their own, every other run through the conversations'. It follows from the run, and goes

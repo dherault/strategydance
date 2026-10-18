@@ -9,7 +9,7 @@ import {
   retryConversationRun as retryConversationRunMutation,
 } from 'strategydance-database/backend'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunReference, ReachedUsageCap } from '~types'
 
 import { IS_USAGE_CAPPED } from '~constants'
 
@@ -20,6 +20,7 @@ import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
+import readReachedUsageCap from '~domain/conversations/readReachedUsageCap'
 import stopConversationSubagents from '~domain/subagents/stopConversationSubagents'
 
 // How many times a retry reads where the conversation stands and tries, before it gives up
@@ -43,6 +44,8 @@ export type RetryConversationRunResult =
   | { outcome: 'busy' }
   // The run is not the conversation's latest, or did not end with a note
   | { outcome: 'conflict' }
+  // A daily cap on the runs the caller starts is reached, which has room again after `retryAfterMs`
+  | { outcome: 'capped'; cap: ReachedUsageCap }
   // The run is started, but could not be queued: it stays queued, and the same retry sent again
   // queues it again, as its page's reconcile does meanwhile
   | { outcome: 'unavailable' }
@@ -67,6 +70,8 @@ export type RetryConversationRunResult =
     the one to retry included, which then ends interrupted, with its note
   - then the run has to be the conversation's latest and have ended with a note, the conversation
     idle and the caller's, and the caller to have fewer than 3 runs in flight
+  - then no daily cap on the runs the caller starts may be reached, which a retry sent again never
+    meets, being answered above
 
   A write refused anyway, because a send, a run or an aspects note got there in between, starts
   another round
@@ -140,6 +145,11 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
     if (latest?.id !== runId || !RETRIED_STATUSES.includes(latest.status)) return { outcome: 'conflict' }
 
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'busy' }
+
+    // Counted before anything is stored, and again by the mutation, whose refusal reads them again
+    const cap = await readReachedUsageCap(reference, ['runs'])
+
+    if (cap) return { outcome: 'capped', cap }
 
     const { data: retryContext } = await getConversationRetryContext(dataConnect, {
       organizationId,

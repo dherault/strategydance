@@ -4,6 +4,8 @@ import type { AddressInfo } from 'node:net'
 
 import express, { type NextFunction, type Request, type Response } from 'express'
 import {
+  ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED,
+  ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_TOO_MANY_REQUESTS,
   MAX_CONVERSATION_SEARCHES,
   MAX_SEARCH_QUERY_LENGTH,
@@ -148,6 +150,53 @@ describe('POST /:conversationId/messages', () => {
       expect(response.status).toBe(400)
       expect(fake.conversations.size).toBe(0)
     }
+  })
+
+  test('refuses a start past a daily cap with its code, and says in `Retry-After` when it has room', async () => {
+    const origin = await listen()
+
+    // Twenty conversations started, the newest an hour ago, the oldest twenty seconds before it
+    for (let index = 0; index < 20; index++) {
+      const id = crypto.randomUUID().replaceAll('-', '')
+
+      fake.cappedStarts.set(id, {
+        id,
+        userId: SEARCHER,
+        organizationId: ORGANIZATION_ID,
+        kind: 'CONVERSATION',
+        createdAt: new Date(Date.now() - 60 * 60 * 1000 - index * 1000).toISOString(),
+      })
+    }
+
+    const response = await sendMessage(origin, crypto.randomUUID(), {})
+
+    expect(response.status).toBe(429)
+    expect(((await response.json()) as { code: string }).code).toBe(ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED)
+    expect(Number(response.headers.get('retry-after'))).toBe(23 * 60 * 60 - 19)
+    expect(fake.conversations.size).toBe(0)
+  })
+
+  test("names the account's cap when the account's runs reach theirs", async () => {
+    const origin = await listen()
+    const conversationId = insertConversation('Priced', { nextMessagePosition: 1, nextRunNumber: 1, messageCount: 1 })
+
+    for (let index = 0; index < 200; index++) {
+      const id = crypto.randomUUID().replaceAll('-', '')
+
+      fake.cappedStarts.set(id, {
+        id,
+        userId: SEARCHER,
+        organizationId: '7d6c5b4a39284f1e8d7c6b5a49382716',
+        kind: 'RUN',
+        createdAt: new Date().toISOString(),
+      })
+    }
+
+    const response = await sendMessage(origin, conversationId, {})
+
+    expect(response.status).toBe(429)
+    expect(((await response.json()) as { code: string }).code).toBe(ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED)
+    expect(Number(response.headers.get('retry-after'))).toBeGreaterThan(23 * 60 * 60)
   })
 })
 

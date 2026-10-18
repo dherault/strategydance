@@ -8,7 +8,7 @@ import {
   resumeConversationRun as resumeConversationRunMutation,
 } from 'strategydance-database/backend'
 
-import type { ConversationRunReference } from '~types'
+import type { ConversationRunReference, ReachedUsageCap } from '~types'
 
 import { IS_USAGE_CAPPED } from '~constants'
 
@@ -20,6 +20,7 @@ import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
+import readReachedUsageCap from '~domain/conversations/readReachedUsageCap'
 
 // How many times a resume reads where the conversation stands and tries, before it gives up
 const MAX_ROUNDS = 4
@@ -34,6 +35,8 @@ export type ResumeConversationRunResult =
   | { outcome: 'busy' }
   // The run is not the conversation's latest, did not stop or die, or something follows its note
   | { outcome: 'conflict' }
+  // A daily cap on the runs the caller starts is reached, which has room again after `retryAfterMs`
+  | { outcome: 'capped'; cap: ReachedUsageCap }
   // The run is started, but could not be queued: it stays queued, and the same resume sent again
   // queues it again, as its page's reconcile does meanwhile
   | { outcome: 'unavailable' }
@@ -53,6 +56,8 @@ export type ResumeConversationRunResult =
   - then the run has to be the conversation's latest, stopped or interrupted, its note the newest
     message, the conversation idle and the caller's, and the caller to have fewer than 3 runs in
     flight
+  - then no daily cap on the runs the caller starts may be reached, which a resume sent again never
+    meets, being answered above
 
   A write refused anyway, because a send, a run or an aspects note got there in between, starts
   another round
@@ -125,6 +130,11 @@ async function resumeConversationRun(reference: ConversationRunReference): Promi
     }
 
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'busy' }
+
+    // Counted before anything is stored, and again by the mutation, whose refusal reads them again
+    const cap = await readReachedUsageCap(reference, ['runs'])
+
+    if (cap) return { outcome: 'capped', cap }
 
     const resumingRunId = randomUUID().replaceAll('-', '')
 

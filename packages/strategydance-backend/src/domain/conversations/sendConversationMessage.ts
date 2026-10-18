@@ -19,7 +19,7 @@ import {
   startConversation,
 } from 'strategydance-database/backend'
 
-import type { ConversationContentBlock } from '~types'
+import type { ConversationContentBlock, ReachedUsageCap } from '~types'
 
 import { IS_USAGE_CAPPED } from '~constants'
 
@@ -42,6 +42,7 @@ import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
 import measureConversationMessage from '~domain/conversations/measureConversationMessage'
 import readConversationOpenCalls from '~domain/conversations/readConversationOpenCalls'
 import readConversationSendAttachments from '~domain/conversations/readConversationSendAttachments'
+import readReachedUsageCap from '~domain/conversations/readReachedUsageCap'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
 
@@ -78,6 +79,9 @@ type SendConversationMessageResult =
   | { outcome: 'full' }
   // The message would start a conversation, and the caller keeps 1000 already
   | { outcome: 'tooMany' }
+  // A daily cap on the conversations or the runs the caller starts is reached, which has room again
+  // after `retryAfterMs`
+  | { outcome: 'capped'; cap: ReachedUsageCap }
   // A file it sends is not the caller's in this conversation, not stored yet, or sent already
   | { outcome: 'attachmentsInvalid' }
   // The conversation has no room for its files, or for what its next request would take with them
@@ -102,6 +106,10 @@ type SendConversationMessageResult =
     does not exist yet, the caller to keep fewer than 1000, and the caller to have fewer than 3 runs
     in flight. A conversation whose run still waits in the queue has that run queued again before
     the send is answered busy, so a run whose task was lost does not keep it busy
+  - then no daily cap on the runs the caller starts may be reached, nor, for a message that starts a
+    conversation, on the conversations: the member's in the organization, the account's or the
+    organization's. A send retried after its first try went through is answered above, before any
+    count, so the place its first try took never refuses it
 
   When the conversation's last turn left calls open, a question waiting, or calls a stop or a crash
   kept from running, the message's entry answers them first, as The transcript says: a question by
@@ -201,6 +209,11 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
     }
     if (!conversation && (data.keptConversations[0]?._count ?? 0) >= MAX_CONVERSATIONS) return { outcome: 'tooMany' }
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'busy' }
+
+    // Counted before anything is stored, and again by the mutation, whose refusal reads them again
+    const cap = await readReachedUsageCap(input, conversation ? ['runs'] : ['conversations', 'runs'])
+
+    if (cap) return { outcome: 'capped', cap }
 
     const files = input.attachmentIds?.length
       ? await readConversationSendAttachments({

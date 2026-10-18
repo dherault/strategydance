@@ -657,8 +657,12 @@ A conversation is kept twice, once for Claude and once for the page, and
   claims a run (`isClaimable`), never at the steps after, which would throw away a turn paid for, by
   a launch (`suspended`) and by a reaction, which waits: a new way to start a run that no member's
   route starts reads it too, or its runs are interrupted at their claim, each a run of the caps.
-  Only `bun run suspend:conversations` writes the columns, through one transaction that asks every
-  run in flight of the account or the organization to stop
+  Only `bun run suspend:conversations` writes the columns, through one transaction that locks the
+  account's or the organization's row, then every membership it reaches, which every start of a run
+  locks first, then asks every run in flight of theirs to stop. A start that must not commit for a
+  suspended member reads the columns in its query step, after the membership's lock, as
+  `StartSubagentReaction` does, since a suspension landing between a domain's read and its write is
+  otherwise a run the claim refuses
 - A turn `pause_turn` paused is held in memory until it ends, then stored as consecutive `ASSISTANT`
   entries, one write each, the first with the run's context message. A crash between two leaves
   the turn paused at its last stored part, which the ledger says, and the next worker sends its

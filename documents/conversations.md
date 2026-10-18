@@ -2525,7 +2525,10 @@ worker's claim checks the role again, so a queued run stops too:
     member (`conversationsSuspensionMiddleware`, 403, `ERROR_CODE_CONVERSATIONS_SUSPENDED`),
     `launch_subagent` refuses with a sentence telling the agent to end its turn, a reaction to
     subagents' reports waits until the lift rather than queue runs that would be refused, each
-    costing a run of the caps, and the worker's claim interrupts their queued runs. Only the claim
+    costing a run of the caps, read again in `StartSubagentReaction` under the membership's lock,
+    which a suspension takes on every membership it reaches before any run, so a suspension landing
+    as a reaction starts leaves the reports waiting, and the worker's claim interrupts their queued
+    runs. Only the claim
     reads it: the steps after it would throw away a turn already paid for, and the stop the
     suspension asked for is read before each request, and every two seconds while one streams. The
     composer says whose suspension it is and to write to `david@strategydance.com`

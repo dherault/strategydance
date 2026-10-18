@@ -2885,7 +2885,11 @@ and Risks). It removes no gate: M38 does.
     would match every organization.
   - **Reactions wait, and the launch says why first.** Each reaction refused at its claim would leave
     an interrupted note and a run of the caps, so a suspended member's reports wait undelivered until
-    the lift, and `startDueSubagentReactions` stops at the first. The launch reads the suspension
+    the lift, and `startDueSubagentReactions` stops at the first. `StartSubagentReaction` reads the
+    suspension again in its query step, after the membership's lock, and each suspension locks every
+    membership it reaches, after its own row, as Allow and a role change take theirs, and before any
+    run: whichever commits second sees the first, so a suspension landing between the reaction's read
+    and its write delivers none of the reports, which Copilot found in review. The launch reads the suspension
     before its launcher, which the suspension asked to stop, so the agent reads the suspension's
     sentence rather than the stop's.
   - **The page reads the suspension from the rows, the address from the token.** `GetCurrentUser`

@@ -264,7 +264,7 @@ const taskMessages = defineMessages({
   delegatePrompt: {
     id: 'task.delegatePrompt',
     defaultMessage:
-      'Tackle Strategy Dance task {id} using the Strategy Dance Tasks MCP server.\nThe task name is "{name}".\nMark it as ongoing as soon as you start working on it.\nAsk me about it for more details.',
+      'Tackle Strategy Dance task {id} using the Strategy Dance Tasks MCP server.\nThe task name is "{name}".\nMark it as ongoing as soon as you start working on it.',
     description:
       'Prompt the "To your agents" button copies, which the member pastes into an AI agent of their own that is connected to the team\'s task board. {id} is the task\'s id and {name} its name. Keep the line breaks, and keep "Strategy Dance Tasks MCP server" as it is: it names the server the agent reads the board through. "Ongoing" is the column of the board for work under way.',
   },

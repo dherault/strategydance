@@ -27,7 +27,7 @@
   "task.createTask": "创建任务",
   "task.created": "任务已创建",
   "task.delegate": "委派",
-  "task.delegatePrompt": "使用 Strategy Dance Tasks MCP server 处理 Strategy Dance 任务 {id}。\n任务名称为“{name}”。\n开始处理时，请立即将其标记为 ongoing。\n如需了解更多详情，请向我询问。",
+  "task.delegatePrompt": "使用 Strategy Dance Tasks MCP server 处理 Strategy Dance 任务 {id}。\n任务名称为“{name}”。\n开始处理时，请立即将其标记为 ongoing。",
   "task.delegatePromptCopied": "提示词已复制",
   "task.delegateToAgents": "交给你的智能体",
   "task.deleteTask": "删除任务",

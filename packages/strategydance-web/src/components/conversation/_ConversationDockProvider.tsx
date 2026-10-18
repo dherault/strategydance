@@ -13,6 +13,7 @@ import useDiscardConversationDraft from '~hooks/conversation/useDiscardConversat
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import readPersistedValue from '~utils/common/readPersistedValue'
+import mergeChangedDockSets from '~utils/conversation/mergeChangedDockSets'
 import parseConversationDock from '~utils/conversation/parseConversationDock'
 import pushOutDockWindows from '~utils/conversation/pushOutDockWindows'
 
@@ -23,12 +24,17 @@ const NO_WINDOWS: ConversationDockWindow[] = []
 // Where the windows are kept in localStorage, every member's in every organization
 const DOCK_STORAGE_KEY = 'conversationDock'
 
+// What a change writes: the sets it changed, over the dock as storage holds it now
+function writeOwnSets(next: ConversationDockWindows, previous: ConversationDockWindows) {
+  return mergeChangedDockSets(readPersistedValue(DOCK_STORAGE_KEY, previous, parseConversationDock), previous, next)
+}
+
 /*
-  Holds the dock's windows, kept in localStorage so a reload finds them as they were. A tab changes
-  its own set alone, written over what storage holds when it writes, so it never writes over the
-  sets another tab keeps, another organization's or account's. Two tabs of one member in one
-  organization each keep the windows they opened, their drafts being theirs alone, the last to
-  write leaving its set for the next reload.
+  Holds the dock's windows, kept in localStorage so a reload finds them as they were. A tab writes
+  only the sets it changed, over what storage holds then (`writeOwnSets`), so it never writes over
+  the sets another tab keeps, another organization's or account's, and keeps its own as it has them,
+  whatever other tabs store. Two tabs of one member in one organization each keep the windows they
+  opened, their drafts being theirs alone, the last to write leaving its set for the next reload.
 
   Every member's windows in every organization sit under one key, each set under
   `${userId}:${organizationId}`: neither is known when the provider mounts, and the key a persisted
@@ -44,7 +50,7 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
   const [dock, setDock] = usePersistedState<ConversationDockWindows>(
     DOCK_STORAGE_KEY,
     {},
-    { parser: parseConversationDock },
+    { parser: parseConversationDock, toStored: writeOwnSets },
   )
   const [focusRequest, setFocusRequest] = useState<ConversationDockContextType['focusRequest']>(null)
   const discardConversationDraft = useDiscardConversationDraft()
@@ -56,10 +62,7 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
     setFocusRequest(current => ({ conversationId, count: (current?.count ?? 0) + 1 }))
   }
 
-  /*
-    Changes the current set, and drops it once it is empty rather than keep a key for nothing, over
-    the sets as storage holds them now, which other tabs may have changed since this one read them
-  */
+  // Changes the current set, and drops it once it is empty rather than keep a key for nothing
   function changeWindows(change: (current: ConversationDockWindow[]) => ConversationDockWindow[]) {
     if (!key) return
 
@@ -69,7 +72,7 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
 
       if (next === previous) return current
 
-      const changed = { ...readPersistedValue(DOCK_STORAGE_KEY, current, parseConversationDock) }
+      const changed = { ...current }
 
       if (next.length) changed[key] = next
       else delete changed[key]

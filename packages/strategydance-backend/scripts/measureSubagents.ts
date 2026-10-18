@@ -22,6 +22,7 @@ import { dataConnect } from '~firebase'
 import type { ConversationRequestSettings } from '~domain/agent/conversationRequestSettings'
 import SUBAGENT_REPORT_REQUEST from '~domain/agent/subagentReportRequest'
 import { parseConversationRunUsage } from '~domain/conversations/conversationRunUsage'
+import priceConversationUsage from '~domain/conversations/priceConversationUsage'
 import stopConversationRun from '~domain/conversations/stopConversationRun'
 import createKnowledgeDocument from '~domain/knowledge/createKnowledgeDocument'
 import launchSubagent from '~domain/subagents/launchSubagent'
@@ -82,20 +83,6 @@ const CONFIGURATIONS: Configuration[] = [
   { name: 'sonnet-medium', settings: { model: 'claude-sonnet-5-5', effort: 'medium', taskBudget: null } },
   { name: 'opus-medium-budget', settings: { model: 'claude-opus-5-5', effort: 'medium', taskBudget: TASK_BUDGET } },
 ]
-
-/*
-  List prices per million tokens, input, output, cache reads and five-minute cache writes, as the
-  claude-api skill gave them on 2026-10-17. A fallback model the API ran a refused request on is
-  priced as Opus 5, the dearest it may fall back to
-*/
-const PRICES: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
-  'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 },
-  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
-}
-const FALLBACK_PRICE = { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 }
-
-// A web search's price, a hundredth of a dollar
-const WEB_SEARCH_PRICE = 0.01
 
 const { values } = parseArgs({
   args: process.argv.slice(2),
@@ -274,28 +261,23 @@ async function readSubagent(conversationId: string) {
   return data
 }
 
-// What a subagent's runs used, from their ledgers, priced at list prices
+// What a subagent's runs used, from their ledgers, priced at list prices (`priceConversationUsage`)
 function measure(runs: SubagentRead['conversationRuns']) {
   const totals = { requests: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, webSearches: 0, cost: 0 }
 
   for (const run of runs) {
-    for (const [model, usage] of Object.entries(parseConversationRunUsage(run.usage).byModel)) {
-      const price = PRICES[model] ?? FALLBACK_PRICE
+    const ledger = parseConversationRunUsage(run.usage)
 
+    for (const usage of Object.values(ledger.byModel)) {
       totals.requests += usage.requests
       totals.input += usage.inputTokens
       totals.cacheRead += usage.cacheReadInputTokens
       totals.cacheWrite += usage.cacheCreationInputTokens
       totals.output += usage.outputTokens
       totals.webSearches += usage.webSearchRequests
-      totals.cost +=
-        (usage.inputTokens * price.input
-          + usage.outputTokens * price.output
-          + usage.cacheReadInputTokens * price.cacheRead
-          + usage.cacheCreationInputTokens * price.cacheWrite)
-          / 1_000_000
-        + usage.webSearchRequests * WEB_SEARCH_PRICE
     }
+
+    totals.cost += priceConversationUsage(ledger) / 1_000_000
   }
 
   return totals

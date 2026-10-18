@@ -8,6 +8,42 @@ export const CONVERSATION_MODEL = 'claude-opus-5-5'
 export const CONVERSATION_MAX_TOKENS = 64000
 
 /*
+  The list prices of every model a request can name or be answered by, in dollars per million tokens,
+  which is microdollars a token: its own input, its output, what it reads from the prompt cache and
+  what it writes to it for five minutes, as the claude-api skill gave them on 2026-10-18. The cost
+  limit a run prices its ledger with them, and the credits will. A model a request names, or a
+  fallback the API may answer one with (`CLAUDE_FALLBACK_MODELS`), joins it before a request names
+  it: a test holds every one to it, and one missing is priced as the dearest
+*/
+export type ClaudeModelPrice = {
+  input: number
+  output: number
+  cacheRead: number
+  cacheWrite: number
+}
+
+export const CLAUDE_MODEL_PRICES: Record<string, ClaudeModelPrice> = {
+  'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 },
+  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
+  'claude-opus-5': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+  'claude-opus-4-8': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
+  'claude-sonnet-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
+}
+
+/*
+  The models the API may answer a refused request with, under `fallbacks: "default"`, by the model
+  the request names: its `allowed_fallback_models`, which `probe:claude` reads and holds this to.
+  The cost limit reserves a request's fallback at the dearest of them
+*/
+export const CLAUDE_FALLBACK_MODELS: Record<string, string[]> = {
+  'claude-opus-5-5': ['claude-opus-5', 'claude-opus-4-8'],
+  'claude-sonnet-5-5': ['claude-sonnet-5'],
+}
+
+// What one web search costs, a hundredth of a dollar, in microdollars
+export const WEB_SEARCH_PRICE_MICRODOLLARS = 10_000
+
+/*
   The betas the request takes: thinking's progress lines (`display: "updates"`), what a replay does
   with a thinking block whose history changed (`block_binding`), and the fallback model the API
   runs a refused request on

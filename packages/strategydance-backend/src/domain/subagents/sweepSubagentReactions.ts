@@ -10,11 +10,11 @@ import startDueSubagentReactions from '~domain/subagents/startDueSubagentReactio
 const SWEEP_PAGE_SIZE = 100
 
 /*
-  The daily sweep's backstop for reactions to subagents' reports that no run's end and no page
-  started, a reaction held back by its member's 3 runs above all, with nobody back since: every member
-  with a conversation, live and idle, in which a report waits, has their reactions due started in
-  each organization (`startDueSubagentReactions`), every one rather than the first, and the reports of
-  those full marked delivered.
+  The backstop of the worker's reconcile and of the daily sweep for reactions to subagents' reports
+  that no run's end and no page started, a reaction held back by its member's 3 runs above all, with
+  nobody back since: every member with a conversation, live and idle, in which a report waits, has
+  their reactions due started in each organization (`startDueSubagentReactions`), every one rather
+  than the first, and the reports of those full marked delivered.
 
   The accounts are read a hundred at a time, after the last one read, then each one's organizations.
   A member whose reactions fail is logged and left for the next sweep, and so is the rest when a read

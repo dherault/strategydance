@@ -1,10 +1,11 @@
 import express, { type Request, type Response, Router } from 'express'
-import { type ApiResponse, ERROR_CODE_SERVICE_UNAVAILABLE } from 'strategydance-core'
+import { type ApiResponse, ERROR_CODE_INTERNAL_ERROR, ERROR_CODE_SERVICE_UNAVAILABLE } from 'strategydance-core'
 import { z } from 'zod'
 
 import { UUID_PATTERN } from '~constants'
 
 import respondError from '~utils/respondError'
+import runSweepSteps from '~utils/runSweepSteps'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import validateMiddleware from '~middleware/validate'
@@ -88,41 +89,75 @@ function createInternalRouter() {
   )
 
   /* ---
+    RECONCILE
+  --- */
+
+  /*
+    Reconciles the runs no page reconciles, as Cloud Scheduler asks every five minutes: the subagent
+    runs past their lease or waiting for a slot, for every member with one, as a parent's page would,
+    the runs of members' conversations past their lease, a reaction to subagents' reports above all,
+    and the reactions no run's end started. A run whose task never came, its process gone between
+    storing it and queueing it, is queued again while it is young rather than finalized as
+    interrupted once older, and a slot freed is promoted into within minutes rather than at the
+    daily sweep. Each step logs rather than throws, and every one is idempotent, so two that overlap,
+    this and the daily sweep say, do each thing once. Takes no body
+  */
+  router.post('/runs-reconcile', async (_request: Request, response: Response<ApiResponse>) => {
+    const failed = await runSweepSteps({ sweepSubagentRuns, sweepDeadConversationRuns, sweepSubagentReactions })
+
+    if (failed.length) {
+      respondError(response, 500, ERROR_CODE_INTERNAL_ERROR, `The reconcile's steps failed: ${failed.join(', ')}`)
+
+      return
+    }
+
+    response.json({ status: 'success' })
+  })
+
+  /* ---
     SWEEP
   --- */
 
   /*
-    Reconciles first the subagent runs no page reconciled, a run past its lease or one waiting for a
-    slot, for every member with one, as a parent's page would, and logs rather than throws, so the
-    prunes after it run whatever it meets. Then removes what is still deleted past its Undo window,
-    whether or not anybody comes back, as Cloud Scheduler asks once a day, after the runs no page
-    reconciled, subagents' and members' alike, and the reactions to subagents' reports no run's end
-    started: the conversations, subagents before their parents, with
-    their files, the board's tasks, the documents and the organizations' MCP servers, with their keys
-    and members' connections, deleted over a day ago, and the files uploaded to conversations and
-    never sent. A milestone that keeps something else deleted for a while adds its prune here. So
-    does one that keeps a count or a record for a while, as the conversation searches and the starts
-    the daily caps counted over a day old go, the module call results past their expiry, members'
-    Connects to MCP servers expired over an hour ago, and the authorization server's requests expired
-    over a day ago, its tokens past their expiry and the registrations nobody uses. Every step is idempotent, so a sweep that failed is
-    finished by the next. Takes no body
+    Reconciles first the runs no page reconciled, as the reconcile every five minutes does, then
+    removes what is still deleted past its Undo window, whether or not anybody comes back, as Cloud
+    Scheduler asks once a day: the conversations, subagents before their parents, with their files,
+    the board's tasks, the documents and the organizations' MCP servers, with their keys and
+    members' connections, deleted over a day ago, and the files uploaded to conversations and never
+    sent. A milestone that keeps something else deleted for a while adds its prune here. So does one
+    that keeps a count or a record for a while, as the conversation searches and the starts the daily
+    caps counted over a day old go, the module call results past their expiry, members' Connects to
+    MCP servers expired over an hour ago, and the authorization server's requests expired over a day
+    ago, its tokens past their expiry and the registrations nobody uses.
+
+    Each step runs whatever the steps before it met (`runSweepSteps`), so a prune that fails, or one
+    that takes long, never keeps the keys and tokens after it from going. Every step is idempotent,
+    so a sweep that failed is finished by the next. Takes no body
   */
   router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
-    await sweepSubagentRuns()
-    await sweepDeadConversationRuns()
-    await sweepSubagentReactions()
-    await pruneDeletedConversations()
-    await pruneConversationAttachments()
-    await pruneConversationSearches()
-    await pruneCappedStarts()
-    await pruneDeletedTasks()
-    await pruneDeletedDocuments()
-    await pruneDeletedIntegrations()
-    await pruneIntegrationAuthorizations()
-    await pruneModuleCallResults()
-    await pruneOAuthAuthorizationRequests()
-    await pruneAgentConnectionTokens()
-    await pruneOAuthClients()
+    const failed = await runSweepSteps({
+      sweepSubagentRuns,
+      sweepDeadConversationRuns,
+      sweepSubagentReactions,
+      pruneDeletedConversations,
+      pruneConversationAttachments,
+      pruneConversationSearches,
+      pruneCappedStarts,
+      pruneDeletedTasks,
+      pruneDeletedDocuments,
+      pruneDeletedIntegrations,
+      pruneIntegrationAuthorizations,
+      pruneModuleCallResults,
+      pruneOAuthAuthorizationRequests,
+      pruneAgentConnectionTokens,
+      pruneOAuthClients,
+    })
+
+    if (failed.length) {
+      respondError(response, 500, ERROR_CODE_INTERNAL_ERROR, `The sweep's steps failed: ${failed.join(', ')}`)
+
+      return
+    }
 
     response.json({ status: 'success' })
   })

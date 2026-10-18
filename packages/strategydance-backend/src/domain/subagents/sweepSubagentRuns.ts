@@ -10,10 +10,11 @@ import reconcileSubagentRuns from '~domain/subagents/reconcileSubagentRuns'
 const SWEEP_PAGE_SIZE = 100
 
 /*
-  The daily sweep's backstop for subagents, which no page may reconcile: every member with a
-  subagent run past its lease, or one waiting for a slot, in any organization, has their subagent
-  runs there reconciled as a parent's page would (`reconcileSubagentRuns`), so a crash, a run whose
-  task never came or a member removed never leaves a subagent busy for good.
+  The backstop of the worker's reconcile, every five minutes, and of the daily sweep, for subagents,
+  which no page may reconcile: every member with a subagent run past its lease, or one waiting for a
+  slot, in any organization, has their subagent runs there reconciled as a parent's page would
+  (`reconcileSubagentRuns`), so a crash, a run whose task never came or a member removed never
+  leaves a subagent busy for good.
 
   The accounts are read a hundred at a time, after the last one read, so however many runs one
   member holds, nobody after them is hidden, and then each one's organizations. A member whose

@@ -1,13 +1,10 @@
-import { type SetStateAction, useEffect, useEffectEvent, useState } from 'react'
+import { type SetStateAction, useState } from 'react'
 
 import { LOCAL_STORAGE_PREFIX } from '~constants'
 
 type Options<T> = {
   enabled?: boolean
   parser?: (value: any) => T
-  // Whether a change another tab writes under the key replaces this tab's state, so the next change
-  // here starts from it rather than write over it
-  isSyncedAcrossTabs?: boolean
 }
 
 const identity = (value: any) => value
@@ -24,7 +21,7 @@ const isBrowser = typeof localStorage !== 'undefined'
   fresh component anyway
 */
 function usePersistedState<T>(key: string, defaultValue: T, options?: Options<T>) {
-  const { parser = identity, enabled = true, isSyncedAcrossTabs = false } = options || {}
+  const { parser = identity, enabled = true } = options || {}
 
   const localStorageKey = `${LOCAL_STORAGE_PREFIX}${key}`
 
@@ -41,31 +38,6 @@ function usePersistedState<T>(key: string, defaultValue: T, options?: Options<T>
 
     return defaultValue
   })
-
-  /*
-    A tab hears of what another wrote under the key through the `storage` event, which never fires in
-    the tab that wrote it, and takes it as it is, writing nothing back. A key removed there, or a value
-    that does not parse, leaves the default
-  */
-  const receiveStored = useEffectEvent((newValue: string | null) => {
-    try {
-      setState(newValue ? parser(JSON.parse(newValue)) : defaultValue)
-    } catch (error) {
-      console.error(`Error on the storage event of ${key}`, error)
-    }
-  })
-
-  useEffect(() => {
-    if (!enabled || !isSyncedAcrossTabs || !isBrowser) return
-
-    function receive(event: StorageEvent) {
-      if (event.storageArea === localStorage && event.key === localStorageKey) receiveStored(event.newValue)
-    }
-
-    window.addEventListener('storage', receive)
-
-    return () => window.removeEventListener('storage', receive)
-  }, [enabled, isSyncedAcrossTabs, localStorageKey])
 
   function setPersistedState(nextState: SetStateAction<T>) {
     if (!enabled) return

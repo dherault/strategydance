@@ -12,6 +12,7 @@ import usePersistedState from '~hooks/common/usePersistedState'
 import useDiscardConversationDraft from '~hooks/conversation/useDiscardConversationDraft'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import readPersistedValue from '~utils/common/readPersistedValue'
 import parseConversationDock from '~utils/conversation/parseConversationDock'
 import pushOutDockWindows from '~utils/conversation/pushOutDockWindows'
 
@@ -19,10 +20,15 @@ import { getConversationComposerDraftKey, readConversationComposerDraft } from '
 
 const NO_WINDOWS: ConversationDockWindow[] = []
 
+// Where the windows are kept in localStorage, every member's in every organization
+const DOCK_STORAGE_KEY = 'conversationDock'
+
 /*
-  Holds the dock's windows, kept in localStorage so a reload finds them as they were, and in step
-  across the tabs, so one writing its windows never writes over what another wrote, another
-  organization's or account's above all.
+  Holds the dock's windows, kept in localStorage so a reload finds them as they were. A tab changes
+  its own set alone, written over what storage holds when it writes, so it never writes over the
+  sets another tab keeps, another organization's or account's. Two tabs of one member in one
+  organization each keep the windows they opened, their drafts being theirs alone, the last to
+  write leaving its set for the next reload.
 
   Every member's windows in every organization sit under one key, each set under
   `${userId}:${organizationId}`: neither is known when the provider mounts, and the key a persisted
@@ -36,9 +42,9 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
   const [dock, setDock] = usePersistedState<ConversationDockWindows>(
-    'conversationDock',
+    DOCK_STORAGE_KEY,
     {},
-    { parser: parseConversationDock, isSyncedAcrossTabs: true },
+    { parser: parseConversationDock },
   )
   const [focusRequest, setFocusRequest] = useState<ConversationDockContextType['focusRequest']>(null)
   const discardConversationDraft = useDiscardConversationDraft()
@@ -50,7 +56,10 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
     setFocusRequest(current => ({ conversationId, count: (current?.count ?? 0) + 1 }))
   }
 
-  // Changes the current set, and drops it once it is empty rather than keep a key for nothing
+  /*
+    Changes the current set, and drops it once it is empty rather than keep a key for nothing, over
+    the sets as storage holds them now, which other tabs may have changed since this one read them
+  */
   function changeWindows(change: (current: ConversationDockWindow[]) => ConversationDockWindow[]) {
     if (!key) return
 
@@ -60,7 +69,7 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
 
       if (next === previous) return current
 
-      const changed = { ...current }
+      const changed = { ...readPersistedValue(DOCK_STORAGE_KEY, current, parseConversationDock) }
 
       if (next.length) changed[key] = next
       else delete changed[key]

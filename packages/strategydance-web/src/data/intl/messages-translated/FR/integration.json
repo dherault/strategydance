@@ -120,7 +120,7 @@
   "integration.statusNeedsAuthentication": "Authentification requise",
   "integration.statusOff": "Désactivé",
   "integration.toggleError": "Impossible de modifier {name}. Réessayez.",
-  "integration.toolsApprovalWarning": "Un outil qui s'exécute sans approbation peut être appelé immédiatement, avec n'importe quels arguments, par tout contenu lu par Strategy Dance, comme une page web ou un document. N'autorisez que les outils dont vous acceptez les effets.",
+  "integration.toolsApprovalWarning": "Un outil qui s'exécute sans approbation peut être appelé immédiatement, avec n'importe quels arguments, par tout contenu lu par Strategy Dance, comme une page web ou un document, et par ses sous-agents, qui travaillent sans surveillance. N'autorisez que les outils dont vous acceptez les effets.",
   "integration.toolsCount": "{count, plural, one {# outil} other {# outils}}",
   "integration.toolsEmpty": "Ce serveur ne répertorie aucun outil.",
   "integration.toolsLoadError": "Impossible de charger les outils du serveur.",

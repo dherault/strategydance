@@ -120,7 +120,7 @@
   "integration.statusNeedsAuthentication": "需要身份验证",
   "integration.statusOff": "已关闭",
   "integration.toggleError": "无法更改 {name}。请重试。",
-  "integration.toolsApprovalWarning": "无需批准即可运行的工具，可被 Strategy Dance 读取的任何内容（例如网页或文档）以任意参数立即调用。请仅允许您能接受其后果的工具。",
+  "integration.toolsApprovalWarning": "无需批准即可运行的工具，可被 Strategy Dance 读取的任何内容（例如网页或文档）及其在无人监督下工作的子智能体以任意参数立即调用。请仅允许您能接受其后果的工具。",
   "integration.toolsCount": "{count, plural, other {# 个工具}}",
   "integration.toolsEmpty": "此服务器未列出任何工具。",
   "integration.toolsLoadError": "无法加载此服务器的工具。",

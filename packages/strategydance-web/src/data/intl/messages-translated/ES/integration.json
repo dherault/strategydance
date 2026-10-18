@@ -120,7 +120,7 @@
   "integration.statusNeedsAuthentication": "Requiere autenticación",
   "integration.statusOff": "Desactivado",
   "integration.toggleError": "No se ha podido modificar {name}. Inténtalo de nuevo.",
-  "integration.toolsApprovalWarning": "Una herramienta que se ejecuta sin aprobación puede ser llamada de inmediato, con cualquier argumento, por cualquier contenido que Strategy Dance lea, como una página web o un documento. Permite solo herramientas cuyos efectos aceptes.",
+  "integration.toolsApprovalWarning": "Una herramienta que se ejecuta sin aprobación puede ser llamada de inmediato, con cualquier argumento, por cualquier contenido que Strategy Dance lea, como una página web o un documento, y por sus subagentes, que trabajan sin supervisión. Permite solo herramientas cuyos efectos aceptes.",
   "integration.toolsCount": "{count, plural, one {# herramienta} other {# herramientas}}",
   "integration.toolsEmpty": "Este servidor no incluye ninguna herramienta.",
   "integration.toolsLoadError": "No se pudieron cargar las herramientas del servidor.",

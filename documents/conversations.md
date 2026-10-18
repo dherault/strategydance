@@ -1299,7 +1299,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   through tools, which keeps it short.
 - **Tagging aspects**: on a conversation's first run, unless the member set its aspects, a side
   request (structured output, effort `low`, no tools) picks one to three aspects from the first
-  exchange. It writes them with the note only where `aspectsSetBy` is still null. It goes through
+  exchange, on Claude Haiku 5.5 since the review of M1 to M38 (`CONVERSATION_TAGGING_MODEL`), as
+  David chose: the run holds its conversation while it goes, and a pick of three aspects of nine
+  needs no Opus. Haiku 5.5 has no server-side fallback, so the request sends none. It writes them with the note only where `aspectsSetBy` is still null. It goes through
   the same accounting as the run's own requests: reserved before it is sent, settled into the run's
   `usage` after, and counted toward the run's 25 requests. As M23 built it:
   - **Which runs.** A run on the conversation's first anchor, `anchorPosition` 0: its first run, or
@@ -1321,7 +1323,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
     included, which the API bills as input (856 tokens counted and billed when probed, 528 without
     the schema), and a worker taking the run over charges an unsettled one at its own allowance,
     8000 output tokens, not a turn's 64000.
-  - **Best effort.** An error of the API, a refusal its fallback refused too, an answer cut at its
+  - **Best effort.** An error of the API, a refusal, which no fallback answers on Haiku 5.5, an answer cut at its
     `max_tokens` or not the schema's, a minute gone or its member's stop leave the conversation
     untagged, and the run ends as its reply does. The request is settled either way.
   - **The write**, `TagConversationAspects`, fenced, claims the note's position on the counter and

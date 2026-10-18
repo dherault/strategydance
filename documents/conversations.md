@@ -2241,7 +2241,8 @@ way (see The orchestrator).
   the parent to propose a call a report says its subagent could not make, which a reaction draws as
   an approval the member answers. The switch that lets a tool run without approval says it runs in
   subagents too, with nobody watching. A call its server never answered, which timed out, could not
-  reach its server or was interrupted, is recorded so (`isToolUnanswered`), and the parent hears it as
+  reach its server, was interrupted or brought an answer too large to read, is recorded so
+  (`isToolUnanswered`), and the parent hears it as
   `UNANSWERED`, apart from one answered with an error, since it may have run. In the dock, a
   subagent's viewer closes at the reader's next navigation, as its warning strip's link, or any
   other, leads them elsewhere.

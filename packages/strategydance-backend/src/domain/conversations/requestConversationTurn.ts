@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { setTimeout as wait } from 'node:timers/promises'
 
 import Anthropic from '@anthropic-ai/sdk'
 import type { BetaContentBlock, BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
@@ -378,9 +377,10 @@ async function requestConversationTurn({
           `Conversation run ${fence.runId}: Claude's API refused request ${reserved.index} (${describeApiError(error, false)}), sent again in ${retryDelay} ms`,
         )
 
-        await wait(retryDelay, undefined, { signal })
+        // Settled at nothing where the next worker reads it, whatever comes of the wait
+        await writeSettled(fence, lease, usage)
 
-        if (await isStopRequested(fence)) {
+        if ((await waitUnlessStopped(fence, signal, retryDelay, stopCheckIntervalMs)) === 'stopped') {
           return {
             kind: 'ending',
             ending: {
@@ -516,6 +516,40 @@ function readApiRetryDelay(error: InstanceType<typeof Anthropic.APIError>, retri
   }
 
   return Math.min(baseDelayMs * 2 ** retries, CONVERSATION_API_MAX_RETRY_DELAY_MS)
+}
+
+/*
+  Waits before a request is sent again, reading whether the run's member asked to stop it as a
+  stream does, and answers `stopped` as soon as they have, so Stop never waits out a minute's delay.
+  Throws once the run is no longer this worker's
+*/
+async function waitUnlessStopped(
+  fence: ConversationRunFence,
+  signal: AbortSignal,
+  delayMs: number,
+  stopCheckIntervalMs: number,
+) {
+  const waiting = createConversationRequestSignal({
+    signal,
+    deadline: Date.now() + delayMs,
+    isStopRequested: () => isStopRequested(fence),
+    stopCheckIntervalMs,
+  })
+
+  try {
+    if (!waiting.signal.aborted) {
+      await new Promise<void>(resolve => {
+        waiting.signal.addEventListener('abort', () => resolve(), { once: true })
+      })
+    }
+  } finally {
+    waiting.dispose()
+  }
+
+  signal.throwIfAborted()
+
+  // A stop asked for since the poller last read is read once more
+  return waiting.readReason() === 'stopped' || (await isStopRequested(fence)) ? 'stopped' : 'waited'
 }
 
 // Whether the run's member asked to stop it

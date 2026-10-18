@@ -793,6 +793,56 @@ describe('runConversation', () => {
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'STOPPED' })
   })
 
+  test('ends a run stopped during a long wait to send again at once, rather than once the wait is over', async () => {
+    const reference = await start()
+    const scripted = createClient([
+      new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+    ])
+    const startedAt = Date.now()
+
+    setTimeout(() => {
+      const run = readRun(reference)
+
+      if (run) run.stopRequestedAt = new Date().toISOString()
+    }, 50)
+
+    expect(
+      await runConversation(reference, {
+        client: scripted.client,
+        apiRetryDelayMs: 30 * 1000,
+        stopCheckIntervalMs: 10,
+      }),
+    ).toBe('finished')
+    expect(Date.now() - startedAt).toBeLessThan(2000)
+    expect(readRun(reference)?.status).toBe('STOPPED')
+  })
+
+  test('keeps a refused request settled at nothing though the read after its wait fails', async () => {
+    const reference = await start()
+    const scripted = createClient([
+      new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+      answer(),
+    ])
+    let isFailing = true
+
+    fake.beforeOperation = async name => {
+      if (name !== 'GetConversationRunStop' || !isFailing) return
+
+      isFailing = false
+
+      throw new Error('The database is unreachable')
+    }
+
+    expect(await runConversation(reference, { client: scripted.client, apiRetryDelayMs: 1, retryDelayMs: 1 })).toBe(
+      'finished',
+    )
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+    expect(readUsage(reference).requests).toMatchObject([
+      { inputTokens: 0, isSettled: true, isEstimated: false },
+      { inputTokens: 1000, isSettled: true },
+    ])
+  })
+
   test('ends a run Claude refused, and so did its fallback, refused with its note, storing nothing of it', async () => {
     const reference = await start()
     const refused = answer([{ type: 'text', text: 'I can’t', citations: null }], { stopReason: 'refusal' })

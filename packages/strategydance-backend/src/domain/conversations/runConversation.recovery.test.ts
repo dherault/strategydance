@@ -244,7 +244,7 @@ describe('a turn’s calls across stop, resume, retry and send', () => {
     // Claude's API fails it, which ends it with a note Retry is offered on
     await runConversation(continuing, {
       client: createClient([
-        new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+        new Anthropic.BadRequestError(400, { type: 'invalid_request_error' }, 'Invalid', new Headers()),
       ]).client,
       retryDelayMs: 1,
     })

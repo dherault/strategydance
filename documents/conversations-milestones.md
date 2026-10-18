@@ -86,7 +86,7 @@ nothing, rather than leave the daily sweep their only recovery.
 | M32 | The Subagents module | core, backend, database, web | M31 | #196 |
 | M33 | Subagents in conversations | backend, database, root | M11, M32 | #200 |
 | M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | #202 |
-| M35 | Usage caps | core, database, backend, web, root | M33 | |
+| M35 | Usage caps | core, database, backend, web, root | M33 | #207 |
 | M36 | Integrations in subagents | backend, web | M29, M33 | |
 | M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | |
 | M38 | Launch | all | all | |
@@ -2634,6 +2634,56 @@ he added on 2026-10-16.
   the account's count read across two organizations of one account.
 - **Verify**: with the caps on locally and lowered, start conversations and send past them, and read
   each refusal in the composer and in Resume's and Retry's note, at desktop and phone widths.
+- Built with these settled, on 2026-10-18:
+  - **The development lift goes through the mutations.** A count's `@check` lives in SQL, which
+    cannot read the backend's environment, so each capped mutation takes an optional
+    `$isUsageCapped`, which only `false` lifts: left out, as a backend from before M35 or a forgotten
+    call leaves it, the caps hold. The backend sends `IS_USAGE_CAPPED`, `!IS_DEVELOPMENT ||
+    USAGE_CAPPED=true`, the second for trying them locally. Rows are inserted either way. The test
+    kit's fixtures and the check scripts' helpers lift them, since they build past a cap to check
+    something else, and the checks of a cap go through the domain or leave the variable out.
+  - **The counts.** `GetCappedStarts` reads the eight lists a member's starts are counted in, the
+    runs to one and a half times each cap, the conversations and the subagents to each cap, which is
+    all a start's refusal needs to say when its cap has room; each mutation reads its own lists to
+    the threshold it holds, a start to its cap, a continuation or a reaction to one and a half times
+    it. `findReachedUsageCap` answers, of several caps reached, the one that has room last, since the
+    start can go only then. A mutation the counts refused starts another round of its domain
+    function, which reads them again and answers `capped`, or `waiting` for a continuation.
+  - **The refusals.** A send, a start, Resume and Retry answer 429 with the cap's code and
+    `Retry-After` (`respondUsageCapped`); a launch answers `tooManyToday`, whose sentence says when
+    in minutes or hours; a reaction past one and a half times a cap answers `capped`, which stops a
+    run's end from trying the member's other reactions, as `busy` does. The web keeps the time a cap
+    frees on the draft (`failureRetryAt`) and words it relatively, moving on as the reader waits
+    (`ConversationCapRefusal`), a run's cap as "Strategy Dance answered you 100 times", which reads
+    for a send, a Resume and a Retry alike.
+  - **The cost limit.** Each search's reading of the input again is priced at the cache-read rate,
+    as David chose on 2026-10-18, the first reading having cached it within the request: at the
+    cache-write rate no request past some 250000 tokens of context could be sent at all. A request
+    of some 1200 tokens reserves about $2.34 alone and $5.25 with its fallback at Opus 5's prices, so
+    a run drops the fallback past some $4.75 spent and ends past some $7.65; one at 700000 tokens
+    reserves $6.53, ending the run past $3.47. A request whose stream failed partway counts at its
+    worst case too, its output known only by the final delta, and one reserved before M35, with no
+    worst case, at its estimate. Tagging that would pass the limit is recorded as a request skipped
+    (`skipConversationRequest`, `stop_reason` `cost_limit`, no model), so the run tries it once all
+    the same. A model the price table lacks is priced as the dearest and logged.
+  - **The prices** sit beside the request's settings: Opus 5.5, Sonnet 5.5, Opus 5, Opus 4.8 and
+    Sonnet 5, and `CLAUDE_FALLBACK_MODELS`, Opus 5.5's to Opus 5 and Opus 4.8 as the claude-api skill
+    gave them, which `probe:claude` holds to the API's `allowed_fallback_models`.
+    `measure:subagents` prices its subagents with them.
+  - **The allowance** stays at a provisional 40000 tokens a search until `probe:claude` measures it:
+    the probe now measures what each search of three research requests brings back past its readings
+    of the input, and fails past the allowance, but could not run, gcloud asking David to sign in
+    again before it reads the API key.
+  - Verified: the four checks; `check:conversation-runs`, `check:subagent-runs`,
+    `check:subagents-module` and `check:conversation-attachments` against an emulator of the
+    branch's schema, every check passing, the caps' own among them: two sends at once at the
+    member's cap letting one through, the account's 200 across organizations, one of them gone, the
+    organization's 500 runs and 100 conversations, the window, the lift and the member's 30 launches.
+    In a browser against it, with the placeholder agent and `USAGE_CAPPED=true`, the starts seeded
+    near each cap: a new conversation past the 20 refused in a docked window's composer, and a
+    response's Resume, its Retry and a send past the 100 runs refused under the note and in the
+    page's composer, each saying when the cap has room and keeping the draft, at desktop and phone
+    widths.
 
 ### M36: Integrations in subagents
 

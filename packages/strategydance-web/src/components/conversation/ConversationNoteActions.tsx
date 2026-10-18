@@ -7,12 +7,15 @@ import useResumeConversationRun from '~hooks/conversation/useResumeConversationR
 import useRetryConversationRun from '~hooks/conversation/useRetryConversationRun'
 
 import type { RetriedSubagents } from '~utils/conversation/countRetriedSubagents'
+import getConversationFailureRetryAt from '~utils/conversation/getConversationFailureRetryAt'
 import getConversationSendFailure, {
   type ConversationSendFailure,
 } from '~utils/conversation/getConversationSendFailure'
 import type { StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
+import isConversationCapFailure from '~utils/conversation/isConversationCapFailure'
 
 import Spinner from '~components/common/Spinner'
+import ConversationCapRefusal from '~components/conversation/ConversationCapRefusal'
 import ConversationRetryDialog from '~components/conversation/ConversationRetryDialog'
 
 import conversationMessages from '~data/intl/messages/conversation'
@@ -36,7 +39,8 @@ type Props = {
   Retry, which answers the reader's message again, for any run that ended with a note. The run
   either starts counts as going at once, so the note's actions go and the composer offers Stop
   before the page's live read shows it; a Retry's deleted messages leave the thread at once too.
-  A click the server did not take says so, and can be made again, which is the same resume or retry.
+  A click the server did not take says so, and can be made again, which is the same resume or retry,
+  and one a daily cap held back says which cap and when it has room again.
   A Retry that discards subagents the response launched asks first
   (`ConversationRetryDialog`)
 */
@@ -53,6 +57,8 @@ function ConversationNoteActions({
   const retryConversationRun = useRetryConversationRun()
   const [pendingAction, setPendingAction] = useState<'resume' | 'retry' | null>(null)
   const [failure, setFailure] = useState<ConversationSendFailure | null>(null)
+  // When the daily cap a resume or a retry reached has room again
+  const [failureRetryAt, setFailureRetryAt] = useState<number | null>(null)
   const [isRetryAsked, setIsRetryAsked] = useState(false)
 
   async function act(action: 'resume' | 'retry') {
@@ -76,6 +82,7 @@ function ConversationNoteActions({
       console.error(`The response could not be ${action === 'resume' ? 'resumed' : 'retried'}`, error)
 
       setFailure(getConversationSendFailure(error))
+      setFailureRetryAt(getConversationFailureRetryAt(error))
     } finally {
       setPendingAction(null)
     }
@@ -83,6 +90,20 @@ function ConversationNoteActions({
 
   function renderFailure() {
     if (!failure) return null
+
+    if (isConversationCapFailure(failure)) {
+      return (
+        <p
+          role="alert"
+          className="m-0 text-center text-xs text-danger"
+        >
+          <ConversationCapRefusal
+            failure={failure}
+            retryAt={failureRetryAt}
+          />
+        </p>
+      )
+    }
 
     const message =
       failure === 'busy'

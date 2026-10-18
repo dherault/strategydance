@@ -38,6 +38,7 @@ import { UUID_PATTERN } from '~constants'
 import parseConversationAttachmentHeaders from '~utils/parseConversationAttachmentHeaders'
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
+import respondUsageCapped from '~utils/respondUsageCapped'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
@@ -118,7 +119,10 @@ function createConversationsRouter() {
     for, or whose next request would pass 700000 input tokens, with a 409.
     A conversation it would start past the thousand the caller keeps is refused with a 409. The
     aspects the member picked on the draft start it as the member's, and any other message leaves
-    them out.
+    them out. A send that would pass a daily cap on the runs the caller starts, or on the
+    conversations for one that starts one, is refused with a 429 naming the cap, its `Retry-After`
+    saying when it has room again; one retried after its first try went through is answered as
+    above, whatever the caps.
 
     Answered with a 503 when the run is stored but could not be queued for the worker: the browser
     sends the same message again, under the same id, which queues it again, and the conversation's
@@ -182,6 +186,10 @@ function createConversationsRouter() {
             ERROR_CODE_TOO_MANY_CONVERSATIONS,
             `Somebody keeps at most ${MAX_CONVERSATIONS} conversations in an organization`,
           )
+
+          return
+        case 'capped':
+          respondUsageCapped(response, result.cap)
 
           return
         case 'attachmentsInvalid':
@@ -549,7 +557,8 @@ function createConversationsRouter() {
     the conversation's newest message: the note goes, and a run carries the response on, 202 with
     its id. A resume sent again after its first try went through is answered with the run it
     started. Refused with a 409 when the run is not the latest, did not stop or die, or something
-    follows its note, and when a run goes or the caller has 3 in flight. Answered with a 503 when the
+    follows its note, and when a run goes or the caller has 3 in flight, and with a 429 at a daily
+    cap on the runs the caller starts, as a send is. Answered with a 503 when the
     run is started but could not be queued, which the same resume sent again queues again. Takes no
     body
   */
@@ -588,6 +597,10 @@ function createConversationsRouter() {
           respondError(response, 409, ERROR_CODE_CONFLICT, 'This response cannot be resumed')
 
           return
+        case 'capped':
+          respondUsageCapped(response, result.cap)
+
+          return
         case 'unavailable':
           respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'The response could not be resumed now')
 
@@ -604,7 +617,8 @@ function createConversationsRouter() {
     answers that entry again, 202 with its id and the runs whose messages went. A retry sent again
     after its first try went through is answered with the run it started. Never refused for a full
     conversation, whose room it gives back. Refused with a 409 when the run is not the latest or did
-    not end with a note, and when a run goes or the caller has 3 in flight. Answered with a 503 when
+    not end with a note, and when a run goes or the caller has 3 in flight, and with a 429 at a
+    daily cap on the runs the caller starts, as a send is. Answered with a 503 when
     the run is started but could not be queued, which the same retry sent again queues again. Takes
     no body
   */
@@ -641,6 +655,10 @@ function createConversationsRouter() {
           return
         case 'conflict':
           respondError(response, 409, ERROR_CODE_CONFLICT, 'This response cannot be retried')
+
+          return
+        case 'capped':
+          respondUsageCapped(response, result.cap)
 
           return
         case 'unavailable':

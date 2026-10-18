@@ -78,6 +78,9 @@ export type ConversationComposerDraft = {
   } | null
   // Why the last send failed, until the reader writes again
   failure: ConversationSendFailure | null
+  // When the daily cap the last send reached has room again, from its refusal, which a failure of
+  // another kind leaves null: nothing without a failure, so a draft holding it alone holds nothing
+  failureRetryAt: number | null
   // The run the reader last started, by a send, a resume, a retry or an answer, which counts as
   // going before the live read of the latest run shows it, wherever the conversation is drawn
   startedRun: StartedConversationRun | null
@@ -92,6 +95,7 @@ export const EMPTY_CONVERSATION_COMPOSER_DRAFT: ConversationComposerDraft = {
   pendingMessages: [],
   failedSend: null,
   failure: null,
+  failureRetryAt: null,
   startedRun: null,
 }
 

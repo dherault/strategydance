@@ -39,11 +39,14 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import createId from '~utils/common/createId'
 import getConversationAttachmentQueryKey from '~utils/conversation/getConversationAttachmentQueryKey'
+import getConversationFailureRetryAt from '~utils/conversation/getConversationFailureRetryAt'
 import getConversationSendFailure, {
+  type ConversationCapFailure,
   type ConversationSendFailure,
 } from '~utils/conversation/getConversationSendFailure'
 import getConversationSendStartedRun from '~utils/conversation/getConversationSendStartedRun'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
+import isConversationCapFailure from '~utils/conversation/isConversationCapFailure'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
 import isConversationSendKey from '~utils/conversation/isConversationSendKey'
 import readConversationPastedFiles from '~utils/conversation/readConversationPastedFiles'
@@ -51,6 +54,7 @@ import restoreConversationFailedSend from '~utils/conversation/restoreConversati
 import scrollConversationToEnd from '~utils/conversation/scrollConversationToEnd'
 
 import Spinner from '~components/common/Spinner'
+import ConversationCapRefusal from '~components/conversation/ConversationCapRefusal'
 import ConversationComposerMenu from '~components/conversation/ConversationComposerMenu'
 import ConversationComposerTray from '~components/conversation/ConversationComposerTray'
 import ConversationMentionList from '~components/conversation/ConversationMentionList'
@@ -67,7 +71,7 @@ const FAILURE_MESSAGES = {
   filesGone: conversationMessages.composerFilesGone,
   unavailable: conversationMessages.composerUnavailable,
   error: conversationMessages.composerError,
-} satisfies Record<ConversationSendFailure, MessageDescriptor>
+} satisfies Record<Exclude<ConversationSendFailure, ConversationCapFailure>, MessageDescriptor>
 
 const REFUSAL_MESSAGES = {
   unsupported: conversationMessages.composerAttachmentUnsupported,
@@ -300,6 +304,7 @@ function ConversationComposer({
           previousRunId: isRetry ? failedSend.previousRunId : previousRunId,
         },
         failure,
+        failureRetryAt: getConversationFailureRetryAt(error),
       }))
 
       if (failure === 'filesGone') attachments.retry(sentAttachmentIds)
@@ -393,7 +398,14 @@ function ConversationComposer({
           role="alert"
           className="m-0 text-sm text-danger"
         >
-          {formatMessage(FAILURE_MESSAGES[shownFailure], { max: MAX_CONVERSATIONS })}
+          {isConversationCapFailure(shownFailure) ? (
+            <ConversationCapRefusal
+              failure={shownFailure}
+              retryAt={draft.failureRetryAt}
+            />
+          ) : (
+            formatMessage(FAILURE_MESSAGES[shownFailure], { max: MAX_CONVERSATIONS })
+          )}
         </p>
       ) : null}
       {attachments.refusal ? (

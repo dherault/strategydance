@@ -62,6 +62,19 @@ export type ConversationRunReference = {
   runId: string
 }
 
+// What a daily cap counts (`MAX_DAILY_…` in strategydance-core), and whose starts it counts: the
+// member's in the organization, the account's across its organizations, or the organization's
+export type UsageCapKind = 'conversations' | 'runs' | 'subagents'
+export type UsageCapScope = 'member' | 'account' | 'organization'
+
+// A daily cap a start reached, its value as the start is held to it, and how long until it has room
+export type ReachedUsageCap = {
+  kind: UsageCapKind
+  scope: UsageCapScope
+  max: number
+  retryAfterMs: number
+}
+
 /*
   The Cloud Tasks queue a run goes through, named as Cloud Tasks names it: a subagent's runs go
   through their own, every other run through the conversations'. It follows from the run, and goes
@@ -456,6 +469,9 @@ export type SubagentsRefusal =
   /** A launch past the 10 on the calling run's anchor, or past the 100 a conversation holds */
   | { outcome: 'tooManyOnAnchor' }
   | { outcome: 'tooMany' }
+  /** A launch past the 30 subagents the member launched in the organization in 24 hours, or the 60
+   * the account launched across its organizations, which have room again after `retryAfterMs` */
+  | { outcome: 'tooManyToday'; cap: ReachedUsageCap }
   /** A file the conversation has not sent */
   | { outcome: 'attachmentsInvalid' }
   /** A launch whose first request, measured whole, would pass a send's budget */

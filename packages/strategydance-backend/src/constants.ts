@@ -47,6 +47,15 @@ export const IS_CONVERSATIONS_RELEASE_GATED = ARE_CONVERSATIONS_STAFF_ONLY && !I
 */
 export const IS_MODULES_RELEASE_GATED = ARE_MODULES_STAFF_ONLY && !IS_DEVELOPMENT
 
+/*
+  Whether the daily caps hold in this process (`MAX_DAILY_…` in strategydance-core), which every
+  mutation that starts a conversation, a run or a subagent is told through `isUsageCapped`: they
+  guard spend, so everywhere, staff included, but on the development backend, where placeholder runs
+  cost nothing and a developer starts dozens. `USAGE_CAPPED=true` holds them there too, to try them.
+  The tests and the check scripts keep them. Rows are counted either way
+*/
+export const IS_USAGE_CAPPED = !IS_DEVELOPMENT || process.env.USAGE_CAPPED === 'true'
+
 /* ---
   ARCHITECTURE
 --- */
@@ -180,6 +189,24 @@ export const CONVERSATION_RUN_DISPATCH_DEADLINE_SECONDS = 15 * 60
 export const CONVERSATION_RUN_MAX_REQUESTS = 25
 export const CONVERSATION_RUN_MAX_DURATION_MS = 10 * 60 * 1000
 export const CONVERSATION_RUN_STREAM_DEADLINE_MS = 14 * 60 * 1000
+
+/*
+  A run's cost limit, $10 in microdollars, as David chose on 2026-10-16, since a cap on starts
+  bounds nothing a single run spends: before each request, the run's ledger priced at list prices,
+  each request it has no answer for at the worst case its reservation recorded, plus the most the
+  request about to be sent can cost, is held to it. A run past it sends nothing more and fails with
+  its limits' note, and a subagent's run before its fourth chains, so a subagent costs $40 at most
+*/
+export const CONVERSATION_RUN_MAX_COST_MICRODOLLARS = 10_000_000
+
+/*
+  How many input tokens one web search may bring back, which a request is reserved for beside each of
+  its five searches: what a search retrieves is billed as input within the request, and nothing
+  counts or caps it beforehand. The largest `probe:claude` measured, with a margin: the one part of
+  the cost limit that rests on a measure rather than a proof, raised from what a request billed
+  past its reservation
+*/
+export const WEB_SEARCH_RESULT_TOKEN_ALLOWANCE = 40_000
 
 // How often a worker reads whether its run's member asked to stop it while a request streams. It
 // reads it before each request too

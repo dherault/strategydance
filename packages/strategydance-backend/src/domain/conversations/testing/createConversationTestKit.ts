@@ -18,7 +18,9 @@ type ScriptedOptions = NonNullable<Parameters<typeof createScriptedClaudeClient>
 /*
   What the conversation domain's tests do with the database fake, in one organization and as one
   author: start and send as the routes' operations do, claim as a worker that then crashes would,
-  and read back runs, threads and transcripts. The scripted client answers with `answer`, and counts
+  and read back runs, threads and transcripts. What it starts counts toward the daily caps, as
+  anything started does, but is never refused at one, so a test can build past them: a test of a
+  cap goes through the domain, which holds them. The scripted client answers with `answer`, and counts
   every message 100 tokens and the system prompt and tools 1000
 */
 function createConversationTestKit(
@@ -67,6 +69,7 @@ function createConversationTestKit(
       preview: { kind: 'MEMBER_TEXT', text },
       content: serializeTranscriptContent([{ type: 'text', text }]),
       ...(aspects ? { aspects, aspectsSetBy: 'MEMBER' } : {}),
+      isUsageCapped: false,
     })
 
     return reference
@@ -89,6 +92,7 @@ function createConversationTestKit(
       runNumber: conversation?.nextRunNumber,
       content: serializeTranscriptContent([{ type: 'text', text }]),
       transcriptPosition: (lastEntry?.position ?? -1) + 1,
+      isUsageCapped: false,
     })
 
     return { ...reference, runId }
@@ -129,9 +133,33 @@ function createConversationTestKit(
       text: brief,
       content: serializeTranscriptContent([...files, { type: 'text', text: brief }]),
       attachmentIds,
+      isUsageCapped: false,
     })
 
     return reference
+  }
+
+  /*
+    Starts the daily caps counted, `count` of them, the newest `hoursAgo` old and each a second older
+    than the one before: the author's in this organization unless told whose, in an organization that
+    may be gone since
+  */
+  function seedStarts(
+    kind: 'CONVERSATION' | 'RUN' | 'SUBAGENT',
+    count: number,
+    { userId = author, organization = organizationId, hoursAgo = 1 } = {},
+  ) {
+    for (let index = 0; index < count; index++) {
+      const id = createId()
+
+      fake.cappedStarts.set(id, {
+        id,
+        userId,
+        organizationId: organization,
+        kind,
+        createdAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000 - index * 1000).toISOString(),
+      })
+    }
   }
 
   // Claims a queued run as a worker that then crashes would, and answers its fence
@@ -192,6 +220,7 @@ function createConversationTestKit(
     start,
     send,
     launch,
+    seedStarts,
     claim,
     expireLease,
     readMembershipCreatedAt,

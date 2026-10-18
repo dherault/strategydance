@@ -38,6 +38,7 @@ import type {
 } from '~types'
 
 import {
+  CONVERSATION_RUN_MAX_COST_MICRODOLLARS,
   CONVERSATION_RUN_MAX_DURATION_MS,
   CONVERSATION_RUN_MAX_REQUESTS,
   CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
@@ -121,6 +122,7 @@ const LIMITS: ConversationRunLimits = {
   maxRequests: CONVERSATION_RUN_MAX_REQUESTS,
   maxDurationMs: CONVERSATION_RUN_MAX_DURATION_MS,
   streamDeadlineMs: CONVERSATION_RUN_STREAM_DEADLINE_MS,
+  maxCostMicrodollars: CONVERSATION_RUN_MAX_COST_MICRODOLLARS,
 }
 
 type ConversationRunContext = GetConversationRunContextData
@@ -490,6 +492,7 @@ async function takeStep({
           reply: parts.flatMap(({ blocks }) => blocks),
           streamDeadline: Date.parse(startedAt) + limits.streamDeadlineMs,
           stopCheckIntervalMs,
+          maxCostMicrodollars: limits.maxCostMicrodollars,
         })
       }
 

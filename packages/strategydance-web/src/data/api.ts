@@ -17,17 +17,23 @@ import { EMULATORS_REQUESTED, appCheck, authentication } from '~data/firebase'
 */
 export const API_URL = EMULATORS_REQUESTED ? DEVELOPMENT_API_URL : PRODUCTION_API_URL
 
-// A refusal from the backend, carrying its status and its code for a caller to branch on
+/*
+  A refusal from the backend, carrying its status and its code for a caller to branch on, and how
+  long until the same call can go, in milliseconds, when its `Retry-After` says, as a daily cap's
+  refusal does: null otherwise
+*/
 export class ApiError extends Error {
   status: number
   code: string
+  retryAfterMs: number | null
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, retryAfterMs: number | null = null) {
     super(message)
 
     this.name = 'ApiError'
     this.status = status
     this.code = code
+    this.retryAfterMs = retryAfterMs
   }
 }
 
@@ -100,11 +106,28 @@ async function createApiHeaders(userId?: string) {
   return headers
 }
 
-// The envelope's data, or the `ApiError` it says, from an answer's text read as JSON
-function readEnvelope<T>(status: number, payload: unknown) {
+// How long a `Retry-After` header says to wait, in seconds or until a date, in milliseconds, or null
+// when there is none or it says neither
+export function readRetryAfter(value: string | null, now = Date.now()) {
+  if (!value?.trim()) return null
+
+  const seconds = Number(value)
+
+  if (Number.isFinite(seconds)) return seconds >= 0 ? seconds * 1000 : null
+
+  const date = Date.parse(value)
+
+  return Number.isNaN(date) ? null : Math.max(0, date - now)
+}
+
+// The envelope's data, or the `ApiError` it says, from an answer's text read as JSON and its
+// `Retry-After`
+function readEnvelope<T>(status: number, payload: unknown, retryAfter: string | null = null) {
   const envelope = payload as ApiResponse<T>
 
-  if (envelope.status === 'error') throw new ApiError(status, envelope.code, envelope.message)
+  if (envelope.status === 'error') {
+    throw new ApiError(status, envelope.code, envelope.message, readRetryAfter(retryAfter))
+  }
 
   return envelope.data as T
 }
@@ -116,7 +139,7 @@ function createUnreadableAnswerError(status: number) {
 
 /*
   Calls the backend as the signed-in reader, and answers with the envelope's data or throws an
-  `ApiError`.
+  `ApiError`, which carries the answer's `Retry-After`, which the backend lets the app's pages read.
 
   An aborted call rejects with the signal's reason, an `AbortError`, never an `ApiError`
 */
@@ -144,7 +167,7 @@ export async function requestApi<T = void>({ method, path, body, signal }: Reque
     throw createUnreadableAnswerError(response.status)
   }
 
-  return readEnvelope<T>(response.status, payload)
+  return readEnvelope<T>(response.status, payload, response.headers.get('Retry-After'))
 }
 
 /*
@@ -171,7 +194,7 @@ export async function requestApiFile({ path, signal }: { path: string; signal?: 
     throw createUnreadableAnswerError(response.status)
   }
 
-  readEnvelope(response.status, payload)
+  readEnvelope(response.status, payload, response.headers.get('Retry-After'))
 
   // An error's status with a success's envelope, which no backend answers
   throw createUnreadableAnswerError(response.status)
@@ -235,7 +258,7 @@ export async function uploadApiFile<T = void>({
         }
 
         try {
-          resolve(readEnvelope<T>(request.status, payload))
+          resolve(readEnvelope<T>(request.status, payload, request.getResponseHeader('Retry-After')))
         } catch (error) {
           reject(error)
         }

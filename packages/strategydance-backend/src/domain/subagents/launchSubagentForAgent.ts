@@ -53,6 +53,7 @@ async function launchSubagentForAgent(
     case 'invalid':
     case 'tooManyOnAnchor':
     case 'tooMany':
+    case 'tooManyToday':
     case 'attachmentsInvalid':
     case 'overBudget':
       return launched

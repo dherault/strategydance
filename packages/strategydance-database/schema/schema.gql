@@ -946,6 +946,44 @@ type ConversationSearch @table @index(fields: ["userId", "organizationId", "crea
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
+# What a `CappedStart` counts. Append a value; never reorder
+enum CappedStartKind {
+  # A conversation a member's first message started
+  CONVERSATION
+  # A run a member's message, answer, Allow, Resume or Retry started, or a reaction to subagents'
+  # reports: every run but a subagent's own, which its launch counts
+  RUN
+  # A subagent launched
+  SUBAGENT
+}
+
+# One start the daily caps count: a conversation, a run or a subagent, kept so the backend can hold a
+# member, an account and an organization to what they may start in 24 hours (`MAX_DAILY_…` in
+# strategydance-core). Counted on a ledger of its own rather than on the conversations and runs,
+# which hold their member on the conversation alone, so a count reads one index range rather than
+# joining a team's conversations, and a row outlives what it counts: deleting a conversation or
+# retrying a run gets round nothing.
+#
+# Inserted by the mutation that starts what it counts, which counts the rows of the last 24 hours
+# first: the member's under the lock on their membership the mutation already takes, the account's
+# and the organization's without one. Read only by the backend. Its organization is a plain column,
+# never a reference, so deleting an organization keeps its rows, which its members' accounts are
+# still counted by until the daily sweep deletes the rows over a day old, which the index on
+# `createdAt` alone serves
+type CappedStart
+  @table
+  @index(fields: ["userId", "organizationId", "kind", "createdAt"])
+  @index(fields: ["userId", "kind", "createdAt"])
+  @index(fields: ["organizationId", "kind", "createdAt"])
+  @index(fields: ["createdAt"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  organizationId: UUID!
+  kind: CappedStartKind!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
 # What one write of a module answered, kept under the idempotency key its caller sent, so a write
 # sent again, by a client that lost the answer or a worker taking a run over after a crash, is
 # applied once and answered as the first time. MCP has no key of its own, so a module's write

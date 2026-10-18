@@ -141,7 +141,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's and `check:subagents-module` the Subagents module's |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
-| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
+| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or price, or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
@@ -616,6 +616,31 @@ A conversation is kept twice, once for Claude and once for the page, and
   takeover charges it at its own allowance. It never fails a run, and a run tries it once, as its
   ledger says. An aspects note belongs to no run, the agent's as the member's, so it counts toward
   no run's entries and a Retry keeps it
+- A run stops at $10 (`CONVERSATION_RUN_MAX_COST_MICRODOLLARS`), held before each request, a side
+  request's included: its ledger priced at list prices, each request no answer settled at the worst
+  case its reservation recorded (`priceConversationUsageBound`), plus the most the request about to
+  go can cost (`priceRequestWorstCase`), its input written to the cache, its whole `max_tokens` and
+  five searches, each reading the input again from the cache and bringing back
+  `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`. A request whose fallback would pass the limit goes without
+  `fallbacks`, one that cannot fit fails the run with its limits' note, which chains a subagent's,
+  and tagging past it is recorded skipped. A model a request names, or one a refusal may fall back
+  to, joins `CLAUDE_MODEL_PRICES` and `CLAUDE_FALLBACK_MODELS` before it ships, which a test holds
+  every request's model to, with `bun run probe:claude` after, which holds the fallbacks to the
+  API's list and the allowance to what a search brings back
+- Daily caps bound what a member starts (`MAX_DAILY_…` in strategydance-core): conversations, runs
+  and subagents, in 24 hours, the member's in each organization, the account's across its
+  organizations and the organization's, counted on `CappedStart` rows, which hold their organization
+  as a plain id, so deleting it gets round nothing. Every mutation that starts one counts in its one
+  query step, the member's after the membership's lock, and inserts its row last: a conversation's
+  start, every run triggered `MESSAGE`, `ANSWER`, `RESUME`, `RETRY` or `REPORTS`, and a launch, never
+  a subagent's own runs. Its domain function reads the counts first (`readReachedUsageCap`), after
+  recognizing an action sent again, and a refusal of its mutation reads them again; a route answers
+  429 with the cap's code and `Retry-After` (`respondUsageCapped`). An answer's continuation, an
+  Allow's and a reaction pass a cap up to one and a half times it, then wait. A new way to start a
+  conversation, a run or a subagent counts and records it the same way. The development backend
+  lifts them (`IS_USAGE_CAPPED`, `USAGE_CAPPED=true` holding them there), through each mutation's
+  optional `$isUsageCapped`, which left out holds them, as the tests and the check scripts do: a
+  test or a check that builds past a cap lifts it in its fixtures
 - A turn `pause_turn` paused is held in memory until it ends, then stored as consecutive `ASSISTANT`
   entries, one write each, the first with the run's context message. A crash between two leaves
   the turn paused at its last stored part, which the ledger says, and the next worker sends its
@@ -989,7 +1014,8 @@ in `utils/`, one concern per file.
   emails' with it, so the two still agree
 - Every answer is the `ApiResponse` envelope from strategydance-core, and every refusal goes
   through `respondError` with an `ERROR_CODE_*` from there, so the web app reads one shape. It
-  calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`. A file goes up
+  calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`, carrying the
+  answer's `Retry-After` as `retryAfterMs`, which the backend's `cors` exposes. A file goes up
   through `uploadApiFile`, on `XMLHttpRequest`, since `fetch` tells nothing of a body on its way,
   and its bytes come back through `requestApiFile`: never an `<img>` pointed at the backend, which
   carries no token

@@ -202,6 +202,13 @@ mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(leve
 # `$attachmentIds` are the files the message sends, at most 10 (`MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`
 # in strategydance-core), which the backend always passes, empty for a message without files.
 # Optional, so a backend from before M25 still sends.
+#
+# It counts toward the daily caps (`MAX_DAILY_…` in strategydance-core) as a conversation and a run,
+# on the `CappedStart` rows it inserts last, and is refused at any cap the rows of the last 24 hours
+# reached: the member's in the organization, counted under the lock above, and the account's across
+# its organizations and the organization's, counted without one, which two starts at once can each
+# pass by one. `$isUsageCapped` false lifts the caps, which only the development backend sends; left
+# out, as a backend from before M35 leaves it, they hold
 mutation StartConversation(
   $organizationId: UUID!
   $userId: String!
@@ -216,6 +223,7 @@ mutation StartConversation(
   $aspects: [CompanyAspect!]
   $aspectsSetBy: ConversationActor
   $attachmentIds: [UUID!]
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -272,6 +280,90 @@ mutation StartConversation(
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberConversationsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: CONVERSATION }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 20
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 20"
+        message: "Somebody starts at most 20 conversations in 24 hours in an organization"
+      ) {
+      id
+    }
+    accountConversationsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        kind: { eq: CONVERSATION }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 40
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 40"
+        message: "An account starts at most 40 conversations in 24 hours across its organizations"
+      ) {
+      id
+    }
+    organizationConversationsToday: cappedStarts(
+      where: {
+        organizationId: { eq: $organizationId }
+        kind: { eq: CONVERSATION }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 100
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 100"
+        message: "An organization starts at most 100 conversations in 24 hours"
+      ) {
+      id
+    }
+    memberRunsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 100
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 100"
+        message: "Somebody starts at most 100 runs in 24 hours in an organization"
+      ) {
+      id
+    }
+    accountRunsToday: cappedStarts(
+      where: { userId: { eq: $userId }, kind: { eq: RUN }, createdAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+      limit: 200
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 200"
+        message: "An account starts at most 200 runs in 24 hours across its organizations"
+      ) {
+      id
+    }
+    organizationRunsToday: cappedStarts(
+      where: {
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 500
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 500"
+        message: "An organization starts at most 500 runs in 24 hours"
+      ) {
       id
     }
   }
@@ -336,6 +428,8 @@ mutation StartConversation(
       expr: "(!has(vars.attachmentIds) || vars.attachmentIds == null) ? this == 0 : this == size(vars.attachmentIds)"
       message: "The message's files changed since the send read them"
     )
+  conversationStart: cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: CONVERSATION })
+  runStart: cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: RUN })
 }
 
 # Sends a message to one of the caller's conversations and queues the run that answers it: the
@@ -349,6 +443,8 @@ mutation StartConversation(
 # `$attachmentIds` are the files the message sends, at most 10 (`MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`
 # in strategydance-core), which the backend always passes, empty for a message without files.
 # Optional, so a backend from before M25 still sends.
+#
+# It counts toward the daily caps as a run, and is refused at one, as `StartConversation` counts
 mutation SendConversationMessage(
   $organizationId: UUID!
   $userId: String!
@@ -364,6 +460,7 @@ mutation SendConversationMessage(
   $transcriptPosition: Int!
   $attachmentIds: [UUID!]
   $deliveredSubagentIds: [UUID!]
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -398,6 +495,47 @@ mutation SendConversationMessage(
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberRunsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 100
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 100"
+        message: "Somebody starts at most 100 runs in 24 hours in an organization"
+      ) {
+      id
+    }
+    accountRunsToday: cappedStarts(
+      where: { userId: { eq: $userId }, kind: { eq: RUN }, createdAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+      limit: 200
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 200"
+        message: "An account starts at most 200 runs in 24 hours across its organizations"
+      ) {
+      id
+    }
+    organizationRunsToday: cappedStarts(
+      where: {
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 500
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 500"
+        message: "An organization starts at most 500 runs in 24 hours"
+      ) {
       id
     }
   }
@@ -493,6 +631,7 @@ mutation SendConversationMessage(
       expr: "(!has(vars.deliveredSubagentIds) || vars.deliveredSubagentIds == null) ? this == 0 : this == size(vars.deliveredSubagentIds)"
       message: "The reports changed since the backend read them"
     )
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: RUN })
 }
 
 # Sends a message to one of the caller's conversations whose last turn left calls open, a question
@@ -511,6 +650,8 @@ mutation SendConversationMessage(
 # - the conversation waits for no answer any more
 #
 # Its files are associated as `SendConversationMessage`'s are
+#
+# It counts toward the daily caps as a run, and is refused at one, as `StartConversation` counts
 mutation SendConversationMessageAnsweringCalls(
   $organizationId: UUID!
   $userId: String!
@@ -533,6 +674,7 @@ mutation SendConversationMessageAnsweringCalls(
   $closedApprovalIds: [UUID!]
   $closedApprovalOutput: String
   $deliveredSubagentIds: [UUID!]
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -567,6 +709,47 @@ mutation SendConversationMessageAnsweringCalls(
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberRunsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 100
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 100"
+        message: "Somebody starts at most 100 runs in 24 hours in an organization"
+      ) {
+      id
+    }
+    accountRunsToday: cappedStarts(
+      where: { userId: { eq: $userId }, kind: { eq: RUN }, createdAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+      limit: 200
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 200"
+        message: "An account starts at most 200 runs in 24 hours across its organizations"
+      ) {
+      id
+    }
+    organizationRunsToday: cappedStarts(
+      where: {
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 500
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 500"
+        message: "An organization starts at most 500 runs in 24 hours"
+      ) {
       id
     }
   }
@@ -717,6 +900,7 @@ mutation SendConversationMessageAnsweringCalls(
       expr: "(!has(vars.deliveredSubagentIds) || vars.deliveredSubagentIds == null) ? this == 0 : this == size(vars.deliveredSubagentIds)"
       message: "The reports changed since the backend read them"
     )
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: RUN })
 }
 
 # Records the member's answer to a question of the turn their conversation waits on, and answers
@@ -902,6 +1086,10 @@ mutation AnswerConversationApproval(
 #   ends at once with the full note, which is how a question waiting there is still answered
 # - the run is inserted, queued with a twenty minutes' lease and anchored on the answers' entry,
 #   then the entry
+#
+# It counts toward the daily caps as a run, as `StartConversation` counts, but finishes work under way,
+# so it passes each cap, up to one and a half times it (`DAILY_CAP_OVERRUN_FACTOR` in
+# strategydance-core)
 mutation ContinueConversationRun(
   $organizationId: UUID!
   $userId: String!
@@ -913,6 +1101,7 @@ mutation ContinueConversationRun(
   $content: String!
   $transcriptPosition: Int!
   $deliveredSubagentIds: [UUID!]
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -959,6 +1148,47 @@ mutation ContinueConversationRun(
       }
       limit: 1
     ) @check(expr: "size(this) == 0", message: "A call the member allowed waits to run") {
+      id
+    }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberRunsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 150
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 150"
+        message: "Somebody starts at most 150 runs in 24 hours in an organization, finishing work under way"
+      ) {
+      id
+    }
+    accountRunsToday: cappedStarts(
+      where: { userId: { eq: $userId }, kind: { eq: RUN }, createdAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+      limit: 300
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 300"
+        message: "An account starts at most 300 runs in 24 hours across its organizations, finishing work under way"
+      ) {
+      id
+    }
+    organizationRunsToday: cappedStarts(
+      where: {
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 750
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 750"
+        message: "An organization starts at most 750 runs in 24 hours, finishing work under way"
+      ) {
       id
     }
   }
@@ -1027,6 +1257,7 @@ mutation ContinueConversationRun(
       expr: "(!has(vars.deliveredSubagentIds) || vars.deliveredSubagentIds == null) ? this == 0 : this == size(vars.deliveredSubagentIds)"
       message: "The reports changed since the backend read them"
     )
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: RUN })
 }
 
 # Carries a conversation on once every question and approval of the turn it waits on is answered,
@@ -1039,6 +1270,10 @@ mutation ContinueConversationRun(
 #
 # - the calls of the turn a stop or the run's time kept from running, which a resumed run would make,
 #   are answered as stopped, `$stoppedCallIds`, failed with `$stoppedCallOutput`, exactly those named
+#
+# It counts toward the daily caps as a run, as `StartConversation` counts, but finishes work under way,
+# so it passes each cap, up to one and a half times it (`DAILY_CAP_OVERRUN_FACTOR` in
+# strategydance-core)
 mutation ContinueConversationRunWithCalls(
   $organizationId: UUID!
   $userId: String!
@@ -1051,6 +1286,7 @@ mutation ContinueConversationRunWithCalls(
   $pendingToolResults: String
   $stoppedCallIds: [UUID!]!
   $stoppedCallOutput: String!
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -1084,6 +1320,47 @@ mutation ContinueConversationRunWithCalls(
       }
       limit: 1
     ) @check(expr: "size(this) == 0", message: "A question of the turn still waits") {
+      id
+    }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberRunsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 150
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 150"
+        message: "Somebody starts at most 150 runs in 24 hours in an organization, finishing work under way"
+      ) {
+      id
+    }
+    accountRunsToday: cappedStarts(
+      where: { userId: { eq: $userId }, kind: { eq: RUN }, createdAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+      limit: 300
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 300"
+        message: "An account starts at most 300 runs in 24 hours across its organizations, finishing work under way"
+      ) {
+      id
+    }
+    organizationRunsToday: cappedStarts(
+      where: {
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 750
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 750"
+        message: "An organization starts at most 750 runs in 24 hours, finishing work under way"
+      ) {
       id
     }
   }
@@ -1139,6 +1416,7 @@ mutation ContinueConversationRunWithCalls(
       leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
     }
   )
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: RUN })
 }
 
 # Finalizes a run that died with its worker, which a route finds past its lease: queued and never
@@ -1535,6 +1813,8 @@ mutation RequestConversationSubagentsStop(
 #
 # A resume sent again after its first try went through finds the conversation taken, and the
 # backend answers with the run it started
+#
+# It counts toward the daily caps as a run, and is refused at one, as `StartConversation` counts
 mutation ResumeConversationRun(
   $organizationId: UUID!
   $userId: String!
@@ -1551,6 +1831,7 @@ mutation ResumeConversationRun(
   $runId: UUID!
   $runNumber: Int!
   $pendingToolResults: String
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -1592,6 +1873,47 @@ mutation ResumeConversationRun(
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberRunsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 100
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 100"
+        message: "Somebody starts at most 100 runs in 24 hours in an organization"
+      ) {
+      id
+    }
+    accountRunsToday: cappedStarts(
+      where: { userId: { eq: $userId }, kind: { eq: RUN }, createdAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+      limit: 200
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 200"
+        message: "An account starts at most 200 runs in 24 hours across its organizations"
+      ) {
+      id
+    }
+    organizationRunsToday: cappedStarts(
+      where: {
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 500
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 500"
+        message: "An organization starts at most 500 runs in 24 hours"
+      ) {
       id
     }
   }
@@ -1637,6 +1959,7 @@ mutation ResumeConversationRun(
       leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
     }
   )
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: RUN })
 }
 
 # Retries a run that stopped, failed, was refused or died with its worker: the transcript is cut
@@ -1662,6 +1985,8 @@ mutation ResumeConversationRun(
 #
 # A retry sent again after its first try went through finds the conversation taken, and the backend
 # answers with the run it started
+#
+# It counts toward the daily caps as a run, and is refused at one, as `StartConversation` counts
 mutation RetryConversationRun(
   $organizationId: UUID!
   $userId: String!
@@ -1676,6 +2001,7 @@ mutation RetryConversationRun(
   $previewMessageId: UUID
   $runId: UUID!
   $runNumber: Int!
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -1714,6 +2040,47 @@ mutation RetryConversationRun(
       }
       limit: 3
     ) @check(expr: "size(this) < 3", message: "Somebody has at most 3 runs in flight in an organization") {
+      id
+    }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberRunsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 100
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 100"
+        message: "Somebody starts at most 100 runs in 24 hours in an organization"
+      ) {
+      id
+    }
+    accountRunsToday: cappedStarts(
+      where: { userId: { eq: $userId }, kind: { eq: RUN }, createdAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+      limit: 200
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 200"
+        message: "An account starts at most 200 runs in 24 hours across its organizations"
+      ) {
+      id
+    }
+    organizationRunsToday: cappedStarts(
+      where: {
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 500
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 500"
+        message: "An organization starts at most 500 runs in 24 hours"
+      ) {
       id
     }
   }
@@ -1786,6 +2153,7 @@ mutation RetryConversationRun(
     }
     data: { deletedAt_expr: "request.time" }
   )
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: RUN })
 }
 
 # Claims a queued run for the worker that runs it: `RUNNING`, a minute's lease, and one more
@@ -3328,6 +3696,9 @@ mutation InterruptConversationRun(
 #
 # `$userId` is the uid the backend verified. `$conversationId` is the subagent's, which its live
 # queries refresh on, and `$parentId` its parent's
+#
+# It counts toward the daily caps as a subagent, the member's 30 in the organization and the
+# account's 60 across its organizations, as `StartConversation` counts runs
 mutation LaunchSubagent(
   $organizationId: UUID!
   $userId: String!
@@ -3343,6 +3714,7 @@ mutation LaunchSubagent(
   $text: String!
   $content: String!
   $attachmentIds: [UUID!]!
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -3412,6 +3784,37 @@ mutation LaunchSubagent(
     ) @check(expr: "size(this) < 5", message: "Every one of the member's 5 subagent slots is taken") {
       id
     }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberSubagentsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: SUBAGENT }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 30
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 30"
+        message: "Somebody launches at most 30 subagents in 24 hours in an organization"
+      ) {
+      id
+    }
+    accountSubagentsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        kind: { eq: SUBAGENT }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 60
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 60"
+        message: "An account launches at most 60 subagents in 24 hours across its organizations"
+      ) {
+      id
+    }
   }
   conversation_insert(
     data: {
@@ -3456,6 +3859,7 @@ mutation LaunchSubagent(
   conversationTranscriptEntry_insert(
     data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: $content }
   )
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: SUBAGENT })
 }
 
 # Launches a subagent as `LaunchSubagent` does, when the member's five subagent slots in the
@@ -3464,6 +3868,9 @@ mutation LaunchSubagent(
 # promotion queues it (`PromoteSubagentRun`). The backend promotes right after, so a slot freed
 # between its read and this write goes to the oldest run waiting, this one or an older one: a
 # promotion that ran meanwhile could not see this run yet
+#
+# It counts toward the daily caps as a subagent, the member's 30 in the organization and the
+# account's 60 across its organizations, as `StartConversation` counts runs
 mutation LaunchPendingSubagent(
   $organizationId: UUID!
   $userId: String!
@@ -3479,6 +3886,7 @@ mutation LaunchPendingSubagent(
   $text: String!
   $content: String!
   $attachmentIds: [UUID!]!
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -3539,6 +3947,37 @@ mutation LaunchPendingSubagent(
       ) {
       id
     }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberSubagentsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: SUBAGENT }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 30
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 30"
+        message: "Somebody launches at most 30 subagents in 24 hours in an organization"
+      ) {
+      id
+    }
+    accountSubagentsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        kind: { eq: SUBAGENT }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 60
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 60"
+        message: "An account launches at most 60 subagents in 24 hours across its organizations"
+      ) {
+      id
+    }
   }
   conversation_insert(
     data: {
@@ -3582,6 +4021,7 @@ mutation LaunchPendingSubagent(
   conversationTranscriptEntry_insert(
     data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: $content }
   )
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: SUBAGENT })
 }
 
 # Draws text a subagent wrote, as `DrawConversationAgentText` draws a conversation's, but for the
@@ -4313,6 +4753,10 @@ mutation InterruptDeadSubagentRun(
 #
 # `$transcriptPosition` is the entry's, after the transcript's last, where the run is anchored.
 # `$userId` is the uid the backend verified. `$conversationId` is the parent's
+#
+# It counts toward the daily caps as a run, as `StartConversation` counts, but finishes work under way,
+# so it passes each cap, up to one and a half times it (`DAILY_CAP_OVERRUN_FACTOR` in
+# strategydance-core)
 mutation StartSubagentReaction(
   $organizationId: UUID!
   $userId: String!
@@ -4323,6 +4767,7 @@ mutation StartSubagentReaction(
   $content: String!
   $transcriptPosition: Int!
   $subagentIds: [UUID!]!
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -4377,6 +4822,47 @@ mutation StartSubagentReaction(
       number
         @check(expr: "this == vars.runNumber - 1", message: "A conversation reacts only once its latest run completed")
     }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberRunsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 150
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 150"
+        message: "Somebody starts at most 150 runs in 24 hours in an organization, finishing work under way"
+      ) {
+      id
+    }
+    accountRunsToday: cappedStarts(
+      where: { userId: { eq: $userId }, kind: { eq: RUN }, createdAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+      limit: 300
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 300"
+        message: "An account starts at most 300 runs in 24 hours across its organizations, finishing work under way"
+      ) {
+      id
+    }
+    organizationRunsToday: cappedStarts(
+      where: {
+        organizationId: { eq: $organizationId }
+        kind: { eq: RUN }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 750
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 750"
+        message: "An organization starts at most 750 runs in 24 hours, finishing work under way"
+      ) {
+      id
+    }
   }
   conversationRun_insert(
     data: {
@@ -4411,6 +4897,7 @@ mutation StartSubagentReaction(
     }
     data: { reportDeliveredAt_expr: "request.time" }
   ) @check(expr: "this == size(vars.subagentIds)", message: "The reports changed since the reaction read them")
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: RUN })
 }
 
 # Marks the reports of a full parent's subagents delivered with no run, exactly `$subagentIds`, since
@@ -4570,6 +5057,13 @@ mutation RecordConversationSearch($organizationId: UUID!, $userId: String!) @aut
 # reads any more. Deleting them twice deletes nothing, so a sweep that failed is finished by the next
 mutation DeleteExpiredConversationSearches @auth(level: NO_ACCESS) {
   conversationSearch_deleteMany(where: { createdAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}
+
+# The daily sweep's: deletes the starts the daily caps counted over a day ago, whoever made them and
+# whatever became of their organization, which no count reads any more. Deleting them twice deletes
+# nothing, so a sweep that failed is finished by the next
+mutation DeleteExpiredCappedStarts @auth(level: NO_ACCESS) {
+  cappedStart_deleteMany(where: { createdAt: { lt_time: { now: true, sub: { days: 1 } } } })
 }
 
 # Reserves the place of a file the caller uploads to a conversation, before any of its bytes is
@@ -5894,6 +6388,9 @@ mutation DateDoneTask($id: UUID!, $doneAt: Timestamp!) @auth(level: NO_ACCESS) {
 # parent that committed first refuses it. The subagent's id derives from the parent's and the key,
 # so a launch called again finds both taken, and the module answers with what the key keeps.
 # `$launchToolUseId` is the call's key, Claude's id for it, null for a call without one
+#
+# It counts toward the daily caps as a subagent, the member's 30 in the organization and the
+# account's 60 across its organizations, as `StartConversation` counts runs
 mutation LaunchSubagentForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -5916,6 +6413,7 @@ mutation LaunchSubagentForAgent(
   $argumentsHash: String!
   $result: String!
   $expiresAt: Timestamp
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -6018,6 +6516,37 @@ mutation LaunchSubagentForAgent(
     ) @check(expr: "size(this) < 5", message: "Every one of the member's 5 subagent slots is taken") {
       id
     }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberSubagentsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: SUBAGENT }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 30
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 30"
+        message: "Somebody launches at most 30 subagents in 24 hours in an organization"
+      ) {
+      id
+    }
+    accountSubagentsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        kind: { eq: SUBAGENT }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 60
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 60"
+        message: "An account launches at most 60 subagents in 24 hours across its organizations"
+      ) {
+      id
+    }
   }
   conversation_insert(
     data: {
@@ -6062,11 +6591,15 @@ mutation LaunchSubagentForAgent(
   conversationTranscriptEntry_insert(
     data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: $content }
   )
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: SUBAGENT })
 }
 
 # Launches a subagent as `LaunchSubagentForAgent` does, when the member's five subagent slots in the
 # organization were taken as the launch read them, its first run `PENDING`, as
 # `LaunchPendingSubagent` inserts it, and the backend promotes right after
+#
+# It counts toward the daily caps as a subagent, the member's 30 in the organization and the
+# account's 60 across its organizations, as `StartConversation` counts runs
 mutation LaunchPendingSubagentForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -6089,6 +6622,7 @@ mutation LaunchPendingSubagentForAgent(
   $argumentsHash: String!
   $result: String!
   $expiresAt: Timestamp
+  $isUsageCapped: Boolean
 ) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -6182,6 +6716,37 @@ mutation LaunchPendingSubagentForAgent(
       ) {
       id
     }
+    # The daily caps, over the 24 hours before now: the member's under the lock above, the account's
+    # and the organization's without one. Lifted when `$isUsageCapped` is false
+    memberSubagentsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        kind: { eq: SUBAGENT }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 30
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 30"
+        message: "Somebody launches at most 30 subagents in 24 hours in an organization"
+      ) {
+      id
+    }
+    accountSubagentsToday: cappedStarts(
+      where: {
+        userId: { eq: $userId }
+        kind: { eq: SUBAGENT }
+        createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 60
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 60"
+        message: "An account launches at most 60 subagents in 24 hours across its organizations"
+      ) {
+      id
+    }
   }
   conversation_insert(
     data: {
@@ -6225,6 +6790,7 @@ mutation LaunchPendingSubagentForAgent(
   conversationTranscriptEntry_insert(
     data: { conversationId: $conversationId, runId: $runId, position: 0, role: USER, content: $content }
   )
+  cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: SUBAGENT })
 }
 
 # Asks a subagent's run to stop, for the Subagents module's `stop_subagent`, as its row's Stop will:

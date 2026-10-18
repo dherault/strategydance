@@ -309,6 +309,8 @@ async function startParent({ isIdle = true } = {}): Promise<Parent> {
     content: JSON.stringify([{ type: 'text', text: 'Checked message' }]),
     aspects: [CompanyAspect.FINANCES],
     aspectsSetBy: ConversationActor.MEMBER,
+    // The checks start more than the daily caps let a member start, which their own checks hold
+    isUsageCapped: false,
   })
 
   if (!isIdle) return parent
@@ -345,6 +347,7 @@ function launchVariables(parent: Parent, overrides: Partial<LaunchSubagentVariab
       text: 'Compare the pricing pages',
       content: JSON.stringify([{ type: 'text', text: 'Compare the pricing pages' }]),
       attachmentIds: [],
+      isUsageCapped: false,
       ...overrides,
     } satisfies LaunchSubagentVariables,
   }
@@ -2116,6 +2119,32 @@ async function checkLaunchOrders() {
   await settleSubagentRuns()
 }
 
+/*
+  The daily cap on launches, the member's 30 in the organization, which every launch's mutation counts
+  unless the caps are lifted, as the checks above lift them, and a lift left null holds. The
+  account's 60 is counted as `check:conversation-runs` checks the account's runs. Checked last, since
+  the starts it inserts count against the author
+*/
+async function checkDailyLaunches() {
+  const parent = await startParent()
+  const rows = Array.from({ length: 30 }, () => ({ userId: userIds.author, organizationId, kind: 'SUBAGENT' }))
+
+  // With what the checks above launched besides, the author's count here is past 30
+  await write(
+    `mutation SeedStarts($rows: [CappedStart_Data!]!) {
+      cappedStart_insertMany(data: $rows)
+    }`,
+    { rows },
+  )
+
+  check(
+    'a launch past the member’s 30 subagents in 24 hours is refused, a lift left null holding',
+    (await refusal(launchSubagent(dataConnect, launchVariables(parent, { isUsageCapped: null }).variables)))?.includes(
+      'Somebody launches at most 30 subagents in 24 hours in an organization',
+    ) ?? false,
+  )
+}
+
 try {
   await setUp()
   await checkLaunching()
@@ -2139,6 +2168,7 @@ try {
   await checkReactions()
   await checkCascades()
   await checkLaunchOrders()
+  await checkDailyLaunches()
 } finally {
   await tearDown()
 }

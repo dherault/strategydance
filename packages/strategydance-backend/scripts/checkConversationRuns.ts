@@ -42,6 +42,7 @@ import {
   getConversationTranscript,
   getConversationSendContext,
   getConversationTurnContext,
+  getCappedStarts,
   interruptConversationRun,
   interruptDeadConversationRun,
   reclaimConversationRun,
@@ -123,6 +124,10 @@ const userIds = {
   tagger: `check-conversation-runs-${checkId}-tagger`,
   integrator: `check-conversation-runs-${checkId}-integrator`,
   approver: `check-conversation-runs-${checkId}-approver`,
+  capper: `check-conversation-runs-${checkId}-capper`,
+  traveler: `check-conversation-runs-${checkId}-traveler`,
+  organizer: `check-conversation-runs-${checkId}-organizer`,
+  teammate: `check-conversation-runs-${checkId}-teammate`,
 }
 
 const failures: string[] = []
@@ -2945,6 +2950,135 @@ function readMutationSteps(path: string) {
   membership after a run or a conversation's row, nor a run that goes after its own conversation's
   row, nor a parent's subagents' runs after their rows, so no two of them wait on each other's lock
 */
+// Inserts starts the daily caps count, as the mutations that start them insert theirs, in batches of
+// 100, the most one insert takes, in an organization that need not exist, as one deleted since
+async function seedStarts(
+  userId: string,
+  kind: 'CONVERSATION' | 'RUN' | 'SUBAGENT',
+  count: number,
+  { organization = organizationId, hoursAgo = 0 } = {},
+) {
+  const createdAt = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString()
+  const rows = Array.from({ length: count }, () => ({ userId, organizationId: organization, kind, createdAt }))
+
+  for (let index = 0; index < rows.length; index += 100) {
+    await write(
+      `mutation SeedStarts($rows: [CappedStart_Data!]!) {
+        cappedStart_insertMany(data: $rows)
+      }`,
+      { rows: rows.slice(index, index + 100) },
+    )
+  }
+}
+
+// A message sent to a conversation whose run ended, as the backend sends it
+async function sendTo(started: Started, position: number, runNumber: number, overrides: Variables = {}) {
+  return sendConversationMessage(dataConnect, {
+    organizationId,
+    userId: started.userId,
+    conversationId: started.conversationId,
+    membershipCreatedAt: started.membershipCreatedAt,
+    messageId: createId(),
+    text: 'Capped',
+    preview: { kind: 'MEMBER_TEXT', text: 'Capped' },
+    position,
+    runId: createId(),
+    runNumber,
+    content: '[]',
+    transcriptPosition: 1,
+    ...overrides,
+  })
+}
+
+/*
+  The daily caps, which every mutation that starts a conversation, a run or a subagent counts on the
+  `CappedStart` rows of the 24 hours before it: the member's under the membership's lock, so two
+  sends at once cannot both take the last place, and the account's and the organization's without
+  one. Checked last, since the organization's rows it inserts would refuse every start after it
+*/
+async function checkDailyCaps() {
+  const capperCreatedAt = await readMembershipCreatedAt(userIds.capper)
+  const first = await start(userIds.capper, capperCreatedAt)
+  const counted = await getCappedStarts(dataConnect, { organizationId, userId: userIds.capper })
+
+  check(
+    'a conversation started counts a conversation and a run, both inserted by the one mutation',
+    counted.data.memberConversations.length === 1 && counted.data.memberRuns.length === 1,
+  )
+
+  await seedStarts(userIds.capper, 'RUN', 1, { hoursAgo: 25 })
+
+  check(
+    'a start over 24 hours old counts no more',
+    (await getCappedStarts(dataConnect, { organizationId, userId: userIds.capper })).data.memberRuns.length === 1,
+  )
+
+  const second = await start(userIds.capper, capperCreatedAt)
+
+  await complete(first)
+  await complete(second)
+  // 97 more, with the two runs started, leave one place of the member's 100
+  await seedStarts(userIds.capper, 'RUN', 97)
+
+  const outcomes = await Promise.all([first, second].map(started => refusal(sendTo(started, 1, 1))))
+
+  check(
+    'two sends at once at the member’s cap on runs let exactly one through',
+    outcomes.filter(o => o === null).length === 1,
+  )
+  check(
+    'the other is refused by the member’s cap',
+    outcomes.some(outcome => outcome?.includes('Somebody starts at most 100 runs in 24 hours in an organization')),
+  )
+
+  const sent = outcomes[0] === null ? first : second
+  const refused = sent === first ? second : first
+  const newest = (await getCappedStarts(dataConnect, { organizationId, userId: userIds.capper })).data.memberRuns
+
+  check(
+    'the counts read the newest starts first',
+    newest.length === 100 && newest.every((row, index) => index === 0 || newest[index - 1]!.createdAt >= row.createdAt),
+  )
+  check(
+    'a send the caps are lifted for, as the development backend sends it, goes through at the cap',
+    (await refusal(sendTo(refused, 1, 1, { isUsageCapped: false }))) === null,
+  )
+
+  // An account at its 200 across organizations, those of an organization deleted since counted
+  const travelerCreatedAt = await readMembershipCreatedAt(userIds.traveler)
+  const traveler = await start(userIds.traveler, travelerCreatedAt)
+
+  await complete(traveler)
+  await seedStarts(userIds.traveler, 'RUN', 199, { organization: createId() })
+
+  check(
+    'the account’s 200 runs across its organizations refuse a send in another',
+    await isRefused(sendTo(traveler, 1, 1), 'An account starts at most 200 runs in 24 hours across its organizations'),
+  )
+
+  // An organization at its 500, the member's own count low
+  const organizerCreatedAt = await readMembershipCreatedAt(userIds.organizer)
+  const organizer = await start(userIds.organizer, organizerCreatedAt)
+
+  await complete(organizer)
+  await seedStarts(userIds.teammate, 'RUN', 500)
+
+  check(
+    'the organization’s 500 runs refuse a send of a member who started one',
+    await isRefused(sendTo(organizer, 1, 1), 'An organization starts at most 500 runs in 24 hours'),
+  )
+  check(
+    'the organization’s 100 conversations refuse a start',
+    await isRefused(
+      (async () => {
+        await seedStarts(userIds.teammate, 'CONVERSATION', 100)
+        await start(userIds.organizer, organizerCreatedAt)
+      })(),
+      'An organization starts at most 100 conversations in 24 hours',
+    ),
+  )
+}
+
 function checkLockOrder() {
   const connectors = ['strategydance-backend-connector', 'strategydance-web-connector'].map(connector =>
     readMutationSteps(new URL(`../../strategydance-database/${connector}/mutations.gql`, import.meta.url).pathname),
@@ -3020,6 +3154,7 @@ try {
   await checkTagging()
   await checkIntegrationCalls()
   await checkApprovals()
+  await checkDailyCaps()
 } finally {
   await tearDown()
 }

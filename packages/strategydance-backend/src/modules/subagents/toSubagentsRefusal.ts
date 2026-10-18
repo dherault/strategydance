@@ -34,6 +34,8 @@ function toSentence(refusal: SubagentsRefusal) {
       return `A run launches at most ${MAX_SUBAGENTS_PER_ACTION} subagents for one message of the member's. Do the rest of the work yourself.`
     case 'tooMany':
       return `This conversation holds ${MAX_CONVERSATION_SUBAGENTS} subagents, the most it keeps. Do the work yourself, or tell the member, who can start a new conversation.`
+    case 'tooManyToday':
+      return `${refusal.cap.scope === 'account' ? `The member launched ${refusal.cap.max} subagents across their organizations` : `The member launched ${refusal.cap.max} subagents in this organization`} in the last 24 hours, the most they may. They can launch again in ${toWait(refusal.cap.retryAfterMs)}: do the work yourself meanwhile.`
     case 'attachmentsInvalid':
       return "A subagent is handed only files this conversation has sent, by the ids the member's messages name them with. Leave the others out, and put what the subagent needs of them in its brief."
     case 'overBudget':
@@ -47,6 +49,17 @@ function toSentence(refusal: SubagentsRefusal) {
     case 'invalidCursor':
       return 'That cursor was not given by this tool. Leave it out to read from the start.'
   }
+}
+
+// How long until a cap has room again, in words, rounded up: minutes within an hour, hours past it
+function toWait(retryAfterMs: number) {
+  const minutes = Math.max(1, Math.ceil(retryAfterMs / 60_000))
+
+  if (minutes < 60) return minutes === 1 ? 'a minute' : `${minutes} minutes`
+
+  const hours = Math.ceil(minutes / 60)
+
+  return hours === 1 ? 'an hour' : `about ${hours} hours`
 }
 
 export default toSubagentsRefusal

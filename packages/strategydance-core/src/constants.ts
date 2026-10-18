@@ -176,6 +176,18 @@ export const ERROR_CODE_INTEGRATION_CONNECTION_EXPIRED = 'INTEGRATION_CONNECTION
 
 export const ERROR_CODE_TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS' // 429
 
+/*
+  A 429 for each daily cap a start of conversations reaches, set apart so the reader is told which
+  and whose: the member's in this organization, the account's across its organizations, or the
+  organization's. Answered with a `Retry-After`, the seconds until the cap has room again
+*/
+export const ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED = 'MEMBER_DAILY_CONVERSATIONS_REACHED' // 429
+export const ERROR_CODE_ACCOUNT_DAILY_CONVERSATIONS_REACHED = 'ACCOUNT_DAILY_CONVERSATIONS_REACHED' // 429
+export const ERROR_CODE_ORGANIZATION_DAILY_CONVERSATIONS_REACHED = 'ORGANIZATION_DAILY_CONVERSATIONS_REACHED' // 429
+export const ERROR_CODE_MEMBER_DAILY_RUNS_REACHED = 'MEMBER_DAILY_RUNS_REACHED' // 429
+export const ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED = 'ACCOUNT_DAILY_RUNS_REACHED' // 429
+export const ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED = 'ORGANIZATION_DAILY_RUNS_REACHED' // 429
+
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500
 
 // The server cannot take the request now, and the same request later can succeed, so the reader
@@ -421,6 +433,28 @@ export const ARE_CONVERSATIONS_STAFF_ONLY: boolean = true
 */
 export const MAX_CONVERSATIONS = 1000
 export const MAX_ACTIVE_RUNS_PER_MEMBER = 3
+
+/*
+  How many conversations, runs and subagents may start in 24 hours, counted over the 24 hours before
+  each start rather than a calendar day: per member in each organization, per account across every
+  organization it is in, since an account makes organizations at will, and per organization. They
+  guard spend until a credit system replaces them, staff's included. Starting a conversation, a send,
+  Resume, Retry and a launch are refused at a cap; what finishes work under way, an answer's
+  continuation, an Allow's and a reaction to subagents' reports, passes a cap, up to
+  `DAILY_CAP_OVERRUN_FACTOR` times it. A subagent's own runs count toward no run cap: the subagents
+  launched bound them. Every mutation that starts one counts on `CappedStart` rows and writes these
+  out: change them together
+*/
+export const MAX_DAILY_CONVERSATIONS_PER_MEMBER = 20
+export const MAX_DAILY_CONVERSATIONS_PER_ACCOUNT = 40
+export const MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION = 100
+export const MAX_DAILY_RUNS_PER_MEMBER = 100
+export const MAX_DAILY_RUNS_PER_ACCOUNT = 200
+export const MAX_DAILY_RUNS_PER_ORGANIZATION = 500
+export const MAX_DAILY_SUBAGENTS_PER_MEMBER = 30
+export const MAX_DAILY_SUBAGENTS_PER_ACCOUNT = 60
+export const DAILY_CAP_OVERRUN_FACTOR = 1.5
+export const DAILY_CAP_WINDOW_HOURS = 24
 
 /*
   How many entries a conversation holds, which bounds what it stores and the history a reader pages

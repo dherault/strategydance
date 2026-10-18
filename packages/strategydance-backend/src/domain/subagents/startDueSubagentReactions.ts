@@ -58,9 +58,11 @@ async function startDueSubagentReactions(
 
       if (reaction.outcome === 'started' || reaction.outcome === 'unavailable') started++
       // The member's runs taken, or past one and a half times a daily cap, hold back every other too,
-      // and a suspension holds back every other even on the sweep
+      // and a suspension holds back every other even on the sweep. A reaction stored whose task could
+      // not be queued holds one of the member's runs as one queued does, and is queued again by a
+      // reconcile, so a run's end starts no other beside it
       if (reaction.outcome === 'suspended') break
-      if (!isThorough && ['started', 'busy', 'capped'].includes(reaction.outcome)) break
+      if (!isThorough && ['started', 'unavailable', 'busy', 'capped'].includes(reaction.outcome)) break
     } catch (error) {
       logger.warn(`Conversation ${conversationId}: its reaction to its subagents' reports could not start`, error)
     }

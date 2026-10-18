@@ -31,7 +31,7 @@ export type SubagentReaction =
   // A reaction's run started, or was, on the reports due, queued on `conversation-runs`
   | { outcome: 'started'; runId: string }
   // The reaction's run is stored, but could not be queued: its lease is brought in, and its parent's
-  // page or the sweep queues it again
+  // page or the worker's reconcile queues it again
   | { outcome: 'unavailable'; runId: string }
   // The member's 3 runs in flight are taken: the reports wait for the next of their runs to end, a
   // reconcile, the sweep, or the member's next message
@@ -69,6 +69,8 @@ export type SubagentReaction =
     and a half times each, and past that nothing starts either
   - a write refused anyway, because a send, an answer, another subagent's end or a report delivered
     got there in between, starts another round, which finds the parent busy or the reports delivered
+  - a write that went through though its answer was lost starts another round too, which finds the
+    parent held by the run that round started, and queues it
 
   Reached from a subagent's end, a parent's run ending, any run of the member's ending, the subagents'
   reconcile route and the daily sweep
@@ -77,6 +79,9 @@ async function reactToSubagentReports(parent: Omit<ConversationRunReference, 'ru
   const { organizationId, userId } = parent
   const conversationId = toCanonicalUuid(parent.conversationId)
   const member = { organizationId, userId }
+  // The run a round started, which a write whose answer was lost may have stored: only this call
+  // knows to queue it, since the reports it carries were marked delivered with it
+  let startedRunId: string | null = null
 
   for (let round = 1; ; round++) {
     const { data } = await getSubagentReactionContext(dataConnect, { organizationId, userId, conversationId })
@@ -91,6 +96,10 @@ async function reactToSubagentReports(parent: Omit<ConversationRunReference, 'ru
       || conversation.parentId
     ) {
       return { outcome: 'missing' }
+    }
+
+    if (startedRunId && conversation.activeRunId && toCanonicalUuid(conversation.activeRunId) === startedRunId) {
+      return queueReaction({ ...parent, conversationId, runId: startedRunId })
     }
 
     if (data.user?.conversationsSuspendedAt || data.organization?.conversationsSuspendedAt) {
@@ -142,6 +151,8 @@ async function reactToSubagentReports(parent: Omit<ConversationRunReference, 'ru
       const blocks = await readSubagentReportBlocks({ ...member, membershipCreatedAt: membership.createdAt }, due)
       const runId = randomUUID().replaceAll('-', '')
 
+      startedRunId = runId
+
       await startSubagentReaction(dataConnect, {
         organizationId,
         userId,
@@ -155,15 +166,21 @@ async function reactToSubagentReports(parent: Omit<ConversationRunReference, 'ru
         isUsageCapped: IS_USAGE_CAPPED,
       })
 
-      if (!(await enqueueRun({ ...parent, conversationId, runId }, 'conversation-runs'))) {
-        return { outcome: 'unavailable', runId }
-      }
-
-      return { outcome: 'started', runId }
+      return await queueReaction({ ...parent, conversationId, runId })
     } catch (error) {
       if (round >= MAX_ROUNDS) throw error
     }
   }
+}
+
+// Queues a reaction's run, stored and holding its parent: started, or unavailable when its task
+// could not be queued, its lease then brought in so a reconcile queues it again
+async function queueReaction(reference: ConversationRunReference): Promise<SubagentReaction> {
+  const { runId } = reference
+
+  return (await enqueueRun(reference, 'conversation-runs'))
+    ? { outcome: 'started', runId }
+    : { outcome: 'unavailable', runId }
 }
 
 export default reactToSubagentReports

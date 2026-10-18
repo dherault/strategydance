@@ -67,6 +67,18 @@ export const ERROR_CODE_UNAUTHORIZED_APP_CHECK = 'UNAUTHORIZED_APP_CHECK' // 401
 
 export const ERROR_CODE_FORBIDDEN = 'FORBIDDEN' // 403
 
+/*
+  A 403 for a member whose ID token says their address is not confirmed yet, who starts or
+  continues no run until it is: an account costs nothing to make, and a password sign-up can name
+  any address nobody has claimed, so the daily caps' allowance is an address its owner confirmed.
+  Confirming it, then minting a new token, is the reader's way on
+*/
+export const ERROR_CODE_EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED' // 403
+
+// A 403 for an account, or a member of an organization, whose conversations Strategy Dance's staff
+// suspended: nothing the reader does lifts it, only writing to Strategy Dance
+export const ERROR_CODE_CONVERSATIONS_SUSPENDED = 'CONVERSATIONS_SUSPENDED' // 403
+
 export const ERROR_CODE_NOT_FOUND = 'NOT_FOUND' // 404
 
 export const ERROR_CODE_CONFLICT = 'CONFLICT' // 409

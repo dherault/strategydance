@@ -10,8 +10,7 @@ import navigationMessages from '~data/intl/messages/navigation'
 
 /*
   The sidebar's way to the reader's conversations, with a count of those where a question waits
-  for their answer. Its own component, so that only a reader who may have conversations reads the
-  count at all
+  for their answer. Its own component, so the count's live read redraws the link alone
 */
 function ConversationsNavigationLink() {
   const { formatMessage } = useIntl()

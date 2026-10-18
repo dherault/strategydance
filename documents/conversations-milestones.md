@@ -21,7 +21,7 @@ merges, write its pull request number in the table below.
   its data, waiters keyed on the organization's id, no `useMemo` or `useCallback`.
 - Backend files: `routes/conversations.ts` (mounted at
   `/organizations/:organizationId/conversations` with `mergeParams`), `routes/internal.ts` (mounted
-  by the worker service only), `middleware/organizationMember.ts`, `middleware/staffOnly.ts`,
+  by the worker service only), `middleware/organizationMember.ts`,
   `middleware/conversationSearchRateLimit.ts`, `domain/conversations/`, `domain/agent/`; for the
   modules, `modules/` (one folder per module), `domain/knowledge/`, `domain/tasks/`, `domain/subagents/`,
   `routes/oauth.ts` (mounted at `/oauth`), `routes/modules.ts` (mounted at `/mcp`), `domain/oauth/`
@@ -89,7 +89,7 @@ nothing, rather than leave the daily sweep their only recovery.
 | M35 | Usage caps | core, database, backend, web, root | M33 | #207 |
 | M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
 | M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | #210 |
-| M38 | Launch | all | all | |
+| M38 | Launch | all | all | #211 |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 
@@ -2957,3 +2957,45 @@ and Risks). It removes no gate: M38 does.
   not staff: a conversation, a fan-out, an integration call, and an external agent connected through
   `check:oauth`'s flow; then the same in production once released. Before merging, everything M37
   left for David is decided.
+- Built with these settled, on 2026-10-18:
+  - **The reads only the gates made went too**, as David chose over keeping them with nothing
+    calling them: `GetUserStaffStatus`, and the account's `isAdministrator` in
+    `GetConversationRunContext` and `GetAgentConnectionAccessToken`. Data Connect calls removing an
+    operation or a required field a breaking connector change, so the release stops at Deploy Data
+    Connect: David runs `bun run deploy:database`, acknowledges the three removals, then runs the
+    deploy of `main`'s tip again.
+  - **Every bouncer went, not only the conversations'**: the Integrations page's, Connected agents'
+    and the consent page's, whose notice that connecting agents was not available yet went with its
+    two messages, since nothing answers the request's read with 403 any more; and the staff checks
+    on the dock, the sidebar, the Connected agents tab, a module's agents button, a task's
+    delegation and the reads behind the last two. The conversations' layout route was deleted
+    rather than left a bare outlet, as knowledge has none, and the route tree generated again.
+  - **The worker's role check stood in two places**, the claim and the check before each step,
+    `isAuthorStill`, which now matches the membership alone.
+  - **The tests that pinned a gate** went with the middlewares, and every caller is a member nobody
+    made staff: the fakes hold no staff role any more, the run of an author who lost the role and the
+    verifier's lost role went, the verifier's refusal that marks nothing used is an expiry, the
+    consent read's metering is checked on an unknown request, and `check:oauth` grants nobody the
+    role.
+  - **`CLAUDE.md` gathers conversations' conventions** in a section of their own, as David chose over
+    adding only what was missing: the bullets of The database, Routing and Backend conventions moved
+    as they were written, under The data, The backend and The page, then A run, The transcript and A
+    new tool added from this document.
+  - **What M37 left for David**, read on 2026-10-18 before this merges: the rate limit headers of a
+    one-token request still say the Evaluation tier, 80,000 output tokens a minute on Opus 5.5, so
+    the Start tier has not landed; `/legal` still says Coming soon; and the workspace's spend limit
+    and the budget alert are his to confirm in their consoles.
+  - Verified: the four checks; `check:conversation-runs`, `check:subagent-runs`,
+    `check:subagents-module` and `check:integrations` against an emulator of the branch's schema,
+    every check passing; and `check:oauth` against a worktree backend on it, the whole flow and both
+    modules' endpoints, as an account nobody made staff. In a browser against them, the backend
+    started with `USAGE_CAPPED=true` and `EMAIL_VERIFICATION_REQUIRED=true`, as a password account
+    with a confirmed address, never granted the role, administering its own organization, at 1280
+    and 390 wide: the sidebar's Conversations and Integrations, and no Administration; the
+    conversations' list; the Integrations page with DeepWiki added by its address through the
+    backend; Account's Connected agents; the agents buttons on Knowledge and the board; a task's
+    Delegate; and the consent page of an external agent's request, Allow offered. On the real model,
+    with `ask_wiki_question` let run without approval: a conversation started from the dock, whose
+    agent listed the integrations and launched two subagents, each of which read the tool and called
+    DeepWiki, `call_integration_tool` succeeding, and the parent's reaction gathering both reports,
+    $0.37 by the ledger.

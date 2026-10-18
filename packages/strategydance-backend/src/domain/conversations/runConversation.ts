@@ -44,7 +44,6 @@ import {
   CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
   CONVERSATION_RUN_STREAM_DEADLINE_MS,
   CONVERSATION_TOOL_CALL_TIMEOUT_MS,
-  IS_CONVERSATIONS_RELEASE_GATED,
 } from '~constants'
 
 import { dataConnect } from '~firebase'
@@ -133,8 +132,8 @@ type ConversationRunContext = GetConversationRunContextData
   or this one gave up on it, whose lease then lapses.
 
   It first claims the run, if it is queued or its worker stopped renewing its lease, and only for
-  its author as the member it was queued under, and still staff while conversations are: anybody
-  else's run ends interrupted, with its note, so nothing is left for a later delivery. It connects
+  its author as the member it was queued under, their conversations suspended neither for their
+  account nor in the organization: anybody else's run ends interrupted, with its note, so nothing is left for a later delivery. It connects
   to the modules its agent uses, as that member, whose tools its requests send after the agent's
   own. Then it takes one step at a time, each read afresh, so a worker taking over after a crash
   carries on where the last one stopped:
@@ -978,9 +977,8 @@ function describeAuthorChange(context: ConversationRunContext, membershipCreated
   if (context.userOrganization.createdAt !== membershipCreatedAt)
     return 'Its author was invited back since it was queued'
   if (context.user?.conversationsSuspendedAt) return 'Its author’s conversations are suspended'
-  if (context.organization?.conversationsSuspendedAt) return 'Its organization’s conversations are suspended'
 
-  return 'Its author is no longer staff'
+  return 'Its organization’s conversations are suspended'
 }
 
 /*
@@ -997,13 +995,9 @@ function isClaimable(context: ConversationRunContext, membershipCreatedAt: strin
   )
 }
 
-// Whether the run's author is still the member it was queued under, and still staff while
-// conversations are open to staff alone here
+// Whether the run's author is still the member it was queued under
 function isAuthorStill(context: ConversationRunContext, membershipCreatedAt: string) {
-  return (
-    context.userOrganization?.createdAt === membershipCreatedAt
-    && (!IS_CONVERSATIONS_RELEASE_GATED || context.user?.isAdministrator === true)
-  )
+  return context.userOrganization?.createdAt === membershipCreatedAt
 }
 
 export default runConversation

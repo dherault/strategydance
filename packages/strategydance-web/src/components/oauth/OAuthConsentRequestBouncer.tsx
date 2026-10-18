@@ -20,8 +20,8 @@ type Props = PropsWithChildren<{
 /*
   Lets the consent page show a request it read, and says why there is none otherwise: an address
   naming no request, or one unknown, decided or expired, alike, since an agent's link is all the
-  member followed; an agent that could not be verified; a reader the backend turned away; or a read
-  that failed, with a way to try again
+  member followed; an agent that could not be verified; or a read that failed, with a way to try
+  again
 */
 function OAuthConsentRequestBouncer({ requestId, children }: Props) {
   const { formatMessage } = useIntl()

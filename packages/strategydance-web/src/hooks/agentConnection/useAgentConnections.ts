@@ -6,7 +6,6 @@ import type { AgentConnection, DataSource } from '~types'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useLiveQuerySubscription from '~hooks/common/useLiveQuerySubscription'
-import useCanUseModules from '~hooks/module/useCanUseModules'
 
 import { dataConnect } from '~data/firebase'
 
@@ -23,17 +22,15 @@ const EMPTY_CONNECTIONS: AgentConnection[] = []
   regains focus. `useQuery` is called directly rather than through the generated hook, as
   `useOrganizationTeam` explains.
 
-  Nothing is read for a reader who may not connect agents, whom the tab is not offered to. A first
-  read that fails is not an empty list: `hasFailed` says so. It does not retry on mount, since with
+  A first read that fails is not an empty list: `hasFailed` says so. It does not retry on mount, since with
   nothing cached a retry resets the query to pending, the waiter unmounts the tab, and the tab's
   return would retry again, forever
 */
 function useAgentConnections(): DataSource<AgentConnection[]> & { hasFailed: boolean } {
   const { data: viewer } = useAuthentication()
-  const canUseModules = useCanUseModules()
 
   const viewerId = viewer?.uid ?? null
-  const isEnabled = Boolean(viewerId) && canUseModules
+  const isEnabled = Boolean(viewerId)
 
   const { data, isPending, isFetching, isError, refetch } = useQuery<GetAgentConnectionsData>({
     queryKey: ['GetAgentConnections', viewerId],

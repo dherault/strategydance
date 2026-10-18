@@ -56,14 +56,6 @@ query GetOrganizationMembership($organizationId: UUID!, $userId: String!) @auth(
   }
 }
 
-# Whether somebody is one of Strategy Dance's own administrators, which conversations are open to
-# alone until they launch (`ARE_CONVERSATIONS_STAFF_ONLY` in strategydance-core)
-query GetUserStaffStatus($userId: String!) @auth(level: NO_ACCESS) {
-  user(key: { id: $userId }) {
-    isAdministrator
-  }
-}
-
 # Whether Strategy Dance's staff suspended conversations for the account, or in the organization,
 # which the routes that start or continue a run refuse (`conversationsSuspensionMiddleware`)
 query GetConversationsSuspension($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
@@ -448,9 +440,8 @@ query GetConversationRetryContext(
 #   worker told of a run elsewhere finds nothing
 # - the conversation: whether it is deleted, the run it names, its counter and how many messages it
 #   holds, and whether it is a subagent, whose run sends its own prompt and tools and writes a report
-# - the author's membership, whose `createdAt` has to be the one the run records, whether they are
-#   still staff, and whether staff suspended conversations for their account or in the organization,
-#   which a worker claims no run of
+# - the author's membership, whose `createdAt` has to be the one the run records, and whether staff
+#   suspended conversations for their account or in the organization, which a worker claims no run of
 # - the transcript's last entry, with how many of its blocks the thread has drawn, which is where a
 #   worker taking over after a crash carries on
 # - the messages the run has drawn, which it may draw 100 of (`MAX_CONVERSATION_RUN_ENTRIES` in
@@ -498,7 +489,6 @@ query GetConversationRunContext($organizationId: UUID!, $userId: String!, $conve
     createdAt
   }
   user(key: { id: $userId }) {
-    isAdministrator
     conversationsSuspendedAt
   }
   organization(id: $organizationId) {
@@ -2795,8 +2785,7 @@ query GetAgentConnectionTokens($hashes: [String!]!) @auth(level: NO_ACCESS) {
 }
 
 # The token verifier's one read, on every call an external agent makes to a module: an unexpired
-# access token alone, never a refresh token, with its connection, the membership it belongs to and
-# the account's staff role, while modules are for Strategy Dance's administrators alone
+# access token alone, never a refresh token, with its connection and the membership it belongs to
 query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
   agentConnectionTokens(
     where: { hash: { eq: $hash }, kind: { eq: ACCESS }, expiresAt: { gt_time: { now: true } } }
@@ -2814,9 +2803,6 @@ query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
         userId
         organizationId
         createdAt
-        user {
-          isAdministrator
-        }
       }
     }
   }

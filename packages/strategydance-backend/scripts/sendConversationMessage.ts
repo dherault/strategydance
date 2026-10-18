@@ -14,7 +14,7 @@ import { authentication, dataConnect } from '~firebase'
     bun run send:conversation <email> [--organization <id or slug>] [--conversation <id>] [--file <path>]… <text>
 
   It signs in to the Auth emulator as the account with that address, which has to have signed in
-  to the app once and be staff (`bun run grant:administrator <email>`), and sends the text to the
+  to the app once, and sends the text to the
   conversation named, or to a new one, in the organization named, or in the only one the account
   belongs to. Each `--file`, an image, a PDF or a text file typed by its extension, a relative path
   read from the repository's root, where `bun run send:conversation` is run, is uploaded through the

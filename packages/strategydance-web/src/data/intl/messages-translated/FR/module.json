@@ -71,8 +71,6 @@
   "module.tasksName": "Tâches",
   "module.tasksReadAccess": "Lister et lire les tâches du tableau de votre équipe.",
   "module.tasksWriteAccess": "Créer, modifier, lier et supprimer les tâches du tableau de votre équipe.",
-  "module.unavailableDescription": "Strategy Dance vous permettra bientôt de connecter des agents tels que Claude ou ChatGPT à votre organisation.",
-  "module.unavailableTitle": "La connexion d'agents n'est pas encore disponible",
   "module.unnamedAgent": "Agent sans nom",
   "module.unverified": "Non vérifié",
   "module.unverifiedHint": "Cet agent s'est enregistré lui-même, Strategy Dance ne peut donc pas confirmer qui l'a créé."

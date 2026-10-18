@@ -8,7 +8,6 @@ import { cn } from 'strategydance-design-system/lib/utils'
 import type { Task } from '~types'
 
 import useAgentConnections from '~hooks/agentConnection/useAgentConnections'
-import useCanUseModules from '~hooks/module/useCanUseModules'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import toHyphenatedUuid from '~utils/common/toHyphenatedUuid'
@@ -32,8 +31,7 @@ type Props = {
   agent that cannot read the board. A list that could not be read says nothing either way, so the
   prompt is copied then.
 
-  Nothing for a reader who may not connect an agent yet, while modules are for Strategy Dance's
-  administrators alone, and the button waits while the list is first read. A write the browser
+  The button waits while the list is first read. A write the browser
   refuses leaves the button as it was, as the design system's `CopyButton` does.
 
   The button is the agents dialog's trigger, which a copy cancels, so the dialog gives the focus back
@@ -41,15 +39,12 @@ type Props = {
 */
 function TaskDelegation({ task }: Props) {
   const { formatMessage } = useIntl()
-  const canUseModules = useCanUseModules()
   const { organization } = useCurrentOrganization()
   const { data: connections, initialLoading, hasFailed } = useAgentConnections()
   const [isCopied, setIsCopied] = useState(false)
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => () => clearTimeout(resetTimeoutRef.current), [])
-
-  if (!canUseModules) return null
 
   const hasConnection =
     hasFailed

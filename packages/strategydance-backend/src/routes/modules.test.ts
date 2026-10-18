@@ -212,7 +212,6 @@ function tasksOfOrganization() {
 beforeEach(() => {
   fake.reset()
   fake.addMember(MEMBER, ORGANIZATION_ID)
-  fake.setStaff(MEMBER)
 })
 
 describe('the Knowledge module for external agents', () => {

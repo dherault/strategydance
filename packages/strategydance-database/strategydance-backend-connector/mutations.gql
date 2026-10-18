@@ -3680,9 +3680,9 @@ mutation FinishConversationRunFull(
   )
 }
 
-# Ends a run whose author is no longer the member it was queued under, removed, invited back since
-# or no longer staff, as `INTERRUPTED`, with its note and why, for the logs, so nothing is left for a
-# later delivery to take up. Fenced on the run alone, at the attempt the worker read or claimed,
+# Ends a run whose author is no longer the member it was queued under, removed or invited back
+# since, or whose conversations staff suspended, as `INTERRUPTED`, with its note and why, for the
+# logs, so nothing is left for a later delivery to take up. Fenced on the run alone, at the attempt the worker read or claimed,
 # since the membership the other writes match is the one that is gone
 mutation InterruptConversationRun(
   $organizationId: UUID!

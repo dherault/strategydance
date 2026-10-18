@@ -38,6 +38,10 @@ type IntegrationRead =
       connection: { generation: string; configRevision: number; status: IntegrationConnectionStatus } | null
     }
 
+// Why a subagent's call that would wait for an approval is refused, which its report then proposes
+export const SUBAGENT_APPROVAL_REFUSAL =
+  "Not called: this call needs the member's approval, which nobody can give a subagent. Say in your report what you would call, with which arguments, and why."
+
 /*
   What a call to an integration's tool becomes when it is drawn, from the server as it is then,
   decided once, since the message drawn keeps it for a worker taking over:
@@ -45,12 +49,18 @@ type IntegrationRead =
   - `refused`: the member cannot use the server, or it has no such tool, answered with why, and
     drawn with the server it named when there is one, so the thread can say what fixes it
   - `run`: an administrator lets the tool run without approval, so it runs at once
-  - `approval`: it waits for the member's Allow
+  - `approval`: it waits for the member's Allow, or, a subagent's, is refused, since nobody can give
+    one, so the subagent never waits, and says in its report what it would call for its parent to
+    propose
 
-  Both of the last two are bound to the server's revision, the tool's definition and the
+  Both `run` and `approval` are bound to the server's revision, the tool's definition and the
   credential's generation as they are now, which the call checks again right before it is made
 */
-function decideConversationIntegrationCall(read: IntegrationRead, call: ConversationIntegrationCall) {
+function decideConversationIntegrationCall(
+  read: IntegrationRead,
+  call: ConversationIntegrationCall,
+  { isSubagent = false }: { isSubagent?: boolean } = {},
+) {
   if (read.outcome !== 'found') {
     return {
       kind: 'refused',
@@ -94,6 +104,8 @@ function decideConversationIntegrationCall(read: IntegrationRead, call: Conversa
   if (integration.autoApprovedTools.includes(tool.definitionHash)) {
     return { kind: 'run', integration: drawn, binding } as const
   }
+
+  if (isSubagent) return { kind: 'refused', reason: SUBAGENT_APPROVAL_REFUSAL, integration: drawn } as const
 
   return { kind: 'approval', integration: drawn, binding } as const
 }

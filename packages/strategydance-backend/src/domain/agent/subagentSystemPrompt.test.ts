@@ -11,7 +11,7 @@ describe('SUBAGENT_SYSTEM_PROMPT', () => {
   */
   test('keeps its bytes', () => {
     expect(createHash('sha256').update(SUBAGENT_SYSTEM_PROMPT).digest('hex')).toBe(
-      '2ddc4183822b0390ceca2ea5d1a7a455eac941e11df48242c0da9d0c9dba148c',
+      'd0fdd90326d950df6bbb42fca8b9369112e334b50b8cafce40816ab1c112eccd',
     )
   })
 

@@ -14,7 +14,7 @@ export const WEB_SEARCH_MAX_USES = 5
 
 // Claude's own web search, which filters what it fetches before it reaches the context, at most five
 // searches a request: the first tool of every list the agent sends, a conversation's and a subagent's
-export const WEB_SEARCH_TOOL: NonNullable<BetaMessageStreamParams['tools']>[number] = {
+const WEB_SEARCH_TOOL: NonNullable<BetaMessageStreamParams['tools']>[number] = {
   type: 'web_search_20260209',
   name: 'web_search',
   max_uses: WEB_SEARCH_MAX_USES,

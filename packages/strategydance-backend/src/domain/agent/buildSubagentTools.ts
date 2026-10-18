@@ -1,7 +1,7 @@
 import type { BetaTool } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 
 import type { ConversationRequestTools } from '~domain/agent/buildConversationTools'
-import { WEB_SEARCH_TOOL } from '~domain/agent/conversationTools'
+import CONVERSATION_TOOLS, { ASK_USER_TOOL_NAME } from '~domain/agent/conversationTools'
 
 /*
   The module tools a subagent never gets, by name: the Subagents module's, since a subagent launches
@@ -26,15 +26,19 @@ export function isSubagentTool(name: string) {
 }
 
 /*
-  The tools a subagent's requests send: web search, then the tools of the modules its agent uses, as
-  the run's worker listed them, in `CONVERSATION_MODULES`' order, less those it never gets
-  (`isSubagentTool`). Everything the agent that launched it has but `ask_user`, since nobody is there
-  to answer, and, for now, the integration tools, whose calls wait for an approval nobody can give a
-  subagent. The same list for every subagent, so their requests share a cached prefix, which a list
-  granted per launch would split
+  The tools a subagent's requests send: the agent's own but `ask_user`, since nobody is there to
+  answer, web search then the three integration tools, then the tools of the modules its agent uses,
+  as the run's worker listed them, in `CONVERSATION_MODULES`' order, less those it never gets
+  (`isSubagentTool`). Its calls to an integration run only when an administrator lets the tool run
+  without approval, since nobody can approve one for a subagent: any other is drawn failed, saying to
+  report it (`decideConversationIntegrationCall`). The same list for every subagent, so their
+  requests share a cached prefix, which a list granted per launch would split
 */
 function buildSubagentTools(moduleTools: BetaTool[]): ConversationRequestTools {
-  return [WEB_SEARCH_TOOL, ...moduleTools.filter(tool => isSubagentTool(tool.name))]
+  return [
+    ...CONVERSATION_TOOLS.filter(tool => !('name' in tool) || tool.name !== ASK_USER_TOOL_NAME),
+    ...moduleTools.filter(tool => isSubagentTool(tool.name)),
+  ]
 }
 
 export default buildSubagentTools

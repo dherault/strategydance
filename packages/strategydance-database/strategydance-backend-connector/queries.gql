@@ -1210,6 +1210,104 @@ query GetConversationSearchQuota($organizationId: UUID!, $userId: String!) @auth
   }
 }
 
+# What the daily caps counted of a member's starts in the last 24 hours, newest first: the member's
+# in the organization, the account's across every organization, and the organization's, as each
+# mutation that starts a conversation, a run or a subagent counts them. Read by the backend before
+# such a start stores anything, and again once a mutation's count refused one, to say which cap it
+# reached and when the cap has room, which the oldest of the newest rows, as many as the cap, says.
+# Runs are read to one and a half times each cap, which what finishes work under way passes it by,
+# conversations and subagents to each cap (`MAX_DAILY_…` and `DAILY_CAP_OVERRUN_FACTOR` in
+# strategydance-core: change them together). `$userId` is the uid the backend verified
+query GetCappedStarts($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  memberConversations: cappedStarts(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      kind: { eq: CONVERSATION }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 20
+  ) {
+    createdAt
+  }
+  accountConversations: cappedStarts(
+    where: {
+      userId: { eq: $userId }
+      kind: { eq: CONVERSATION }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 40
+  ) {
+    createdAt
+  }
+  organizationConversations: cappedStarts(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: CONVERSATION }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 100
+  ) {
+    createdAt
+  }
+  memberRuns: cappedStarts(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      kind: { eq: RUN }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 150
+  ) {
+    createdAt
+  }
+  accountRuns: cappedStarts(
+    where: { userId: { eq: $userId }, kind: { eq: RUN }, createdAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+    orderBy: [{ createdAt: DESC }]
+    limit: 300
+  ) {
+    createdAt
+  }
+  organizationRuns: cappedStarts(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: RUN }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 750
+  ) {
+    createdAt
+  }
+  memberSubagents: cappedStarts(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      kind: { eq: SUBAGENT }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 30
+  ) {
+    createdAt
+  }
+  accountSubagents: cappedStarts(
+    where: {
+      userId: { eq: $userId }
+      kind: { eq: SUBAGENT }
+      createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 60
+  ) {
+    createdAt
+  }
+}
+
 # The caller's conversations whose title holds every word of the query, through the title's
 # full-text index (see `Conversation.title`): `PLAIN` splits the query into words and requires
 # them all, in any order. All of them, as somebody keeps at most 1000 conversations in an

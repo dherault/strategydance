@@ -4941,6 +4941,22 @@
         "hash": "cb095b4c6d26801c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "task.delegate": {
+        "hash": "03fb5b01acbbddba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.delegatePrompt": {
+        "hash": "e45b0816b8ef2945",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.delegatePromptCopied": {
+        "hash": "c90c7e2522c30f49",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.delegateToAgents": {
+        "hash": "03f7213d1064524d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "task.deleteTask": {
         "hash": "10e512bfca3fb606",
         "locales": "DE,ES,FR,JA,PT,ZH"

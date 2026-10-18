@@ -28,6 +28,8 @@ mock.module('strategydance-database/backend', () => fake.sdk)
 mock.module('~domain/conversations/enqueueRun', () => ({ default: enqueueRun }))
 
 const { default: runConversation } = await import('./runConversation')
+const { priceConversationRequest } = await import('./priceConversationUsage')
+const { CLAUDE_MODEL_PRICES } = await import('~domain/agent/conversationRequestSettings')
 const { default: retryConversationRun } = await import('./retryConversationRun')
 const { default: reconcileConversationRun } = await import('./reconcileConversationRun')
 
@@ -369,12 +371,20 @@ describe('runConversation, tagging', () => {
     expect(takingOver.requests).toHaveLength(0)
     expect(readRun(reference)).toMatchObject({ status: 'COMPLETED' })
     expect(readNotes(reference)).toEqual([])
-    expect(readUsage(reference).requests.at(-1)).toMatchObject({
+    const tagged = readUsage(reference).requests.at(-1)
+
+    // At the model it named, Haiku 5.5, never the run's own
+    expect(tagged).toMatchObject({
       purpose: 'tagging',
+      model: 'claude-haiku-5-5',
       isSettled: true,
       isEstimated: true,
       outputTokens: 8000,
     })
+    expect(priceConversationRequest(tagged!)).toBe(
+      (tagged?.inputTokens ?? 0) * CLAUDE_MODEL_PRICES['claude-haiku-5-5']!.input
+        + 8000 * CLAUDE_MODEL_PRICES['claude-haiku-5-5']!.output,
+    )
   })
 
   test('stops a run whose conversation was deleted while it tagged, without a tag', async () => {

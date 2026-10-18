@@ -38,6 +38,9 @@ export type ConversationRequestUsage = {
   // The most it could cost, in microdollars, as its reservation priced it, which the run's cost
   // limit counts it at until Claude's answer settles it; absent from a ledger written before M35
   worstCaseMicrodollars?: number
+  // The model it names, which a worker taking it over unsettled charges it at; absent from a ledger
+  // written before the review of M1 to M38, whose requests all named Opus 5.5
+  requestedModel?: string
 }
 
 // One attempt at a request a model declined partway, before the API fell back to another
@@ -91,6 +94,7 @@ export function reserveConversationRequest(
     inputEndPosition: number
     purpose?: ConversationRequestUsage['purpose']
     worstCaseMicrodollars?: number
+    requestedModel?: string
   },
 ) {
   const request: ConversationRequestUsage = {
@@ -202,7 +206,7 @@ export function chargeUnsettledRequests(usage: ConversationRunUsage) {
         ? request
         : {
             ...request,
-            model: request.model ?? CONVERSATION_MODEL,
+            model: request.model ?? request.requestedModel ?? CONVERSATION_MODEL,
             inputTokens: request.estimatedInputTokens,
             outputTokens: request.purpose === 'tagging' ? CONVERSATION_TAGGING_MAX_TOKENS : CONVERSATION_MAX_TOKENS,
             isEstimated: true,

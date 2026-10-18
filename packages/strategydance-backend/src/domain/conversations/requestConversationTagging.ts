@@ -102,6 +102,7 @@ async function requestConversationTagging({
     inputEndPosition,
     purpose: 'tagging',
     worstCaseMicrodollars: worstCase,
+    requestedModel: CONVERSATION_TAGGING_MODEL,
   })
   const { data: reservation } = await lease.write(() =>
     renewConversationRunLease(dataConnect, { ...fence, usage: reserved.usage }),

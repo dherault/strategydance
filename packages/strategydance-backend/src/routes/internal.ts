@@ -99,8 +99,10 @@ function createInternalRouter() {
     and the reactions no run's end started. A run whose task never came, its process gone between
     storing it and queueing it, is queued again while it is young rather than finalized as
     interrupted once older, and a slot freed is promoted into within minutes rather than at the
-    daily sweep. Each step logs rather than throws, and every one is idempotent, so two that overlap,
-    this and the daily sweep say, do each thing once. Takes no body
+    daily sweep. Each step goes on past what fails in it, and throws once done when anything did
+    (`SweepIncomplete`), which the route answers with a 500 naming it, after the steps after it ran.
+    Every one is idempotent, so two that overlap, this and the daily sweep say, do each thing once.
+    Takes no body
   */
   router.post('/runs-reconcile', async (_request: Request, response: Response<ApiResponse>) => {
     const failed = await runSweepSteps({ sweepSubagentRuns, sweepDeadConversationRuns, sweepSubagentReactions })

@@ -3,6 +3,7 @@ import { getDeadConversationRunSweep } from 'strategydance-database/backend'
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
+import SweepIncomplete from '~utils/SweepIncomplete'
 
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 
@@ -20,10 +21,12 @@ const MAX_ROUNDS = 10
 
   A hundred at a time, read again after each round, since each one handled leaves them: a run whose
   queue could not say is left, and the rounds end once one finds nothing new. A run that fails is
-  logged and left for the next sweep. Answers how many it ended
+  logged and left for the next sweep. Answers how many it ended, or throws once done when anything
+  failed (`SweepIncomplete`), so the route reports it
 */
 async function sweepDeadConversationRuns() {
   let ended = 0
+  let failures = 0
   const seen = new Set<string>()
 
   for (let round = 1; round <= MAX_ROUNDS; round++) {
@@ -33,6 +36,8 @@ async function sweepDeadConversationRuns() {
       runs = (await getDeadConversationRunSweep(dataConnect)).data.conversationRuns
     } catch (error) {
       logger.error('The sweep could not read the runs past their lease', error)
+
+      failures++
 
       break
     }
@@ -58,9 +63,13 @@ async function sweepDeadConversationRuns() {
         if (state === 'ended') ended++
       } catch (error) {
         logger.error(`Conversation run ${run.id}: the sweep could not reconcile it past its lease`, error)
+
+        failures++
       }
     }
   }
+
+  if (failures) throw new SweepIncomplete('sweepDeadConversationRuns', failures)
 
   return { ended }
 }

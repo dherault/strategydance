@@ -187,6 +187,26 @@ describe('POST /internal/runs-reconcile', () => {
     expect(await response.json()).toEqual({ status: 'success' })
     expect(fake.runs.get(run.runId)?.status).toBe('INTERRUPTED')
   })
+
+  test('answers 500 naming a sweep whose read failed, once the others ran', async () => {
+    const run = await start()
+    const stored = fake.runs.get(run.runId)
+
+    if (stored) stored.leaseExpiresAt = new Date(Date.now() - 1000).toISOString()
+
+    fake.beforeOperation = async name => {
+      if (name === 'GetSubagentSweepMembers') throw new Error('The database is unreachable')
+    }
+
+    const response = await fetch(`${origin}/internal/runs-reconcile`, { method: 'POST' })
+
+    expect(response.status).toBe(500)
+    expect(((await response.json()) as { message: string }).message).toBe(
+      "The reconcile's steps failed: sweepSubagentRuns",
+    )
+    // The step after it ran all the same
+    expect(fake.runs.get(run.runId)?.status).toBe('INTERRUPTED')
+  })
 })
 
 describe('POST /internal/sweep', () => {

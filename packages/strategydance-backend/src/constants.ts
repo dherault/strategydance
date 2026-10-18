@@ -190,6 +190,24 @@ export const CONVERSATION_RUN_MAX_REQUESTS = 25
 export const CONVERSATION_RUN_MAX_DURATION_MS = 10 * 60 * 1000
 export const CONVERSATION_RUN_STREAM_DEADLINE_MS = 14 * 60 * 1000
 
+/*
+  A run's cost limit, $10 in microdollars, as David chose on 2026-10-16, since a cap on starts
+  bounds nothing a single run spends: before each request, the run's ledger priced at list prices,
+  each request it has no answer for at the worst case its reservation recorded, plus the most the
+  request about to be sent can cost, is held to it. A run past it sends nothing more and fails with
+  its limits' note, and a subagent's run before its fourth chains, so a subagent costs $40 at most
+*/
+export const CONVERSATION_RUN_MAX_COST_MICRODOLLARS = 10_000_000
+
+/*
+  How many input tokens one web search may bring back, which a request is reserved for beside each of
+  its five searches: what a search retrieves is billed as input within the request, and nothing
+  counts or caps it beforehand. The largest `probe:claude` measured, with a margin: the one part of
+  the cost limit that rests on a measure rather than a proof, raised from what a request billed
+  past its reservation
+*/
+export const WEB_SEARCH_RESULT_TOKEN_ALLOWANCE = 40_000
+
 // How often a worker reads whether its run's member asked to stop it while a request streams. It
 // reads it before each request too
 export const CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS = 2000

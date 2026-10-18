@@ -1248,8 +1248,11 @@ describe('runConversation', () => {
   test('leaves a run whose steps keep failing to its lease', async () => {
     const reference = await start()
     const scripted = createClient(Array.from({ length: 5 }, () => new Error('The worker broke')))
+    // Each request a failed step left unsettled counts at its worst case, which would end the run at
+    // its cost limit by the third: this is about the steps alone
+    const limits = { maxCostMicrodollars: Number.MAX_SAFE_INTEGER }
 
-    expect(await runConversation(reference, { client: scripted.client, retryDelayMs: 0 })).toBe('held')
+    expect(await runConversation(reference, { client: scripted.client, retryDelayMs: 0, limits })).toBe('held')
     expect(scripted.requests).toHaveLength(5)
     expect(readRun(reference)?.status).toBe('RUNNING')
   })

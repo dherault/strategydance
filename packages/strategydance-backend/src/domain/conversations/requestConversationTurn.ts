@@ -25,7 +25,12 @@ import buildConversationRequest, {
   buildConversationMessages,
 } from '~domain/agent/buildConversationRequest'
 import checkTranscript from '~domain/agent/checkTranscript'
-import { MAX_CONVERSATION_PAUSES } from '~domain/agent/conversationRequestSettings'
+import {
+  CONVERSATION_MAX_TOKENS,
+  CONVERSATION_REQUEST_SETTINGS,
+  MAX_CONVERSATION_PAUSES,
+} from '~domain/agent/conversationRequestSettings'
+import { WEB_SEARCH_MAX_USES } from '~domain/agent/conversationTools'
 import measureConversationRequest from '~domain/agent/measureConversationRequest'
 import stripBeforeFallback from '~domain/agent/stripBeforeFallback'
 import toConversationProfile from '~domain/agent/toConversationProfile'
@@ -41,6 +46,7 @@ import {
 import createConversationRequestSignal from '~domain/conversations/createConversationRequestSignal'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import type { ConversationRunEnding } from '~domain/conversations/endConversationRun'
+import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 
 type RequestConversationTurnInput = {
@@ -64,12 +70,13 @@ type RequestConversationTurnInput = {
   stopCheckIntervalMs: number
 }
 
-// How many requests a run sends at most, how long after it was first claimed it starts none, and
-// when the stream of the one going then is cut
+// How many requests a run sends at most, how long after it was first claimed it starts none, when
+// the stream of the one going then is cut, and what it may cost, in microdollars
 export type ConversationRunLimits = {
   maxRequests: number
   maxDurationMs: number
   streamDeadlineMs: number
+  maxCostMicrodollars: number
 }
 
 // A part of the turn, as Claude answered it, with its request in the ledger and the entry it is
@@ -121,6 +128,10 @@ export type ConversationTurnOutcome =
   - a run at one of its limits: 25 requests sent, or 10 minutes gone since it was first claimed,
     sends no further request, and a stream still going 14 minutes after the claim is cut, charged as
     one that failed partway. The run fails with its note
+  - a request whose worst case, with what the run's ledger may have cost, would pass the run's $10
+    (`priceRequestWorstCase`): never sent, and the run fails with its limits' note. One whose single
+    attempt fits and whose fallback does not is sent without the fallback, and its worst case is
+    recorded with its reservation, which the limit counts it at until its answer settles it
   - a stream its member asked to stop, which the worker reads every two seconds: cut, charged as
     one that failed partway, and the run ends stopped, with its note
 
@@ -236,10 +247,29 @@ async function requestConversationTurn({
     // Again once measured, since counting takes time of its own
     if (isPastDuration()) return { kind: 'ending', ending: fail(durationFailure, usage, true) }
 
+    // What the run may have cost, and the most this request can, its fallback's attempt included
+    const spent = priceConversationUsageBound(usage)
+    const worstCase = priceRequestWorstCase({
+      model: (config.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
+      inputTokens: measured.inputTokens,
+      maxTokens: CONVERSATION_MAX_TOKENS,
+      maxSearches: WEB_SEARCH_MAX_USES,
+    })
+    const hasFallbacks = spent + worstCase.withFallback <= limits.maxCostMicrodollars
+
+    if (!hasFallbacks && spent + worstCase.single > limits.maxCostMicrodollars) {
+      const failure = `Its next request could cost up to ${toDollars(worstCase.single)}, past the ${toDollars(limits.maxCostMicrodollars)} it may cost with ${toDollars(spent)} spent`
+
+      logger.warn(`Conversation run ${fence.runId}: ${failure}`)
+
+      return { kind: 'ending', ending: fail(failure, usage, true) }
+    }
+
     const reserved = reserveConversationRequest(usage, {
       estimatedInputTokens: measured.inputTokens,
       configTokens: measured.configTokens,
       inputEndPosition: last.position,
+      worstCaseMicrodollars: hasFallbacks ? worstCase.withFallback : worstCase.single,
     })
 
     usage = reserved.usage
@@ -276,7 +306,7 @@ async function requestConversationTurn({
     })
 
     try {
-      message = await client.stream(buildConversationRequest(messages, config), {
+      message = await client.stream(buildConversationRequest(messages, config, { hasFallbacks }), {
         signal: request.signal,
         onProgress: line => lease.setStep(line),
         onUsage: snapshot => {
@@ -398,6 +428,11 @@ function fail(failure: string, usage: ConversationRunUsage, isAtLimit = false): 
     usage,
     ...(isAtLimit ? { isAtLimit } : {}),
   }
+}
+
+// Microdollars as dollars and cents, as a failure says them
+function toDollars(microdollars: number) {
+  return `$${(microdollars / 1_000_000).toFixed(2)}`
 }
 
 // Why Claude's API failed a request, once the SDK's own retries were spent on what failed before

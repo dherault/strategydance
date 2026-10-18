@@ -10,6 +10,7 @@ import { dataConnect } from '~firebase'
 import logger from '~utils/logger'
 
 import buildConversationTaggingRequest from '~domain/agent/buildConversationTaggingRequest'
+import { CONVERSATION_MODEL, CONVERSATION_TAGGING_MAX_TOKENS } from '~domain/agent/conversationRequestSettings'
 import readConversationTagging from '~domain/agent/readConversationTagging'
 import {
   type ConversationRunUsage,
@@ -17,10 +18,12 @@ import {
   settleConversationRequest,
   settleFailedConversationRequest,
   settleInterruptedConversationRequest,
+  skipConversationRequest,
 } from '~domain/conversations/conversationRunUsage'
 import createConversationRequestSignal from '~domain/conversations/createConversationRequestSignal'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
+import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import type { ConversationTurnOutcome } from '~domain/conversations/requestConversationTurn'
 
@@ -35,6 +38,8 @@ type RequestConversationTaggingInput = {
   // When the run's request cuts a stream, as its own time limit has it
   streamDeadline: number
   stopCheckIntervalMs: number
+  // What the run may cost, in microdollars, as its own limits have it
+  maxCostMicrodollars: number
 }
 
 /*
@@ -47,7 +52,9 @@ type RequestConversationTaggingInput = {
 
   It is never what fails a run: an error of Claude's API, a refusal, an answer cut at its length or
   not the schema's, a stream past a minute or cut by its member's stop leave the conversation
-  untagged, and the run ends as its reply does. Only the run's own signal, a lease lost, throws, as
+  untagged, and the run ends as its reply does. Nor does the run's cost limit: a request whose worst
+  case, its fallback's attempt included, would take the run past it is never sent, recorded as
+  skipped, so the run tries it once all the same. Only the run's own signal, a lease lost, throws, as
   a reservation that renewed nothing does. The outcome holds the aspects, or null, with the ledger,
   for the next step to write
 */
@@ -60,6 +67,7 @@ async function requestConversationTagging({
   reply,
   streamDeadline,
   stopCheckIntervalMs,
+  maxCostMicrodollars,
 }: RequestConversationTaggingInput): Promise<ConversationTurnOutcome> {
   const { organizationId, userId, conversationId } = fence
   const entries = await readConversationTranscript({ organizationId, userId, conversationId })
@@ -68,11 +76,31 @@ async function requestConversationTagging({
     member: first ? parseTranscriptContent(first.content) : [],
     reply,
   })
+  const estimatedInputTokens = await countInput(client, body)
+  const inputEndPosition = entries.at(-1)?.position ?? 0
+  const worstCase = priceRequestWorstCase({
+    model: CONVERSATION_MODEL,
+    inputTokens: estimatedInputTokens,
+    maxTokens: CONVERSATION_TAGGING_MAX_TOKENS,
+    maxSearches: 0,
+  }).withFallback
+
+  if (priceConversationUsageBound(initialUsage) + worstCase > maxCostMicrodollars) {
+    logger.warn(`Conversation run ${fence.runId}: its tagging would pass its cost limit, and is skipped`)
+
+    return {
+      kind: 'tagging',
+      aspects: null,
+      usage: skipConversationRequest(initialUsage, { estimatedInputTokens, inputEndPosition, purpose: 'tagging' }),
+    }
+  }
+
   const reserved = reserveConversationRequest(initialUsage, {
-    estimatedInputTokens: await countInput(client, body),
+    estimatedInputTokens,
     configTokens: 0,
-    inputEndPosition: entries.at(-1)?.position ?? 0,
+    inputEndPosition,
     purpose: 'tagging',
+    worstCaseMicrodollars: worstCase,
   })
   const { data: reservation } = await lease.write(() =>
     renewConversationRunLease(dataConnect, { ...fence, usage: reserved.usage }),

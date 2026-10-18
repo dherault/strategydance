@@ -45,7 +45,10 @@ async function sweepSubagentReactions() {
         const { data } = await getSubagentReactionSweepOrganizations(dataConnect, { userId })
 
         for (const { id: organizationId } of data.organizations) {
-          started += await startDueSubagentReactions({ organizationId, userId }, { isThorough: true })
+          const reactions = await startDueSubagentReactions({ organizationId, userId }, { isThorough: true })
+
+          started += reactions.started
+          failures += reactions.failures
         }
       } catch (error) {
         logger.error(`The sweep could not read where ${userId} has reactions to start`, error)

@@ -47,7 +47,7 @@ const navigationMessages = defineMessages({
     id: 'navigation.guidance',
     defaultMessage: 'Guidance',
     description:
-      'Sidebar heading above the link to the reader\'s conversations with Strategy Dance, the app\'s AI, which guides them as they build their company. Translate it as the word closest to the English "guidance", the act of guiding somebody on their way, rather than as advice, accompaniment, coaching or consulting: "Guidage" in French.',
+      'Sidebar heading above the links to the team\'s tasks, its knowledge and the reader\'s conversations with Strategy Dance, the app\'s AI, which together guide the team as it builds its company. Translate it as the word closest to the English "guidance", the act of guiding somebody on their way, rather than as advice, accompaniment, coaching or consulting: "Guidage" in French.',
   },
   conversations: {
     id: 'navigation.conversations',

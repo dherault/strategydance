@@ -69,8 +69,13 @@ parent's thread, and the launch gate removed (see Release gate). Revised on 2026
 what bringing integrations to subagents settled, in Subagents: the parent hears of the calls that
 started, a reaction's entry naming the first 20 and `read_subagent` all of them, and the
 conversation's system prompt asks it to make itself a call its subagent could not make, which waits
-for the member's approval, rather than first asking whether to. When a decision
-changes, change it here first.
+for the member's approval, rather than first asking whether to. Revised on 2026-10-18, in M37, with
+what getting ready for launch settled, in Release gate, Setup and Risks: a suspension is checked
+where a worker claims a run, never at the steps after, and asks the runs in flight to stop in the
+write that records it; the thread's bound on Markdown counts what micromark was measured slow on,
+quote markers and runs of asterisks beside brackets and list markers; and the organization's rate
+limits, read from the API, hold some twenty runs at once, not the seventy the queues dispatch. When a
+decision changes, change it here first.
 
 ## The design
 
@@ -2499,12 +2504,28 @@ worker's claim checks the role again, so a queued run stops too:
   subagents and Retry ask before it discards them, so in production `launch_subagent` refused with a
   sentence telling the agent to do the work itself, and a release cut between the two launched
   nothing. M34 removed it.
-- What replaces the gate is M37's, before M38 removes it: a member starts a run only once their
-  address is verified (`ERROR_CODE_EMAIL_NOT_VERIFIED`), since an account costs nothing to make and
-  the caps' allowance is an account's, and staff can suspend an account or an organization
-  (`conversationsSuspendedAt`, `bun run suspend:conversations`), which every route, a launch and the
-  worker's claim refuse, and whose script asks the runs in flight to stop, the one lever short of the
-  workspace's spend limit, which stops every customer at once.
+- What replaces the gate is M37's, before M38 removes it:
+  - **A confirmed address.** The send, an answer, an approval, Resume, Retry and a file's upload
+    refuse a caller whose ID token carries no `email_verified` (`verifiedEmailMiddleware`, 403,
+    `ERROR_CODE_EMAIL_NOT_VERIFIED`), since an account costs nothing to make and the caps' allowance
+    is an account's. The stops, the reconciles and every read refuse nobody for it, and a run already
+    started goes on. The composer says so above its field, sends the link and mints a new token once
+    the member says they opened it (`ConversationEmailConfirmation`). The development backend lifts
+    it (`IS_EMAIL_VERIFICATION_REQUIRED`), its Auth emulator confirming nothing by itself, unless
+    started with `EMAIL_VERIFICATION_REQUIRED=true`.
+  - **Suspension.** `User.conversationsSuspendedAt` and `Organization.conversationsSuspendedAt`,
+    written by `bun run suspend:conversations --production <email | organization id or slug>
+    [--lift]` alone, through one transaction that also asks every run in flight of theirs to stop,
+    subagents' included, waiting for a slot among them. The same six routes refuse a suspended
+    member (`conversationsSuspensionMiddleware`, 403, `ERROR_CODE_CONVERSATIONS_SUSPENDED`),
+    `launch_subagent` refuses with a sentence telling the agent to end its turn, a reaction to
+    subagents' reports waits until the lift rather than queue runs that would be refused, each
+    costing a run of the caps, and the worker's claim interrupts their queued runs. Only the claim
+    reads it: the steps after it would throw away a turn already paid for, and the stop the
+    suspension asked for is read before each request, and every two seconds while one streams. The
+    composer says whose suspension it is and to write to `david@strategydance.com`
+    (`ConversationSuspensionNotice`). It is the one lever short of the workspace's spend limit, which
+    stops every customer at once.
 
 ### Setup
 
@@ -2518,7 +2539,11 @@ account, and until both exist every send in production answers 503.
    limit. Its API key goes into Secret Manager as `anthropic-api-key` (`gcloud secrets create
    anthropic-api-key --data-file=- --project strategydance`, typed in rather than passed through a
    file or a chat). The workspace's default inference region is the legal review's call in M37.
-   Check the organization's rate limit tier before staff use, and raise it in M37.
+   Check the organization's rate limit tier before staff use, and raise it in M37. Read on
+   2026-10-18 from the rate limit headers of a one-token request: 1,000 requests, 500,000 input
+   tokens and 80,000 output tokens a minute on Claude Opus 5.5, below the standard Start tier's
+   2,000,000 and 400,000, so the organization is still in the Evaluation tier, and the workspace
+   infers in the `global` region. Step 14 says what that holds.
 2. `gcloud services enable cloudtasks.googleapis.com cloudscheduler.googleapis.com --project
    strategydance`. Done on 2026-10-04, with `aiplatform.googleapis.com` and a policy allowing web
    search for partner models on Vertex, both from when Vertex was the plan, and unused since.
@@ -2613,6 +2638,41 @@ account, and until both exist every send in production answers 503.
     gcloud logging sinks update _Default --project strategydance \
       --add-exclusion='name=integration-oauth-callback,filter=logName="projects/strategydance/logs/run.googleapis.com%2Frequests" AND httpRequest.requestUrl:"/integrations/oauth/callback"'
     ```
+
+13. For M37, alerts in Cloud Monitoring, mailed to `david@strategydance.com`. Cloud Tasks publishes
+    no age for the oldest task a queue holds, only its depth and how late each attempt ran past its
+    schedule, so those two stand for it. The worker answers 503 by design for a run it holds, a
+    chain's or one delivered twice, which Cloud Tasks retries, so its error rate leaves 503 out:
+
+    ```sh
+    gcloud beta monitoring channels create --project strategydance --display-name David \
+      --type email --channel-labels email_address=david@strategydance.com
+    gcloud logging metrics create conversation-runs-interrupted --project strategydance \
+      --description 'Conversation runs that died with their worker, finalized as interrupted' \
+      --log-filter 'resource.type="cloud_run_revision" AND jsonPayload.message:"Interrupted a dead conversation run"'
+    ```
+
+    Then four policies (`gcloud alpha monitoring policies create --policy-from-file`), each naming the
+    channel: the worker's 5xx but 503 above two in ten minutes
+    (`run.googleapis.com/request_count`, `service_name="strategydance-worker"`); each queue's depth
+    above its dispatches for fifteen minutes, 50 on `conversation-runs` and 20 on `subagent-runs`
+    (`cloudtasks.googleapis.com/queue/depth`); each queue's attempts running five minutes past their
+    schedule, at the 95th percentile, over ten (`cloudtasks.googleapis.com/queue/task_attempt_delays`);
+    and more than three runs interrupted in thirty minutes
+    (`logging.googleapis.com/user/conversation-runs-interrupted`), the line
+    `finalizeDeadConversationRun` logs for each run it ends (`DEAD_RUN_LOG_PREFIX`), whose words the
+    metric's filter reads.
+14. For M37, capacity, before M38: the queues dispatch 70 runs at once, 50 on `conversation-runs`
+    and 20 on `subagent-runs`, and the worker, at four a time on each of at most 20 instances, holds
+    80. Claude counts output tokens a minute as they are written, never `max_tokens`, and input
+    tokens a minute without what is read from the cache. A run streaming at Opus 5.5's pace writes
+    some 3,000 to 4,000 tokens a minute, so 70 at once write some 250,000: the Start tier's 400,000
+    holds them, and the Evaluation tier's 80,000 about twenty, past which requests are refused with
+    429 and retried twice by the SDK before the run fails. Input holds either way while the cache
+    does, the Start tier's 2,000,000 taking ten cold reactions of 200,000 tokens a minute. So the
+    tier is raised to Start or above before M38, through Request tier increase on the Console's Rate
+    limits page, and while it is not, a queue's `max-concurrent-dispatches` is never raised. The
+    worker's 20 instances are Cloud Run's default, which `deploy.sh` leaves as it is.
 
 ### Usage caps
 
@@ -2741,7 +2801,10 @@ Beside them, a run stops at $10 of estimated cost, which is what bounds what eac
   organization at 150 runs and thirty subagents, $1500 and $1200 at the cost limits; an account's
   across its organizations at 300 runs and sixty subagents, $3000 and $2400; an organization's at
   750 runs, $7500, beside its members' subagents. The typical day stays near $15 a member. M37 reads
-  the recorded usage against them, and David sets them again from it.
+  the recorded usage against them, and David sets them again from it. Read on 2026-10-18 with
+  `bun run report:usage --production --days 14`, production held staff's trials alone, 7 runs for
+  $0.28, no subagent and no file, which says nothing yet of members' days: the caps stand until there
+  is usage to read.
 - The spend limit and the budget alert stay the guard above them, across organizations.
 
 ### Cost
@@ -2750,8 +2813,8 @@ At first-party list prices ($4 per million input tokens, $20 per million output,
 cache writes $5) and medium effort, a run of three requests over a
 cached 15000-token conversation, writing 2000 tokens each, costs about $0.15, plus about $0.01 per
 web search. A member running ten a day costs about $1.50 a day, two orders of magnitude more than
-the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and M37
-adds a section on it to `operations-costs.md`. Subagents multiply it: a fan-out of ten that each use
+the rest of the bill per user (`operations-costs.md`). Usage is recorded per run from M9, and
+`operations-costs.md` § Conversations, from M37, prices it beside the rest of the bill. Subagents multiply it: a fan-out of ten that each use
 their whole budget over a modest context comes to some $60 (see Subagents). Those figures are
 typical, not bounds: a request may write 64000 tokens over up to 800000 of context, some $1.40 even
 when cached. From M35 a run stops at $10 and a subagent at $40, and the daily caps bound a member's
@@ -2787,7 +2850,9 @@ the lifetime is chosen from what members' pauses turn out to be.
 - **Rate limits**: a new Anthropic organization starts on a low usage tier, which rises with what
   it has spent. The tier bounds how many runs go at once before the queue's own limits do, so it is
   checked before staff use and raised in M37. Subagents add up to five runs per member beside
-  their three, twenty at once across their queue, which the tier has to hold too.
+  their three, twenty at once across their queue, which the tier has to hold too. Read on
+  2026-10-18, the organization is in the Evaluation tier, whose 80,000 output tokens a minute hold
+  some twenty runs at once of the seventy the queues dispatch: it is raised before M38 (Setup 14).
 - **Fan-out spend**: one member action can launch ten subagents of four runs each, some $60 when
   each uses its whole budget over a modest context and $400 at the cost limit, and from M35 a
   member launches at most thirty a day in each organization, as David chose on 2026-10-13, and an
@@ -2824,13 +2889,20 @@ the lifetime is chosen from what members' pauses turn out to be.
   `splitConversationText` parses a reply past 20000 characters with it on the worker. A reply is
   Claude's, bounded by its output, so neither is reachable without injected text making the model
   write such a shape; moving both to markdown-it, or bounding what they parse, closes it. Subagents
-  read the web with nobody watching, which makes such text likelier to reach one, so M37 closes it:
-  `splitConversationText` on markdown-it, and `Markdown` drawing a piece past measured counts of
-  brackets and list markers as plain text.
+  read the web with nobody watching, which makes such text likelier to reach one, so M37 closed it:
+  `splitConversationText` reads a reply's top-level blocks with markdown-it's block parsing alone,
+  and `Markdown` draws a piece past `MARKDOWN_HAZARD_LIMITS` as plain text. Measured at a piece's
+  20000 characters, quote markers opening one line were the worst, 29 seconds at 5000, then a run of
+  asterisks, which overflowed the stack at 6000 each side, then brackets and list markers, half a
+  second by the thousand, so the limits count all four.
 - **Processing location**: the API runs inference in the workspace's default region unless a
   request names one (`inference_geo`). The legal review in M37 picks it, and names Anthropic as
   the processor of what members write and attach, files included, which the Files API keeps until
-  they are deleted.
+  they are deleted. Read on 2026-10-18, the workspace infers in `global`. The legal page is still
+  "Coming soon", and writing it is David's, as he chose on 2026-10-18: it names Anthropic as
+  processor, the region inference runs in, how long a conversation and its files are kept (until a
+  day after their deletion, when the daily sweep prunes them, a file never sent two days), and that
+  what a member's connected agents read reaches those agents' providers, at the member's choice.
 - **Prompt injection**: knowledge, tasks, the web, files and integrations carry text others wrote,
   and a system prompt is no boundary; what the tools allow is. Integration calls wait for the
   member's approval, except auto-approved tools, which anything the agent reads can get called at

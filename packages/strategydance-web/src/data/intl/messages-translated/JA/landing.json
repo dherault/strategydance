@@ -1,5 +1,7 @@
 {
   "landing.beta": "ベータ版公開中",
+  "landing.companyLabel": "あなたの会社について",
+  "landing.companyPlaceholder": "あなたの会社について手元にある情報をすべて入力または貼り付けてください",
   "landing.copyright": "© {year} Strategy Dance",
   "landing.github": "GitHub",
   "landing.legal": "法的情報",

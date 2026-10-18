@@ -3803,6 +3803,14 @@
         "hash": "0ca35b69ab2c13a0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "landing.companyLabel": {
+        "hash": "ec62bd7c7f36e0c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "landing.companyPlaceholder": {
+        "hash": "bdd9f85b82c093ff",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "landing.copyright": {
         "hash": "022f1515907b7aa1",
         "locales": "DE,ES,FR,JA,PT,ZH"

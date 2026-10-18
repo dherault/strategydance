@@ -230,18 +230,6 @@ const moduleMessages = defineMessages({
     description:
       'Shown on the page where a member allows an external agent, when Strategy Dance could not confirm what the agent says about itself.',
   },
-  unavailableTitle: {
-    id: 'module.unavailableTitle',
-    defaultMessage: 'Connecting agents is not available yet',
-    description:
-      'Title shown to a member who opens the page for allowing an external agent before the feature is open to them.',
-  },
-  unavailableDescription: {
-    id: 'module.unavailableDescription',
-    defaultMessage: 'Strategy Dance will soon let you connect agents such as Claude or ChatGPT to your organization.',
-    description:
-      'Shown to a member who opens the page for allowing an external agent before the feature is open to them.',
-  },
   readError: {
     id: 'module.readError',
     defaultMessage: "The agent's request could not be read.",

@@ -71,8 +71,6 @@
   "module.tasksName": "任务",
   "module.tasksReadAccess": "列出并查看团队看板上的任务。",
   "module.tasksWriteAccess": "创建、修改、关联和删除团队看板上的任务。",
-  "module.unavailableDescription": "Strategy Dance 即将支持将 Claude 或 ChatGPT 等智能体连接到您的组织。",
-  "module.unavailableTitle": "连接智能体功能暂未开放",
   "module.unnamedAgent": "未命名智能体",
   "module.unverified": "未验证",
   "module.unverifiedHint": "此智能体为自行注册，因此 Strategy Dance 无法确认其创建者。"

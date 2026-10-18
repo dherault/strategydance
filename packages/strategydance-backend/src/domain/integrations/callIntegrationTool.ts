@@ -252,6 +252,13 @@ type CallServerInput = {
   args: Record<string, unknown>
 }
 
+// The failures of a call after which it may have run: no answer came, or one too large to read
+const UNANSWERED_FAILURES: IntegrationError[] = [
+  IntegrationError.TIMED_OUT,
+  IntegrationError.UNREACHABLE,
+  IntegrationError.TOO_MANY_TOOLS,
+]
+
 /*
   One call of a tool, on a client connected for it and closed after, or `unauthorized` when the
   server refused the credential with a 401, before the call ran. Anything else that goes wrong throws
@@ -285,10 +292,9 @@ async function callServer({ name, url, credential, fetch, signal, toolName, args
 
     const sentence = describeFailure(name, failure.kind)
 
-    // A server that never answered may have run the call, which the call is recorded as
-    throw failure.kind === IntegrationError.TIMED_OUT || failure.kind === IntegrationError.UNREACHABLE
-      ? new IntegrationCallUnanswered(sentence)
-      : new Error(sentence)
+    // A server that never answered, or whose answer was too large to read, may have run the call,
+    // which the call is recorded as
+    throw UNANSWERED_FAILURES.includes(failure.kind) ? new IntegrationCallUnanswered(sentence) : new Error(sentence)
   }
 }
 
@@ -325,7 +331,7 @@ function describeFailure(name: string, kind: IntegrationError) {
     case IntegrationError.ADDRESS_REFUSED:
       return `${name}'s address is not one Strategy Dance reaches. Tell the member an administrator can check it.`
     case IntegrationError.TOO_MANY_TOOLS:
-      return `${name} answered more than Strategy Dance reads. Ask for less, if the tool lets you.`
+      return `${name} answered more than Strategy Dance reads, so its answer was not read. The call may have run: check before you call it again, and ask for less, if the tool lets you.`
     case IntegrationError.KEY_REFUSED:
     case IntegrationError.AUTHENTICATION_REQUIRED:
       return `${name} refused this call for the member's account.`

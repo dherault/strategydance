@@ -347,38 +347,68 @@ describe('runConversation, a subagent calling an integration', () => {
     expect(readRun(next)?.status).toBe('COMPLETED')
   })
 
-  test('records a call its server never answered, which may have run, apart from one it answered with an error', async () => {
-    const answered = await kit.launch(await startParent())
+  test('records a call its server answered with an error as answered', async () => {
+    const subagent = await kit.launch(await startParent())
 
     server.switches.isFailing = true
-    await run(answered, createClient([calling(callTool('toolu_1')), answer()]))
-    server.switches.isFailing = false
+    await run(subagent, createClient([calling(callTool('toolu_1')), answer()]))
 
-    expect(readCall(answered, 'toolu_1')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: false })
+    expect(readCall(subagent, 'toolu_1')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: false })
+  })
 
-    // The server holds the call past the 60 seconds a call has, here a tenth of a second
-    const held = await kit.launch(await startParent())
+  test('records a call its server held past the time a call has as unanswered, since it may have run', async () => {
+    const subagent = await kit.launch(await startParent())
 
+    // The 60 seconds a call has, here a tenth of a second
     server.switches.isHeld = true
-    await runConversation(held, {
-      client: createClient([calling(callTool('toolu_2')), answer()]).client,
+    await runConversation(subagent, {
+      client: createClient([calling(callTool('toolu_1')), answer()]).client,
       retryDelayMs: 1,
       connectModules: connectTestModules([]),
       toolTimeoutMs: 100,
     })
     server.release()
 
-    expect(readCall(held, 'toolu_2')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: true })
+    expect(readCall(subagent, 'toolu_1')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: true })
+  })
 
-    // The server answers with an error page, as one down does
-    const unreachable = await kit.launch(await startParent())
-    const client = createClient([calling(callTool('toolu_3')), answer()])
+  test('records a call to a server answering with an error page, as one down does, as unanswered', async () => {
+    const subagent = await kit.launch(await startParent())
+    const client = createClient([calling(callTool('toolu_1')), answer()])
 
     network = { ...server, send: async () => ({ status: 503, headers: {}, body: (async function* () {})() }) }
-    await run(unreachable, client)
+    await run(subagent, client)
 
-    expect(readCall(unreachable, 'toolu_3')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: true })
-    expect(String(readResults(client.readRequests()[1]).get('toolu_3')?.content)).toContain('The call may have run')
+    expect(readCall(subagent, 'toolu_1')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: true })
+    expect(String(readResults(client.readRequests()[1]).get('toolu_1')?.content)).toContain('The call may have run')
+  })
+
+  test('records a call whose answer was more than Strategy Dance reads as unanswered, since it may have run', async () => {
+    const subagent = await kit.launch(await startParent())
+    const client = createClient([calling(callTool('toolu_1')), answer()])
+
+    network = {
+      ...server,
+      send: async (url, address, headers, signal, request) => {
+        if (!new TextDecoder().decode(request.body ?? new Uint8Array()).includes('"tools/call"')) {
+          return server.send(url, address, headers, signal, request)
+        }
+
+        return {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+          body: (async function* () {
+            for (let index = 0; index < 5; index++) yield new Uint8Array(1024 * 1024).fill(32)
+          })(),
+        }
+      },
+    }
+    await run(subagent, client)
+
+    expect(readCall(subagent, 'toolu_1')).toMatchObject({ toolStatus: 'FAILED', isToolUnanswered: true })
+    expect(String(readResults(client.readRequests()[1]).get('toolu_1')?.content)).toContain(
+      'Issues answered more than Strategy Dance reads, so its answer was not read. The call may have run',
+    )
   })
 
   test('refreshes the member’s token once when five subagents call one OAuth server at once', async () => {

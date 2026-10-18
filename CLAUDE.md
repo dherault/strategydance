@@ -650,8 +650,8 @@ A conversation is kept twice, once for Claude and once for the page, and
   every route that starts or continues one, the send, an answer, an approval, Resume, Retry and a
   file's upload, mounts `verifiedEmailMiddleware`, which reads the ID token's `email_verified`, then
   `conversationsSuspensionMiddleware`, which reads `User.conversationsSuspendedAt` and
-  `Organization.conversationsSuspendedAt`, after `staffOnlyMiddleware`, and a new one mounts both,
-  while the stops, the reconciles and the reads mount neither. The development backend asks for no
+  `Organization.conversationsSuspendedAt`, after `organizationMemberMiddleware`, and a new one mounts
+  both, while the stops, the reconciles and the reads mount neither. The development backend asks for no
   confirmed address (`IS_EMAIL_VERIFICATION_REQUIRED`, `EMAIL_VERIFICATION_REQUIRED=true` holding it
   there), and the route tests' viewer carries `isEmailVerified`. A suspension is read where a worker
   claims a run (`isClaimable`), never at the steps after, which would throw away a turn paid for, by
@@ -851,20 +851,6 @@ A conversation is kept twice, once for Claude and once for the page, and
 - A domain function hands an operation only the variables it declares: Data Connect refuses one it
   does not, which the fakes let through, so pass a member as `{ organizationId, userId }`, never a
   run reference that carries more
-- Until conversations launch, they are for administrators of Strategy Dance alone
-  (`ARE_CONVERSATIONS_STAFF_ONLY`): everything that offers one asks `useCanUseConversations`, and
-  every page under an organization's `conversations/` sits behind the bouncer its layout route
-  mounts. Locally the gate is lifted, so every member of every organization has them: the web
-  against the emulators (`EMULATORS_REQUESTED`) and the development backend
-  (`IS_CONVERSATIONS_RELEASE_GATED`) let everybody through, while a Hosting preview, Cloud Run and
-  the tests keep it. A gate added for conversations keys off the same two, as the integrations' does
-  (`useCanUseIntegrations`, and `staffOnlyMiddleware` on their routes, a member's Connect's included,
-  whose callback needs none, since only a staff member's Connect leaves a state to find). The modules reach external agents under a gate of their own until they launch,
-  `ARE_MODULES_STAFF_ONLY`, lifted on the development backend the same way
-  (`IS_MODULES_RELEASE_GATED`): the consent page's routes run `modulesStaffOnlyMiddleware`, and the
-  token verifier checks the role on every call. The web asks `useCanUseModules`, keyed off the same
-  two as `useCanUseConversations`, before it reads a consent request or offers the Connected agents
-  tab or a module's agents button
 - The dock's windows are each member's in each organization, kept by `_ConversationDockProvider`
   under one persisted key, each set under `${userId}:${organizationId}`, since the key a persisted
   state reads is read once. A minimized window reads nothing but `GetDockConversations`, the
@@ -1152,7 +1138,7 @@ in `utils/`, one concern per file.
   is how an invitation gets accepted locally
 - Conversations' routes sit in `routes/conversations.ts`, mounted at
   `/organizations/:organizationId/conversations` with `mergeParams`, and each runs
-  `organizationMemberMiddleware`, then `staffOnlyMiddleware` until conversations launch. A send
+  `organizationMemberMiddleware`. A send
   queues a run, and `enqueueRun` sends it on its way: in development it starts in the backend's
   own process, and in production (`ARE_CONVERSATION_RUNS_IN_PROCESS` off) a Cloud Tasks task named
   after the run, `run-<runId>` on the `conversation-runs` queue, delivers it to the worker's
@@ -1167,8 +1153,8 @@ in `utils/`, one concern per file.
   `findConversationRunTask` and `finalizeDeadConversationRun(s)`, and a new one takes it too
 - An organization's MCP servers are its administrators' to change, through `routes/integrations.ts`,
   mounted at `/organizations/:organizationId/integrations`, each route running
-  `organizationAdministratorMiddleware`, then `staffOnlyMiddleware` until conversations launch, and
-  those that reach a server `integrationRateLimitMiddleware`. What they do is in
+  `organizationAdministratorMiddleware`, and those that reach a server
+  `integrationRateLimitMiddleware`. What they do is in
   `domain/integrations/`: `reachIntegration` lists a server's tools through the MCP SDK's client,
   a 2025 handshake first, or discovers an OAuth server's issuer, which has to offer S256 and a way to
   register, a server's origin taken as its authorization server only when every metadata address
@@ -1246,8 +1232,8 @@ in `utils/`, one concern per file.
   (`OAUTH_PROTOCOL_PATHS`, which the app's `cors` reads, matched exactly), never log a body, and
   find tokens by their hash. Each is metered per address, registration and authorization capped in
   all too, the token and revocation endpoints generously, since a hosted client calls them for
-  every member from a few addresses of its own. The consent page's routes keep the app's middleware, App Check, the ID token and
-  `modulesStaffOnlyMiddleware`, and are the only place a client ID metadata document is fetched,
+  every member from a few addresses of its own. The consent page's routes keep the app's middleware,
+  App Check and the ID token, and are the only place a client ID metadata document is fetched,
   once a member has signed in. `createAgentConnectionTokenVerifier` is what a module's endpoint
   checks a bearer token with. Its tests run against `createOAuthDatabaseFake`, which the modules'
   fake composes, and `bun run check:oauth`, in the backend's package, goes through the whole flow
@@ -1439,7 +1425,7 @@ Modules says what each does and why.
   conventions](#backend-conventions)). Its caller comes from the access token,
   `createAgentConnectionTokenVerifier` reading it on every call: `kind: 'external'`, the token's
   scopes within its connection's, the scope `connection:<id>`, and the membership's `createdAt`, so a
-  member removed, an agent disconnected or an account no longer staff is stopped at its next call. A
+  member removed or an agent disconnected is stopped at its next call. A
   verified token marks its connection used, `lastUsedAt`, at most once a minute
   (`createAgentConnectionUseRecorder` in memory, `RecordAgentConnectionUse` across instances), which
   no live query refreshes on

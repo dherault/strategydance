@@ -2,6 +2,7 @@ import { useIntl } from 'react-intl'
 import { CONVERSATION_ATTACHMENT_CONTENT_TYPES, MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE } from 'strategydance-core'
 
 import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
+import useRefreshConversationAccess from '~hooks/conversation/useRefreshConversationAccess'
 import useRemoveConversationAttachment from '~hooks/conversation/useRemoveConversationAttachment'
 import useUploadConversationAttachment from '~hooks/conversation/useUploadConversationAttachment'
 
@@ -27,8 +28,9 @@ import conversationMessages from '~data/intl/messages/conversation'
   into the draft: the upload is the tab's, not the composer's, so it goes on wherever the
   conversation is drawn meanwhile, and lands in the draft it was added to. A file the conversation
   does not take, or one too large, never goes into the tray, and one the backend refuses for good
-  leaves it: either is named above the field. One that failed otherwise, its connection lost say,
-  stays, to be uploaded again or removed.
+  leaves it: either is named above the field. One that failed otherwise, its connection lost say, or
+  refused while the reader's address is not confirmed or their conversations suspended, which the
+  composer's notice says, stays, to be uploaded again or removed.
 
   Removing a file stops its upload and tells the backend, so its place among the reader's unsent
   files frees at once. Uploading one again does it under a new id once the old one is removed, so a
@@ -40,6 +42,7 @@ function useConversationComposerAttachments(conversationId: string) {
   const [draft, changeDraft, readDraft] = useConversationComposerDraft(conversationId)
   const uploadConversationAttachment = useUploadConversationAttachment()
   const removeConversationAttachment = useRemoveConversationAttachment()
+  const refreshConversationAccess = useRefreshConversationAccess()
 
   // Changes one of the draft's files, should it still be there
   function changeAttachment(id: string, change: Partial<ConversationComposerAttachment>) {
@@ -109,6 +112,17 @@ function useConversationComposerAttachments(conversationId: string) {
         if (failure === 'error') {
           console.error('A file could not be uploaded', error)
           changeAttachment(id, { status: 'failed' })
+
+          return
+        }
+
+        // Refused whatever the file, until the reader confirms their address or the suspension is
+        // lifted: the file waits to go up again, and the composer's notice says why
+        if (failure === 'unverified' || failure === 'suspended') {
+          changeAttachment(id, { status: 'failed' })
+          changeDraft(() => ({ failure }))
+
+          if (failure === 'suspended') refreshConversationAccess()
 
           return
         }

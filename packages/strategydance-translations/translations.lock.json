@@ -1373,6 +1373,14 @@
       }
     },
     "conversation": {
+      "conversation.access.suspended": {
+        "hash": "3766f03af89023dc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.access.unverified": {
+        "hash": "5d5e610b36f96c83",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.addAspects": {
         "hash": "dbdccbe464e1e3cd",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1651,6 +1659,38 @@
       },
       "conversation.confirm": {
         "hash": "35e5b22bdee1f919",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.check": {
+        "hash": "9ccb848331b98d6f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.error": {
+        "hash": "a3feb30b41b2bbf3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.lead": {
+        "hash": "92df430e1a90660a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.notConfirmed": {
+        "hash": "7c237be25f81a046",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.resend": {
+        "hash": "8c468679e411dd29",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.send": {
+        "hash": "9d8bd010a92f2448",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.sent": {
+        "hash": "a674def690f9a7c0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.confirmation.title": {
+        "hash": "c6b50f0375b8ed7a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.conversationLoadError": {
@@ -2231,6 +2271,18 @@
       },
       "conversation.subagents.working": {
         "hash": "1627970cf4d770a5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.suspension.account": {
+        "hash": "d54de47f0ed1cd0d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.suspension.organization": {
+        "hash": "cabf51a7c0b6bdac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.suspension.title": {
+        "hash": "f47a1e92ee223f13",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.taskGone": {

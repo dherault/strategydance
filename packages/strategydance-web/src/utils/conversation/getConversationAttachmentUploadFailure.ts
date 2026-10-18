@@ -4,6 +4,10 @@ import {
   ERROR_CODE_UNSUPPORTED_MEDIA_TYPE,
 } from 'strategydance-core'
 
+import getConversationAccessFailure, {
+  type ConversationAccessFailure,
+} from '~utils/conversation/getConversationAccessFailure'
+
 import { ApiError } from '~data/api'
 
 // Why the backend would never take a file, however often it is sent
@@ -12,11 +16,18 @@ export type ConversationAttachmentUploadRefusal = 'unsupported' | 'tooLarge' | '
 /*
   What a failed upload of a file to a conversation tells the reader: a file the backend does not
   take, or cannot read, one past what Claude or the backend takes, or a reader with as many files
-  waiting to be sent as they may. Any other failure, a lost connection included, is one the same
-  file may get past when it is sent again
+  waiting to be sent as they may. An address not confirmed, or conversations suspended, refuses every
+  file until that changes, when the same file goes up as it is. Any other failure, a lost
+  connection included, is one the same file may get past when it is sent again
 */
-function getConversationAttachmentUploadFailure(error: unknown): ConversationAttachmentUploadRefusal | 'error' {
+function getConversationAttachmentUploadFailure(
+  error: unknown,
+): ConversationAttachmentUploadRefusal | ConversationAccessFailure | 'error' {
   if (!(error instanceof ApiError)) return 'error'
+
+  const accessFailure = getConversationAccessFailure(error)
+
+  if (accessFailure) return accessFailure
   if (error.code === ERROR_CODE_UNSUPPORTED_MEDIA_TYPE) return 'unsupported'
   if (error.code === ERROR_CODE_ATTACHMENT_TOO_LARGE) return 'tooLarge'
   if (error.code === ERROR_CODE_TOO_MANY_PENDING_ATTACHMENTS) return 'pending'

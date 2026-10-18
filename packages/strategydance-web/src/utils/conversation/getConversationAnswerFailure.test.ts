@@ -3,6 +3,8 @@ import { describe, expect, mock, test } from 'bun:test'
 import {
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
+  ERROR_CODE_CONVERSATIONS_SUSPENDED,
+  ERROR_CODE_EMAIL_NOT_VERIFIED,
   ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_UNKNOWN_ERROR,
 } from 'strategydance-core'
@@ -18,6 +20,13 @@ describe('getConversationAnswerFailure', () => {
     expect(getConversationAnswerFailure(new ApiError(409, ERROR_CODE_CONFLICT, 'Answered'))).toBe('conflict')
     expect(getConversationAnswerFailure(new ApiError(503, ERROR_CODE_SERVICE_UNAVAILABLE, 'Unavailable'))).toBe(
       'unavailable',
+    )
+  })
+
+  test('reads an address not confirmed and conversations suspended', () => {
+    expect(getConversationAnswerFailure(new ApiError(403, ERROR_CODE_EMAIL_NOT_VERIFIED, 'Confirm'))).toBe('unverified')
+    expect(getConversationAnswerFailure(new ApiError(403, ERROR_CODE_CONVERSATIONS_SUSPENDED, 'Suspended'))).toBe(
+      'suspended',
     )
   })
 

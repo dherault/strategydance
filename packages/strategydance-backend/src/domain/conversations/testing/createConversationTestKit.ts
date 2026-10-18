@@ -139,6 +139,29 @@ function createConversationTestKit(
     return reference
   }
 
+  /*
+    Starts the daily caps counted, `count` of them, the newest `hoursAgo` old and each a second older
+    than the one before: the author's in this organization unless told whose, in an organization that
+    may be gone since
+  */
+  function seedStarts(
+    kind: 'CONVERSATION' | 'RUN' | 'SUBAGENT',
+    count: number,
+    { userId = author, organization = organizationId, hoursAgo = 1 } = {},
+  ) {
+    for (let index = 0; index < count; index++) {
+      const id = createId()
+
+      fake.cappedStarts.set(id, {
+        id,
+        userId,
+        organizationId: organization,
+        kind,
+        createdAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000 - index * 1000).toISOString(),
+      })
+    }
+  }
+
   // Claims a queued run as a worker that then crashes would, and answers its fence
   async function claim(reference: ConversationRunReference) {
     const fence = { ...reference, attempts: 0, membershipCreatedAt: readMembershipCreatedAt() }
@@ -197,6 +220,7 @@ function createConversationTestKit(
     start,
     send,
     launch,
+    seedStarts,
     claim,
     expireLease,
     readMembershipCreatedAt,

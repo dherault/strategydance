@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 
 import type { BetaContentBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import { MAX_ANSWER_OTHER_LENGTH, MAX_CONVERSATION_MESSAGES } from 'strategydance-core'
@@ -34,7 +34,7 @@ const { default: sendConversationMessage } = await import('./sendConversationMes
 const { default: runConversation } = await import('./runConversation')
 
 const kit = createConversationTestKit(fake)
-const { start, readRun, readConversation, readMessages, readEntries, createClient } = kit
+const { start, seedStarts, readRun, readConversation, readMessages, readEntries, createClient } = kit
 
 const PRICE = { prompt: 'Which price should the beta start at?', options: ['€19', '€29', '€49'], multiple: false }
 const CHANNELS = { prompt: 'Where will you announce it?', options: ['X', 'LinkedIn', 'Product Hunt'], multiple: true }
@@ -373,5 +373,48 @@ describe('sendConversationMessage while a question waits', () => {
       expect.objectContaining({ tool_use_id: 'toolu_q', content: 'The member skipped this question.' }),
       { type: 'text', text: 'Skip it' },
     ])
+  })
+})
+
+describe('answerConversationQuestion at the daily caps', () => {
+  afterEach(() => {
+    setSystemTime()
+  })
+
+  test('carries the conversation on past a cap on runs, below one and a half times it', async () => {
+    const reference = await startWaiting(toolUse('toolu_q', 'ask_user', PRICE))
+
+    // 120 runs started today, past the member's 100
+    seedStarts('RUN', 119)
+
+    expect(await answerQuestion(reference, 'toolu_q', ['€29'])).toEqual({
+      outcome: 'answered',
+      runId: expect.any(String),
+    })
+  })
+
+  test('records the answer and starts nothing at one and a half times a cap, until the reconcile finds room', async () => {
+    const reference = await startWaiting(toolUse('toolu_q', 'ask_user', PRICE))
+
+    // 150 runs started in the last 24 hours, the 149 seeded 23 hours ago
+    seedStarts('RUN', 149, { hoursAgo: 23 })
+
+    expect(await answerQuestion(reference, 'toolu_q', ['€29'])).toEqual({ outcome: 'answered', runId: null })
+    expect(readQuestion(reference, 'toolu_q')).toMatchObject({ answerSelected: ['€29'] })
+    expect(readRun(reference)?.status).toBe('WAITING')
+    expect(readContinuations(reference)).toHaveLength(0)
+
+    // Still none within the window
+    await reconcileConversationRun(reference)
+
+    expect(readContinuations(reference)).toHaveLength(0)
+
+    // An hour and some later, the 149 are past the window, and the page's reconcile starts the run
+    setSystemTime(new Date(Date.now() + 61 * 60 * 1000))
+
+    await reconcileConversationRun(reference)
+
+    expect(readContinuations(reference)).toHaveLength(1)
+    expect(readRun(reference)?.status).toBe('CONTINUED')
   })
 })

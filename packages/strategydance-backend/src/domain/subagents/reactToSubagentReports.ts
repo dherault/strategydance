@@ -19,6 +19,7 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
+import readReachedUsageCap from '~domain/conversations/readReachedUsageCap'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import findDueSubagentReports, { isWaitingReport } from '~domain/subagents/findDueSubagentReports'
 import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
@@ -35,6 +36,9 @@ export type SubagentReaction =
   // The member's 3 runs in flight are taken: the reports wait for the next of their runs to end, a
   // reconcile, the sweep, or the member's next message
   | { outcome: 'busy' }
+  // The member started one and a half times a daily cap on runs, which a reaction passes a cap by
+  // at most: the reports wait as they do for a run, until the window has room
+  | { outcome: 'capped' }
   // The parent is full: its waiting reports were marked delivered, with no run
   | { outcome: 'delivered' }
   // Nothing to react to yet: no report waits, a batch is still working, the parent is busy, waits on
@@ -56,6 +60,8 @@ export type SubagentReaction =
     waiting reports are marked delivered with no run, which nothing else would deliver
   - a run of the member's in flight past its lease died with its worker, and is finalized before
     they are counted, and with 3 in flight nothing starts
+  - it finishes work under way, so it passes the daily caps on the runs the member starts, up to one
+    and a half times each, and past that nothing starts either
   - a write refused anyway, because a send, an answer, another subagent's end or a report delivered
     got there in between, starts another round, which finds the parent busy or the reports delivered
 
@@ -121,6 +127,8 @@ async function reactToSubagentReports(parent: Omit<ConversationRunReference, 'ru
         continue
 
       if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'busy' }
+      // Counted again by the mutation, whose refusal comes back here
+      if (await readReachedUsageCap(member, ['runs'], { isFinishing: true })) return { outcome: 'capped' }
 
       const blocks = await readSubagentReportBlocks({ ...member, membershipCreatedAt: membership.createdAt }, due)
       const runId = randomUUID().replaceAll('-', '')

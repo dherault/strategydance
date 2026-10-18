@@ -23,6 +23,7 @@ import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConve
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
 import readConversationOpenCalls from '~domain/conversations/readConversationOpenCalls'
+import readReachedUsageCap from '~domain/conversations/readReachedUsageCap'
 import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
 
 // How many times a continuation reads where the conversation stands and tries, before it gives up
@@ -31,7 +32,8 @@ const MAX_ROUNDS = 4
 export type ContinueConversationRunResult =
   // The run that carries the conversation on, started now or by an earlier try
   | { outcome: 'continued'; runId: string }
-  // A question of the turn still waits, or the caller has 3 runs in flight: nothing starts yet
+  // A question of the turn still waits, the caller has 3 runs in flight, or started one and a half
+  // times a daily cap on runs: nothing starts yet
   | { outcome: 'waiting' }
   // The run waits for nothing: a send consumed its turn, or it is not the one that waits
   | { outcome: 'consumed' }
@@ -52,6 +54,9 @@ export type ContinueConversationRunResult =
   - a question still waits: nothing starts
   - a run of the caller's in flight past its lease died with its worker, and is finalized before
     they are counted, and with 3 in flight nothing starts: the page's reconcile tries again
+  - it finishes work under way, so it passes the daily caps on the runs the caller starts, up to one
+    and a half times each, and past that nothing starts either: the answers are kept, and the page's
+    reconcile starts it once the window has room
   - then the entry answering the turn is built and checked, and the run started, carrying after
     every result, the answers' included, the reports of the conversation's subagents waiting, which
     it marks delivered, as a send carries them. When the member allowed a call of the turn, which has
@@ -112,6 +117,8 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
       continue
 
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'waiting' }
+    // Counted again by the mutation, whose refusal comes back here
+    if (await readReachedUsageCap(reference, ['runs'], { isFinishing: true })) return { outcome: 'waiting' }
 
     const [lastEntry] = data.conversationTranscriptEntries
     // After every result, as a send carries them; a run carrying allowed calls on stores its own

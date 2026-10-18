@@ -30,7 +30,7 @@ const { default: retryConversationRun } = await import('./retryConversationRun')
 const { default: stopConversationRun } = await import('./stopConversationRun')
 
 const kit = createConversationTestKit(fake)
-const { call, start } = kit
+const { call, start, seedStarts: seed } = kit
 
 const AUTHOR = 'author'
 
@@ -39,28 +39,6 @@ const OTHER_ORGANIZATION_ID = '7d6c5b4a39284f1e8d7c6b5a49382716'
 const THIRD_ORGANIZATION_ID = '2b3c4d5e6f7041829a3b4c5d6e7f8091'
 
 const HOUR = 60 * 60 * 1000
-
-/*
-  Starts the daily caps counted, `count` of them, the newest `hoursAgo` old and a second apart: the
-  author's in this organization unless told whose, in an organization that may be gone since
-*/
-function seed(
-  kind: 'CONVERSATION' | 'RUN' | 'SUBAGENT',
-  count: number,
-  { userId = AUTHOR, organizationId = ORGANIZATION_ID, hoursAgo = 1 } = {},
-) {
-  for (let index = 0; index < count; index++) {
-    const id = createId()
-
-    fake.cappedStarts.set(id, {
-      id,
-      userId,
-      organizationId,
-      kind,
-      createdAt: new Date(Date.now() - hoursAgo * HOUR - index * 1000).toISOString(),
-    })
-  }
-}
 
 function send(conversationId: string, messageId = createId()) {
   return sendConversationMessage({
@@ -124,13 +102,13 @@ describe('the daily caps on what a member starts', () => {
     const idle = await startIdle()
 
     // A hundred in another organization of the author's: the member's count here is theirs alone
-    seed('RUN', 100, { organizationId: OTHER_ORGANIZATION_ID })
+    seed('RUN', 100, { organization: OTHER_ORGANIZATION_ID })
 
     expect((await send(idle.conversationId)).outcome).toBe('sent')
 
     const other = await startIdle()
 
-    seed('RUN', 97, { organizationId: THIRD_ORGANIZATION_ID })
+    seed('RUN', 97, { organization: THIRD_ORGANIZATION_ID })
 
     expect(await send(other.conversationId)).toMatchObject({
       outcome: 'capped',
@@ -141,8 +119,8 @@ describe('the daily caps on what a member starts', () => {
   test('refuses the account in an organization at its ceiling across two others, the rows of one deleted since kept', async () => {
     // The author spent the account's allowance in two organizations, the first deleted since, its
     // rows holding its id alone
-    seed('RUN', 100, { organizationId: OTHER_ORGANIZATION_ID })
-    seed('RUN', 99, { organizationId: THIRD_ORGANIZATION_ID })
+    seed('RUN', 100, { organization: OTHER_ORGANIZATION_ID })
+    seed('RUN', 99, { organization: THIRD_ORGANIZATION_ID })
 
     const idle = await startIdle()
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 
 import { MAX_ACTIVE_RUNS_PER_MEMBER, MAX_CONVERSATION_MESSAGES } from 'strategydance-core'
 
@@ -281,5 +281,42 @@ describe('reactToSubagentReports', () => {
     expect(fake.runs.get(reaction?.id ?? '')?.status).toBe('COMPLETED')
     expect(kit.readThread(parent).at(-1)?.kind).toBe('AGENT_TEXT')
     expect(kit.readConversation(parent)?.unreadCount).toBe(unread + 1)
+  })
+})
+
+describe('reactToSubagentReports at the daily caps', () => {
+  afterEach(() => {
+    setSystemTime()
+  })
+
+  test('starts a reaction past a cap on runs, below one and a half times it', async () => {
+    const parent = await startParent()
+    const subagent = await kit.launch(parent)
+
+    kit.seedStarts('RUN', 119)
+    await report(subagent)
+
+    expect((await reactToSubagentReports(parent)).outcome).toBe('started')
+  })
+
+  test('holds a reaction back at one and a half times a cap, and starts it at the next run end that finds room', async () => {
+    const parent = await startParent()
+    const subagent = await kit.launch(parent)
+    const other = await kit.start('Other')
+
+    // With the parent's start and the other's, 150 runs in the last 24 hours, 148 of them 23 hours ago
+    kit.seedStarts('RUN', 148, { hoursAgo: 23 })
+    await report(subagent)
+
+    expect((await reactToSubagentReports(parent)).outcome).toBe('capped')
+    expect(isDelivered(subagent)).toBe(false)
+
+    // An hour and some later, those 148 are past the window, and the other run's end finds room
+    setSystemTime(new Date(Date.now() + 61 * 60 * 1000))
+
+    await runConversation(other, { client: kit.createClient([answer()]).client })
+
+    expect(readReactions(parent)).toHaveLength(1)
+    expect(isDelivered(subagent)).toBe(true)
   })
 })

@@ -1489,6 +1489,30 @@
         "hash": "07ff79083e4440c8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.cap.accountConversations": {
+        "hash": "f1538ccdd3111e12",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.accountRuns": {
+        "hash": "bd956b0c01beaa64",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.memberConversations": {
+        "hash": "a6eaeb8bacdb972d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.memberRuns": {
+        "hash": "dac3d481097ecd1d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.organizationConversations": {
+        "hash": "7d2bac3772071943",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.organizationRuns": {
+        "hash": "8c7bc72ab7d9fdee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.citationLabel": {
         "hash": "ef0d16a89a730eca",
         "locales": "DE,ES,FR,JA,PT,ZH"

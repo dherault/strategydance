@@ -1417,6 +1417,48 @@ const conversationMessages = defineMessages({
     description:
       'Shown above the message field when the server could not take the message for now. What the reader wrote stays in the field.',
   },
+  capMemberConversations: {
+    id: 'conversation.cap.memberConversations',
+    defaultMessage:
+      'You started {max, number} conversations in this organization in the last 24 hours, as many as you can for now. You can start another {time}.',
+    description:
+      "Shown when the reader starts a conversation past the daily limit on conversations they may start in this organization. What they wrote stays in the field. {max} is a number such as 20. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capAccountConversations: {
+    id: 'conversation.cap.accountConversations',
+    defaultMessage:
+      'You started {max, number} conversations across your organizations in the last 24 hours, as many as you can for now. You can start another {time}.',
+    description:
+      "Shown when the reader starts a conversation past the daily limit on conversations their account may start across every organization it is in. What they wrote stays in the field. {max} is a number such as 40. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capOrganizationConversations: {
+    id: 'conversation.cap.organizationConversations',
+    defaultMessage:
+      'Your team started {max, number} conversations in this organization in the last 24 hours, as many as it can for now. You can start another {time}.',
+    description:
+      "Shown when the reader starts a conversation past the daily limit on conversations the whole organization may start. What they wrote stays in the field. {max} is a number such as 100. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capMemberRuns: {
+    id: 'conversation.cap.memberRuns',
+    defaultMessage:
+      'Strategy Dance answered you {max, number} times in this organization in the last 24 hours, as many as it can for now. It can answer again {time}.',
+    description:
+      "Shown when the reader sends a message, resumes or retries a response past the daily limit on the responses they may ask for in this organization. When it was a message, what they wrote stays in the field. {max} is a number such as 100. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capAccountRuns: {
+    id: 'conversation.cap.accountRuns',
+    defaultMessage:
+      'Strategy Dance answered you {max, number} times across your organizations in the last 24 hours, as many as it can for now. It can answer again {time}.',
+    description:
+      "Shown when the reader sends a message, resumes or retries a response past the daily limit on the responses their account may ask for across every organization it is in. When it was a message, what they wrote stays in the field. {max} is a number such as 200. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capOrganizationRuns: {
+    id: 'conversation.cap.organizationRuns',
+    defaultMessage:
+      'Strategy Dance answered your team {max, number} times in this organization in the last 24 hours, as many as it can for now. It can answer again {time}.',
+    description:
+      "Shown when the reader sends a message, resumes or retries a response past the daily limit on the responses the whole organization may ask for. When it was a message, what they wrote stays in the field. {max} is a number such as 500. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
   composerAttach: {
     id: 'conversation.composer.attach',
     defaultMessage: 'Attach',

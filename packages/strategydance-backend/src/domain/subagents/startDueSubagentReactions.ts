@@ -28,7 +28,8 @@ type Options = {
   live and idle, waiting on no answer, in which a report waits (`GetDueSubagentReactions`), whether
   one is due is read in turn (`reactToSubagentReports`). A run of theirs ending frees one of their 3,
   so it starts the first due among the oldest 20, and stops at the 3 taken, or at a daily cap a
-  reaction would pass by more than it may; the sweep goes through every one. A read or a reaction
+  reaction would pass by more than it may; the sweep goes through every one. A suspension of the
+  member's conversations stops either. A read or a reaction
   that fails is logged and left to the next, never failing what it follows. Answers how many
   started
 */
@@ -56,7 +57,9 @@ async function startDueSubagentReactions(
       const reaction = await reactToSubagentReports({ ...member, conversationId })
 
       if (reaction.outcome === 'started' || reaction.outcome === 'unavailable') started++
-      // The member's runs taken, or past one and a half times a daily cap, hold back every other too
+      // The member's runs taken, or past one and a half times a daily cap, hold back every other too,
+      // and a suspension holds back every other even on the sweep
+      if (reaction.outcome === 'suspended') break
       if (!isThorough && ['started', 'busy', 'capped'].includes(reaction.outcome)) break
     } catch (error) {
       logger.warn(`Conversation ${conversationId}: its reaction to its subagents' reports could not start`, error)

@@ -485,6 +485,9 @@ export type SubagentsRefusal =
   | { outcome: 'tooManyToday'; cap: ReachedUsageCap }
   /** A file the conversation has not sent */
   | { outcome: 'attachmentsInvalid' }
+  /** A launch for a member whose conversations staff suspended, their account's or the
+   * organization's */
+  | { outcome: 'suspended' }
   /** A launch whose first request, measured whole, would pass a send's budget */
   | { outcome: 'overBudget'; reason: string }
   /** A launch stored whose run could not be queued, which the same call sent again queues */

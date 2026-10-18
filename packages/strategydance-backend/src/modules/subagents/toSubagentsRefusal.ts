@@ -40,6 +40,8 @@ function toSentence(refusal: SubagentsRefusal) {
       return "A subagent is handed only files this conversation has sent, by the ids the member's messages name them with. Leave the others out, and put what the subagent needs of them in its brief."
     case 'overBudget':
       return `${refusal.reason}. Hand it fewer files, and put what it needs of the rest in its brief.`
+    case 'suspended':
+      return "Strategy Dance's staff suspended the member's conversations, so this run is stopping and launches nothing. Launch nothing more, end your turn, and tell the member to write to david@strategydance.com."
     case 'unavailable':
       return 'The subagent was launched, but could not be queued yet. Call launch_subagent again in a moment, with the same idempotency key.'
     case 'busy':

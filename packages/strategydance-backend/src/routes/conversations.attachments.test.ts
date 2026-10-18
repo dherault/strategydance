@@ -5,7 +5,11 @@ import type { AddressInfo } from 'node:net'
 import Anthropic from '@anthropic-ai/sdk'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { PDFDocument } from 'pdf-lib'
-import { ERROR_CODE_EMAIL_NOT_VERIFIED, MAX_PENDING_CONVERSATION_ATTACHMENTS } from 'strategydance-core'
+import {
+  ERROR_CODE_CONVERSATIONS_SUSPENDED,
+  ERROR_CODE_EMAIL_NOT_VERIFIED,
+  MAX_PENDING_CONVERSATION_ATTACHMENTS,
+} from 'strategydance-core'
 
 import createClaudeFilesFake from '~domain/agent/testing/createClaudeFilesFake'
 import createScriptedClaudeClient from '~domain/agent/testing/createScriptedClaudeClient'
@@ -211,6 +215,22 @@ describe('PUT /:conversationId/attachments/:attachmentId', () => {
     expect(fake.attachments.size).toBe(0)
     expect(storage.objects.size).toBe(0)
     expect(files.files.size).toBe(0)
+  })
+
+  test('refuses a member whose conversations staff suspended, before anything is stored, and stores once lifted', async () => {
+    const organization = fake.organizations.get(ORGANIZATION_ID)!
+
+    organization.conversationsSuspendedAt = new Date().toISOString()
+
+    const response = await upload({ bytes: png(), contentType: 'image/png', name: 'Board.png' })
+
+    expect(response.status).toBe(403)
+    expect(((await response.json()) as { code: string }).code).toBe(ERROR_CODE_CONVERSATIONS_SUSPENDED)
+    expect([fake.attachments.size, storage.objects.size, files.files.size]).toEqual([0, 0, 0])
+
+    organization.conversationsSuspendedAt = null
+
+    expect((await upload({ bytes: png(), contentType: 'image/png', name: 'Board.png' })).status).toBe(201)
   })
 
   test('stores an image, a PDF and a text file, counted, uploaded to the Files API and ready', async () => {

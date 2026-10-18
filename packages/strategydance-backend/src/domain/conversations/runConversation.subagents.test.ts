@@ -323,6 +323,23 @@ describe('runConversation, for a subagent', () => {
     expect(readReport(before.subagent)).toBe('This subagent was interrupted before it finished.')
   })
 
+  test('reports it was interrupted when its member’s conversations were suspended before its claim', async () => {
+    const { subagent } = await launch()
+    const scripted = kit.createClient([answer()])
+    const user = fake.users.get(AUTHOR)
+
+    if (user) user.conversationsSuspendedAt = new Date().toISOString()
+
+    expect(await runConversation(subagent, { client: scripted.client })).toBe('finished')
+    expect(scripted.requests).toHaveLength(0)
+    expect(kit.readRun(subagent)).toMatchObject({
+      status: 'INTERRUPTED',
+      attempts: 0,
+      failure: 'Its author’s conversations are suspended',
+    })
+    expect(readReport(subagent)).toBe('This subagent was interrupted before it finished.')
+  })
+
   test('cuts a long last reply to 8000 characters, at a line break, marked cut', async () => {
     const { subagent } = await launch()
     const paragraph = `${'Competitor pricing, compared page by page. '.repeat(20).trim()}\n\n`

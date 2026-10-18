@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import {
   ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED,
+  ERROR_CODE_CONVERSATIONS_SUSPENDED,
   ERROR_CODE_EMAIL_NOT_VERIFIED,
   ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_TOO_MANY_REQUESTS,
@@ -458,6 +459,52 @@ describe('a caller whose address is not confirmed', () => {
     }
 
     expect((await post(origin, 'search', { query: 'pricing' })).status).toBe(200)
+  })
+})
+
+describe('a member whose conversations staff suspended', () => {
+  function post(origin: string, path: string, body?: unknown) {
+    return fetch(`${origin}/organizations/${ORGANIZATION_ID}/conversations/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    })
+  }
+
+  test('is refused by every route that starts or continues a run, their account’s suspension or the organization’s, until it is lifted', async () => {
+    const origin = await listen()
+    const conversationId = insertConversation('Pricing')
+    const runId = crypto.randomUUID()
+    const messageId = crypto.randomUUID()
+    const user = fake.users.get(SEARCHER)!
+    const organization = fake.organizations.get(ORGANIZATION_ID)!
+    const before = [fake.conversations.size, fake.messages.size, fake.runs.size]
+
+    for (const suspended of [user, organization]) {
+      suspended.conversationsSuspendedAt = new Date().toISOString()
+
+      for (const [path, body] of [
+        [`${crypto.randomUUID()}/messages`, { messageId, text: 'Help me price the beta' }],
+        [`${conversationId}/answers`, { messageId, selected: ['Monthly'], other: null }],
+        [`${conversationId}/approvals`, { messageId, isAllowed: true }],
+        [`${conversationId}/runs/${runId}/resume`, undefined],
+        [`${conversationId}/runs/${runId}/retry`, undefined],
+      ] as const) {
+        const response = await post(origin, path, body)
+
+        expect(response.status).toBe(403)
+        expect(((await response.json()) as { code: string }).code).toBe(ERROR_CODE_CONVERSATIONS_SUSPENDED)
+      }
+
+      // Stopping and reading are left to them
+      expect((await post(origin, `${conversationId}/runs/${runId}/stop`)).status).not.toBe(403)
+      expect((await post(origin, 'search', { query: 'pricing' })).status).toBe(200)
+
+      suspended.conversationsSuspendedAt = null
+    }
+
+    expect([fake.conversations.size, fake.messages.size, fake.runs.size]).toEqual(before)
+    expect((await sendMessage(origin, crypto.randomUUID(), {})).status).toBe(202)
   })
 })
 

@@ -41,6 +41,9 @@ export type SubagentReaction =
   | { outcome: 'capped' }
   // The parent is full: its waiting reports were marked delivered, with no run
   | { outcome: 'delivered' }
+  // Staff suspended the member's conversations, or the organization's: the reports wait until it is
+  // lifted, since a worker would claim no run of theirs, and each refused would cost a run of the caps
+  | { outcome: 'suspended' }
   // Nothing to react to yet: no report waits, a batch is still working, the parent is busy, waits on
   // an answer, or its latest run did not complete
   | { outcome: 'notDue' }
@@ -56,6 +59,8 @@ export type SubagentReaction =
   (`readSubagentReportBlocks`), which the mutation marks delivered as it starts the run. Each round
   reads where things stand first:
 
+  - a member whose conversations staff suspended, their account's or the organization's, starts
+    nothing, and the reports wait until it is lifted
   - a parent whose latest run ended with the full note can neither react nor be sent to, so its
     waiting reports are marked delivered with no run, which nothing else would deliver
   - a run of the member's in flight past its lease died with its worker, and is finalized before
@@ -86,6 +91,10 @@ async function reactToSubagentReports(parent: Omit<ConversationRunReference, 'ru
       || conversation.parentId
     ) {
       return { outcome: 'missing' }
+    }
+
+    if (data.user?.conversationsSuspendedAt || data.organization?.conversationsSuspendedAt) {
+      return { outcome: 'suspended' }
     }
 
     const waiting = data.subagents.filter(isWaitingReport)

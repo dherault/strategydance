@@ -125,6 +125,27 @@ describe('launch_subagent', () => {
     )
   })
 
+  it('refuses a launch for a member whose conversations staff suspended, or in an organization they suspended, storing nothing', async () => {
+    const REFUSAL =
+      "Strategy Dance's staff suspended the member's conversations, so this run is stopping and launches nothing. Launch nothing more, end your turn, and tell the member to write to david@strategydance.com."
+    const parent = await conversation.startRunning()
+    const kit = await conversation.connect(parent)
+    const user = fake.users.get('author')!
+    const organization = fake.organizations.get(ORGANIZATION_ID)!
+    const stored = [fake.conversations.size, fake.cappedStarts.size]
+
+    user.conversationsSuspendedAt = new Date().toISOString()
+
+    expect(await kit.refusal('launch_subagent', LAUNCH, 'toolu_01')).toBe(REFUSAL)
+
+    user.conversationsSuspendedAt = null
+    organization.conversationsSuspendedAt = new Date().toISOString()
+
+    expect(await kit.refusal('launch_subagent', LAUNCH, 'toolu_02')).toBe(REFUSAL)
+    expect([fake.conversations.size, fake.cappedStarts.size]).toEqual(stored)
+    expect(enqueueRun).not.toHaveBeenCalled()
+  })
+
   it("refuses a launch from a reaction to subagents' reports, read first and inside its mutation, and serves its reads and its stop", async () => {
     const REFUSAL =
       "This run reacts to subagents' reports, and launches no subagents: every one starts from the member's word. Do the work yourself, or tell the member what you would hand off."

@@ -3014,22 +3014,32 @@ review of M1 to M38, a day is bounded in dollars too, per member in each organiz
 and per organization, over the caps' rolling 24 hours, until the credits replace both (see Usage
 caps).
 
-- **What a run has cost, kept beside its ledger.** `ConversationRun.costBound`, an `Int64` of
-  microdollars, the most the run's ledger may have cost (`priceConversationUsageBound`): what Claude's
-  answers settled, and the worst case each request no answer settled reserved, a request in flight
-  included. Every write that writes `usage` writes it, through an optional `$costBound` the backend
-  computes from the ledger it sends, so the reservation that renews the lease counts the request
-  about to go before it is sent. A run from before the column counts at its `usage`, read and priced
-  by the backend, for its last day.
-- **Read at every start.** Beside the caps on starts, `readReachedUsageCap` sums `costBound` over the
-  runs started in the window (`costBound_sum`), the member's in the organization, the account's
-  across its organizations and the organization's, subagents' runs with their member's: a send, an
-  answer, an approval, Resume, Retry, a launch and a reaction. One at its ceiling is refused as a cap
-  is, 429 with the ceiling's code and `Retry-After`, read from when enough of the window's cost
-  leaves it, oldest run first; a launch is refused with its sentence and a reaction waits, as at a
-  cap. No mutation counts it: a ceiling passed by the runs already in flight is passed by their $10
-  each at most, three runs and five subagent runs, which the ceilings are set above. The development
-  backend lifts it with the caps (`IS_USAGE_CAPPED`).
+- **What a run has cost, kept where no deletion reaches it.** A `RunSpend` row per run, keyed by the
+  run's id, holding its account and its organization as `CappedStart` holds them, the organization a
+  plain id, so deleting the organization, or the conversation, erases nothing of a day's spend, and
+  `costBound`, an `Int64` of microdollars: the most the run's ledger may have cost
+  (`priceConversationUsageBound`), what Claude's answers settled and the worst case each request no
+  answer settled reserved, a request in flight included. Every write that writes a run's `usage`
+  upserts it beside, through an optional `$costBound` the backend computes from the ledger it sends,
+  so the reservation that renews the lease counts the request about to go before it is sent. A run
+  from before the table counts nothing, which lasts a day. The daily sweep prunes rows over a day
+  old.
+- **Read before every request, not only at a start.** A start could be checked alone only if
+  nothing it admits went on spending, and a subagent waiting for a slot is promoted, and one at its
+  limits chains, with no start between: ten launches admitted under a ceiling would spend up to $400.
+  So the ceiling is held where the run's $10 is, before each request a worker sends
+  (`requestConversationTurn`), a side request's included: the day's `costBound_sum` in each of the
+  three scopes, the member's in the organization, the account's across its organizations and the
+  organization's, plus the most the request about to go can cost, past which the request is not
+  sent and the run ends at its limits, with its note, a subagent's with its report, which a chain
+  then does not carry on. What passes a ceiling is then the requests in flight across the scope at
+  once, each bounded by its worst case, rather than whole runs.
+- **Read at every start too**, so nothing starts only to stop at its first request: beside the caps
+  on starts, `readReachedUsageCap` reads the same sums for a send, an answer, an approval, Resume,
+  Retry, a launch, a promotion and a reaction. One at its ceiling is refused as a cap is, 429 with
+  the ceiling's code and `Retry-After`, read from when enough of the window's spend leaves it,
+  oldest run first; a launch is refused with its sentence, a promotion leaves the run waiting, and a
+  reaction waits, as at a cap. The development backend lifts it with the caps (`IS_USAGE_CAPPED`).
 - **The amounts** are David's, before it merges. The milestone starts from $25 a member in each
   organization, $50 an account and $150 an organization, some ten times a heavy member's typical day
   at the caps (see Cost).
@@ -3039,8 +3049,12 @@ caps).
   billed past one reading of each result, which `priceRequestWorstCase` counts once.
 - **The page** says the ceiling is reached and when it frees, as it says a cap is, in the
   `conversation` catalogue; `report:usage` lists each scope's day against its ceiling.
-- **Verify**: domain tests at each scope against `createConversationDatabaseFake`, a reaction waiting
-  at its ceiling, and `check:conversation-runs` summing `costBound` against the emulators.
+- **Verify**: domain tests at each scope against `createConversationDatabaseFake`: runs of one
+  account in two organizations, and of two members in one, admitted side by side under the ceilings
+  and stopped at their next request once past; a backlog of pending subagents crossing it, the rest
+  left waiting and the running ones ending with their reports; a chain refused past it; an
+  organization deleted and made again, its spend still counted; and a reaction waiting at its
+  ceiling. `check:conversation-runs` sums `costBound` against the emulators.
 
 ### M40: Document revisions for agents' edits
 

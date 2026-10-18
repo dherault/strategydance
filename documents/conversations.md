@@ -2706,9 +2706,10 @@ multiply with them.
 Beside them, a run stops at $10 of estimated cost, which is what bounds what each start can spend.
 From M39, as David chose on 2026-10-18 after the review of M1 to M38, daily ceilings in dollars bound
 what the starts spend together, over the same 24 hours and the same three scopes, each run counted at
-the most its ledger may have cost (`priceConversationUsageBound`), a run in flight included: the caps
-on starts alone let an account spend some $5400 a day (see Cost), and the M39 milestone says how
-each start reads them.
+the most its ledger may have cost (`priceConversationUsageBound`), a run in flight included, on a row
+no deletion reaches, and held before every request a worker sends as well as at each start, since a
+promotion and a chain carry work on with no start: the caps on starts alone let an account spend
+some $5400 a day (see Cost), and the M39 milestone says how.
 
 - **Runs as well as conversations.** Spend follows runs: one conversation holds 2000 entries and its
   member three runs at once, so conversations alone would leave a member who never starts another

@@ -430,14 +430,6 @@ export const MAX_RICH_TEXT_IMAGE_SIZE = 10 * 1024 * 1024
 --- */
 
 /*
-  Conversations are open to Strategy Dance's own administrators (`User.isAdministrator`) alone
-  while they are built, and everything that offers one or runs one asks this first. It hides an
-  unfinished feature and protects no data: a conversation is its author's alone either way.
-  Locally, against the emulators and on the development backend, everybody has them
-*/
-export const ARE_CONVERSATIONS_STAFF_ONLY: boolean = true
-
-/*
   How many conversations a member keeps in an organization, and how many of their runs may go at
   once there. A deleted conversation does not count, so taking a delete back is held to the first
   as starting one is. The second bounds concurrency rather than usage: a run waiting for an answer
@@ -688,15 +680,6 @@ export const MODULES = [
 export const SERVED_MODULE_NAMES: readonly ModuleName[] = ['knowledge', 'tasks']
 
 export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.includes(module.name))
-
-/*
-  The modules reach external agents for Strategy Dance's own administrators (`User.isAdministrator`)
-  alone while they are built: the consent page's Allow refuses anybody else, and the token verifier
-  checks the role on every call, so a connection outlives no lost role. It hides an unfinished
-  feature, as conversations' gate does, and is lifted on the development backend the same way.
-  Strategy Dance's own agent reaches a module behind conversations' gate instead
-*/
-export const ARE_MODULES_STAFF_ONLY: boolean = true
 
 /*
   How many external agents a member connects across their organizations, a connection being one per

@@ -247,7 +247,6 @@ export type FakeEntry = {
 
 // What a member's account and membership tell the context message, which a test can change
 export type FakeUser = {
-  isAdministrator: boolean
   displayName: string | null
   timezone: string | null
   locale: string
@@ -439,9 +438,9 @@ function createConversationDatabaseFake() {
     return asked
   }
 
-  function addMember(userId: string, organizationId: string, { isAdministrator = true } = {}) {
+  function addMember(userId: string, organizationId: string) {
     if (!users.has(userId)) {
-      users.set(userId, { isAdministrator, displayName: null, timezone: null, locale: 'EN', bio: null })
+      users.set(userId, { displayName: null, timezone: null, locale: 'EN', bio: null })
     }
 
     if (!organizations.has(id(organizationId))) {
@@ -1575,8 +1574,6 @@ function createConversationDatabaseFake() {
   }
 
   const operations: Record<string, (variables: AnyVariables) => unknown> = {
-    GetUserStaffStatus: ({ userId }) => ({ user: users.get(userId) ?? null }),
-
     GetConversationsSuspension: readSuspension,
 
     GetUserByEmail: ({ email }) => ({

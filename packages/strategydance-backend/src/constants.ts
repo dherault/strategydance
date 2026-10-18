@@ -1,5 +1,4 @@
 import {
-  ARE_CONVERSATIONS_STAFF_ONLY,
   ARE_MODULES_STAFF_ONLY,
   DEVELOPMENT_API_PORT,
   DEVELOPMENT_API_URL,
@@ -32,18 +31,9 @@ export const PORT = Number(process.env.PORT) || DEVELOPMENT_API_PORT
 export const IS_WORKER = process.env.SERVICE === 'worker'
 
 /*
-  Whether conversations are open to Strategy Dance's administrators alone in this process: while
-  they are built (`ARE_CONVERSATIONS_STAFF_ONLY`), everywhere but the development backend, where
-  every member of every organization has them, so the whole feature can be tried locally without
-  granting anybody anything. Cloud Run and the tests keep the gate
-*/
-export const IS_CONVERSATIONS_RELEASE_GATED = ARE_CONVERSATIONS_STAFF_ONLY && !IS_DEVELOPMENT
-
-/*
   Whether the modules reach external agents for Strategy Dance's administrators alone in this
-  process: while they are built (`ARE_MODULES_STAFF_ONLY`), everywhere but the development backend,
-  as conversations' gate is. The consent page's Allow and the token verifier ask it. Cloud Run and
-  the tests keep the gate
+  process: while they are built (`ARE_MODULES_STAFF_ONLY`), everywhere but the development backend.
+  The consent page's Allow and the token verifier ask it. Cloud Run and the tests keep the gate
 */
 export const IS_MODULES_RELEASE_GATED = ARE_MODULES_STAFF_ONLY && !IS_DEVELOPMENT
 

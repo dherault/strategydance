@@ -106,8 +106,6 @@ beforeEach(() => {
   fake.reset()
   fake.addMember(ADMINISTRATOR, ORGANIZATION_ID, OrganizationRole.ADMINISTRATOR)
   fake.addMember(MEMBER, ORGANIZATION_ID)
-  fake.staff.add(ADMINISTRATOR)
-  fake.staff.add(MEMBER)
   reached = []
   answer = async () => listed(['hash-a'])
   setSystemTime()
@@ -278,13 +276,9 @@ describe('adding a server', () => {
     expect(body.code).toBe(ERROR_CODE_TOO_MANY_INTEGRATIONS)
   })
 
-  test("is an administrator's alone, and staff's alone while conversations are", async () => {
+  test("is an administrator's alone", async () => {
     expect((await call('POST', '', OPEN, null)).status).toBe(401)
     expect((await call('POST', '', OPEN, MEMBER)).body.code).toBe(ERROR_CODE_FORBIDDEN)
-
-    fake.staff.delete(ADMINISTRATOR)
-
-    expect((await call('POST', '', OPEN)).body.code).toBe(ERROR_CODE_FORBIDDEN)
     expect(reached).toHaveLength(0)
   })
 })

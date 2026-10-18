@@ -39,7 +39,6 @@ import authenticationMiddleware from '~middleware/authentication'
 import integrationRateLimitMiddleware from '~middleware/integrationRateLimit'
 import organizationAdministratorMiddleware from '~middleware/organizationAdministrator'
 import organizationMemberMiddleware from '~middleware/organizationMember'
-import staffOnlyMiddleware from '~middleware/staffOnly'
 import validateMiddleware from '~middleware/validate'
 
 import addIntegration from '~domain/integrations/addIntegration'
@@ -260,20 +259,15 @@ type AuthorizationRequest = Request<z.infer<typeof authorizationParamsSchema>, A
   An organization's MCP servers, which its administrators add, change, turn on and off, retry and
   delete, and to which any member connects and disconnects their own account when it takes OAuth,
   mounted at `/organizations/:organizationId/integrations`, whose `:organizationId` each route reads
-  through `mergeParams`. Every member reads them through the web connector's live list; only
-  Strategy Dance's administrators reach these routes while conversations are open to them alone,
-  which is what calls the servers.
+  through `mergeParams`. Every member reads them through the web connector's live list.
 
   Each route runs its middleware in one order: the body parsed, App Check, the caller's token, the
   routes that reach a server metered, the parameters and the body checked, then whether the caller
-  administers the organization, or is its member, and is staff, which read and write nothing before
-  them. Every operation behind a route checks the caller again in its own transaction
+  administers the organization, or is its member, which reads and writes nothing before them. Every operation behind a route checks the caller again in its own transaction
 */
 function createIntegrationsRouter() {
   const router = Router({ mergeParams: true })
   const json = express.json({ limit: '16kb' })
-  const administrator = [organizationAdministratorMiddleware, staffOnlyMiddleware]
-  const member = [organizationMemberMiddleware, staffOnlyMiddleware]
 
   // Adds a server, once reaching it found its tools or its issuer: 200 with its id
   router.post(
@@ -283,7 +277,7 @@ function createIntegrationsRouter() {
     authenticationMiddleware,
     integrationRateLimitMiddleware,
     validateMiddleware({ params: integrationsParamsSchema, body: addBodySchema }),
-    ...administrator,
+    organizationAdministratorMiddleware,
     async (request: IntegrationsRequest<z.infer<typeof addBodySchema>>, response: Response) => {
       const result = await addIntegration({
         organizationId: toCanonicalUuid(request.params.organizationId),
@@ -305,7 +299,7 @@ function createIntegrationsRouter() {
     authenticationMiddleware,
     integrationRateLimitMiddleware,
     validateMiddleware({ params: integrationParamsSchema, body: editBodySchema }),
-    ...administrator,
+    organizationAdministratorMiddleware,
     async (request: IntegrationRequest<z.infer<typeof editBodySchema>>, response: Response) => {
       const { expected, ...settings } = request.body
       const result = await editIntegration({
@@ -329,7 +323,7 @@ function createIntegrationsRouter() {
     authenticationMiddleware,
     integrationRateLimitMiddleware,
     validateMiddleware({ params: integrationParamsSchema }),
-    ...administrator,
+    organizationAdministratorMiddleware,
     async (request: IntegrationRequest, response: Response) => {
       const result = await retryIntegration({
         organizationId: toCanonicalUuid(request.params.organizationId),
@@ -350,7 +344,7 @@ function createIntegrationsRouter() {
     appCheckMiddleware,
     authenticationMiddleware,
     validateMiddleware({ params: integrationParamsSchema, body: enabledBodySchema }),
-    ...administrator,
+    organizationAdministratorMiddleware,
     async (request: IntegrationRequest<z.infer<typeof enabledBodySchema>>, response: Response) => {
       const result = await setIntegrationEnabled(toCaller(request), request.body.isEnabled)
 
@@ -367,7 +361,7 @@ function createIntegrationsRouter() {
     appCheckMiddleware,
     authenticationMiddleware,
     validateMiddleware({ params: integrationParamsSchema, body: approvalBodySchema }),
-    ...administrator,
+    organizationAdministratorMiddleware,
     async (request: IntegrationRequest<z.infer<typeof approvalBodySchema>>, response: Response) => {
       const result = await setIntegrationToolApproval(toCaller(request), request.body)
 
@@ -383,7 +377,7 @@ function createIntegrationsRouter() {
     appCheckMiddleware,
     authenticationMiddleware,
     validateMiddleware({ params: integrationParamsSchema }),
-    ...administrator,
+    organizationAdministratorMiddleware,
     async (request: IntegrationRequest, response: Response) => {
       const result = await deleteIntegration(toCaller(request))
 
@@ -399,7 +393,7 @@ function createIntegrationsRouter() {
     appCheckMiddleware,
     authenticationMiddleware,
     validateMiddleware({ params: integrationParamsSchema }),
-    ...administrator,
+    organizationAdministratorMiddleware,
     async (request: IntegrationRequest, response: Response) => {
       const result = await restoreIntegration(toCaller(request))
 
@@ -421,7 +415,7 @@ function createIntegrationsRouter() {
     authenticationMiddleware,
     integrationRateLimitMiddleware,
     validateMiddleware({ params: integrationParamsSchema }),
-    ...member,
+    organizationMemberMiddleware,
     async (request: IntegrationRequest, response: Response<ApiResponse<StartIntegrationConnectionData>>) => {
       const result = await startIntegrationConnection(toCaller(request))
 
@@ -442,7 +436,7 @@ function createIntegrationsRouter() {
     authenticationMiddleware,
     integrationRateLimitMiddleware,
     validateMiddleware({ params: integrationParamsSchema, body: finishBodySchema }),
-    ...member,
+    organizationMemberMiddleware,
     async (request: IntegrationRequest<z.infer<typeof finishBodySchema>>, response: Response) => {
       const result = await finishIntegrationConnection({
         ...toCaller(request),
@@ -461,7 +455,7 @@ function createIntegrationsRouter() {
     appCheckMiddleware,
     authenticationMiddleware,
     validateMiddleware({ params: authorizationParamsSchema }),
-    ...member,
+    organizationMemberMiddleware,
     async (request: AuthorizationRequest, response: Response) => {
       const result = await cancelIntegrationConnection({
         ...toCaller(request),
@@ -481,7 +475,7 @@ function createIntegrationsRouter() {
     authenticationMiddleware,
     integrationRateLimitMiddleware,
     validateMiddleware({ params: integrationParamsSchema }),
-    ...member,
+    organizationMemberMiddleware,
     async (request: IntegrationRequest, response: Response) => {
       const result = await disconnectIntegration(toCaller(request))
 

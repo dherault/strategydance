@@ -49,7 +49,6 @@ import conversationAttachmentUploadRateLimitMiddleware from '~middleware/convers
 import createConversationSearchRateLimitMiddleware from '~middleware/conversationSearchRateLimit'
 import conversationsSuspensionMiddleware from '~middleware/conversationsSuspension'
 import organizationMemberMiddleware from '~middleware/organizationMember'
-import staffOnlyMiddleware from '~middleware/staffOnly'
 import validateMiddleware from '~middleware/validate'
 import verifiedEmailMiddleware from '~middleware/verifiedEmail'
 
@@ -75,11 +74,11 @@ import { aspectsSchema } from '~modules/moduleSchemas'
   A member's conversations in an organization, mounted at
   `/organizations/:organizationId/conversations`, whose `:organizationId` each route reads through
   `mergeParams`. Only their author reaches a conversation, which every operation behind a route
-  checks, and only Strategy Dance's administrators while conversations are open to them alone.
+  checks.
 
   Each route runs its middleware in one order: the body parsed, App Check, the caller's token, the
-  parameters and the body checked, then the caller's membership and whether they are staff, which
-  read and write nothing before them. The search is metered between the token and the checks, as
+  parameters and the body checked, then the caller's membership, which reads and writes nothing
+  before them. The search is metered between the token and the checks, as
   the routes other routers meter are. The routes that start or continue a run, the send, an answer,
   an approval, Resume, Retry and a file's upload, then refuse with a 403 a caller whose token says
   their address is not confirmed (`verifiedEmailMiddleware`), and one whose conversations staff
@@ -142,7 +141,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: messagesParamsSchema, body: messagesBodySchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     verifiedEmailMiddleware,
     conversationsSuspensionMiddleware,
     async (request: MessagesRequest, response: Response<ApiResponse<SendConversationMessageData>>) => {
@@ -267,7 +265,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: messagesParamsSchema, body: answersBodySchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     verifiedEmailMiddleware,
     conversationsSuspensionMiddleware,
     async (request: AnswersRequest, response: Response<ApiResponse<AnswerConversationQuestionData>>) => {
@@ -339,7 +336,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: messagesParamsSchema, body: approvalsBodySchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     verifiedEmailMiddleware,
     conversationsSuspensionMiddleware,
     async (request: ApprovalsRequest, response: Response<ApiResponse<AnswerConversationApprovalData>>) => {
@@ -404,7 +400,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: runParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (request: RunRequest, response: Response<ApiResponse>) => {
       const result = await reconcileConversationRun({
         organizationId: toCanonicalUuid(request.params.organizationId),
@@ -437,7 +432,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: messagesParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (
       request: Request<z.infer<typeof messagesParamsSchema>, ApiResponse, unknown>,
       response: Response<ApiResponse>,
@@ -470,7 +464,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: messagesParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (
       request: Request<z.infer<typeof messagesParamsSchema>, ApiResponse, unknown>,
       response: Response<ApiResponse>,
@@ -509,7 +502,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: subagentParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (
       request: Request<z.infer<typeof subagentParamsSchema>, ApiResponse, unknown>,
       response: Response<ApiResponse>,
@@ -545,7 +537,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: runParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (request: RunRequest, response: Response<ApiResponse>) => {
       const result = await stopConversationRun({
         organizationId: toCanonicalUuid(request.params.organizationId),
@@ -580,7 +571,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: runParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     verifiedEmailMiddleware,
     conversationsSuspensionMiddleware,
     async (
@@ -642,7 +632,6 @@ function createConversationsRouter() {
     authenticationMiddleware,
     validateMiddleware({ params: runParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     verifiedEmailMiddleware,
     conversationsSuspensionMiddleware,
     async (
@@ -741,7 +730,6 @@ function createConversationsRouter() {
     searchRateLimitMiddleware,
     validateMiddleware({ params: searchParamsSchema, body: searchBodySchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (request: SearchRequest, response: Response<ApiResponse<SearchConversationsData>>) => {
       const result = await searchConversations({
         organizationId: toCanonicalUuid(request.params.organizationId),
@@ -812,7 +800,6 @@ function createConversationsRouter() {
     conversationAttachmentUploadRateLimitMiddleware,
     validateMiddleware({ params: attachmentParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     verifiedEmailMiddleware,
     conversationsSuspensionMiddleware,
     async (
@@ -884,7 +871,6 @@ function createConversationsRouter() {
     conversationAttachmentRemovalRateLimitMiddleware,
     validateMiddleware({ params: attachmentParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (request: AttachmentRequest, response: Response<ApiResponse>) => {
       const result = await removeConversationAttachment(readAttachmentLocation(request))
 
@@ -912,7 +898,6 @@ function createConversationsRouter() {
     conversationAttachmentReadRateLimitMiddleware,
     validateMiddleware({ params: attachmentParamsSchema }),
     organizationMemberMiddleware,
-    staffOnlyMiddleware,
     async (request: AttachmentRequest, response: Response) => {
       const result = await readConversationAttachment(readAttachmentLocation(request))
 

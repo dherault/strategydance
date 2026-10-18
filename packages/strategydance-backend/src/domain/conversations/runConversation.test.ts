@@ -1093,18 +1093,6 @@ describe('runConversation', () => {
     expect(readConversation(reference)?.activeRunId).toBeNull()
   })
 
-  test('interrupts the run of somebody who is no longer staff', async () => {
-    const reference = await start()
-    const scripted = createClient()
-    const user = fake.users.get(AUTHOR)
-
-    if (user) user.isAdministrator = false
-
-    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
-    expect(scripted.requests).toHaveLength(0)
-    expect(readRun(reference)).toMatchObject({ status: 'INTERRUPTED', failure: 'Its author is no longer staff' })
-  })
-
   test('never claims the run of a member whose conversations staff suspended, nor one in an organization they suspended', async () => {
     const user = fake.users.get(AUTHOR)
     const organization = fake.organizations.get(ORGANIZATION_ID)

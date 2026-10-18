@@ -2737,8 +2737,12 @@ As David chose on 2026-10-12, written again on 2026-10-16 against M29 as it merg
     `GetSubagentIntegrationCallsForAgent`: a call refused as it was drawn, the one needing an
     approval among them, reached no server, and the report names it. Each is `{ integration, tool,
     ending }`, the names as they were at call time, its ending `SUCCEEDED`, `FAILED` (answered with
-    an error), `INTERRUPTED` (started and never answered, so it may have run: finished as
-    interrupted, or cancelled by its run's end) or `RUNNING`. `read_subagent` lists them all with
+    an error), `UNANSWERED` (its server never answered, so it may have run) or `RUNNING`. A duration
+    could not tell the last two failures apart, since a timeout has one, so a call is recorded as
+    unanswered, `ConversationMessage.isToolUnanswered`, when it timed out, its server could not be
+    reached or stopped answering (`IntegrationCallUnanswered`), or a crash interrupted it, as Copilot
+    pointed out; a call cancelled by its run's end reads unanswered too, and one finished as
+    interrupted before the column, by its missing duration. `read_subagent` lists them all with
     every page, `integrationCalls` and `integrationCallTotal`, at most 200 for a chain; a report
     names the first 20 with their total, after its writes, `{"subagentReport": {"id", "title",
     "ending", "report", "writes", "total", "integrationCalls", "integrationCallTotal"}}`.
@@ -2754,17 +2758,18 @@ As David chose on 2026-10-12, written again on 2026-10-16 against M29 as it merg
     integrations' closed over its own run's fence, so a call is started and finished under its
     attempt and its member's membership, as a parent's is.
   - **In the dock**, a subagent's viewer stayed open over the Integrations page once its strip's link
-    led there, since the dock outlives the page: the window now keeps the page the viewer was opened
-    on and draws it only there, which covers a document's link in it too.
+    led there, since the dock outlives the page: the window now closes it at the reader's next
+    navigation (the router's `onBeforeNavigate`), a search alone changed or Back included, which
+    covers a document's link in it too.
   - Verified: the four checks; `check:subagents-module`, `check:subagent-runs` and
     `check:conversation-runs` against an emulator of the branch's schema, every check passing, the
-    new query's own among them: a subagent's started calls read in order with their status and
-    duration, one refused as it was drawn left out, a parent's left out, and somebody else's and a
+    new query's own among them: a subagent's started calls read in order with their status, duration
+    and answer, one refused as it was drawn left out, a parent's left out, and somebody else's and a
     replaced membership reading nothing. In a browser against it, with the placeholder agent and a
     subagent's calls to DeepWiki drawn in its thread, the server turned off: the viewer drawing the
     failed call and the strip's Turn on at 1280 and 390 wide, on the page and in a dock window, where
-    Turn on turned DeepWiki on and the viewer gave way to the Integrations page; and the switch's
-    warning in the server's dialog. Not yet: `probe:claude` and the real model with DeepWiki, gcloud
+    Turn on turned DeepWiki on and the viewer closed over the Integrations page, as it did opened on
+    that page itself, staying closed on Back; and the switch's warning in the server's dialog. Not yet: `probe:claude` and the real model with DeepWiki, gcloud
     asking David to sign in again before it reads the API key.
 
 ### M37: Launch readiness

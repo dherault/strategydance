@@ -3021,9 +3021,13 @@ caps).
   (`priceConversationUsageBound`), what Claude's answers settled and the worst case each request no
   answer settled reserved, a request in flight included. Every write that writes a run's `usage`
   upserts it beside, through an optional `$costBound` the backend computes from the ledger it sends,
-  so the reservation that renews the lease counts the request about to go before it is sent. A run
-  from before the table counts nothing, which lasts a day. The daily sweep prunes rows over a day
-  old.
+  so the reservation that renews the lease counts the request about to go before it is sent, and
+  `spentAt`, set from the database's clock by each of those writes. A run counts whole while its
+  `spentAt` is within the window, and so for 24 hours after its last reservation or settlement,
+  which counts each of its requests at least a full day and some a little longer, rather than drop
+  a request made at 12:09 of a run started at 12:00 at 12:01 the next day. The sums filter on
+  `spentAt` and the daily sweep prunes rows whose `spentAt` is over a day old, the same timestamp
+  for both. A run from before the table counts nothing, which lasts a day.
 - **Read before every request, not only at a start.** A start could be checked alone only if
   nothing it admits went on spending, and a subagent waiting for a slot is promoted, and one at its
   limits chains, with no start between: ten launches admitted under a ceiling would spend up to $400.
@@ -3053,7 +3057,8 @@ caps).
   account in two organizations, and of two members in one, admitted side by side under the ceilings
   and stopped at their next request once past; a backlog of pending subagents crossing it, the rest
   left waiting and the running ones ending with their reports; a chain refused past it; an
-  organization deleted and made again, its spend still counted; and a reaction waiting at its
+  organization deleted and made again, its spend still counted; a run whose last request came nine
+  minutes after its first, still counted a day after its first; and a reaction waiting at its
   ceiling. `check:conversation-runs` sums `costBound` against the emulators.
 
 ### M40: Document revisions for agents' edits
@@ -3077,9 +3082,11 @@ revision a member can go back to, Strategy Dance's agents' and external agents' 
   the document since, and as Restore this version, saying what written since goes too, in a history
   of the document's agents' edits on its page, which is where a member finds an external agent's.
   A document the team keeps from AI keeps its revisions, which only members read.
-- **`update_document` says it can destroy** (`destructiveHint: true`), so an external agent's client
-  asks its member before calling it: a module's tool list is pinned by its bytes, so the release costs
-  every conversation its earlier reasoning once, and `probe:claude` runs after it.
+- **`update_document` says it can destroy** (`destructiveHint: true`), which an external agent's
+  client may read to ask its member before calling it, by its own policy: the hint is advisory, so it
+  guarantees nothing, and the revisions are what guard the text. A module's tool list is pinned by its
+  bytes, so the release costs every conversation its earlier reasoning once, and `probe:claude` runs
+  after it.
 - **Verify**: the fold and its revision commit together or not at all, a revision restored merges with
   concurrent typing both ways as `updateRichTextYDoc`'s tests do, `check:knowledge-module` against the
   emulators, and the history and Undo looked at in a browser, desktop and phone.

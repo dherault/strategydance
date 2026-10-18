@@ -1,5 +1,5 @@
-import { useLocation } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { useRouter } from '@tanstack/react-router'
+import { useEffect, useRef, useState } from 'react'
 import type { CompanyAspect } from 'strategydance-database/web'
 
 import useConversation from '~hooks/conversation/useConversation'
@@ -26,18 +26,19 @@ type Props = {
   composer stays where it is whichever the window draws, so a draft's first message, which stores
   the conversation, leaves it mounted, and the run the reader last started is the conversation's, so
   the composer and the thread both count it as going before the live read of the latest run shows
-  it, here or on the page. A subagent's work opens over the window and the page alike, so it gives
-  way once the reader goes to another page, as a link in it leads them to
+  it, here or on the page. A subagent's work opens over the window and the page alike, so it closes
+  at the reader's next navigation, as a link in it leads them elsewhere, the dock outliving the page
 */
 function ConversationDockWindowBody({ conversationId, isAutoFocused }: Props) {
   const { data: conversation } = useConversation(conversationId)
   const { data: run } = useConversationRun(conversationId)
   const [startedRun, setStartedRun] = useConversationStartedRun(conversationId)
   const scrollerRef = useRef<HTMLDivElement>(null)
-  const pathname = useLocation({ select: location => location.pathname })
-  // The subagent whose work is open over the window, and the page it was opened on
-  const [viewed, setViewed] = useState<{ subagentId: string; pathname: string } | null>(null)
-  const viewedSubagentId = viewed?.pathname === pathname ? viewed.subagentId : null
+  const router = useRouter()
+  // The subagent whose work is open over the window
+  const [viewedSubagentId, setViewedSubagentId] = useState<string | null>(null)
+
+  useEffect(() => router.subscribe('onBeforeNavigate', () => setViewedSubagentId(null)), [router])
 
   return (
     <>
@@ -51,7 +52,7 @@ function ConversationDockWindowBody({ conversationId, isAutoFocused }: Props) {
             run={run}
             startedRun={startedRun}
             onRunStart={setStartedRun}
-            onViewSubagent={subagentId => setViewed({ subagentId, pathname })}
+            onViewSubagent={setViewedSubagentId}
             scrollerRef={scrollerRef}
             size="sm"
           />
@@ -80,7 +81,7 @@ function ConversationDockWindowBody({ conversationId, isAutoFocused }: Props) {
       <ConversationSubagentViewer
         conversationId={conversationId}
         subagentId={viewedSubagentId}
-        onClose={() => setViewed(null)}
+        onClose={() => setViewedSubagentId(null)}
       />
     </>
   )

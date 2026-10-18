@@ -88,7 +88,7 @@ nothing, rather than leave the daily sweep their only recovery.
 | M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | #202 |
 | M35 | Usage caps | core, database, backend, web, root | M33 | #207 |
 | M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
-| M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | |
+| M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | #210 |
 | M38 | Launch | all | all | |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document

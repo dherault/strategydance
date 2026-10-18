@@ -2750,9 +2750,12 @@ As David chose on 2026-10-12, written again on 2026-10-16 against M29 as it merg
     names the first 20 with their total, after its writes, `{"subagentReport": {"id", "title",
     "ending", "report", "writes", "total", "integrationCalls", "integrationCallTotal"}}`.
   - **The conversation's system prompt moved too**, as David approved: it names the report's two new
-    keys and asks the agent to propose itself a call a report says its subagent could not make, so
-    a reaction draws it as an approval. With `read_subagent`'s schema, the conversation's tools'
-    pinned bytes moved as well.
+    keys and asks the agent to make itself, with `call_integration_tool`, a call a report says its
+    subagent could not make, when it still serves what the member asked, rather than first asking
+    whether to, a reaction's run included, so the reaction draws it as an approval. Told only to
+    propose it, the real model's reaction described the call and asked the member which way to go,
+    a message before the Allow it could have drawn at once. With `read_subagent`'s schema, the
+    conversation's tools' pinned bytes moved as well.
   - **The refusal** reads "Not called: this call needs the member's approval, which nobody can give a
     subagent. Say in your report what you would call, with which arguments, and why.", the prefix
     every refusal at drawing has, and the call is drawn failed with its server, so the viewer's strip
@@ -2772,8 +2775,20 @@ As David chose on 2026-10-12, written again on 2026-10-16 against M29 as it merg
     subagent's calls to DeepWiki drawn in its thread, the server turned off: the viewer drawing the
     failed call and the strip's Turn on at 1280 and 390 wide, on the page and in a dock window, where
     Turn on turned DeepWiki on and the viewer closed over the Integrations page, as it did opened on
-    that page itself, staying closed on Back; and the switch's warning in the server's dialog. Not yet: `probe:claude` and the real model with DeepWiki, gcloud
-    asking David to sign in again before it reads the API key.
+    that page itself, staying closed on Back; and the switch's warning in the server's dialog.
+    `probe:claude` on the real API, every check passing, a subagent's request with the integration
+    tools among them; it also measured what a search brings back past its readings of the input,
+    8729 tokens at most over three research requests, against M35's provisional allowance of 40000.
+    On the real model, with DeepWiki added by its address on the Integrations page and
+    `ask_wiki_question` alone let run without approval: a subagent listing the integrations, reading
+    the tool and asking DeepWiki how the React compiler memoizes, its call drawn running and
+    answered in 14 seconds, and the reaction's entry carrying it, `{"integration": "DeepWiki",
+    "tool": "ask_wiki_question", "ending": "SUCCEEDED"}`; and a subagent told to use
+    `read_wiki_structure` alone, which read the tool, saw it needs an approval, made no call and
+    reported the call to make, with its arguments, which the reaction drew as an approval, the
+    member allowed, and the answer's run made, the parent then listing the wiki's topics. Asked
+    first, before the subagent was launched, the parent itself had warned that the tool needs an
+    approval a subagent cannot get.
 
 ### M37: Launch readiness
 

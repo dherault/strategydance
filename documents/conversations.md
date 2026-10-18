@@ -68,7 +68,8 @@ M29 as it was built, the parent hearing of every integration call a subagent mad
 parent's thread, and the launch gate removed (see Release gate). Revised on 2026-10-18, in M36, with
 what bringing integrations to subagents settled, in Subagents: the parent hears of the calls that
 started, a reaction's entry naming the first 20 and `read_subagent` all of them, and the
-conversation's system prompt asks it to propose a call its subagent could not make. When a decision
+conversation's system prompt asks it to make itself a call its subagent could not make, which waits
+for the member's approval, rather than first asking whether to. When a decision
 changes, change it here first.
 
 ## The design
@@ -2238,8 +2239,8 @@ way (see The orchestrator).
   ending, since a call to another company's server is what no restore undoes: those that started,
   since a call refused as it was drawn reached no server and the report names it, a reaction's entry
   the first 20 with their total and `read_subagent` every one. The conversation's system prompt asks
-  the parent to propose a call a report says its subagent could not make, which a reaction draws as
-  an approval the member answers. The switch that lets a tool run without approval says it runs in
+  the parent to make itself a call a report says its subagent could not make, rather than first
+  asking whether to, so a reaction draws it as an approval the member answers. The switch that lets a tool run without approval says it runs in
   subagents too, with nobody watching. A call that failed without its server refusing it before
   running it, one that timed out, found no server, was interrupted or brought an answer that could
   not be read, is recorded as unanswered (`isToolUnanswered`), and the parent hears it as

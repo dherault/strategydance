@@ -191,7 +191,6 @@ function expectError({ status, body }: TokenResponse, error: string) {
 beforeEach(() => {
   fake.reset()
   fake.addMember(MEMBER, ORGANIZATION_ID)
-  fake.setStaff(MEMBER)
   latestVersion = 1
 })
 

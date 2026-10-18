@@ -1,5 +1,4 @@
 import {
-  ARE_MODULES_STAFF_ONLY,
   DEVELOPMENT_API_PORT,
   DEVELOPMENT_API_URL,
   DEVELOPMENT_APP_URL,
@@ -29,13 +28,6 @@ export const PORT = Number(process.env.PORT) || DEVELOPMENT_API_PORT
   and the backend everything but them
 */
 export const IS_WORKER = process.env.SERVICE === 'worker'
-
-/*
-  Whether the modules reach external agents for Strategy Dance's administrators alone in this
-  process: while they are built (`ARE_MODULES_STAFF_ONLY`), everywhere but the development backend.
-  The consent page's Allow and the token verifier ask it. Cloud Run and the tests keep the gate
-*/
-export const IS_MODULES_RELEASE_GATED = ARE_MODULES_STAFF_ONLY && !IS_DEVELOPMENT
 
 /*
   Whether the daily caps hold in this process (`MAX_DAILY_…` in strategydance-core), which every

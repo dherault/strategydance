@@ -11,7 +11,7 @@ describe('CONVERSATION_SYSTEM_PROMPT', () => {
   */
   test('keeps its bytes', () => {
     expect(createHash('sha256').update(CONVERSATION_SYSTEM_PROMPT).digest('hex')).toBe(
-      '9f1c71ed803afc23b32c66f0b2030b864e78812b201ff393faaa6067e6c4b733',
+      'c776d5eb5c8a36bc2eae3a5266f14ba3c211b9d038877f0442cae554c57ebd0e',
     )
   })
 

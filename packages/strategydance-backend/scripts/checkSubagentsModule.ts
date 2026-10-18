@@ -11,6 +11,7 @@ import {
   connectorConfig,
   getConversationSendContext,
   getSubagentForAgent,
+  getSubagentIntegrationCallsForAgent,
   getSubagentLauncherForAgent,
   getSubagentWritesForAgent,
   launchPendingSubagentForAgent,
@@ -36,7 +37,7 @@ import { dataConnect } from '~firebase'
   operations, as the module calls them: its call's key stored, the run launching it checked still
   running, not asked to stop and on its anchor, the ten on an anchor and the hundred counted. Then it
   lists and reads them as the module does, on the member and the parent, with the writes a subagent's
-  scope keeps, and asks their runs to stop, queued, running and waiting for a slot, a chained one and
+  scope keeps and the calls to integrations its thread draws, and asks their runs to stop, queued, running and waiting for a slot, a chained one and
   another conversation's refused, and ends a queued one asked to stop. It removes everything it made,
   then exits non-zero naming each check that failed. The module's tests run against a fake of these
   operations: this is what says the fake's conditions are the SQL's.
@@ -195,6 +196,45 @@ async function insertCallResult(idempotencyScope: string, idempotencyKey: string
       })
     }`,
     { idempotencyScope, idempotencyKey, userId: userIds.author, organizationId, tool, result: JSON.stringify(result) },
+  )
+}
+
+/*
+  Draws a call to an integration into a conversation's thread, at a position past anything its runs
+  drew, as a run draws one: started unless `toolStartedAt` is null, as a call refused as it was drawn
+  never is, and finished when it has a duration. The server is named alone, since what references
+  one is the integrations' to check
+*/
+async function insertIntegrationCall(
+  conversationId: string,
+  position: number,
+  call: { toolStatus: string; isStarted?: boolean; toolDurationMs?: number | null },
+) {
+  await write(
+    `mutation InsertIntegrationCall(
+      $conversationId: UUID!
+      $position: Int!
+      $toolUseId: String!
+      $toolStatus: ConversationToolStatus!
+      $toolStartedAt: Timestamp
+      $toolDurationMs: Int
+      $integrationToolName: String!
+    ) {
+      conversationMessage_insert(data: {
+        conversationId: $conversationId, kind: TOOL_CALL, position: $position, toolUseId: $toolUseId,
+        toolName: "call_integration_tool", toolStatus: $toolStatus, toolStartedAt: $toolStartedAt,
+        toolDurationMs: $toolDurationMs, integrationName: "DeepWiki", integrationToolName: $integrationToolName
+      })
+    }`,
+    {
+      conversationId,
+      position,
+      toolUseId: `toolu_call_${position}`,
+      toolStatus: call.toolStatus,
+      toolStartedAt: call.isStarted === false ? null : new Date().toISOString(),
+      toolDurationMs: call.toolDurationMs ?? null,
+      integrationToolName: `tool_${position}`,
+    },
   )
 }
 
@@ -608,6 +648,58 @@ async function checkReading() {
   })
 
   check('the writes read nothing of somebody else’s', theirWrites.writes.length === 0)
+
+  // A subagent's calls to integrations, drawn out of order, one refused as it was drawn, and its
+  // parent's own, which is no subagent's
+  await insertIntegrationCall(first.conversationId, 1030, { toolStatus: 'RUNNING' })
+  await insertIntegrationCall(first.conversationId, 1010, { toolStatus: 'SUCCEEDED', toolDurationMs: 800 })
+  await insertIntegrationCall(first.conversationId, 1020, { toolStatus: 'FAILED' })
+  await insertIntegrationCall(first.conversationId, 1025, { toolStatus: 'FAILED', isStarted: false })
+  await insertIntegrationCall(second.conversationId, 1010, { toolStatus: 'SUCCEEDED', toolDurationMs: 100 })
+  await insertIntegrationCall(parent.conversationId, 1010, { toolStatus: 'SUCCEEDED', toolDurationMs: 100 })
+
+  const { data: calls } = await getSubagentIntegrationCallsForAgent(dataConnect, {
+    ...asCaller(parent),
+    subagentId: first.conversationId,
+  })
+
+  check(
+    'the calls read those the subagent started, oldest first, with their status, duration and count',
+    calls.membership.length === 1
+      && calls.calls.map(({ integrationToolName }) => integrationToolName).join() === 'tool_1010,tool_1020,tool_1030'
+      && calls.calls.map(({ toolStatus }) => toolStatus).join() === 'SUCCEEDED,FAILED,RUNNING'
+      && calls.calls[0]?.toolDurationMs === 800
+      && calls.calls[1]?.toolDurationMs === null
+      && calls.calls.every(({ integrationName }) => integrationName === 'DeepWiki')
+      && calls.total[0]?._count === 3,
+  )
+
+  const { data: parentCalls } = await getSubagentIntegrationCallsForAgent(dataConnect, {
+    ...asCaller(parent),
+    subagentId: parent.conversationId,
+  })
+
+  check('the calls read nothing of a conversation that is no subagent', parentCalls.calls.length === 0)
+
+  const { data: theirCalls } = await getSubagentIntegrationCallsForAgent(dataConnect, {
+    organizationId,
+    userId: userIds.other,
+    membershipCreatedAt: otherMembership,
+    subagentId: first.conversationId,
+  })
+
+  check(
+    'the calls read nothing of somebody else’s',
+    theirCalls.membership.length === 1 && theirCalls.calls.length === 0 && theirCalls.total[0]?._count === 0,
+  )
+
+  const { data: replaced } = await getSubagentIntegrationCallsForAgent(dataConnect, {
+    ...asCaller(parent),
+    membershipCreatedAt: '2020-01-01T00:00:00Z',
+    subagentId: first.conversationId,
+  })
+
+  check('the calls read no membership of a member since invited back', replaced.membership.length === 0)
 }
 
 async function checkStopping() {

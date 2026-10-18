@@ -3992,6 +3992,36 @@ function createConversationDatabaseFake() {
       }
     },
 
+    GetSubagentIntegrationCallsForAgent: variables => {
+      const subagent = conversations.get(id(variables.subagentId))
+      const isTheirs =
+        subagent !== undefined
+        && subagent.userId === variables.userId
+        && subagent.organizationId === id(variables.organizationId)
+        && subagent.parentId != null
+      const calls = isTheirs
+        ? conversationMessages(subagent.id)
+            .filter(
+              message =>
+                ['TOOL_CALL', 'APPROVAL'].includes(message.kind)
+                && message.integrationToolName != null
+                && message.toolStartedAt != null,
+            )
+            .sort((a, b) => a.position - b.position)
+        : []
+
+      return {
+        membership: moduleMembership(variables),
+        calls: calls.slice(0, 200).map(message => ({
+          integrationName: message.integrationName ?? null,
+          integrationToolName: message.integrationToolName ?? null,
+          toolStatus: message.toolStatus,
+          toolDurationMs: message.toolDurationMs ?? null,
+        })),
+        total: [{ _count: calls.length }],
+      }
+    },
+
     RequestSubagentRunStopForAgent: variables => {
       if (moduleMembership(variables).length === 0) refuse('The caller is no longer a member of the organization')
 

@@ -57,6 +57,33 @@ function recordWrite(subagentId: string, key: string, tool: string, result: obje
   })
 }
 
+// A call a subagent's run made to an integration, drawn at a position of its thread
+function recordIntegrationCall(
+  subagent: ConversationRunReference,
+  position: number,
+  call: { toolStatus: string; toolStartedAt?: string | null; toolDurationMs?: number | null; kind?: string },
+) {
+  const id = `${subagent.conversationId}-call-${position}`
+
+  fake.messages.set(id, {
+    id,
+    conversationId: subagent.conversationId,
+    runId: subagent.runId,
+    kind: call.kind ?? 'TOOL_CALL',
+    text: null,
+    noteKind: null,
+    toolStatus: call.toolStatus,
+    position,
+    toolUseId: `toolu_call_${position}`,
+    toolName: 'call_integration_tool',
+    toolStartedAt: call.toolStartedAt === undefined ? '2026-10-17T10:00:00.000000Z' : call.toolStartedAt,
+    toolDurationMs: call.toolDurationMs ?? null,
+    integrationId: 'b1c2d3e4f5a64b7c8d9e0f1a2b3c4d5e',
+    integrationName: 'DeepWiki',
+    integrationToolName: `tool_${position}`,
+  })
+}
+
 beforeEach(() => {
   fake.reset()
   fake.addMember(AUTHOR, ORGANIZATION_ID)
@@ -198,8 +225,54 @@ describe('readSubagent', () => {
         report: null,
         writes: [],
         total: 0,
+        integrationCalls: [],
+        integrationCallTotal: 0,
       },
     })
+  })
+
+  test('lists the calls it made to integrations, oldest first, with how each ended, on every page', async () => {
+    const parent = await startRunning()
+    const [subagent, other] = await launchMany(parent, 2)
+    const subagentId = subagent!.conversationId
+
+    recordIntegrationCall(subagent!, 30, { toolStatus: 'RUNNING' })
+    recordIntegrationCall(subagent!, 10, { toolStatus: 'SUCCEEDED', toolDurationMs: 800 })
+    recordIntegrationCall(subagent!, 20, { toolStatus: 'FAILED', toolDurationMs: 300 })
+    // Started and never answered: finished as interrupted, or cancelled by its run's end
+    recordIntegrationCall(subagent!, 22, { toolStatus: 'FAILED' })
+    recordIntegrationCall(subagent!, 24, { toolStatus: 'CANCELLED' })
+    // Refused as it was drawn, which reached no server, and another subagent's
+    recordIntegrationCall(subagent!, 26, { toolStatus: 'FAILED', toolStartedAt: null })
+    recordIntegrationCall(other!, 12, { toolStatus: 'SUCCEEDED', toolDurationMs: 100 })
+
+    for (let index = 0; index < 55; index++) {
+      recordWrite(
+        subagentId,
+        `toolu_${index}`,
+        'create_task',
+        { id: `task${index}` },
+        `2026-10-17T10:00:${String(index).padStart(2, '0')}Z`,
+      )
+    }
+
+    const caller = createSubagentsCaller(fake, parent)
+    const calls = [
+      { integration: 'DeepWiki', tool: 'tool_10', ending: 'SUCCEEDED' },
+      { integration: 'DeepWiki', tool: 'tool_20', ending: 'FAILED' },
+      { integration: 'DeepWiki', tool: 'tool_22', ending: 'INTERRUPTED' },
+      { integration: 'DeepWiki', tool: 'tool_24', ending: 'INTERRUPTED' },
+      { integration: 'DeepWiki', tool: 'tool_30', ending: 'RUNNING' },
+    ]
+    const first = await readSubagent(caller, { id: subagentId })
+
+    if (first.outcome !== 'read') throw new Error(first.outcome)
+
+    expect(first.subagent).toMatchObject({ integrationCalls: calls, integrationCallTotal: 5 })
+
+    const second = await readSubagent(caller, { id: subagentId, cursor: first.subagent.cursor })
+
+    expect(second).toMatchObject({ outcome: 'read', subagent: { integrationCalls: calls, integrationCallTotal: 5 } })
   })
 
   test('pages what a subagent wrote past 50, oldest first, naming each document or task with its tool', async () => {

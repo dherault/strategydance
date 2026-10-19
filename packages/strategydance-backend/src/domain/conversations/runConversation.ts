@@ -621,14 +621,15 @@ async function takeStep({
       // next request, its last, is answered with the report, calling nothing
       const isReportDue =
         isLastSubagentRun
-        && isSubagentReportDue({
-          usage,
-          limits,
-          startedAt,
-          entryCount: context.conversationMessages.length,
-          resultsLength: serializeTranscriptContent(results).length,
-          model: (config.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
-        })
+        && (isReportedAtTimeLimit
+          || isSubagentReportDue({
+            usage,
+            limits,
+            startedAt,
+            entryCount: context.conversationMessages.length,
+            resultsLength: serializeTranscriptContent(results).length,
+            model: (config.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
+          }))
       const content = isReportDue
         ? [...results, { type: 'text' as const, text: SUBAGENT_REPORT_REQUEST }]
         : [...results, ...reports.blocks]

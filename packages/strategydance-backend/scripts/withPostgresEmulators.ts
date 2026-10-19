@@ -24,7 +24,7 @@ import { setTimeout as wait } from 'node:timers/promises'
   alone. The emulators serve this checkout's schema and connectors, which the first migrates into the
   empty database, and reload connectors as they change on disk; a schema changed while it runs would
   have every emulator migrate it at once, so restart it instead. Postgres logs every lock wait past a
-  few milliseconds and every deadlock, which is how a race tells writers that met from writers that
+  millisecond and every deadlock, which is how a race tells writers that met from writers that
   never did.
 
   The emulators are firebase-tools' own binary, configured with the database as the CLI configures
@@ -190,7 +190,7 @@ async function startPostgres(database: string) {
     '-c',
     'log_lock_waits=on',
     '-c',
-    'deadlock_timeout=5ms',
+    'deadlock_timeout=1ms',
   ])
 
   if (!started.isSuccess) throw new Error(`Postgres did not start: ${started.stderr}`)

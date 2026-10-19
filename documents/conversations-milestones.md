@@ -3095,15 +3095,22 @@ caps).
     so the bound is the time it streamed at the model's top rate, five seconds of grace after, its
     input as the stream's start billed it and the searches it showed, never past its reservation.
     `cutBoundMicrodollars` keeps it on the request, beside the output the stream reported, which the
-    credits decide on. The rates are provisional, 400 tokens a second on Opus and Sonnet and 1000 on
-    Haiku, until `probe:claude` measures them.
+    credits decide on. The rates are 400 tokens a second on Opus and Sonnet and 1000 on Haiku, which
+    `probe:claude` measured after the merge (below).
   - **Searches read again**: each search's results are read again by every later step, ten times for
     five searches at the cache-read rate, which `priceRequestWorstCase` now counts. A request of some
     1200 tokens reserves about $1.77 alone and $4.01 with its fallback.
   - **`probe:claude`** gained a request of five searches read through `usage.iterations`, each step's
     first reading held to the allowance and its input to what the worst case reserves, and a timing
-    of every stream, each model's fastest held to half its top rate. Neither has run: gcloud asked
-    David to sign in again before it read the API key.
+    of every stream, each model's fastest held to half its top rate. Neither ran before the merge,
+    gcloud asking David to sign in again; once he had, on 2026-10-19, every check passed, the
+    timing moved first from a stream's message start to its send, as one stream whose server
+    tools held its events back arrived in a single burst and read 313000 tokens a second. Measured:
+    five searches billed $0.06 of input against the $0.47 their worst case reserves, so the readings
+    again hold with room; the API reports no iterations for the search loop, so no step was read
+    apart; a search brought back 8236 tokens at most, against the 16000 allowed; and from their send
+    Opus 5.5 wrote 82 tokens a second at most, Opus 5 50 and Opus 4.8 44, some five times under the
+    400 assumed. No Sonnet or Haiku stream wrote the 100 tokens a rate is read from.
   - **Found on the way**: `readReachedUsageCap` handed `GetCappedStarts` and `GetDailySpend` a send's
     whole input, which the emulator refused and the fake let through; it hands them the member
     alone, and the fake now refuses a variable those reads do not declare.

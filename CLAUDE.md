@@ -146,7 +146,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's and `check:subagents-module` the Subagents module's |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
-| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or price, or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
+| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model, price or top output rate, or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
@@ -922,7 +922,8 @@ in `utils/`, one concern per file.
   days old (`DeleteExpiredDocumentRevisions`), the servers with their keys and
   members' connections (`PruneDeletedIntegrations`), members' Connects to them expired over an hour
   ago (`PruneIntegrationAuthorizations`), the conversation searches over a day old, which
-  no count reads any more, the module call results past their expiry, and the authorization
+  no count reads any more, what runs that last spent over a day ago may have cost
+  (`pruneRunSpends`), the module call results past their expiry, and the authorization
   server's requests expired over a day ago, its tokens past their expiry and the registrations
   nobody uses (`domain/oauth/prune…`). Before all of them, it reconciles the runs no page
   reconciled, as the reconcile below does. Each step runs whatever the steps before it met
@@ -1015,7 +1016,8 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
 - A run's limits are the backend's: 25 requests (`CONVERSATION_RUN_MAX_REQUESTS`) and 10 minutes
   from its first claim (`CONVERSATION_RUN_MAX_DURATION_MS`), a stream still going 14 minutes after
   the claim cut (`CONVERSATION_RUN_STREAM_DEADLINE_MS`), inside the task's 15, 60 seconds a call
-  (`CONVERSATION_TOOL_CALL_TIMEOUT_MS`), and its $10. A conversation holds 2000 entries
+  (`CONVERSATION_TOOL_CALL_TIMEOUT_MS`), its $10, and the daily spend ceilings its member's runs
+  share (below). A conversation holds 2000 entries
   (`MAX_CONVERSATION_MESSAGES`) and a run draws 100 (`MAX_CONVERSATION_RUN_ENTRIES`). Each is
   checked before a request, never after one, so a turn paid for is always stored and drawn, and a
   run at a limit ends `FAILED` with its note, the full note for a conversation at its 2000 or a
@@ -1133,10 +1135,14 @@ A conversation is kept twice, once for Claude and once for the page, and
   Data Connect stores `Any` as Postgres `jsonb`, which keeps one of two duplicate keys and refuses
   U+0000 in a string
 - A run's `usage` is a ledger (`conversationRunUsage`): each request is reserved at its measured
-  input before it is sent, in the fenced write that renews the lease, and settled from its answer
-  with the model, why it stopped and where its part was stored. A worker taking a run over charges
-  an unsettled request at its estimate. What a request came to, the turn to store or the run's
-  end, is kept until it is written, so a refused write is tried again and never paid for twice
+  input before it is sent, in the fenced write that renews the lease (`RecordConversationRunUsage`),
+  and settled from its answer with the model, why it stopped and where its part was stored. A worker
+  taking a run over charges an unsettled request at its estimate. What a request came to, the turn
+  to store or the run's end, is kept until it is written, so a refused write is tried again and never
+  paid for twice. Every write of a run's `usage` sends what the ledger may have cost beside it
+  (`toConversationUsageVariables`), which the write upserts as the run's `RunSpend` in its
+  transaction: a new write of a run's ledger does the same, which the fake's `unpricedLedgerWrites`
+  holds the tests to, and `RenewConversationRunLease`, the timer's, carries none
 - A run's side request, today the one that tags a conversation's aspects
   (`requestConversationTagging`), goes through the same ledger, marked with its `purpose`: it stores
   no part, so its `turnPosition` stays null, which the readers of a turn's requests skip, and a
@@ -1148,9 +1154,13 @@ A conversation is kept twice, once for Claude and once for the page, and
   case its reservation recorded (`priceConversationUsageBound`), plus the most the request about to
   go can cost (`priceRequestWorstCase`), its input written to the cache, its whole `max_tokens` and
   five searches, each reading the input again from the cache and bringing back
-  `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`. A request whose fallback would pass the limit goes without
-  `fallbacks`, one that cannot fit fails the run with its limits' note, which chains a subagent's,
-  and tagging past it is recorded skipped. A model a request names, or one a refusal may fall back
+  `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`, every earlier result read again by each later step. A request
+  whose fallback would pass the limit or a daily spend ceiling goes without `fallbacks`, one that
+  cannot fit fails the run with its limits' note, which chains a subagent's at the $10 and never at a
+  ceiling, and tagging past either is recorded skipped. A stream cut partway counts at the most its
+  model could write in the time it streamed (`priceCutRequestBound`,
+  `CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND`), its reasoning being billed and never streamed, and at its
+  reservation when it showed a fallback. A model a request names, or one a refusal may fall back
   to, joins `CLAUDE_MODEL_PRICES` and `CLAUDE_FALLBACK_MODELS` before it ships, which a test holds
   every request's model to, with `bun run probe:claude` after, which holds the fallbacks to the
   API's list and the allowance to what a search brings back
@@ -1168,6 +1178,19 @@ A conversation is kept twice, once for Claude and once for the page, and
   lifts them (`IS_USAGE_CAPPED`, `USAGE_CAPPED=true` holding them there), through each mutation's
   optional `$isUsageCapped`, which left out holds them, as the tests and the check scripts do: a
   test or a check that builds past a cap lifts it in its fixtures
+- Daily spend ceilings bound what a member's conversations cost (`MAX_DAILY_SPEND_MICRODOLLARS_…` in
+  strategydance-core, $25, $50 and $150), over the caps' 24 hours and their three scopes, summed
+  from `RunSpend` rows, which hold each run's `costBound` and their organization as plain ids, so no
+  deletion gets round them. The worker holds every request to them where it holds the $10
+  (`readRunSpendRoom`), and every start is held to them beside the caps (`readReachedUsageCap` with
+  `spend`): a send, Resume and Retry answer 429 with the ceiling's code, a continuation and a
+  reaction wait, a launch is refused with its sentence, a promotion leaves its runs pending and a
+  chain ends its subagent with its report. A run a ceiling stops ends failed with its note naming
+  the ceiling and when it has room (`ConversationMessage.ceilingScope`, `ceilingFreesAt`), which a
+  page from before reads as the failed note. A new way to start, promote or chain a run reads them
+  too, and a read of the caps or the ceilings hands its operation `{ organizationId, userId }` alone,
+  as Data Connect refuses any variable it does not declare, which the fake refuses too there. They
+  are lifted with the caps (`IS_USAGE_CAPPED`), the rows written anyway
 - A member starts or continues a run only with a confirmed address and conversations not suspended:
   every route that starts or continues one, the send, an answer, an approval, Resume, Retry and a
   file's upload, mounts `verifiedEmailMiddleware`, which reads the ID token's `email_verified`, then
@@ -1642,8 +1665,8 @@ Modules says what each does and why.
 - `bun run suspend:conversations --production <email | organization id or slug> [--lift]`, in the
   backend's package, is staff's suspension of an account's or an organization's conversations, and
   `bun run report:usage --production [--days <n>] [--workspace-usage <dollars>]` what conversations
-  cost from the runs' ledgers, by organization and by account, which the decisions left for the
-  recorded usage are taken with. The second reads through the Admin SDK's own GraphQL, so it reads
+  cost from the runs' ledgers, by organization and by account, with each daily spend ceiling's scope
+  over the last 24 hours against it, which the decisions left for the recorded usage are taken with. The second reads through the Admin SDK's own GraphQL, so it reads
   production whatever its release. `finalizeDeadConversationRun` logs a line beginning with
   `DEAD_RUN_LOG_PREFIX` for each run it ends, which a log-based metric counts and an alert watches
   (Setup 13 in conversations.md): its words change with the metric's filter

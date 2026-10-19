@@ -1,6 +1,6 @@
 /*
   The Strategy Dance design system, ported from its Claude Design project
-  (https://claude.ai/design/p/8cc13fc5-e26d-4195-8d51-75dc4c0c2579).
+  (https://claude.ai/design/p/61b2a9b3-1ee3-4661-a21d-a0b400b517f7).
 
   The design adds two brand scales, three status colours and two typefaces. Everything else,
   spacing, type scale, radius, shadow and motion, is Tailwind's default theme, used as is
@@ -59,12 +59,12 @@
 @theme inline {
   --font-heading: var(--font-display);
 
-  /* Status: Tailwind's green, amber and red at 600, on their 50 tints */
-  --color-success: var(--color-green-600);
+  /* Status: the design's own green, amber and red, brighter than Tailwind's 600s, on Tailwind's 50 tints */
+  --color-success: oklch(0.68 0.2 149.41);
   --color-success-bg: var(--color-green-50);
-  --color-warning: var(--color-amber-600);
+  --color-warning: oklch(0.76 0.19 62.02);
   --color-warning-bg: var(--color-amber-50);
-  --color-danger: var(--color-red-600);
+  --color-danger: oklch(0.66 0.25 25);
   --color-danger-bg: var(--color-red-50);
 
   --color-background: var(--background);
@@ -111,7 +111,7 @@
   --muted-foreground: var(--color-neutral-500);
   --accent: var(--color-neutral-100);
   --accent-foreground: var(--color-secondary-900);
-  --destructive: var(--color-red-600);
+  --destructive: var(--color-danger);
   --border: var(--color-neutral-200);
   --input: var(--color-neutral-200);
   --ring: var(--color-secondary-900);

@@ -1659,6 +1659,13 @@ mutation RequestConversationRunStopWithSubagents(
   $runId: UUID!
   $anchorPosition: Int!
 ) @auth(level: NO_ACCESS) @transaction {
+  # The membership's row first, as every write on a parent and its subagents takes it, whose response
+  # the subagents' runs read, so each step runs as a statement of its own: a launch committed while a
+  # lock was waited for is reached, which one statement would miss (CLAUDE.md § The database)
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can stop its conversations")
   conversationRun_updateMany(
     where: {
       id: { eq: $runId }
@@ -1693,7 +1700,7 @@ mutation RequestConversationRunStopWithSubagents(
       stopRequestedAt: { isNull: true }
       conversation: {
         parentId: { eq: $conversationId }
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         launchAnchorPosition: { eq: $anchorPosition }
       }
@@ -1715,6 +1722,13 @@ mutation StopQueuedConversationRunWithSubagents(
   $preview: Any!
   $anchorPosition: Int!
 ) @auth(level: NO_ACCESS) @transaction {
+  # The membership's row first, as every write on a parent and its subagents takes it, whose response
+  # the subagents' runs read, so each step runs as a statement of its own: a launch committed while a
+  # lock was waited for is reached, which one statement would miss (CLAUDE.md § The database)
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can stop its conversations")
   conversationRun_updateMany(
     where: {
       id: { eq: $runId }
@@ -1775,7 +1789,7 @@ mutation StopQueuedConversationRunWithSubagents(
       stopRequestedAt: { isNull: true }
       conversation: {
         parentId: { eq: $conversationId }
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         launchAnchorPosition: { eq: $anchorPosition }
       }
@@ -1797,6 +1811,13 @@ mutation RequestConversationSubagentsStop(
   $anchorPosition: Int
   $subagentIds: [UUID!]
 ) @auth(level: NO_ACCESS) @transaction {
+  # The membership's row first, as every write on a parent and its subagents takes it, whose response
+  # the subagents' runs read, so each step runs as a statement of its own: a launch committed while a
+  # lock was waited for is reached, which one statement would miss (CLAUDE.md § The database)
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can stop its conversations")
   parent: conversation_updateMany(
     where: {
       id: { eq: $conversationId }
@@ -1814,7 +1835,7 @@ mutation RequestConversationSubagentsStop(
       conversation: {
         id: { in: $subagentIds }
         parentId: { eq: $conversationId }
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         launchAnchorPosition: { eq: $anchorPosition }
       }
@@ -1837,11 +1858,14 @@ mutation SuspendUserConversations($userId: String!) @auth(level: NO_ACCESS) @tra
   user_update(key: { id: $userId }, data: { conversationsSuspendedAt_expr: "request.time" })
     @check(expr: "this != null", message: "No such account")
   memberships: userOrganization_updateMany(where: { userId: { eq: $userId } }, data: { updatedAt_expr: "request.time" })
+  # Read through the locked row's response, so each step runs as a statement of its own: a run sent
+  # while the memberships were waited for is reached, which one statement would miss (CLAUDE.md §
+  # The database)
   runs: conversationRun_updateMany(
     where: {
       status: { in: [QUEUED, RUNNING] }
       stopRequestedAt: { isNull: true }
-      conversation: { userId: { eq: $userId }, parentId: { isNull: true } }
+      conversation: { userId: { eq_expr: "response.user_update.id" }, parentId: { isNull: true } }
     }
     data: { stopRequestedAt_expr: "request.time" }
   )
@@ -1849,7 +1873,7 @@ mutation SuspendUserConversations($userId: String!) @auth(level: NO_ACCESS) @tra
     where: {
       status: { in: [QUEUED, RUNNING, PENDING] }
       stopRequestedAt: { isNull: true }
-      conversation: { userId: { eq: $userId }, parentId: { isNull: false } }
+      conversation: { userId: { eq_expr: "response.user_update.id" }, parentId: { isNull: false } }
     }
     data: { stopRequestedAt_expr: "request.time" }
   )
@@ -1872,11 +1896,14 @@ mutation SuspendOrganizationConversations($organizationId: UUID!) @auth(level: N
     where: { organizationId: { eq: $organizationId } }
     data: { updatedAt_expr: "request.time" }
   )
+  # Read through the locked row's response, so each step runs as a statement of its own: a run sent
+  # while the memberships were waited for is reached, which one statement would miss (CLAUDE.md §
+  # The database)
   runs: conversationRun_updateMany(
     where: {
       status: { in: [QUEUED, RUNNING] }
       stopRequestedAt: { isNull: true }
-      conversation: { organizationId: { eq: $organizationId }, parentId: { isNull: true } }
+      conversation: { organizationId: { eq_expr: "response.organization_update.id" }, parentId: { isNull: true } }
     }
     data: { stopRequestedAt_expr: "request.time" }
   )
@@ -1884,7 +1911,7 @@ mutation SuspendOrganizationConversations($organizationId: UUID!) @auth(level: N
     where: {
       status: { in: [QUEUED, RUNNING, PENDING] }
       stopRequestedAt: { isNull: true }
-      conversation: { organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+      conversation: { organizationId: { eq_expr: "response.organization_update.id" }, parentId: { isNull: false } }
     }
     data: { stopRequestedAt_expr: "request.time" }
   )

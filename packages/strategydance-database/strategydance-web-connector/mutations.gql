@@ -1800,7 +1800,7 @@ mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
       @check(expr: "vars.userId == auth.uid", message: "A conversation is changed by its author alone") {
-      role
+      userId
     }
   }
   conversationRun_updateMany(
@@ -1827,11 +1827,14 @@ mutation DeleteConversation($organizationId: UUID!, $userId: String!, $id: UUID!
     }
     data: { deletedAt_expr: "request.time" }
   )
+  # The member's, as the membership read says, which reading its response runs as a statement of its
+  # own after the parent's row, so a launch committed while that lock was waited for is reached, which
+  # one statement would miss (CLAUDE.md § The database)
   subagentRuns: conversationRun_updateMany(
     where: {
       conversation: {
         parentId: { eq: $id }
-        userId: { eq_expr: "auth.uid" }
+        userId: { eq_expr: "response.query.userOrganization.userId" }
         organizationId: { eq: $organizationId }
         deletedAt: { isNull: true }
       }

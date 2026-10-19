@@ -346,6 +346,22 @@ describe('launchSubagent', () => {
     expect([...fake.conversations.values()].filter(({ parentId }) => parentId != null)).toHaveLength(subagents)
   })
 
+  test('refuses a launch at a daily spend ceiling, storing nothing, and says when it has room', async () => {
+    const parent = await kit.start()
+    const subagents = [...fake.conversations.values()].filter(({ parentId }) => parentId != null).length
+
+    kit.seedSpend(24, { hoursAgo: 4 })
+
+    const refused = await launch(parent.conversationId)
+
+    expect(refused).toMatchObject({ outcome: 'tooManyToday', cap: { kind: 'spend', scope: 'member', max: 25_000_000 } })
+    expect([...fake.conversations.values()].filter(({ parentId }) => parentId != null)).toHaveLength(subagents)
+
+    if (refused.outcome !== 'tooManyToday') return
+
+    expect(refused.cap.retryAfterMs).toBeGreaterThan(20 * 60 * 60 * 1000 - 5000)
+  })
+
   test('counts a launch as a subagent, and never a subagent’s runs as runs', async () => {
     const parent = await kit.start()
     const before = [...fake.cappedStarts.values()].filter(({ kind }) => kind === 'RUN').length

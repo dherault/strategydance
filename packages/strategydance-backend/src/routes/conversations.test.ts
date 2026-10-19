@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import {
   ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED,
+  ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED,
   ERROR_CODE_CONVERSATIONS_SUSPENDED,
   ERROR_CODE_EMAIL_NOT_VERIFIED,
   ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
@@ -203,6 +204,29 @@ describe('POST /:conversationId/messages', () => {
     expect(response.status).toBe(429)
     expect(((await response.json()) as { code: string }).code).toBe(ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED)
     expect(Number(response.headers.get('retry-after'))).toBeGreaterThan(23 * 60 * 60)
+  })
+
+  test("refuses a send at the organization's daily spend ceiling with its code, and says in `Retry-After` when it has room", async () => {
+    const origin = await listen()
+    const conversationId = insertConversation('Priced', { nextMessagePosition: 1, nextRunNumber: 1, messageCount: 1 })
+
+    // What a teammate's run may have cost, which last spent two hours ago
+    fake.runSpends.set('5e4d3c2b1a0f9e8d7c6b5a4f3e2d1c0b', {
+      runId: '5e4d3c2b1a0f9e8d7c6b5a4f3e2d1c0b',
+      userId: 'teammate',
+      organizationId: ORGANIZATION_ID,
+      costBound: 149_000_000,
+      spentAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    })
+
+    const response = await sendMessage(origin, conversationId, {})
+    const body = (await response.json()) as { code: string; message: string }
+
+    expect(response.status).toBe(429)
+    expect(body.code).toBe(ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED)
+    expect(body.message).toBe("This organization's conversations cost as much as the $150 they may in 24 hours")
+    expect(Number(response.headers.get('retry-after'))).toBeGreaterThan(22 * 60 * 60 - 5)
+    expect(Number(response.headers.get('retry-after'))).toBeLessThanOrEqual(22 * 60 * 60)
   })
 })
 

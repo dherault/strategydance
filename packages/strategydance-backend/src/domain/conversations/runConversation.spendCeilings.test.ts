@@ -222,6 +222,39 @@ describe('runConversation, at the daily spend ceilings', () => {
     )
   })
 
+  test('refuses to chain a subagent’s run past a ceiling, ending it with its report', async () => {
+    const parent = await kit.start()
+
+    await kit.call('finishConversationRun', { ...(await kit.claim(parent)), status: 'COMPLETED' })
+
+    const subagent = await kit.launch(parent)
+    let isSpent = false
+
+    // Its one request answered, the member's other runs spend what was left meanwhile
+    const scripted = kit.createClient([CALLING], {
+      meanwhile: () => {
+        if (isSpent) return
+
+        isSpent = true
+        kit.seedSpend(24)
+      },
+    })
+
+    expect(
+      await runConversation(subagent, {
+        client: scripted.client,
+        connectModules: connectTestModules([READ_LOG]),
+        limits: { maxRequests: 1 },
+      }),
+    ).toBe('finished')
+    expect(kit.readRun(subagent)?.status).toBe('FAILED')
+    expect(
+      [...fake.runs.values()].filter(({ conversationId }) => conversationId === subagent.conversationId),
+    ).toHaveLength(1)
+    expect(readNote(subagent)).toMatchObject({ ceilingScope: 'MEMBER' })
+    expect(kit.readConversation(subagent)?.report).toContain("the member's daily spending ceiling was reached")
+  })
+
   test('skips tagging the conversation when the ceiling has no room left for it', async () => {
     const reference = await kit.start(undefined, { aspects: null })
 

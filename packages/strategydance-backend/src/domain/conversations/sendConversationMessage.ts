@@ -79,8 +79,8 @@ type SendConversationMessageResult =
   | { outcome: 'full' }
   // The message would start a conversation, and the caller keeps 1000 already
   | { outcome: 'tooMany' }
-  // A daily cap on the conversations or the runs the caller starts is reached, which has room again
-  // after `retryAfterMs`
+  // A daily cap on the conversations or the runs the caller starts is reached, or a daily spend
+  // ceiling, which has room again after `retryAfterMs`
   | { outcome: 'capped'; cap: ReachedUsageCap }
   // A file it sends is not the caller's in this conversation, not stored yet, or sent already
   | { outcome: 'attachmentsInvalid' }
@@ -211,7 +211,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'busy' }
 
     // Counted before anything is stored, and again by the mutation, whose refusal reads them again
-    const cap = await readReachedUsageCap(input, conversation ? ['runs'] : ['conversations', 'runs'])
+    const cap = await readReachedUsageCap(input, conversation ? ['runs', 'spend'] : ['conversations', 'runs', 'spend'])
 
     if (cap) return { outcome: 'capped', cap }
 

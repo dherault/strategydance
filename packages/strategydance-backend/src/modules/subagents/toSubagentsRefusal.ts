@@ -1,6 +1,6 @@
 import { MAX_CONVERSATION_SUBAGENTS, MAX_SUBAGENTS_PER_ACTION } from 'strategydance-core'
 
-import type { SubagentsRefusal } from '~types'
+import type { ReachedUsageCap, SubagentsRefusal } from '~types'
 
 import toToolRefusal from '~modules/toToolRefusal'
 
@@ -35,6 +35,8 @@ function toSentence(refusal: SubagentsRefusal) {
     case 'tooMany':
       return `This conversation holds ${MAX_CONVERSATION_SUBAGENTS} subagents, the most it keeps. Do the work yourself, or tell the member, who can start a new conversation.`
     case 'tooManyToday':
+      if (refusal.cap.kind === 'spend') return toSpendCeilingSentence(refusal.cap)
+
       return `${refusal.cap.scope === 'account' ? `The member launched ${refusal.cap.max} subagents across their organizations` : `The member launched ${refusal.cap.max} subagents in this organization`} in the last 24 hours, the most they may. They can launch again in ${toWait(refusal.cap.retryAfterMs)}: do the work yourself meanwhile.`
     case 'attachmentsInvalid':
       return "A subagent is handed only files this conversation has sent, by the ids the member's messages name them with. Leave the others out, and put what the subagent needs of them in its brief."
@@ -51,6 +53,17 @@ function toSentence(refusal: SubagentsRefusal) {
     case 'invalidCursor':
       return 'That cursor was not given by this tool. Leave it out to read from the start.'
   }
+}
+
+// A launch at a daily spend ceiling, whose and when it has room again
+function toSpendCeilingSentence({ scope, max, retryAfterMs }: ReachedUsageCap) {
+  const whose = {
+    member: "The member's conversations in this organization",
+    account: "The member's conversations across their organizations",
+    organization: "This organization's conversations",
+  }[scope]
+
+  return `${whose} cost as much as the $${max / 1_000_000} they may in 24 hours, so no subagent can start for ${toWait(retryAfterMs)}. Tell the member, who sees it too, and launch nothing more until then.`
 }
 
 // How long until a cap has room again, in words, rounded up: minutes within an hour, hours past it

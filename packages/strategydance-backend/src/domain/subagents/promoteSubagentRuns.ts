@@ -14,6 +14,7 @@ import { dataConnect } from '~firebase'
 import logger from '~utils/logger'
 
 import enqueueRun from '~domain/conversations/enqueueRun'
+import readReachedUsageCap from '~domain/conversations/readReachedUsageCap'
 
 // How many times a promotion reads the runs waiting and tries, which a refusal on each bounds
 const MAX_ROUNDS = 2 * MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER
@@ -35,7 +36,8 @@ const MAX_ROUNDS = 2 * MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER
   again, is read again, the run it named skipped from then on. One whose answer was lost may have
   landed, as another's may meanwhile: a run found queued is queued, which queues it once. A run whose
   queueing failed has its lease brought in to now, so the reconcile queues it again within its
-  twenty minutes
+  twenty minutes. At a daily spend ceiling nothing is promoted, as no request could go: the runs wait
+  for the reconcile every five minutes, which promotes once the window has room
 */
 async function promoteSubagentRuns({
   organizationId,
@@ -53,6 +55,15 @@ async function promoteSubagentRuns({
     const next = data.promotableRuns.find(run => !refused.has(run.id))
 
     if (!next || data.activeRuns.length >= MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER) break
+
+    // A run promoted past a daily spend ceiling could send no request, so all wait for the reconcile
+    // that finds room: a promotion spends nothing, so the ceilings are read once
+    if (
+      round === 1
+      && (await readReachedUsageCap({ organizationId, userId }, ['spend'], { isSubagent: true, isTimeless: true }))
+    ) {
+      break
+    }
 
     const reference = { organizationId, userId, conversationId: next.conversation.id, runId: next.id }
 

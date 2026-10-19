@@ -86,7 +86,7 @@ export type LaunchSubagentResult =
   | { outcome: 'tooManyOnAnchor' }
   | { outcome: 'tooMany' }
   // The member launched 30 in the organization in the last 24 hours, or the account 60 across its
-  // organizations
+  // organizations, or a daily spend ceiling is reached
   | { outcome: 'tooManyToday'; cap: ReachedUsageCap }
   // A file it names is not one its parent sent
   | { outcome: 'attachmentsInvalid' }
@@ -125,7 +125,8 @@ export type LaunchSubagentResult =
     under 10 on its latest anchor, the member's action the launch carries out, those a retry deleted
     left out
   - the member may not have launched 30 subagents in the organization in the last 24 hours, nor the
-    account 60 across its organizations, the daily caps a deleted subagent still counts toward
+    account 60 across its organizations, the daily caps a deleted subagent still counts toward, nor
+    have reached a daily spend ceiling
   - each file it names has to be one its parent sent, never one waiting in a draft, whose prune
     would delete it under the subagent
   - with files, the subagent's first request, measured whole, has to fit a send's budget, so no
@@ -272,7 +273,7 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
     }
 
     // Counted before anything is stored, and again by the mutation, whose refusal reads them again
-    const cap = await readReachedUsageCap(input, ['subagents'])
+    const cap = await readReachedUsageCap(input, ['subagents', 'spend'], { isSubagent: true })
 
     if (cap) return { outcome: 'tooManyToday', cap }
 

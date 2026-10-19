@@ -125,6 +125,18 @@ describe('launch_subagent', () => {
     )
   })
 
+  it('refuses a launch at a daily spend ceiling, saying whose and when subagents can start again', async () => {
+    const parent = await conversation.startRunning()
+    const kit = await conversation.connect(parent)
+
+    // What the account's runs may have cost elsewhere 23 hours and 54 minutes ago
+    conversation.kit.seedSpend(50, { organization: '7d6c5b4a39284f1e8d7c6b5a49382716', hoursAgo: 23.9 })
+
+    expect(await kit.refusal('launch_subagent', LAUNCH, 'toolu_01')).toBe(
+      "The member's conversations across their organizations cost as much as the $50 they may in 24 hours, so no subagent can start for 6 minutes. Tell the member, who sees it too, and launch nothing more until then.",
+    )
+  })
+
   it('refuses a launch for a member whose conversations staff suspended, or in an organization they suspended, storing nothing', async () => {
     const REFUSAL =
       "Strategy Dance's staff suspended the member's conversations, so this run is stopping and launches nothing. Launch nothing more, end your turn, and tell the member to write to david@strategydance.com."

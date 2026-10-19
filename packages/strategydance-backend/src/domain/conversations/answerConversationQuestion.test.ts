@@ -417,4 +417,19 @@ describe('answerConversationQuestion at the daily caps', () => {
     expect(readContinuations(reference)).toHaveLength(1)
     expect(readRun(reference)?.status).toBe('CONTINUED')
   })
+
+  test('records the answer and starts nothing at a daily spend ceiling, until the reconcile finds room', async () => {
+    const reference = await startWaiting(toolUse('toolu_q', 'ask_user', PRICE))
+
+    kit.seedSpend(24, { hoursAgo: 23 })
+
+    expect(await answerQuestion(reference, 'toolu_q', ['€29'])).toEqual({ outcome: 'answered', runId: null })
+    expect(readContinuations(reference)).toHaveLength(0)
+
+    setSystemTime(new Date(Date.now() + 61 * 60 * 1000))
+
+    await reconcileConversationRun(reference)
+
+    expect(readContinuations(reference)).toHaveLength(1)
+  })
 })

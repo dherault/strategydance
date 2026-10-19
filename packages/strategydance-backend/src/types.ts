@@ -65,12 +65,15 @@ export type ConversationRunReference = {
   runId: string
 }
 
-// What a daily cap counts (`MAX_DAILY_…` in strategydance-core), and whose starts it counts: the
-// member's in the organization, the account's across its organizations, or the organization's
-export type UsageCapKind = 'conversations' | 'runs' | 'subagents'
+// What a daily cap counts (`MAX_DAILY_…` in strategydance-core), or `spend` for a daily spend
+// ceiling, and whose starts or spend it counts: the member's in the organization, the account's
+// across its organizations, or the organization's
+export type UsageCountKind = 'conversations' | 'runs' | 'subagents'
+export type UsageCapKind = UsageCountKind | 'spend'
 export type UsageCapScope = 'member' | 'account' | 'organization'
 
-// A daily cap a start reached, its value as the start is held to it, and how long until it has room
+// A daily cap a start reached, its value as the start is held to it, in microdollars for a spend
+// ceiling, and how long until it has room
 export type ReachedUsageCap = {
   kind: UsageCapKind
   scope: UsageCapScope
@@ -481,7 +484,8 @@ export type SubagentsRefusal =
   | { outcome: 'tooManyOnAnchor' }
   | { outcome: 'tooMany' }
   /** A launch past the 30 subagents the member launched in the organization in 24 hours, or the 60
-   * the account launched across its organizations, which have room again after `retryAfterMs` */
+   * the account launched across its organizations, or at a daily spend ceiling, which have room
+   * again after `retryAfterMs` */
   | { outcome: 'tooManyToday'; cap: ReachedUsageCap }
   /** A file the conversation has not sent */
   | { outcome: 'attachmentsInvalid' }

@@ -49,10 +49,11 @@ import {
 import createConversationRequestSignal from '~domain/conversations/createConversationRequestSignal'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import type { ConversationRunEnding, ConversationSpendCeilingEnding } from '~domain/conversations/endConversationRun'
+import findPassedSpendCeilings from '~domain/conversations/findPassedSpendCeilings'
 import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import readRunSpendRoom from '~domain/conversations/readRunSpendRoom'
-import readSpendFreedAt from '~domain/conversations/readSpendFreedAt'
+import readSpendCeilingFreedAt from '~domain/conversations/readSpendCeilingFreedAt'
 import readSubagentReportDeadline from '~domain/conversations/readSubagentReportDeadline'
 import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 
@@ -306,16 +307,21 @@ async function requestConversationTurn({
       return { kind: 'ending', ending: fail(failure, usage, true) }
     }
 
-    if (!hasFallbacks && ceiling && limits.dailySpendCeilings && spent + worstCase.single > ceiling.room) {
-      const max = limits.dailySpendCeilings[ceiling.scope]
-      const failure = `Its next request could cost up to ${toDollars(worstCase.single)}, past the ${toDollars(max)} the ${ceiling.scope}'s runs may cost in 24 hours, ${toDollars(max - ceiling.room)} spent by its other runs and ${toDollars(spent)} by this one`
-      const freesAt = await readSpendFreedAt(fence, ceiling.scope, spent + worstCase.single - ceiling.room)
+    const [passed, ...alsoPassed] =
+      ceiling && limits.dailySpendCeilings && !hasFallbacks
+        ? findPassedSpendCeilings(ceiling.others, limits.dailySpendCeilings, spent + worstCase.single)
+        : []
+
+    if (passed) {
+      // Of the ceilings it would pass, the one that has room last, which the note names
+      const reached = await readSpendCeilingFreedAt(fence, [passed, ...alsoPassed])
+      const failure = `Its next request could cost up to ${toDollars(worstCase.single)}, past the ${toDollars(reached.max)} the ${reached.scope}'s runs may cost in 24 hours, ${toDollars(ceiling?.others[reached.scope] ?? 0)} spent by its other runs and ${toDollars(spent)} by this one`
 
       logger.warn(`Conversation run ${fence.runId}: ${failure}`)
 
       return {
         kind: 'ending',
-        ending: fail(failure, usage, true, { scope: ceiling.scope, freesAt: new Date(freesAt).toISOString() }),
+        ending: fail(failure, usage, true, { scope: reached.scope, freesAt: new Date(reached.freesAt).toISOString() }),
       }
     }
 

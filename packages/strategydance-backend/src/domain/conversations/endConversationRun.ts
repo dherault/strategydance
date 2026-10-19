@@ -25,6 +25,7 @@ import type { ConversationRunUsage } from '~domain/conversations/conversationRun
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import readReachedUsageCap from '~domain/conversations/readReachedUsageCap'
 import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 import buildSubagentReport from '~domain/subagents/buildSubagentReport'
 import deriveChainedRunId from '~domain/subagents/deriveChainedRunId'
@@ -243,16 +244,29 @@ type EndSubagentRunInput = Omit<EndConversationRunInput, 'lease' | 'isSubagent'>
 
 /*
   Ends a subagent's run as its worker decided, with its report, in one write, then promotes into the
-  slot it held, or chains it at its limits, unless its member asked it to stop, when it ends stopped
+  slot it held, or chains it at its limits, unless its member asked it to stop, when it ends stopped,
+  or a daily spend ceiling is reached, which no run it chained to could send a request past: it then
+  ends there, its note and its report naming the ceiling
 */
 async function endSubagentRun(input: EndSubagentRunInput): Promise<'ended' | 'chained'> {
   const { ending, fence, chain, write } = input
 
   // A daily spend ceiling stops the subagent whole, as nothing it chains to could send a request
   if (chain && fence && ending.kind === 'noted' && ending.isAtLimit && !ending.ceiling) {
-    const { data } = await getConversationRunStop(dataConnect, toReference(fence))
+    const [{ data }, ceiling] = await Promise.all([
+      getConversationRunStop(dataConnect, toReference(fence)),
+      readReachedUsageCap(fence, ['spend'], { isSubagent: true }),
+    ])
 
-    if (!data.conversationRuns[0]?.stopRequestedAt) {
+    if (ceiling) {
+      await writeSubagentEnding({
+        ...input,
+        ending: {
+          ...ending,
+          ceiling: { scope: ceiling.scope, freesAt: new Date(Date.now() + ceiling.retryAfterMs).toISOString() },
+        },
+      })
+    } else if (!data.conversationRuns[0]?.stopRequestedAt) {
       await write(() =>
         chainSubagentRun(dataConnect, {
           ...fence,
@@ -267,18 +281,18 @@ async function endSubagentRun(input: EndSubagentRunInput): Promise<'ended' | 'ch
       )
 
       return 'chained'
+    } else {
+      await writeSubagentEnding({
+        ...input,
+        ending: {
+          kind: 'noted',
+          status: ConversationRunStatus.STOPPED,
+          noteKind: ConversationNoteKind.STOPPED,
+          failure: `Its member asked it to stop as it reached a limit: ${ending.failure}`,
+          usage: ending.usage,
+        },
+      })
     }
-
-    await writeSubagentEnding({
-      ...input,
-      ending: {
-        kind: 'noted',
-        status: ConversationRunStatus.STOPPED,
-        noteKind: ConversationNoteKind.STOPPED,
-        failure: `Its member asked it to stop as it reached a limit: ${ending.failure}`,
-        usage: ending.usage,
-      },
-    })
   } else {
     await writeSubagentEnding(input)
   }

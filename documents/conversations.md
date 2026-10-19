@@ -2051,8 +2051,8 @@ way (see The orchestrator).
   still ends with a report, and ends `COMPLETED` when it does. From M42 the entry asks once any of
   the run's budgets nears its end, not only before its 25th request (`isSubagentReportDue`): its 24th
   request sent, under two minutes left of its ten, 95 of its 100 entries drawn, or a ledger whose next
-  request, reserved at its worst case, would leave no room within the $10 for one more attempt as
-  dear, the next request reckoned from the last one's input and output and the results it adds. Once
+  request, reserved at its worst case, would leave no room within the $10, or from M39 within what the
+  daily spend ceilings leave it, for one more attempt as dear, the next request reckoned from the last one's input and output and the results it adds. Once
   asked, the request goes past the run's requests, entries and ten minutes, while two minutes are
   left before its stream would be cut, 12 minutes after the claim (`SUBAGENT_REPORT_TIME_MS`), and
   its cost is held to the $10 as any request's is. A fourth run whose ten minutes come between two of

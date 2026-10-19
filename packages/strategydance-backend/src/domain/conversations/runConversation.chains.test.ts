@@ -76,6 +76,29 @@ async function chainToFourthRun(subagent: ConversationRunReference, options: Par
   return reference
 }
 
+// The subagent's read, doing `onRun` at its nth call, and the fourth run's first is the 7th when each
+// run before it sends two requests
+function readLogThen(nth: number, onRun: () => void): ConversationToolRunner {
+  let calls = 0
+
+  return {
+    ...READ_LOG,
+    run: async () => {
+      calls++
+
+      if (calls === nth) onRun()
+
+      return { entries: [] }
+    },
+  }
+}
+
+// Seven turns calling the read, the fourth run's first last among them, then the reply to its report
+// request
+function scriptToReport() {
+  return kit.createClient([...Array.from({ length: 7 }, (_, index) => calling(call(`toolu_${index}`))), answer()])
+}
+
 // A subagent's runs, first to last
 function readRuns(subagent: ConversationRunReference) {
   return [...fake.runs.values()]
@@ -202,6 +225,86 @@ describe('runConversation, chaining a subagent’s runs', () => {
     expect(kit.readConversation(subagent)?.report).toBe(
       'This subagent stopped at its limits before it finished.\n\nI read the log twice. One more read would settle it.',
     )
+  })
+
+  test('sends the report request it asked for past the run’s ten minutes, while its stream has two minutes', async () => {
+    const { subagent } = await launch()
+    const scripted = scriptToReport()
+    const options = {
+      client: scripted.client,
+      limits: { maxRequests: 2 },
+      connectModules: connectTestModules([
+        readLogThen(7, () => setSystemTime(new Date(Date.now() + 10.5 * 60 * 1000))),
+      ]),
+    }
+    const fourth = await chainToFourthRun(subagent, options)
+
+    expect(await runConversation(fourth, options)).toBe('finished')
+    expect(scripted.requests).toHaveLength(8)
+    expect(readRequest(scripted.requests, 7).messages.at(-1)?.content).toContainEqual({
+      type: 'text',
+      text: SUBAGENT_REPORT_REQUEST,
+    })
+    expect(kit.readRun(fourth)?.status).toBe('COMPLETED')
+    expect(kit.readConversation(subagent)).toMatchObject({ activeRunId: null, report: REPLY })
+  })
+
+  test('sends no report request within two minutes of its stream’s cut, ending at its limits', async () => {
+    const { subagent } = await launch()
+    const scripted = scriptToReport()
+    const options = {
+      client: scripted.client,
+      limits: { maxRequests: 2 },
+      connectModules: connectTestModules([
+        readLogThen(7, () => setSystemTime(new Date(Date.now() + 12.5 * 60 * 1000))),
+      ]),
+    }
+    const fourth = await chainToFourthRun(subagent, options)
+
+    expect(await runConversation(fourth, options)).toBe('finished')
+    expect(scripted.requests).toHaveLength(7)
+    expect(kit.readRun(fourth)).toMatchObject({
+      status: 'FAILED',
+      failure: 'The run passed 720 seconds since it was first claimed',
+    })
+    expect(kit.readConversation(subagent)?.report).toBe('This subagent stopped at its limits before it finished.')
+  })
+
+  test('sends the report request it asked for past the run’s 100 entries', async () => {
+    const { subagent } = await launch()
+    const scripted = scriptToReport()
+    let fourthRunId = ''
+    const options = {
+      client: scripted.client,
+      limits: { maxRequests: 2 },
+      // The fourth run draws its 100 entries while its first call runs
+      connectModules: connectTestModules([
+        readLogThen(7, () => {
+          for (let index = 0; index < MAX_CONVERSATION_RUN_ENTRIES; index++) {
+            const id = createId()
+
+            fake.messages.set(id, {
+              id,
+              conversationId: subagent.conversationId,
+              runId: fourthRunId,
+              kind: 'AGENT_TEXT',
+              text: 'Read one more page.',
+              noteKind: null,
+              toolStatus: null,
+              position: 1000 + index,
+            })
+          }
+        }),
+      ]),
+    }
+    const fourth = await chainToFourthRun(subagent, options)
+
+    fourthRunId = fourth.runId
+
+    expect(await runConversation(fourth, options)).toBe('finished')
+    expect(scripted.requests).toHaveLength(8)
+    expect(kit.readRun(fourth)?.status).toBe('COMPLETED')
+    expect(kit.readConversation(subagent)?.report).toBe(REPLY)
   })
 
   test('chains a run at its 100 entries, sending nothing', async () => {

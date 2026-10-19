@@ -653,7 +653,8 @@ async function takeStep({
 
   if (run?.stopRequestedAt) return stop()
 
-  if (context.conversationMessages.length >= MAX_CONVERSATION_RUN_ENTRIES) {
+  // A subagent's request for its report, which the entry asked for, goes past the run's entries
+  if (!carriesSubagentReportRequest(entry) && context.conversationMessages.length >= MAX_CONVERSATION_RUN_ENTRIES) {
     return end({
       kind: 'noted',
       status: ConversationRunStatus.FAILED,

@@ -15,7 +15,7 @@ import {
 
 import type { ClaudeClient, ConversationRunFence } from '~types'
 
-import { CONVERSATION_API_MAX_RETRY_DELAY_MS, MAX_CONVERSATION_API_RETRIES } from '~constants'
+import { CONVERSATION_API_MAX_RETRY_DELAY_MS, MAX_CONVERSATION_API_RETRIES, SUBAGENT_REPORT_TIME_MS } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -26,6 +26,7 @@ import buildConversationRequest, {
   type ConversationRequestConfig,
   buildConversationMessages,
 } from '~domain/agent/buildConversationRequest'
+import carriesSubagentReportRequest from '~domain/agent/carriesSubagentReportRequest'
 import checkTranscript from '~domain/agent/checkTranscript'
 import {
   CONVERSATION_MAX_TOKENS,
@@ -137,7 +138,8 @@ export type ConversationTurnOutcome =
     the API settles it at nothing before the step fails
   - a run at one of its limits: 25 requests sent, or 10 minutes gone since it was first claimed,
     sends no further request, and a stream still going 14 minutes after the claim is cut, charged as
-    one that failed partway. The run fails with its note
+    one that failed partway. The run fails with its note. A subagent's request for its report, which
+    the entry it answers asked for, goes past both, but not within two minutes of that cut
   - a request whose worst case, with what the run's ledger may have cost, would pass the run's $10
     (`priceRequestWorstCase`): never sent, and the run fails with its limits' note. One whose single
     attempt fits and whose fallback does not is sent without the fallback, and its worst case is
@@ -201,8 +203,17 @@ async function requestConversationTurn({
     .filter(({ id }) => id !== fence.runId)
     .map(run => ({ id: run.id, usage: parseConversationRunUsage(run.usage) }))
   const parts: Omit<ConversationTurnPart, 'entryId'>[] = []
-  const durationFailure = `The run passed ${limits.maxDurationMs / 1000} seconds since it was first claimed`
-  const isPastDuration = () => Date.now() - Date.parse(startedAt) >= limits.maxDurationMs
+  // A subagent's request for its report, which the entry it answers asked for, is its run's last:
+  // it goes past the run's requests and its ten minutes, while its stream has the time to write it
+  const isReportRequest = carriesSubagentReportRequest(
+    entries.findLast(({ role }) => role === ConversationTranscriptRole.USER),
+  )
+  const sendingTime = isReportRequest
+    ? Math.max(limits.maxDurationMs, limits.streamDeadlineMs - SUBAGENT_REPORT_TIME_MS)
+    : limits.maxDurationMs
+  const sendDeadline = Date.parse(startedAt) + sendingTime
+  const durationFailure = `The run passed ${sendingTime / 1000} seconds since it was first claimed`
+  const isPastDuration = () => Date.now() >= sendDeadline
   // Whether a fallback's boundary came in the turn, which strips its parts
   let isStripped = false
   // The parts of the turn, but those its stripping left bare, which are no part of it
@@ -215,7 +226,7 @@ async function requestConversationTurn({
 
   for (;;) {
     // A run at a limit sends no further request, which drops the parts of a turn held in memory
-    if (usage.requests.length >= limits.maxRequests) {
+    if (!isReportRequest && usage.requests.length >= limits.maxRequests) {
       return { kind: 'ending', ending: fail(`The run sent its ${limits.maxRequests} requests`, usage, true) }
     }
 
@@ -366,11 +377,7 @@ async function requestConversationTurn({
 
       const retryDelay = streamed.message ? null : readApiRetryDelay(error, apiRetries, apiRetryDelayMs)
 
-      if (
-        retryDelay !== null
-        && apiRetries < MAX_CONVERSATION_API_RETRIES
-        && Date.now() + retryDelay < Date.parse(startedAt) + limits.maxDurationMs
-      ) {
+      if (retryDelay !== null && apiRetries < MAX_CONVERSATION_API_RETRIES && Date.now() + retryDelay < sendDeadline) {
         apiRetries++
         usage = settled
 

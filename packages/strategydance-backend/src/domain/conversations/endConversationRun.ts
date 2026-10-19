@@ -24,6 +24,7 @@ import type { ConversationRunUsage } from '~domain/conversations/conversationRun
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 import buildSubagentReport from '~domain/subagents/buildSubagentReport'
 import deriveChainedRunId from '~domain/subagents/deriveChainedRunId'
 import promoteSubagentRuns from '~domain/subagents/promoteSubagentRuns'
@@ -152,7 +153,7 @@ async function endRun({
     await write(() =>
       finishConversationRunWaiting(dataConnect, {
         ...fence,
-        ...(ending.usage ? { usage: ending.usage } : {}),
+        ...toConversationUsageVariables(ending.usage),
         ...(ending.preview ? { preview: ending.preview } : {}),
       }),
     )
@@ -165,7 +166,7 @@ async function endRun({
       finishConversationRun(dataConnect, {
         ...fence,
         status: ending.status,
-        ...(ending.usage ? { usage: ending.usage } : {}),
+        ...toConversationUsageVariables(ending.usage),
       }),
     )
 
@@ -178,7 +179,7 @@ async function endRun({
     position,
     preview: buildConversationPreview({ kind: 'NOTE', noteKind: ending.noteKind }),
     failure: ending.failure,
-    ...(ending.usage ? { usage: ending.usage } : {}),
+    ...toConversationUsageVariables(ending.usage),
     ...(ending.isFull ? { isFull: true } : {}),
   }
 
@@ -240,7 +241,7 @@ async function endSubagentRun(input: EndSubagentRunInput): Promise<'ended' | 'ch
           nextRunId: deriveChainedRunId(fence.runId),
           nextRunNumber: chain.runNumber + 1,
           failure: ending.failure,
-          ...(ending.usage ? { usage: ending.usage } : {}),
+          ...toConversationUsageVariables(ending.usage),
           ...(chain.pendingToolResults ? { pendingToolResults: chain.pendingToolResults } : {}),
         }),
       )
@@ -302,7 +303,7 @@ async function writeSubagentEnding({ ending, fence, position, write }: EndSubage
       finishSubagentRun(dataConnect, {
         ...fence,
         status: ending.status,
-        ...(ending.usage ? { usage: ending.usage } : {}),
+        ...toConversationUsageVariables(ending.usage),
         report,
       }),
     )
@@ -319,7 +320,7 @@ async function writeSubagentEnding({ ending, fence, position, write }: EndSubage
       position,
       preview: buildConversationPreview({ kind: 'NOTE', noteKind: ending.noteKind }),
       failure: ending.failure,
-      ...(ending.usage ? { usage: ending.usage } : {}),
+      ...toConversationUsageVariables(ending.usage),
       ...(ending.isFull ? { isFull: true } : {}),
       report,
     }),

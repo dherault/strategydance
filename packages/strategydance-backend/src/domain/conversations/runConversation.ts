@@ -22,7 +22,7 @@ import {
   getConversationRunContext,
   getConversationRunLedgers,
   reclaimConversationRun,
-  renewConversationRunLease,
+  recordConversationRunUsage,
   storeConversationToolResults,
   tagConversationAspects,
   getSubagentReactionContext,
@@ -98,6 +98,7 @@ import requestConversationTurn, {
 import runConversationToolCalls from '~domain/conversations/runConversationToolCalls'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import storeConversationParts from '~domain/conversations/storeConversationParts'
+import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 import deriveChainedRunId from '~domain/subagents/deriveChainedRunId'
 import { isWaitingReport } from '~domain/subagents/findDueSubagentReports'
 import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
@@ -805,7 +806,7 @@ async function writeTagging({
     await lease.write(() =>
       tagConversationAspects(dataConnect, {
         ...fence,
-        usage,
+        ...toConversationUsageVariables(usage),
         aspects,
         noteId: deriveConversationMessageId(fence.runId, 'aspects'),
         position: conversation.nextMessagePosition,
@@ -815,13 +816,8 @@ async function writeTagging({
     return
   }
 
-  const { data } = await lease.write(() => renewConversationRunLease(dataConnect, { ...fence, usage }))
-
-  if (data.conversationRun_updateMany !== 1) {
-    throw new Error(
-      `Conversation run ${fence.runId}: its tagging's ledger renewed nothing, the run is not this worker's`,
-    )
-  }
+  // Refused once the run is no longer this worker's, which the step's next read finds out
+  await lease.write(() => recordConversationRunUsage(dataConnect, { ...fence, ...toConversationUsageVariables(usage) }))
 }
 
 /*

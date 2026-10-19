@@ -1,5 +1,5 @@
 import type { BetaMessage, MessageCountTokensParams } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { getConversationRunStop, renewConversationRunLease } from 'strategydance-database/backend'
+import { getConversationRunStop, recordConversationRunUsage } from 'strategydance-database/backend'
 
 import type { ClaudeClient, ConversationContentBlock, ConversationRunFence } from '~types'
 
@@ -26,6 +26,7 @@ import parseTranscriptContent from '~domain/conversations/parseTranscriptContent
 import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import type { ConversationTurnOutcome } from '~domain/conversations/requestConversationTurn'
+import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 
 type RequestConversationTaggingInput = {
   fence: ConversationRunFence
@@ -104,15 +105,10 @@ async function requestConversationTagging({
     worstCaseMicrodollars: worstCase,
     requestedModel: CONVERSATION_TAGGING_MODEL,
   })
-  const { data: reservation } = await lease.write(() =>
-    renewConversationRunLease(dataConnect, { ...fence, usage: reserved.usage }),
+  // Refused once the run is no longer this worker's, which throws, as its own signal does
+  await lease.write(() =>
+    recordConversationRunUsage(dataConnect, { ...fence, ...toConversationUsageVariables(reserved.usage) }),
   )
-
-  if (reservation.conversationRun_updateMany !== 1) {
-    throw new Error(
-      `Conversation run ${fence.runId}: its tagging's reservation renewed nothing, the run is not this worker's`,
-    )
-  }
 
   // The message so far, once the stream has reported its usage
   const streamed: { message: BetaMessage | null } = { message: null }

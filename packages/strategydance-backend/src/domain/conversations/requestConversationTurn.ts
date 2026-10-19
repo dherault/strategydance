@@ -10,7 +10,7 @@ import {
   ConversationTranscriptRole,
   getConversationRequestContext,
   getConversationRunStop,
-  renewConversationRunLease,
+  recordConversationRunUsage,
 } from 'strategydance-database/backend'
 
 import type { ClaudeClient, ConversationRunFence } from '~types'
@@ -52,6 +52,7 @@ import type { ConversationRunEnding } from '~domain/conversations/endConversatio
 import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import readSubagentReportDeadline from '~domain/conversations/readSubagentReportDeadline'
+import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 
 type RequestConversationTurnInput = {
   fence: ConversationRunFence
@@ -305,19 +306,16 @@ async function requestConversationTurn({
 
     const reservedUsage = usage
 
-    const { data: reservation } = await lease.write(() =>
-      renewConversationRunLease(dataConnect, {
+    // A run claimed again, or whose author left, is no longer this worker's, and the write that
+    // reserves its request, with what the run may have cost, is refused: nothing is sent, and the
+    // step's next read finds out which
+    await lease.write(() =>
+      recordConversationRunUsage(dataConnect, {
         ...fence,
-        usage: reservedUsage,
+        ...toConversationUsageVariables(reservedUsage),
         ...(context ? { context: JSON.stringify(context) } : {}),
       }),
     )
-
-    // A run claimed again, or whose author left, is no longer this worker's, and its request is not
-    // reserved: nothing is sent, and the step's next read finds out which
-    if (reservation.conversationRun_updateMany !== 1) {
-      throw new Error(`Conversation run ${fence.runId}: its reservation renewed nothing, the run is not this worker's`)
-    }
 
     let message: BetaMessage
     // The message so far, once the stream has reported its usage
@@ -586,7 +584,9 @@ async function isStopRequested(fence: ConversationRunFence) {
 // the worker that reads the run next charges the request at its estimate when this did not land
 async function writeSettled(fence: ConversationRunFence, lease: ConversationRunLease, usage: ConversationRunUsage) {
   try {
-    await lease.write(() => renewConversationRunLease(dataConnect, { ...fence, usage }))
+    await lease.write(() =>
+      recordConversationRunUsage(dataConnect, { ...fence, ...toConversationUsageVariables(usage) }),
+    )
   } catch (error) {
     logger.warn(`Conversation run ${fence.runId}: a request that never reached the API could not be settled`, error)
   }

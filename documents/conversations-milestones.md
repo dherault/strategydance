@@ -3156,6 +3156,72 @@ transaction at a time (see Risks). As the review of M1 to M38 proposed on 2026-1
   send. A failure prints the interleaving it saw.
 - **Not in CI**, which runs no emulators: it runs before a release that changes a run's mutations,
   as `probe:claude` runs before one that changes a request, and CLAUDE.md says so.
+- Built with these settled, on 2026-10-19:
+  - **One emulator runs one operation at a time, on Postgres too.** firebase-tools 15.32.1 points its
+    emulator, 3.4.22, at a Postgres through `FIREBASE_DATACONNECT_POSTGRESQL_STRING`, but there a
+    write on a row nobody locked waited 1.9 s behind one blocked on a lock, and never more than one of
+    its connections worked at once. So `withPostgresEmulators.ts` (`bun run emulators:postgres`)
+    starts a throwaway Postgres 17 in Docker, PGlite's version, production's unread while gcloud
+    asks to sign in again, then four of firebase-tools' own emulator binaries on it, configured as the
+    CLI configures one, through `emulator/configure`, and a proxy handing each request to the next.
+    It starts the binaries itself because the CLI gives one some four seconds to compile the schema,
+    which a loaded machine outlasts.
+  - **The races found the bounds broken.** Data Connect runs a mutation as one SQL statement
+    (`BEGIN READ WRITE`, one `WITH … AS (UPDATE …) SELECT jsonb_build_object(…)`, `COMMIT`, as
+    `log_statement` shows it), and every part of one Postgres statement reads the snapshot it
+    started with, so a count or a cascade after a lock never saw what the writer holding the lock
+    committed: on `dev`'s connectors four sends past the three in flight started four runs in 20
+    rounds of 20, four first sends in 20, six launches past the five slots in 19, a delete beside a
+    launch left the subagent live in 2 of 50, and `check:conversation-runs` failed 6 of its 177 on
+    Postgres, two last answers each counting the other waiting among them. Only the bounds in an
+    update's `where` held, which Postgres checks again on the row as it stands.
+  - **The fix, the conversations' mutations alone**, as David chose over every mutation or the
+    check alone. A step reading an earlier step's `response` runs every step of its mutation as a
+    statement of its own, in order, so a step after the lock sees what committed while it waited: the
+    starts' query steps read `response.userOrganization_update.userId`, the answers' count reads the
+    waiting run's conversation, the subagents' stops take the membership's lock first, as every
+    write on a parent does, and read their subagents through it, the suspensions read the runs
+    through the locked account or organization, `DeleteConversation` through its membership read,
+    and `MarkSubagentReportsDelivered` through the parent read back after its lock, since the sweep
+    calls it for members who may have left. A statement of its own also sees its own mutation's
+    earlier writes, which no edited step reads, and applies a second write to a row, which none makes.
+    The fake refuses a stop of subagents by somebody who is no member, as the mutations now do.
+  - **Left for a pull request of its own**, the mutations outside conversations that count or check
+    after a lock in one statement: in the backend connector `CreateOrganizationInvitation`,
+    `DeleteOrganization`, `CreateDocumentForAgent`, `FoldDocumentForAgent`,
+    `RenameDocumentForAgent`, `RestoreDocumentForAgent`, `CreateTaskForAgent`,
+    `AddTaskDependencyForAgent`, `RestoreTaskForAgent`, `ApproveOAuthAuthorizationRequest`,
+    `CreateOrganizationIntegration`, `RenameOrganizationIntegration`,
+    `ReconfigureOrganizationIntegration`, `UpdateOrganizationIntegrationKey`,
+    `RestoreOrganizationIntegration`, `StartIntegrationAuthorization` and `ConnectIntegration`; in
+    the web connector `UpdateOrganization`, `UpdateOrganizationMemberRole`,
+    `UpdateOrganizationMemberJobTitle`, `RemoveOrganizationMember`, `DeleteOrganizationInvitation`,
+    `CreateDefaultChecklistItems`, `CreateChecklistItem`, `RestoreChecklistItem`,
+    `CreateTaskWithText`, `CreateTask`, `RestoreTask`, `AddTaskDependency`,
+    `CreateDocumentWithText`, `CreateDocument` and `RestoreDocument`. Each takes the same reference
+    and a race of its own, and production's engine is taken to compile as its emulator does, which
+    Cloud SQL's Query Insights could confirm.
+  - **The race check** (`checkConversationRaces.ts`, its scenarios in `conversationRaces/`) runs the
+    backend's own domain functions as the writers, `enqueueRun` swapped by a Bun plugin for one that
+    queues nothing, since `mock.module` is `bun test`'s, and drives a worker's steps itself where a
+    scenario means to. A round has met when two writers' writes were in flight at once; Postgres
+    logs every lock wait past a millisecond and every deadlock, which the check reads. The writers
+    are released at once, each after up to 40 ms, or each operation after up to 15 ms, in turn.
+  - **The check checked**: `dev`'s connectors fail it as above; the launch's slots check made
+    harmless fails six launches in 20 rounds of 20, and its parent's `deletedAt` taken out fails the
+    delete beside a launch in 7. A send without `activeRunId: { isNull: true }`, or without its
+    position and number too, still started one run, the unique indexes on a run's number and a
+    message's position refusing the second, and a reaction without `reportDeliveredAt: { isNull:
+    true }` still delivered each report once, the parent's row allowing one reaction.
+  - **`check:conversation-list`'s delete** ran on whichever of two restores at once PGlite always
+    let through; on Postgres either may, so it deletes the one restored.
+  - Verified: the four checks; `check:conversation-races` at its 20 rounds and at 100, every
+    scenario passing and none deadlocked; and on Postgres through the four emulators
+    `check:conversation-runs` (177), `check:subagent-runs` (123), `check:subagents-module`,
+    `check:conversation-attachments`, `check:conversation-search`, `check:conversation-list` six
+    times running, `check:conversation-page`, `check:integrations`, `check:knowledge-module` and
+    `check:tasks-module`, every check passing. `check:oauth`, which needs a backend and the Auth
+    emulator, was not run: no mutation it covers changed. The person's emulators were left alone.
 
 ### M42: A subagent's report at any limit
 

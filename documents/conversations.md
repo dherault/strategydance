@@ -988,10 +988,12 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
     `checkConversationAnswer`, which the page uses too: options of that question, each once, one at
     most for a single choice, own words on one line of at most 500 characters without a control
     character, something chosen or written, and for a single choice exactly one of the two.
-  - What is left is counted as the other questions still waiting, read after the lock, the one
-    answered left out by its id: a step of a Data Connect mutation does not see what the same
-    mutation wrote, so it would still read as waiting. An answer another request recorded first is
-    seen, which the emulator check of two last answers at once confirms.
+  - What is left is counted as the other questions still waiting, read after the lock as a
+    statement of its own, since it reads the waiting run's conversation from the step before it: in
+    one statement, which reads the snapshot it started with, two last answers at once each counted
+    the other waiting and neither carried the conversation on (M41). The one answered is left out by
+    its id, whichever way the step runs. An answer another request recorded first is seen, which
+    `check:conversation-runs`' two last answers at once confirms on a real Postgres.
   - "Waiting" is the conversation's, never the question's run's: the lock matches
     `isAwaitingAnswer`, and only the turn the transcript ends on holds questions without an answer,
     so a question drawn by a run that died is answered once the resume that carries it on waits.
@@ -2215,8 +2217,10 @@ way (see The orchestrator).
   parent's row too, before the step that reaches its subagents, and Stop sets the stopped run's
   `stopRequestedAt` in that transaction. Whichever commits second sees the first: a launch after a
   Stop or a delete finds its run asked to stop or its parent deleted and is refused, and a Stop or a
-  delete after a launch reaches the subagent it made, since a step after a lock sees what committed
-  before it. The rows go in one order everywhere: the membership, then the parent's runs, the
+  delete after a launch reaches the subagent it made, since each reads its lock's response, which
+  runs its steps as statements of their own, so a step after a lock sees what committed while it
+  waited. In one statement, which reads the snapshot it started with, a delete that waited on the
+  parent's row for a launch to commit left the launch's subagent live (M41). The rows go in one order everywhere: the membership, then the parent's runs, the
   parent's row, its subagents' runs, and their rows. A worker's fenced write takes its run before its
   conversation, so Stop and a delete write the parent's runs they stop before the parent's row,
   never after it, which `DeleteConversation` turns round from M33, since it writes the conversation
@@ -2231,9 +2235,9 @@ way (see The orchestrator).
   promoted by the promotion that follows the Stop, which takes the membership after the launch. No
   two of them wait on each other's lock, and a crash between a write and its promotion leaves a slot
   free only until the reconcile or the sweep promotes into it. The emulator's PGlite runs one
-  transaction at a time, so the race is Postgres' to reason about: the fake's tests and the emulator
-  check hold the outcome, a launch after a Stop or a delete refused and one before reached by it, and
-  a launch against a send, an answer, Resume and Retry, in both orders.
+  transaction at a time, so the fake's tests and the emulator check hold the outcome, a launch after
+  a Stop or a delete refused and one before reached by it, and a launch against a send, an answer,
+  Resume and Retry, in both orders, and `check:conversation-races` races them on a real Postgres.
 - **In the parent's thread** (M34), a `launch_subagent` call is drawn as the subagent's row: its title,
   its status, live (queued, waiting for a slot, working with its step, reported, stopped, failed or
   interrupted), Stop while it works, and "View work". That opens its thread in a dialog, live and
@@ -3049,10 +3053,19 @@ members' once they write.
   would write to every document mentioning it.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta) if it comes to that.
-- **The locks are reasoned, never raced.** The emulator's PGlite runs one transaction at a time, so
-  no check script has ever seen two writers meet: one run per conversation, three in flight, five
-  subagent slots, a report delivered once and the cascades' lock order rest on Postgres' semantics
-  as read. M41 runs the check scripts against a real Postgres with writers side by side.
+- **The locks are raced before a release, never in CI.** The emulator's PGlite runs one transaction
+  at a time, and so does one emulator on a real Postgres, so `bun run check:conversation-races`
+  races the runs' bounds on Postgres through four emulators: one run per conversation, three in
+  flight, five subagent slots, promotions, a batch's reaction, and the cascades beside a launch and
+  a send. It found, in M41, that Data Connect runs a mutation as one SQL statement, whose every part
+  reads the snapshot it started with, so a count or a cascade after a lock missed what the writer
+  holding it committed: four sends started four runs past the three, six launches six past the five
+  slots, two last answers left a conversation waiting for good, and a delete left a launch's
+  subagent live. The conversations' mutations read their lock's response since, which runs each step
+  as a statement of its own. The other mutations that count after a lock, the tasks', the
+  documents', the authorization server's, the integrations' and the organization's pages', still
+  read one statement's snapshot until a pull request of their own. Production's Data Connect is
+  taken to compile mutations as its emulator does, which Cloud SQL's Query Insights could confirm.
 - **What a request costs to prepare grows with the conversation**, as the review of M1 to M38 read
   it and left it: before each request the worker reads the whole transcript from Data Connect again,
   though nothing before the run's anchor changes while it runs, and a request following a turn's

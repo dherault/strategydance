@@ -966,6 +966,9 @@ mutation AnswerConversationQuestion(
       limit: 1
     ) @check(expr: "size(this) == 1", message: "The run no longer waits for an answer") {
       id
+      conversation {
+        id
+      }
     }
   }
   conversationMessage_updateMany(
@@ -981,7 +984,10 @@ mutation AnswerConversationQuestion(
     conversationMessages(
       where: {
         id: { ne: $messageId }
-        conversationId: { eq: $conversationId }
+        # Of the conversation the waiting run read, which reading a response runs as a statement of its
+        # own, after the lock, so it sees an answer committed while the lock was waited for, which one
+        # statement would not (CLAUDE.md § The database)
+        conversationId: { eq_expr: "response.query.waiting[0].conversation.id" }
         kind: { in: [QUESTION, APPROVAL] }
         answeredAt: { isNull: true }
       }
@@ -1044,6 +1050,9 @@ mutation AnswerConversationApproval(
       limit: 1
     ) @check(expr: "size(this) == 1", message: "The run no longer waits for an answer") {
       id
+      conversation {
+        id
+      }
     }
   }
   conversationMessage_updateMany(
@@ -1065,7 +1074,10 @@ mutation AnswerConversationApproval(
     conversationMessages(
       where: {
         id: { ne: $messageId }
-        conversationId: { eq: $conversationId }
+        # Of the conversation the waiting run read, which reading a response runs as a statement of its
+        # own, after the lock, so it sees an answer committed while the lock was waited for, which one
+        # statement would not (CLAUDE.md § The database)
+        conversationId: { eq_expr: "response.query.waiting[0].conversation.id" }
         kind: { in: [QUESTION, APPROVAL] }
         answeredAt: { isNull: true }
       }

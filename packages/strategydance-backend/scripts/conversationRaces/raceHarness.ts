@@ -167,10 +167,15 @@ export function describe<T>(result: PromiseSettledResult<T> | undefined) {
 */
 export function readPostgresLog(since: Date) {
   const container = process.env.RACES_POSTGRES_CONTAINER ?? ''
-  const { stdout, stderr } = Bun.spawnSync(['docker', 'logs', '--since', since.toISOString(), container], {
+  const { exitCode, stdout, stderr } = Bun.spawnSync(['docker', 'logs', '--since', since.toISOString(), container], {
     stdout: 'pipe',
     stderr: 'pipe',
   })
+
+  // Postgres logs to stderr, which `docker logs` hands back as its own, so only its exit status tells
+  // a log read from one that could not be: a log never read would pass every scenario unchecked
+  if (exitCode !== 0) throw new Error(`Postgres' log could not be read: ${stderr.toString().trim()}`)
+
   const lines = `${stdout.toString()}\n${stderr.toString()}`.split('\n')
 
   return {

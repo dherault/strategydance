@@ -1301,6 +1301,25 @@ async function checkSlots() {
       && !skippedIds.includes(pending.runId),
   )
 
+  const readSkippedPast = async (skipped: string[]) =>
+    (
+      await getSubagentPendingRuns(dataConnect, {
+        organizationId,
+        userId: userIds.author,
+        membershipCreatedAt: parent.membershipCreatedAt,
+        skippedIds: skipped,
+      })
+    ).data.skippedRuns.map(({ id }) => id)
+  const pastNone = await readSkippedPast([])
+  const pastStopped = await readSkippedPast([stopped.runId])
+
+  check(
+    'the runs a reconcile could not end are read past before the limit, and none when it names none',
+    pastNone.join() === skippedIds.join()
+      && !pastStopped.includes(stopped.runId)
+      && [deleted, ofBefore].every(({ runId }) => pastStopped.includes(runId)),
+  )
+
   for (const [name, subagent] of [
     ['asked to stop', stopped],
     ['whose subagent is deleted', deleted],
@@ -1994,9 +2013,13 @@ async function checkCascades() {
       ({ id }) => id === idleSubagent.conversationId,
     ),
   )
+  const holding = (
+    await getConversationsWithSubagents(dataConnect, { ids: [pruned.conversationId, idleSubagent.conversationId] })
+  ).data.conversations.map(({ id }) => id)
+
   check(
-    'a parent still holding a subagent is read as one',
-    (await getConversationsWithSubagents(dataConnect, { ids: [pruned.conversationId] })).data.conversations.length > 0,
+    'a parent still holding a subagent is read as one, and a conversation holding none is not',
+    holding.length === 1 && holding[0] === pruned.conversationId,
   )
   check(
     'a prune counting what it does not delete is refused',

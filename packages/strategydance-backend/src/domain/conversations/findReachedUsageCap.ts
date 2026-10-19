@@ -70,7 +70,8 @@ function findReachedUsageCap(
 
   for (const kind of kinds) {
     for (const [scope, cap] of Object.entries(USAGE_CAPS[kind]) as [UsageCapScope, number][]) {
-      const max = isFinishing ? cap * DAILY_CAP_OVERRUN_FACTOR : cap
+      // Whole, as the mutations write it out: an odd cap's half would name no row
+      const max = isFinishing ? Math.floor(cap * DAILY_CAP_OVERRUN_FACTOR) : cap
       const field = STARTS_READ[kind][scope]
       const newest = field ? starts[field] : []
       const oldest = newest[max - 1]

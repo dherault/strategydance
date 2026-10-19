@@ -666,6 +666,11 @@ function createConversationDatabaseFake() {
       .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0))
   }
 
+  // Whether a read's optional `$skippedIds` leaves a run out, none when it is left out
+  function isSkipped(variables: AnyVariables, run: FakeRun) {
+    return ((variables.skippedIds as string[] | undefined) ?? []).map(id).includes(run.id)
+  }
+
   // The subagent runs no page may reconcile, past their lease or waiting for a slot, with their
   // subagent, as the sweep's reads find their members
   function sweptRuns() {
@@ -2643,6 +2648,7 @@ function createConversationDatabaseFake() {
 
       end(run, 'STOPPED')
       run.failure = 'Its member stopped it while it was queued'
+      cancelRunningCalls(run.conversationId)
       writeNote(conversation, variables, 'STOPPED')
       askSubagentRunsToStop(conversation.id, { anchorPosition: variables.anchorPosition })
 
@@ -3794,12 +3800,11 @@ function createConversationDatabaseFake() {
     }),
 
     GetConversationsWithSubagents: ({ ids }) => ({
-      conversations: [...conversations.values()]
-        .filter(
-          conversation => conversation.parentId != null && (ids as string[]).map(id).includes(conversation.parentId),
-        )
-        .slice(0, 1000)
-        .map(({ parentId }) => ({ parentId })),
+      conversations: (ids as string[])
+        .map(id)
+        .filter(parentId => [...conversations.values()].some(conversation => conversation.parentId === parentId))
+        .slice(0, 100)
+        .map(parentId => ({ id: parentId })),
     }),
 
     PruneClaimedSubagents: variables => {
@@ -4215,6 +4220,7 @@ function createConversationDatabaseFake() {
             conversation: { id: conversationId },
           })),
         pendingRuns: subagentRuns(variables.userId, variables.organizationId, ['PENDING'])
+          .filter(run => !isSkipped(variables, run))
           .slice(0, 100)
           .map(({ id: runId, createdAt, membershipCreatedAt, stopRequestedAt, conversationId }) => ({
             id: runId,
@@ -4241,7 +4247,7 @@ function createConversationDatabaseFake() {
           .slice(0, MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER)
           .map(({ id: runId, conversationId }) => ({ id: runId, conversation: { id: conversationId } })),
         skippedRuns: pending
-          .filter(run => !isPromotable(run))
+          .filter(run => !isPromotable(run) && !isSkipped(variables, run))
           .slice(0, 100)
           .map(({ id: runId, membershipCreatedAt, stopRequestedAt, conversationId }) => ({
             id: runId,
@@ -4368,6 +4374,7 @@ function createConversationDatabaseFake() {
 
       end(run, 'STOPPED')
       assignGiven(run, { failure: variables.failure })
+      cancelRunningCalls(run.conversationId)
       writeNote(conversation, variables, 'STOPPED')
       writeReport(conversation, variables)
 

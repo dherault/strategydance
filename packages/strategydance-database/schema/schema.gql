@@ -630,8 +630,11 @@ enum ConversationAttachmentStatus {
 # off in the conversation that launched it, carried out by runs of its own and reported back. It is
 # its member's, as its parent is, and hidden from them: every read or count of a member's
 # conversations leaves subagents out, and every way a member acts on a conversation refuses one,
-# while a read of one conversation by its id reads it as it reads any
-type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"]) {
+# while a read of one conversation by its id reads it as it reads any.
+#
+# Indexed on `deletedAt` too, which the daily sweep's claim and reads filter on, a range over the
+# few rows deleted, rather than a scan of every conversation each batch
+type Conversation @table @index(fields: ["userId", "organizationId", "updatedAt"]) @index(fields: ["deletedAt"]) {
   # Made by the browser, as a document's is, so a draft has its address before anything is stored
   id: UUID! @default(expr: "uuidV4()")
   # Implies a `userId: String!` column, cascade deleting

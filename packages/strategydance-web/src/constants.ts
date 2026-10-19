@@ -157,6 +157,13 @@ export const CONVERSATION_RUN_RECONCILE_MARGIN_MS = 2000
 export const CONVERSATION_RUN_RECONCILE_INTERVAL_MS = 2 * 60 * 1000
 
 /*
+  How long a claimed run's lease lasts, which every write of its worker renews, as the backend's
+  mutations set it: a lease the page sees move proves the run alive that long from then, whatever
+  the reader's clock says of the database's
+*/
+export const CONVERSATION_RUN_LEASE_MS = 60 * 1000
+
+/*
   How long a page waits before it asks the backend to carry on a run waiting on questions all
   answered, which the last answer carries on itself unless its backend stopped first or the reader
   had runs going elsewhere, so it rarely has to

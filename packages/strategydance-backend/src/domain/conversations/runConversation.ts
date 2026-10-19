@@ -45,6 +45,8 @@ import {
   CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
   CONVERSATION_RUN_STREAM_DEADLINE_MS,
   CONVERSATION_TOOL_CALL_TIMEOUT_MS,
+  DAILY_SPEND_CEILINGS,
+  IS_USAGE_CAPPED,
 } from '~constants'
 
 import { dataConnect } from '~firebase'
@@ -135,6 +137,7 @@ const LIMITS: ConversationRunLimits = {
   maxDurationMs: CONVERSATION_RUN_MAX_DURATION_MS,
   streamDeadlineMs: CONVERSATION_RUN_STREAM_DEADLINE_MS,
   maxCostMicrodollars: CONVERSATION_RUN_MAX_COST_MICRODOLLARS,
+  dailySpendCeilings: IS_USAGE_CAPPED ? DAILY_SPEND_CEILINGS : null,
 }
 
 type ConversationRunContext = GetConversationRunContextData
@@ -539,6 +542,7 @@ async function takeStep({
           streamDeadline: Date.parse(startedAt) + limits.streamDeadlineMs,
           stopCheckIntervalMs,
           maxCostMicrodollars: limits.maxCostMicrodollars,
+          dailySpendCeilings: limits.dailySpendCeilings,
         })
       }
 

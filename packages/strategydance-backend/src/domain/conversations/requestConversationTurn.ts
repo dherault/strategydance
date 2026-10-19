@@ -13,7 +13,7 @@ import {
   recordConversationRunUsage,
 } from 'strategydance-database/backend'
 
-import type { ClaudeClient, ConversationRunFence } from '~types'
+import type { ClaudeClient, ConversationRunFence, UsageCapScope } from '~types'
 
 import { CONVERSATION_API_MAX_RETRY_DELAY_MS, MAX_CONVERSATION_API_RETRIES } from '~constants'
 
@@ -48,9 +48,11 @@ import {
 } from '~domain/conversations/conversationRunUsage'
 import createConversationRequestSignal from '~domain/conversations/createConversationRequestSignal'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
-import type { ConversationRunEnding } from '~domain/conversations/endConversationRun'
+import type { ConversationRunEnding, ConversationSpendCeilingEnding } from '~domain/conversations/endConversationRun'
 import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import readRunSpendRoom from '~domain/conversations/readRunSpendRoom'
+import readSpendFreedAt from '~domain/conversations/readSpendFreedAt'
 import readSubagentReportDeadline from '~domain/conversations/readSubagentReportDeadline'
 import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 
@@ -81,12 +83,14 @@ type RequestConversationTurnInput = {
 }
 
 // How many requests a run sends at most, how long after it was first claimed it starts none, when
-// the stream of the one going then is cut, and what it may cost, in microdollars
+// the stream of the one going then is cut, what it may cost, in microdollars, and the daily spend
+// ceilings its member's runs are held to together, or null where they are lifted
 export type ConversationRunLimits = {
   maxRequests: number
   maxDurationMs: number
   streamDeadlineMs: number
   maxCostMicrodollars: number
+  dailySpendCeilings: Record<UsageCapScope, number> | null
 }
 
 // A part of the turn, as Claude answered it, with its request in the ledger and the entry it is
@@ -145,9 +149,12 @@ export type ConversationTurnOutcome =
     one that failed partway. The run fails with its note. A subagent's request for its report, which
     the entry it answers asked for, goes past both, but not within two minutes of that cut
   - a request whose worst case, with what the run's ledger may have cost, would pass the run's $10
-    (`priceRequestWorstCase`): never sent, and the run fails with its limits' note. One whose single
-    attempt fits and whose fallback does not is sent without the fallback, and its worst case is
-    recorded with its reservation, which the limit counts it at until its answer settles it
+    (`priceRequestWorstCase`), or a daily spend ceiling with what the member's other runs may have
+    cost, the member's in the organization, the account's or the organization's
+    (`readRunSpendRoom`): never sent, and the run fails with its limits' note, a ceiling's naming it
+    and when it has room. One whose single attempt fits and whose fallback does not is sent without
+    the fallback, and its worst case is recorded with its reservation, which both count it at until
+    its answer settles it
   - a stream its member asked to stop, which the worker reads every two seconds: cut, charged as
     one that failed partway, and the run ends stopped, with its note
 
@@ -284,7 +291,12 @@ async function requestConversationTurn({
       maxTokens: CONVERSATION_MAX_TOKENS,
       maxSearches: WEB_SEARCH_MAX_USES,
     })
-    const hasFallbacks = spent + worstCase.withFallback <= limits.maxCostMicrodollars
+    // What the member's other runs leave the run today, read right before the reservation, so what
+    // passes a ceiling is only the requests in flight across its scope at once
+    const ceiling = limits.dailySpendCeilings ? await readRunSpendRoom(fence, limits.dailySpendCeilings) : null
+    const fits = (cost: number) =>
+      spent + cost <= limits.maxCostMicrodollars && (!ceiling || spent + cost <= ceiling.room)
+    const hasFallbacks = fits(worstCase.withFallback)
 
     if (!hasFallbacks && spent + worstCase.single > limits.maxCostMicrodollars) {
       const failure = `Its next request could cost up to ${toDollars(worstCase.single)}, past the ${toDollars(limits.maxCostMicrodollars)} it may cost with ${toDollars(spent)} spent`
@@ -292,6 +304,19 @@ async function requestConversationTurn({
       logger.warn(`Conversation run ${fence.runId}: ${failure}`)
 
       return { kind: 'ending', ending: fail(failure, usage, true) }
+    }
+
+    if (!hasFallbacks && ceiling && limits.dailySpendCeilings && spent + worstCase.single > ceiling.room) {
+      const max = limits.dailySpendCeilings[ceiling.scope]
+      const failure = `Its next request could cost up to ${toDollars(worstCase.single)}, past the ${toDollars(max)} the ${ceiling.scope}'s runs may cost in 24 hours, ${toDollars(max - ceiling.room)} spent by its other runs and ${toDollars(spent)} by this one`
+      const freesAt = await readSpendFreedAt(fence, ceiling.scope, spent + worstCase.single - ceiling.room)
+
+      logger.warn(`Conversation run ${fence.runId}: ${failure}`)
+
+      return {
+        kind: 'ending',
+        ending: fail(failure, usage, true, { scope: ceiling.scope, freesAt: new Date(freesAt).toISOString() }),
+      }
     }
 
     const reserved = reserveConversationRequest(usage, {
@@ -480,8 +505,14 @@ async function requestConversationTurn({
   }
 }
 
-// A run that failed, at one of its limits or not, which a subagent's report says
-function fail(failure: string, usage: ConversationRunUsage, isAtLimit = false): ConversationRunEnding {
+// A run that failed, at one of its limits or not, which a subagent's report says, and when that
+// limit is a daily spend ceiling, whose and when it has room again, which its note says
+function fail(
+  failure: string,
+  usage: ConversationRunUsage,
+  isAtLimit = false,
+  ceiling?: ConversationSpendCeilingEnding,
+): ConversationRunEnding {
   return {
     kind: 'noted',
     status: ConversationRunStatus.FAILED,
@@ -489,6 +520,7 @@ function fail(failure: string, usage: ConversationRunUsage, isAtLimit = false): 
     failure,
     usage,
     ...(isAtLimit ? { isAtLimit } : {}),
+    ...(ceiling ? { ceiling } : {}),
   }
 }
 

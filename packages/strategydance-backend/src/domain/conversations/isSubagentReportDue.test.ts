@@ -11,6 +11,7 @@ const LIMITS = {
   maxDurationMs: 10 * 60 * 1000,
   streamDeadlineMs: 14 * 60 * 1000,
   maxCostMicrodollars: 10_000_000,
+  dailySpendCeilings: null,
 }
 
 function request(values: Partial<ConversationRequestUsage> = {}): ConversationRequestUsage {

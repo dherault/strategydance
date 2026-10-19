@@ -12,9 +12,10 @@ import {
   getConversationRunStop,
   interruptConversationRun,
   interruptSubagentRun,
+  SpendCeilingScope,
 } from 'strategydance-database/backend'
 
-import type { ConversationRunFence, ConversationRunReference } from '~types'
+import type { ConversationRunFence, ConversationRunReference, UsageCapScope } from '~types'
 
 import { dataConnect } from '~firebase'
 
@@ -37,7 +38,8 @@ import startDueSubagentReactions from '~domain/subagents/startDueSubagentReactio
   - `finished`: completed, or stopped in a conversation deleted meanwhile, without a note
   - `waiting`: on the questions its turn asked, until an answer or a send consumes the turn
   - `noted`: with a note the thread draws, and why, for the logs: failed, at a limit that sends no
-    further request, which `isAtLimit` says, or after Claude's API failed it, full when its next
+    further request, which `isAtLimit` says, a daily spend ceiling among them, whose and when it has
+    room again its note names (`ceiling`), or after Claude's API failed it, full when its next
     request would not fit Claude's context, which marks its conversation so, stopped as its member
     asked, or refused
   - `interrupted`: its author is no longer the member it was queued under, fenced on the run alone,
@@ -55,6 +57,7 @@ export type ConversationRunEnding =
       usage?: ConversationRunUsage
       isFull?: boolean
       isAtLimit?: boolean
+      ceiling?: ConversationSpendCeilingEnding
     } & (
       | { status: ConversationRunStatus.FAILED; noteKind: ConversationNoteKind.FAILED | ConversationNoteKind.FULL }
       | { status: ConversationRunStatus.STOPPED; noteKind: ConversationNoteKind.STOPPED }
@@ -63,6 +66,17 @@ export type ConversationRunEnding =
   // With the preview of a call it cancels, when the preview shows it
   | { kind: 'waiting'; usage?: ConversationRunUsage; preview?: ConversationPreview | null }
   | { kind: 'interrupted'; reference: ConversationRunReference; attempts: number; failure: string }
+
+// The daily spend ceiling a run failed at, whose and when it has room again, in RFC 3339, which its
+// note names and which a subagent's run never chains past
+export type ConversationSpendCeilingEnding = { scope: UsageCapScope; freesAt: string }
+
+// The scope a note's ceiling is stored as
+const CEILING_SCOPES: Record<UsageCapScope, SpendCeilingScope> = {
+  member: SpendCeilingScope.MEMBER,
+  account: SpendCeilingScope.ACCOUNT,
+  organization: SpendCeilingScope.ORGANIZATION,
+}
 
 /*
   What a subagent's run hands on to when it reaches one of its limits before its fourth run: its
@@ -177,7 +191,7 @@ async function endRun({
     ...fence,
     noteId: deriveConversationMessageId(fence.runId, 'note'),
     position,
-    preview: buildConversationPreview({ kind: 'NOTE', noteKind: ending.noteKind }),
+    preview: buildConversationPreview({ kind: 'NOTE', noteKind: ending.noteKind, ...toNoteCeiling(ending.ceiling) }),
     failure: ending.failure,
     ...toConversationUsageVariables(ending.usage),
     ...(ending.isFull ? { isFull: true } : {}),
@@ -188,7 +202,12 @@ async function endRun({
     await write(() => finishConversationRunFull(dataConnect, noted))
   } else {
     await write(() =>
-      finishConversationRunWithNote(dataConnect, { ...noted, status: ending.status, noteKind: ending.noteKind }),
+      finishConversationRunWithNote(dataConnect, {
+        ...noted,
+        status: ending.status,
+        noteKind: ending.noteKind,
+        ...toNoteCeiling(ending.ceiling),
+      }),
     )
   }
 
@@ -229,7 +248,8 @@ type EndSubagentRunInput = Omit<EndConversationRunInput, 'lease' | 'isSubagent'>
 async function endSubagentRun(input: EndSubagentRunInput): Promise<'ended' | 'chained'> {
   const { ending, fence, chain, write } = input
 
-  if (chain && fence && ending.kind === 'noted' && ending.isAtLimit) {
+  // A daily spend ceiling stops the subagent whole, as nothing it chains to could send a request
+  if (chain && fence && ending.kind === 'noted' && ending.isAtLimit && !ending.ceiling) {
     const { data } = await getConversationRunStop(dataConnect, toReference(fence))
 
     if (!data.conversationRuns[0]?.stopRequestedAt) {
@@ -318,13 +338,19 @@ async function writeSubagentEnding({ ending, fence, position, write }: EndSubage
       noteKind: ending.noteKind,
       noteId: deriveConversationMessageId(fence.runId, 'note'),
       position,
-      preview: buildConversationPreview({ kind: 'NOTE', noteKind: ending.noteKind }),
+      preview: buildConversationPreview({ kind: 'NOTE', noteKind: ending.noteKind, ...toNoteCeiling(ending.ceiling) }),
       failure: ending.failure,
       ...toConversationUsageVariables(ending.usage),
       ...(ending.isFull ? { isFull: true } : {}),
+      ...toNoteCeiling(ending.ceiling),
       report,
     }),
   )
+}
+
+// What a note stores of the daily spend ceiling its run failed at, and its preview names
+function toNoteCeiling(ceiling: ConversationSpendCeilingEnding | undefined) {
+  return ceiling ? { ceilingScope: CEILING_SCOPES[ceiling.scope], ceilingFreesAt: ceiling.freesAt } : {}
 }
 
 // The run's keys alone, which a read takes

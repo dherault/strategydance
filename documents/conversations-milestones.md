@@ -94,7 +94,7 @@ review of M1 to M38 added on 2026-10-18, each start once M38 has merged, in any 
 | M39 | Daily spend ceilings | core, database, backend, web, root | M38 | |
 | M40 | Document revisions for agents' edits | database, backend, web, root | M38 | |
 | M41 | Races against a real Postgres | database, backend, root | M38 | |
-| M42 | A subagent's report at any limit | backend | M38 | |
+| M42 | A subagent's report at any limit | backend | M38 | #229 |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 

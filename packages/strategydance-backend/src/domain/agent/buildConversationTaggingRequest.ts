@@ -4,9 +4,8 @@ import { CompanyAspect } from 'strategydance-database/backend'
 import type { ConversationContentBlock } from '~types'
 
 import {
-  CONVERSATION_MODEL,
-  CONVERSATION_TAGGING_BETAS,
   CONVERSATION_TAGGING_MAX_TOKENS,
+  CONVERSATION_TAGGING_MODEL,
   MAX_CONVERSATION_TAGGING_TEXT_LENGTH,
 } from '~domain/agent/conversationRequestSettings'
 import { ASK_USER_TOOL_NAME } from '~domain/agent/conversationTools'
@@ -38,8 +37,9 @@ export const CONVERSATION_TAGGING_SCHEMA = {
 
 /*
   The request that tags a conversation with the aspects of the company its first exchange is about:
-  Opus 5.5 at low effort, the API's fallback on a refusal, as the run's own requests have it, no
-  tools, and its answer held to a schema (structured output), which `readConversationTagging` reads.
+  Haiku 5.5 at low effort (`CONVERSATION_TAGGING_MODEL`), with no fallback on a refusal, which the
+  API offers none of for it, no tools, and its answer held to a schema (structured output), which
+  `readConversationTagging` reads.
   It quotes the member's message and the reply's words, its text and the questions it asked, each
   cut to 8000 characters, since what an exchange is about shows long before that
 */
@@ -55,10 +55,8 @@ function buildConversationTaggingRequest({ member, reply }: ConversationExchange
   ].join('\n')
 
   return {
-    model: CONVERSATION_MODEL,
+    model: CONVERSATION_TAGGING_MODEL,
     max_tokens: CONVERSATION_TAGGING_MAX_TOKENS,
-    betas: [...CONVERSATION_TAGGING_BETAS],
-    fallbacks: 'default',
     output_config: { effort: 'low', format: { type: 'json_schema', schema: CONVERSATION_TAGGING_SCHEMA } },
     system: CONVERSATION_TAGGING_PROMPT,
     messages: [{ role: 'user', content: [{ type: 'text', text }] }],

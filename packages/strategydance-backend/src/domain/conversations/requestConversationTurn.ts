@@ -283,6 +283,7 @@ async function requestConversationTurn({
       configTokens: measured.configTokens,
       inputEndPosition: last.position,
       worstCaseMicrodollars: hasFallbacks ? worstCase.withFallback : worstCase.single,
+      requestedModel: (config.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
     })
 
     usage = reserved.usage

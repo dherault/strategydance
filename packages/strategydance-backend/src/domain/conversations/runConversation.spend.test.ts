@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
+import Anthropic from '@anthropic-ai/sdk'
 import type { BetaStopReason } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 
 import type { ConversationRunQueue, ConversationRunReference, ConversationToolRunner } from '~types'
@@ -111,5 +112,26 @@ describe('runConversation, recording what a run may have cost', () => {
     expect(fake.unpricedLedgerWrites).toEqual([])
     expect(readSpend(subagent)?.costBound).toBe(Math.ceil(priceConversationUsageBound(kit.readUsage(subagent))))
     expect(readSpend(next)).toBeUndefined()
+  })
+
+  test('counts a stream cut partway at the most it may have written in the time it streamed, not its reservation', async () => {
+    const reference = await kit.start()
+    // A stream that started, reporting its input, then failed at once, before its final delta
+    const overloaded = new Anthropic.APIError(undefined, { type: 'overloaded_error' }, 'Overloaded', undefined)
+    const scripted = kit.createClient([
+      { started: answer([], { inputTokens: 1200, outputTokens: 1 }), error: overloaded },
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client, apiRetryDelayMs: 1 })).toBe('finished')
+
+    const [request] = kit.readUsage(reference).requests
+
+    const bound = request?.cutBoundMicrodollars ?? Number.NaN
+
+    // A few seconds at most, a few cents of output, where its reservation was near $4
+    expect(request?.isEstimated).toBe(true)
+    expect(bound).toBeLessThan(500_000)
+    expect(request?.worstCaseMicrodollars ?? 0).toBeGreaterThan(3_000_000)
+    expect(readSpend(reference)?.costBound).toBe(Math.ceil(bound))
   })
 })

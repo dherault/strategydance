@@ -20,6 +20,7 @@ const {
   default: priceConversationUsage,
   priceConversationRequest,
   priceConversationUsageBound,
+  priceCutRequestBound,
   priceRequestWorstCase,
   readModelPrice,
 } = await import('./priceConversationUsage')
@@ -197,5 +198,65 @@ describe('priceConversationUsageBound', () => {
     })
 
     expect(priceConversationUsageBound(usage)).toBeCloseTo(1000 * 4 + 64_000 * 20)
+  })
+
+  test('counts a request cut partway at the most it may have written meanwhile, never past its worst case', () => {
+    const cut = (cutBoundMicrodollars: number) =>
+      parseConversationRunUsage({
+        requests: [
+          {
+            ...base,
+            model: 'claude-opus-5-5',
+            isEstimated: true,
+            isSettled: true,
+            worstCaseMicrodollars: 3e6,
+            cutBoundMicrodollars,
+          },
+        ],
+      })
+
+    expect(priceConversationUsageBound(cut(70_000))).toBe(70_000)
+    expect(priceConversationUsageBound(cut(5e6))).toBe(3e6)
+  })
+})
+
+describe('priceCutRequestBound', () => {
+  // What a stream reported before it was cut: its input at the start, its content so far
+  function cut(content: unknown[], model = 'claude-opus-5-5') {
+    return {
+      ...message(model, { input_tokens: 1000, cache_read_input_tokens: 10_000, output_tokens: 3 }),
+      content,
+    } as BetaMessage
+  }
+
+  test('bounds a cut stream by its billed input and what its model writes at most in the time it streamed', () => {
+    // Ten seconds and five of grace at 400 tokens a second: 6000 tokens, $0.12, beside $0.006 of input
+    expect(priceCutRequestBound({ message: cut([]), streamedMs: 10_000, maxTokens: 64_000 })).toBeCloseTo(
+      1000 * 4 + 10_000 * 0.2 + 6000 * 20,
+    )
+    // Never past the request's whole output
+    expect(priceCutRequestBound({ message: cut([]), streamedMs: 600_000, maxTokens: 64_000 })).toBeCloseTo(
+      1000 * 4 + 10_000 * 0.2 + 64_000 * 20,
+    )
+  })
+
+  test('counts each search it shows as the worst case prices one, its results read again after it', () => {
+    const search = { type: 'server_tool_use', id: 'srvtoolu_1', name: 'web_search', input: {} }
+    const bare = priceCutRequestBound({ message: cut([]), streamedMs: 0, maxTokens: 64_000 }) ?? 0
+    const searched = priceCutRequestBound({
+      message: cut([search, { ...search, id: 'srvtoolu_2' }]),
+      streamedMs: 0,
+      maxTokens: 64_000,
+    })
+
+    // Two searches, each a reading of the 11000 tokens and 16000 retrieved, and one reading again
+    expect((searched ?? 0) - bare).toBeCloseTo(2 * (11_000 * 0.2 + 16_000 * 5 + 10_000) + 16_000 * 0.2)
+  })
+
+  test('bounds nothing a fallback answered, nor a model with no rate', () => {
+    const fallback = { type: 'fallback', from: { model: 'claude-opus-5-5' }, to: { model: 'claude-opus-5' } }
+
+    expect(priceCutRequestBound({ message: cut([fallback]), streamedMs: 1000, maxTokens: 64_000 })).toBeNull()
+    expect(priceCutRequestBound({ message: cut([], 'claude-unknown'), streamedMs: 1000, maxTokens: 64_000 })).toBeNull()
   })
 })

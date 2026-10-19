@@ -41,6 +41,11 @@ export type ConversationRequestUsage = {
   // The model it names, which a worker taking it over unsettled charges it at; absent from a ledger
   // written before the review of M1 to M38, whose requests all named Opus 5.5
   requestedModel?: string
+  // The most a request whose stream was cut partway may have cost, in microdollars, from how long
+  // it streamed (`priceCutRequestBound`), which the cost limit and the daily spend ceilings count it
+  // at rather than its whole reservation; absent from any other, and from a cut stream that showed
+  // a fallback, whose declined attempt nothing bounds
+  cutBoundMicrodollars?: number
 }
 
 // One attempt at a request a model declined partway, before the API fell back to another
@@ -155,14 +160,27 @@ export function settleFailedConversationRequest(usage: ConversationRunUsage, ind
 /*
   Settles a request whose stream failed after it started, which is billed for what it had used: at
   the usage the stream last reported, its input counted at the start and its output only by the
-  final delta, so marked as an estimate
+  final delta, so marked as an estimate, with the most it may have cost for how long it streamed,
+  when that bounds it
 */
-export function settleInterruptedConversationRequest(usage: ConversationRunUsage, index: number, message: BetaMessage) {
+export function settleInterruptedConversationRequest(
+  usage: ConversationRunUsage,
+  index: number,
+  message: BetaMessage,
+  { cutBoundMicrodollars }: { cutBoundMicrodollars?: number | null } = {},
+) {
   const settled = settleConversationRequest(usage, index, message, { turnPosition: null })
 
   return withTotals(
     settled.requests.map((request, requestIndex) =>
-      requestIndex === index ? { ...request, stopReason: 'error', isEstimated: true } : request,
+      requestIndex === index
+        ? {
+            ...request,
+            stopReason: 'error',
+            isEstimated: true,
+            ...(typeof cutBoundMicrodollars === 'number' ? { cutBoundMicrodollars } : {}),
+          }
+        : request,
     ),
   )
 }

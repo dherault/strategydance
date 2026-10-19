@@ -34,6 +34,25 @@ export const CLAUDE_MODEL_PRICES: Record<string, ClaudeModelPrice> = {
 }
 
 /*
+  How fast each model can write at most, in output tokens a second, which bounds what a stream cut
+  partway was billed: nothing reports a request's output before its end, and its reasoning, billed
+  in full, is never streamed, so the time it streamed is what says how much it wrote. Provisional,
+  a few times what a model writes, until `probe:claude` measures each and holds them to it. A model
+  missing has a cut stream counted at its whole reservation
+*/
+export const CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND: Record<string, number> = {
+  'claude-opus-5-5': 400,
+  'claude-sonnet-5-5': 400,
+  'claude-opus-5': 400,
+  'claude-opus-4-8': 400,
+  'claude-sonnet-5': 400,
+  'claude-haiku-5-5': 1000,
+}
+
+// How long past the cut a model may go on writing before the API sees the stream gone
+export const CUT_STREAM_GRACE_MS = 5000
+
+/*
   The models the API may answer a refused request with, under `fallbacks: "default"`, by the model
   the request names: its `allowed_fallback_models`, which `probe:claude` reads and holds this to.
   The cost limit reserves a request's fallback at the dearest of them

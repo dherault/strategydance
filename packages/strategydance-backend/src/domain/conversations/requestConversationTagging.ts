@@ -23,7 +23,11 @@ import {
 import createConversationRequestSignal from '~domain/conversations/createConversationRequestSignal'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
-import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
+import {
+  priceConversationUsageBound,
+  priceCutRequestBound,
+  priceRequestWorstCase,
+} from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import readRunSpendRoom from '~domain/conversations/readRunSpendRoom'
 import type { ConversationTurnOutcome } from '~domain/conversations/requestConversationTurn'
@@ -136,6 +140,9 @@ async function requestConversationTagging({
     stopCheckIntervalMs,
   })
 
+  // When it went, which bounds what a stream cut partway wrote
+  const sentAt = Date.now()
+
   try {
     const message = await client.stream(body, {
       signal: request.signal,
@@ -169,7 +176,13 @@ async function requestConversationTagging({
       kind: 'tagging',
       aspects: null,
       usage: streamed.message
-        ? settleInterruptedConversationRequest(reserved.usage, reserved.index, streamed.message)
+        ? settleInterruptedConversationRequest(reserved.usage, reserved.index, streamed.message, {
+            cutBoundMicrodollars: priceCutRequestBound({
+              message: streamed.message,
+              streamedMs: Date.now() - sentAt,
+              maxTokens: CONVERSATION_TAGGING_MAX_TOKENS,
+            }),
+          })
         : settleFailedConversationRequest(reserved.usage, reserved.index),
     }
   } finally {

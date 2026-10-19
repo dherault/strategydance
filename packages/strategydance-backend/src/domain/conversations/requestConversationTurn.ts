@@ -50,7 +50,11 @@ import createConversationRequestSignal from '~domain/conversations/createConvers
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import type { ConversationRunEnding, ConversationSpendCeilingEnding } from '~domain/conversations/endConversationRun'
 import findPassedSpendCeilings from '~domain/conversations/findPassedSpendCeilings'
-import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
+import {
+  priceConversationUsageBound,
+  priceCutRequestBound,
+  priceRequestWorstCase,
+} from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import readRunSpendRoom from '~domain/conversations/readRunSpendRoom'
 import readSpendCeilingFreedAt from '~domain/conversations/readSpendCeilingFreedAt'
@@ -143,8 +147,9 @@ export type ConversationTurnOutcome =
     row while the run's time allows it, a stop its member asked for meanwhile ending it stopped
   - any other error of Claude's API, those past the retries, `max_tokens`, a sixth pause and any
     other stop: the run fails with its note, the request sent once, and charged what the stream
-    reported it used when it failed partway. An error of the worker's own before the request reached
-    the API settles it at nothing before the step fails
+    reported it used when it failed partway, the cost limit and the daily spend ceilings counting it
+    at the most it may have written in the time it streamed (`priceCutRequestBound`). An error of the
+    worker's own before the request reached the API settles it at nothing before the step fails
   - a run at one of its limits: 25 requests sent, or 10 minutes gone since it was first claimed,
     sends no further request, and a stream still going 14 minutes after the claim is cut, charged as
     one that failed partway. The run fails with its note. A subagent's request for its report, which
@@ -359,6 +364,9 @@ async function requestConversationTurn({
       stopCheckIntervalMs,
     })
 
+    // When it went, which bounds what a stream cut partway wrote
+    const sentAt = Date.now()
+
     try {
       message = await client.stream(buildConversationRequest(messages, config, { hasFallbacks }), {
         signal: request.signal,
@@ -369,9 +377,15 @@ async function requestConversationTurn({
       })
     } catch (error) {
       // What the stream used is charged as an estimate, its output counted only by the final delta,
-      // or nothing when the API refused it before it started
+      // bounded by how long it streamed, or nothing when the API refused it before it started
       const settled = streamed.message
-        ? settleInterruptedConversationRequest(usage, reserved.index, streamed.message)
+        ? settleInterruptedConversationRequest(usage, reserved.index, streamed.message, {
+            cutBoundMicrodollars: priceCutRequestBound({
+              message: streamed.message,
+              streamedMs: Date.now() - sentAt,
+              maxTokens: CONVERSATION_MAX_TOKENS,
+            }),
+          })
         : settleFailedConversationRequest(usage, reserved.index)
 
       // Its member asked to stop it: the turn being written is dropped, the parts held with it

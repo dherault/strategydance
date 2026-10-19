@@ -573,6 +573,21 @@ faces.
   stored one and merges as a second copy. It keeps the nodes y-prosemirror's read produced, with
   the read's metadata: blocks matched by equality alone can pair an untouched block with a new one
   and delete it, with whatever somebody typed in it
+- An agent's edit of the text keeps the text it replaced as a `DocumentRevision`, in the mutation
+  that stores the edit, `FoldDocumentWithRevisionForAgent`, so the two commit together or not at
+  all, under the edit's key: its snapshot compressed with gzip, its `content` for a member to look
+  at, where the agent acted from (the module call's scope) and the call's key, and the version the
+  edit left. A new `…ForAgent` write of a document's text keeps one the same way.
+  `FoldDocumentForAgent` stays only for the backend from before the release, which deploys after
+  Data Connect. Members alone read revisions, whatever the team lets agents do with the document,
+  and go back to one through the backend (`routes/knowledge.ts`), which writes its text back as a
+  difference, `updateRichTextYDoc`'s `restore`, keeping every block the two share, and keeps one of
+  its own for the restore. An Undo goes back only while the text is still the version the edit
+  left. They are kept 30 days (`DOCUMENT_REVISION_LIFETIME_DAYS`), which the daily sweep prunes
+- Data Connect takes 4 MiB a request, gRPC's bound, which the emulator names when one passes it,
+  and a write carrying a document's text twice, the new snapshot beside a revision, can pass it: a
+  knowledge write is measured first (`isKnowledgeWriteTooLarge`) and refused rather than sent, never
+  written without its revision
 - The text reaches the editor without `parseRichText`, so the editor's schema is what keeps it to
   the blocks it knows, and a tab on an older bundle deletes a block its schema lacks from the shared
   text. A new block type reaches every tab before anybody can write one, and so does a new inline
@@ -806,6 +821,11 @@ in `utils/`, one concern per file.
 - So are the pictures of documents' text, which any member may put in, under
   `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
   at it by its URL alone, and an undo or another tab can bring a deleted picture back
+- So are the revisions of documents' text, which any member reads and goes back to, through
+  `routes/knowledge.ts`, mounted at `/organizations/:organizationId/knowledge`: which of a
+  conversation's edits an Undo can still take back, read from each document's text as it stands,
+  and a restore, written back as a difference. Both merge a whole document's text in the instance,
+  so a member makes 60 in ten minutes at most (`knowledgeRevisionRateLimitMiddleware`)
 - So are the files sent in conversations, which the backend serves itself (`GET
   …/attachments/:attachmentId`), checking the reader is still a member, so none has a download
   token. An upload streams its body into Storage under `pending/{organizationId}/{userId}/{id}`,
@@ -894,7 +914,8 @@ in `utils/`, one concern per file.
   and in production the files the Files API holds that no row names, a day old
   (`pruneConversationAttachments`). Then the
   board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
-  organization's documents and MCP servers deleted over a day ago, the servers with their keys and
+  organization's documents and MCP servers deleted over a day ago, documents' revisions over 30
+  days old (`DeleteExpiredDocumentRevisions`), the servers with their keys and
   members' connections (`PruneDeletedIntegrations`), members' Connects to them expired over an hour
   ago (`PruneIntegrationAuthorizations`), the conversation searches over a day old, which
   no count reads any more, the module call results past their expiry, and the authorization
@@ -1512,9 +1533,12 @@ Modules says what each does and why.
   module registers its tools in is the order the agent lists them in, frozen as the agent's tools are
 - A tool takes a zod input schema and an `outputSchema`, answers `structuredContent` with the same
   JSON as text (`toToolResult`), carries annotations, `readOnlyHint` on reads, `destructiveHint` on a
-  delete, `openWorldHint: false` on all, and refuses with a result, `isError` and a sentence the
+  delete and on a write that can rewrite what it changes whole, as `update_document` can,
+  `openWorldHint: false` on all, and refuses with a result, `isError` and a sentence the
   model can act on (`toToolRefusal`), never a protocol error. The SDK answers an input that fails its
-  schema the same way
+  schema the same way. Annotations reach external agents' clients alone: Claude's tool list keeps a
+  module's name, description and input schema (`toConversationModuleTool`), so changing one moves
+  no pinned bytes
 - Every write takes an idempotency key in the call's `_meta`, under
   `com.strategydance/idempotencyKey`, and its mutation inserts its `ModuleCallResult` first, under
   `@include(if: $isKeyed)`, in the transaction that writes: a key taken refuses the write, and the

@@ -36,12 +36,27 @@ export type FakeDocumentUpdate = {
   createdAt: string
 }
 
+export type FakeDocumentRevision = {
+  id: string
+  documentId: string
+  organizationId: string
+  userId: string | null
+  scope: string | null
+  callKey: string | null
+  compressedState: string
+  content: string
+  afterFingerprint: string
+  restoredVersionAt: string | null
+  createdAt: string
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base) {
-  const { stamp, id, isMember, membershipOf, matchesLike, insertResult, storeResult, checkKey } = base
+  const { stamp, id, isMember, hasMember, membershipOf, matchesLike, insertResult, storeResult, checkKey } = base
   const documents = new Map<string, FakeDocument>()
   const updates: FakeDocumentUpdate[] = []
+  const revisions: FakeDocumentRevision[] = []
 
   // Declared here rather than read off the base, so a call narrows what follows it
   function refuse(message: string): never {
@@ -92,6 +107,34 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
 
     Object.assign(document, { state, content, contentText: null, revision: document.revision + 1, updatedAt: stamp() })
     updates.splice(0, updates.length, ...updates.filter(update => update.documentId !== document.id))
+  }
+
+  // Deletes what references a document along with it, as Data Connect cascades a required reference
+  function deleteDocument(document: FakeDocument) {
+    documents.delete(document.id)
+    updates.splice(0, updates.length, ...updates.filter(update => update.documentId !== document.id))
+    revisions.splice(0, revisions.length, ...revisions.filter(revision => revision.documentId !== document.id))
+  }
+
+  // A revision kept by a write, with what the write holds it to
+  function keepRevision(fields: Omit<FakeDocumentRevision, 'id' | 'createdAt'> & { id?: string }) {
+    if (
+      fields.compressedState.length > 2000000
+      || fields.content.length > 200000
+      || fields.afterFingerprint.length > 64
+    ) {
+      refuse('A revision holds at most 2000000 characters of state and 200000 of content')
+    }
+
+    const revision = { ...fields, id: id(fields.id ?? crypto.randomUUID()), createdAt: stamp() }
+
+    revisions.push(revision)
+
+    return revision
+  }
+
+  function byNewest(a: { createdAt: string; id: string }, b: { createdAt: string; id: string }) {
+    return a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : a.id < b.id ? 1 : -1
   }
 
   function pendingUpdates(documentId: string) {
@@ -149,8 +192,7 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
       const isOrganizations = organizationId === undefined || document.organizationId === id(organizationId)
 
       if (isOrganizations && document.deletedAt !== null && Date.parse(document.deletedAt) < Date.now() - DAY_MS) {
-        documents.delete(document.id)
-        updates.splice(0, updates.length, ...updates.filter(update => update.documentId !== document.id))
+        deleteDocument(document)
         deleted++
       }
     }
@@ -161,6 +203,75 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
   function checkTitle(title: unknown) {
     if (typeof title === 'string' && (title.length > 200 || /[\r\n]/.test(title))) {
       refuse("A document's title is at most 200 characters on one line")
+    }
+  }
+
+  // `FoldDocumentWithRevisionForAgent`, and `FoldDocumentForAgent` as the backend from before
+  // revisions calls it, without a revision
+  function fold(variables: AnyVariables) {
+    insertResult(variables)
+
+    const document = writableDocument(variables)
+
+    if (!document || document.revision !== variables.revision) {
+      refuse('The document was folded, deleted or closed to agents since it was read')
+    }
+
+    if (!isMember(variables)) refuse('The caller is no longer a member of the organization')
+
+    checkKey(variables)
+    checkTitle(variables.title)
+
+    if (variables.content.length > 200000 || variables.contentText.length > 200000) {
+      refuse("A document's content is at most 200000 characters")
+    }
+
+    if (variables.state.length > 2000000) refuse("A document's state is at most 2000000 characters")
+
+    // The title as committed, unless the fold writes one
+    const title = typeof variables.title === 'string' ? variables.title : document.title
+
+    if (variables.content === '' && !/\S/.test(title)) refuse('A document keeps a title or some text')
+
+    const merged = new Set((variables.updateIds as string[]).map(id))
+
+    if (variables.isWholeReplacement && pendingUpdates(document.id).some(update => !merged.has(update.id))) {
+      refuse('The document was edited since it was read')
+    }
+
+    const revision = variables.isRevised
+      ? keepRevision({
+          documentId: document.id,
+          organizationId: document.organizationId,
+          userId: String(variables.userId),
+          scope: variables.revisionScope ?? null,
+          callKey: variables.revisionCallKey ?? null,
+          compressedState: variables.revisionCompressedState,
+          content: variables.revisionContent,
+          afterFingerprint: variables.revisionAfterFingerprint,
+          restoredVersionAt: null,
+        })
+      : null
+
+    storeResult(variables)
+    Object.assign(document, {
+      state: String(variables.state),
+      content: String(variables.content),
+      contentText: String(variables.contentText),
+      ...(typeof variables.title === 'string' && { title: variables.title }),
+      revision: document.revision + 1,
+      updatedAt: stamp(),
+    })
+    updates.splice(
+      0,
+      updates.length,
+      ...updates.filter(update => update.documentId !== document.id || !merged.has(update.id)),
+    )
+
+    return {
+      document_updateMany: 1,
+      ...(revision && { documentRevision_insert: { id: revision.id } }),
+      documentUpdate_deleteMany: merged.size,
     }
   }
 
@@ -367,53 +478,74 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
       return { document_insert: { id: id(variables.id) } }
     },
 
-    FoldDocumentForAgent: variables => {
-      insertResult(variables)
+    FoldDocumentForAgent: fold,
 
-      const document = writableDocument(variables)
+    FoldDocumentWithRevisionForAgent: fold,
 
-      if (!document || document.revision !== variables.revision) {
-        refuse('The document was folded, deleted or closed to agents since it was read')
-      }
+    RestoreDocumentRevision: variables => {
+      const document = documents.get(id(variables.id))
+      const isLive =
+        document !== undefined
+        && document.organizationId === id(variables.organizationId)
+        && document.deletedAt === null
+        && document.revision === variables.revision
 
-      if (!isMember(variables)) refuse('The caller is no longer a member of the organization')
+      if (!isLive) refuse('The document was folded or deleted since it was read')
 
-      checkKey(variables)
-      checkTitle(variables.title)
-
-      if (variables.content.length > 200000 || variables.contentText.length > 200000) {
-        refuse("A document's content is at most 200000 characters")
-      }
-
-      if (variables.state.length > 2000000) refuse("A document's state is at most 2000000 characters")
-
-      // The title as committed, unless the fold writes one
-      const title = typeof variables.title === 'string' ? variables.title : document.title
-
-      if (variables.content === '' && !/\S/.test(title)) refuse('A document keeps a title or some text')
-
-      const merged = new Set((variables.updateIds as string[]).map(id))
-
-      if (variables.isWholeReplacement && pendingUpdates(document.id).some(update => !merged.has(update.id))) {
-        refuse('The document was edited since it was read')
-      }
-
-      storeResult(variables)
-      Object.assign(document, {
-        state: String(variables.state),
-        content: String(variables.content),
-        contentText: String(variables.contentText),
-        ...(typeof variables.title === 'string' && { title: variables.title }),
-        revision: document.revision + 1,
-        updatedAt: stamp(),
+      const revision = keepRevision({
+        id: String(variables.revisionId),
+        documentId: document.id,
+        organizationId: document.organizationId,
+        userId: String(variables.userId),
+        scope: null,
+        callKey: null,
+        compressedState: String(variables.revisionCompressedState),
+        content: String(variables.revisionContent),
+        afterFingerprint: String(variables.revisionAfterFingerprint),
+        restoredVersionAt: String(variables.restoredVersionAt),
       })
-      updates.splice(
-        0,
-        updates.length,
-        ...updates.filter(update => update.documentId !== document.id || !merged.has(update.id)),
-      )
+      // Rolled back with the rest of the mutation when a check below refuses
+      const rollBack = () => revisions.splice(revisions.indexOf(revision), 1)
 
-      return { document_updateMany: 1, documentUpdate_deleteMany: merged.size }
+      try {
+        if (!hasMember(variables)) refuse('The caller is no longer a member of the organization')
+
+        if (variables.content.length > 200000 || variables.contentText.length > 200000) {
+          refuse("A document's content is at most 200000 characters")
+        }
+
+        if (variables.state.length > 2000000) refuse("A document's state is at most 2000000 characters")
+        if (variables.content === '' && !/\S/.test(document.title)) refuse('A document keeps a title or some text')
+
+        const merged = new Set((variables.updateIds as string[]).map(id))
+
+        if (variables.isUndo && pendingUpdates(document.id).some(update => !merged.has(update.id))) {
+          refuse('The document was edited since it was read')
+        }
+
+        Object.assign(document, {
+          state: String(variables.state),
+          content: String(variables.content),
+          contentText: String(variables.contentText),
+          revision: document.revision + 1,
+          updatedAt: stamp(),
+        })
+        updates.splice(
+          0,
+          updates.length,
+          ...updates.filter(update => update.documentId !== document.id || !merged.has(update.id)),
+        )
+
+        return {
+          document_updateMany: 1,
+          documentRevision_insert: { id: revision.id },
+          documentUpdate_deleteMany: merged.size,
+        }
+      } catch (error) {
+        rollBack()
+
+        throw error
+      }
     },
 
     RenameDocumentForAgent: variables => {
@@ -501,6 +633,93 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
 
     DeleteExpiredDocuments: () => ({ document_deleteMany: pruneDeleted() }),
 
+    GetDocumentRevisionForMember: variables => {
+      const revision = revisions.find(
+        candidate =>
+          candidate.id === id(variables.revisionId)
+          && candidate.documentId === id(variables.documentId)
+          && candidate.organizationId === id(variables.organizationId),
+      )
+      const document = revision ? documents.get(revision.documentId) : undefined
+
+      if (!revision || !document || document.deletedAt !== null || !hasMember(variables)) {
+        return { documentRevisions: [] }
+      }
+
+      const { title, revision: documentRevision, state, content } = document
+
+      return {
+        documentRevisions: [
+          {
+            compressedState: revision.compressedState,
+            afterFingerprint: revision.afterFingerprint,
+            createdAt: revision.createdAt,
+            document: {
+              title,
+              revision: documentRevision,
+              state,
+              content,
+              documentUpdates_on_document: pendingUpdates(document.id)
+                .slice(0, 100)
+                .map(({ id: updateId, payload }) => ({ id: updateId, payload })),
+            },
+          },
+        ],
+      }
+    },
+
+    GetConversationDocumentRevisions: variables => ({
+      documentRevisions: hasMember(variables)
+        ? revisions
+            .filter(
+              revision =>
+                revision.scope === variables.scope
+                && revision.userId === variables.userId
+                && revision.organizationId === id(variables.organizationId),
+            )
+            .sort(byNewest)
+            .slice(0, 100)
+            .map(({ id: revisionId, callKey, documentId, afterFingerprint }) => ({
+              id: revisionId,
+              callKey,
+              documentId,
+              afterFingerprint,
+            }))
+        : [],
+    }),
+
+    GetDocumentTextForMember: variables => {
+      const document = documents.get(id(variables.id))
+      const isLive =
+        document !== undefined
+        && document.organizationId === id(variables.organizationId)
+        && document.deletedAt === null
+        && hasMember(variables)
+
+      return {
+        documents: isLive
+          ? [
+              {
+                state: document.state,
+                content: document.content,
+                documentUpdates_on_document: pendingUpdates(document.id)
+                  .slice(0, 100)
+                  .map(({ id: updateId, payload }) => ({ id: updateId, payload })),
+              },
+            ]
+          : [],
+      }
+    },
+
+    DeleteExpiredDocumentRevisions: () => {
+      const kept = revisions.filter(revision => Date.parse(revision.createdAt) >= Date.now() - 30 * DAY_MS)
+      const deleted = revisions.length - kept.length
+
+      revisions.splice(0, revisions.length, ...kept)
+
+      return { documentRevision_deleteMany: deleted }
+    },
+
     GetUnindexedDocuments: variables => {
       const skipped = new Set((variables.skippedIds as string[]).map(id))
 
@@ -526,9 +745,18 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
   base.onReset(() => {
     documents.clear()
     updates.length = 0
+    revisions.length = 0
   })
 
-  return Object.assign(base, { documents, updates, insertDocument, pushUpdate, compactWithoutText, pendingUpdates })
+  return Object.assign(base, {
+    documents,
+    updates,
+    revisions,
+    insertDocument,
+    pushUpdate,
+    compactWithoutText,
+    pendingUpdates,
+  })
 }
 
 export type KnowledgeDatabaseFake = ReturnType<typeof createKnowledgeDatabaseFake<ModuleDatabaseFakeBase>>

@@ -17,6 +17,8 @@ type KnowledgeDocumentSearch = {
   // The aspect the draft starts tagged with. Its value as the enum spells it, which TanStack writes
   // into the query as it is, and which goes with `isNew` once the draft is stored
   aspect?: CompanyAspect
+  // The document's history open over it, as a thread's notification links to it, gone once closed
+  history?: true
 }
 
 /*
@@ -35,6 +37,7 @@ export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/kno
   validateSearch: (search: Record<string, unknown>): KnowledgeDocumentSearch => ({
     isNew: search.isNew === true ? true : undefined,
     aspect: Object.values(CompanyAspect).find(aspect => aspect === search.aspect),
+    history: search.history === true ? true : undefined,
   }),
   beforeLoad: ({ params }) => {
     if (!isKnowledgeDocumentId(params.documentId)) throw notFound()
@@ -44,7 +47,7 @@ export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/kno
 
 function KnowledgeDocumentRoute() {
   const { documentId } = Route.useParams()
-  const { isNew, aspect } = Route.useSearch()
+  const { isNew, aspect, history } = Route.useSearch()
 
   return (
     <IntlMessagesRegistration messageTypes={KNOWLEDGE_MESSAGE_TYPES}>
@@ -53,6 +56,7 @@ function KnowledgeDocumentRoute() {
         documentId={documentId}
         isNew={isNew === true}
         aspect={aspect ?? null}
+        isHistoryRequested={history === true}
       />
     </IntlMessagesRegistration>
   )

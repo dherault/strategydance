@@ -254,7 +254,7 @@ describe('runConversation with the Knowledge module', () => {
     await first
 
     expect(countInDocument(document.id, 'Price at 19')).toBe(1)
-    expect(fake.modules.calls.filter(name => name === 'FoldDocumentForAgent')).toHaveLength(1)
+    expect(fake.modules.calls.filter(name => name === 'FoldDocumentWithRevisionForAgent')).toHaveLength(1)
     expect(readRun(reference)?.status).toBe('COMPLETED')
     expect(readResults(client.readRequests()[0])).toEqual([
       { type: 'tool_result', tool_use_id: 'toolu_append', content: expect.stringContaining(`"id":"${document.id}"`) },
@@ -335,7 +335,7 @@ describe('runConversation with the Knowledge module', () => {
 
     await crashAt(
       reference,
-      'FoldDocumentForAgent',
+      'FoldDocumentWithRevisionForAgent',
       createClient([calling(toolUse('toolu_append', 'update_document', input))]),
     )
 

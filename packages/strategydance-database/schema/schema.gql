@@ -492,6 +492,57 @@ type DocumentPresence @table(key: ["document", "user", "sessionId"]) {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
+# A document's text as it stood before an agent changed it, kept so a member can go back to it:
+# an agent's edit can rewrite the whole text, a subagent's with nobody watching, and a document
+# keeps one snapshot and no history. Not its `revision`, the counter its folds move.
+#
+# Inserted by the mutation that stores the edit, `FoldDocumentForAgent`, so an edit and the text
+# it replaced commit together or not at all, under the edit's idempotency key, Strategy Dance's
+# agent's and an external agent's alike. A member going back to one writes its text as a new
+# edit, through the backend's `RestoreDocumentRevision`, which keeps one of its own, so a restore
+# can be undone in turn. Only members read them, through the web connector: no agent does, so a
+# document the team keeps from AI keeps its revisions, and none keeps the agent's Markdown.
+#
+# Kept 30 days (`DOCUMENT_REVISION_LIFETIME_DAYS` in strategydance-core), which the daily sweep
+# prunes on `createdAt`, and deleted with the document
+type DocumentRevision
+  @table
+  @index(fields: ["documentId", "createdAt"])
+  @index(fields: ["scope", "callKey"])
+  @index(fields: ["createdAt"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `documentId: UUID!` column, cascade deleting
+  document: Document!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # The member the agent acted for, or the member who restored. Optional, set to null when the
+  # account goes, since the revision is the team's
+  user: User
+  # Where the agent acted from, the scope of its module call: `conversation:<id>` for Strategy
+  # Dance's agent, a subagent's included, and `connection:<id>` for an external one. Null for a
+  # member's restore
+  scope: String
+  # The call's idempotency key, which is Claude's `tool_use` id for Strategy Dance's agent, so the
+  # thread finds the revision of a tool call's row. Null when the call carried none, and for a
+  # member's restore
+  callKey: String
+  # The text before the edit, its snapshot with every pending update merged, compressed with gzip
+  # and in base64, at most 2000000 characters: the fold sends it beside the new snapshot, and Data
+  # Connect takes 4 MiB a request, which two whole snapshots can pass. Only the backend reads it
+  compressedState: String!
+  # The same text as BlockNote's blocks, serialized, as `Document.content` holds a document's,
+  # for a member to look at before restoring it, drawn as the document is. An empty string when the
+  # text was empty, or longer than a document's content may be, which only the snapshot then keeps
+  content: String!
+  # A fingerprint of the text the edit left, a hash of every node, attribute and character the
+  # editor keeps, block ids included, never the agent's Markdown, which misses some: while the text
+  # still has it, nobody has written to the document since, and the edit can be undone
+  afterFingerprint: String!
+  # For a member's restore, when the revision it brought back was made
+  restoredVersionAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
 # Who set something on a conversation: the member, or the agent on their behalf
 enum ConversationActor {
   MEMBER

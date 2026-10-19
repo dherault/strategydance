@@ -321,6 +321,23 @@ export const KNOWLEDGE_READ_PAGE_LENGTH = 40000
 export const KNOWLEDGE_FOLD_ATTEMPTS = 3
 
 /*
+  How large a write of a document's text may be, its variables as JSON in UTF-8: short of the 4 MiB
+  Data Connect takes in a request, gRPC's own bound, which the emulator names when a fold carrying
+  its revision beside the new snapshot passes it, with room for the rest of the request
+*/
+export const MAX_KNOWLEDGE_WRITE_REQUEST_BYTES = 4000000
+
+/*
+  A member's reads of what a conversation's edits can undo and their restores of a document's
+  revisions, each of which merges a whole document's text in the instance: at most 20 documents a
+  read, the latest edited first, and 60 reads and restores in 10 minutes, counted in the instance's
+  memory as the pictures' uploads are
+*/
+export const MAX_UNDOABLE_REVISION_DOCUMENTS = 20
+export const KNOWLEDGE_REVISION_RATE_LIMIT = 60
+export const KNOWLEDGE_REVISION_RATE_WINDOW_MS = 10 * 60 * 1000
+
+/*
   The board's columns, left to right, as the web's `TASK_STATUSES` lists them: the order the Tasks
   module lists a board in, column by column. Strings rather than the enum's values, which a test
   holds to the schema's, so reading them loads nothing of the database's

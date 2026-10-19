@@ -950,6 +950,48 @@ const conversationMessages = defineMessages({
     description:
       "Notification when bringing back a task on the team's board that the AI deleted failed, for instance once a day has passed since the delete.",
   },
+  undoDocumentEdit: {
+    id: 'conversation.undoDocumentEdit',
+    defaultMessage: 'Undo',
+    description:
+      "Button on the line saying the AI changed an item of the team's knowledge, such as a note or a plan, which puts its text back as it was before. Offered while nobody has written in the item since.",
+  },
+  documentEditUndone: {
+    id: 'conversation.documentEditUndone',
+    defaultMessage: 'The knowledge is back as it was before this change',
+    description:
+      "Notification once the text of an item of the team's knowledge, such as a note or a plan, is put back as it was before the AI changed it.",
+  },
+  redoDocumentEdit: {
+    id: 'conversation.redoDocumentEdit',
+    defaultMessage: 'Redo',
+    description:
+      "Button in the notification saying an AI change to an item of the team's knowledge was undone, which makes the change again.",
+  },
+  documentEditChangedSince: {
+    id: 'conversation.documentEditChangedSince',
+    defaultMessage: 'Somebody wrote in it since. Its history can still bring back the text from before this change.',
+    description:
+      "Notification when the AI change to an item of the team's knowledge could not be undone because somebody wrote in the item since. Its history is the list of earlier versions on the item's page.",
+  },
+  openDocumentHistory: {
+    id: 'conversation.openDocumentHistory',
+    defaultMessage: 'Open history',
+    description:
+      "Button in a notification that opens the list of earlier versions of an item of the team's knowledge, on the item's page.",
+  },
+  redoDocumentEditError: {
+    id: 'conversation.redoDocumentEditError',
+    defaultMessage: 'This change could not be made again.',
+    description:
+      "Notification when making an undone AI change to an item of the team's knowledge again failed, for instance once somebody wrote in the item since.",
+  },
+  undoDocumentEditError: {
+    id: 'conversation.undoDocumentEditError',
+    defaultMessage: 'This change could not be undone.',
+    description:
+      "Notification when putting back the text of an item of the team's knowledge, as it was before an AI change, failed, for instance once the item is deleted.",
+  },
   toolCall: {
     id: 'conversation.toolCall',
     defaultMessage: 'Tool call · {name}',

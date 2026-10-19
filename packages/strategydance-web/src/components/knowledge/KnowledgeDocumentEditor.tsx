@@ -48,6 +48,7 @@ import AspectsDialog from '~components/company/AspectsDialog'
 import CompanyAspectIcons from '~components/company/CompanyAspectIcons'
 import KnowledgeBackLink from '~components/knowledge/KnowledgeBackLink'
 import KnowledgeDocumentAiMenu from '~components/knowledge/KnowledgeDocumentAiMenu'
+import KnowledgeDocumentHistory from '~components/knowledge/KnowledgeDocumentHistory'
 import KnowledgeDocumentLayout from '~components/knowledge/KnowledgeDocumentLayout'
 import KnowledgeDocumentMoreMenu from '~components/knowledge/KnowledgeDocumentMoreMenu'
 import KnowledgeDocumentPresences from '~components/knowledge/KnowledgeDocumentPresences'
@@ -75,6 +76,8 @@ type Props = {
   knowledgeDocument: KnowledgeDocument | null
   // The aspect a draft starts tagged with, from the page it was added on
   draftAspect: CompanyAspect | null
+  // Whether the address asks for the document's history open over it, as a thread's notification links to it
+  isHistoryRequested: boolean
 }
 
 /*
@@ -93,9 +96,18 @@ type Props = {
 
   A document emptied of its title and text is deleted as the page goes, as the design has it, and
   one deleted from the menu can be taken back from the notification for a few seconds. One
-  somebody else deleted says so, and nothing on it can be changed until an Undo brings it back
+  somebody else deleted says so, and nothing on it can be changed until an Undo brings it back.
+
+  The menu opens the document's history, as does an address asking for it: closing it takes the
+  ask off the address, so it never opens again by itself
 */
-function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument, draftAspect }: Props) {
+function KnowledgeDocumentEditor({
+  organizationId,
+  documentId,
+  knowledgeDocument,
+  draftAspect,
+  isHistoryRequested,
+}: Props) {
   const { formatMessage, formatList, locale } = useIntl()
   const navigate = useNavigate()
   const organizationSlug = useCurrentOrganizationSlug()
@@ -134,6 +146,7 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
   const [isAiWritable, setIsAiWritable] = useState(initial.fields.isAiWritable)
   const [isStored, setIsStored] = useState(knowledgeDocument !== null)
   const [isPickingAspects, setIsPickingAspects] = useState(false)
+  const [isHistoryOpenedHere, setIsHistoryOpenedHere] = useState(false)
   // Whether the live query found the document gone, and when it last says it changed
   const [isDeletedElsewhere, setIsDeletedElsewhere] = useState(false)
   const [liveUpdatedAt, setLiveUpdatedAt] = useState<string | null>(null)
@@ -340,6 +353,19 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
     })
   }
 
+  function closeHistory() {
+    setIsHistoryOpenedHere(false)
+
+    if (!isHistoryRequested) return
+
+    navigate({
+      to: '/$organizationSlug/knowledge/$documentId',
+      params: { organizationSlug, documentId },
+      search: search => ({ ...search, history: undefined }),
+      replace: true,
+    })
+  }
+
   function renderMeta() {
     if (isGone) return formatMessage(knowledgeMessages.notSaved)
     if (status === 'pending' || status === 'saving' || syncStatus === 'pending' || syncStatus === 'saving') {
@@ -375,7 +401,12 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
           {renderMeta()}
         </span>
         <KnowledgeDocumentPresences people={people} />
-        {isStored && !isGone ? <KnowledgeDocumentMoreMenu onDelete={handleDelete} /> : null}
+        {isStored && !isGone ? (
+          <KnowledgeDocumentMoreMenu
+            onOpenHistory={() => setIsHistoryOpenedHere(true)}
+            onDelete={handleDelete}
+          />
+        ) : null}
       </div>
       {isGone ? (
         <Alert
@@ -524,6 +555,15 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
         <KnowledgeLeaveDialog
           onStay={leave.reset}
           onLeave={leave.proceed}
+        />
+      ) : null}
+      {isStored && !isGone && (isHistoryOpenedHere || isHistoryRequested) ? (
+        <KnowledgeDocumentHistory
+          organizationId={organizationId}
+          documentId={documentId}
+          isRestoreHeld={syncStatus === 'pending' || syncStatus === 'saving'}
+          mentions={mentions}
+          onClose={closeHistory}
         />
       ) : null}
       {isPickingAspects ? (

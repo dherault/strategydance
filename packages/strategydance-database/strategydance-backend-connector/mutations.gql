@@ -5547,7 +5547,11 @@ mutation CreateDocumentForAgent(
 # No bound on an update's length, as a fold writes the whole snapshot: `CompactDocument`'s bounds,
 # on what the edit produced. `$title` is left out when the call does not change it, which leaves the
 # column alone and is what `GetOrganizationDocuments`' refresh asks of a fold before it pushes the
-# list, so an agent's writing pushes a card to nobody
+# list, so an agent's writing pushes a card to nobody.
+#
+# Kept for the backend from before revisions while a release goes out, the backend deploying after
+# Data Connect: the backend now folds through `FoldDocumentWithRevisionForAgent`, and nothing else
+# calls this
 mutation FoldDocumentForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -5640,6 +5644,237 @@ mutation FoldDocumentForAgent(
         expr: "!vars.isWholeReplacement || size(this) == 0"
         message: "The document was edited since it was read"
       ) {
+      id
+    }
+  }
+  documentUpdate_deleteMany(where: { documentId: { eq: $id }, id: { in: $updateIds } })
+}
+
+# Stores an agent's edit of a document's text: the snapshot it read with every pending update
+# merged in and the edit applied, `content` and `contentText` read from it, in one write of the row,
+# with the title too when the call changes it, then deletes the updates it merged. As a tab's
+# compaction does, it is refused unless `$revision` is still the stored one, which it moves on, so
+# it never writes over a snapshot somebody folded more into; the module then reads again and
+# reapplies the edit. A revision moves when a document is seeded too, so a fold of a document read
+# without a snapshot seeds it under `SeedDocumentState`'s condition. Refused as well once the
+# document is deleted, or the team keeps agents from reading or changing it.
+#
+# A push that lands meanwhile is not among `$updateIds` and stays pending, and merges with the edit
+# as two members' edits merge. A whole document replaced (`$isWholeReplacement`) was replaced as
+# the agent read it, so once the row is locked the fold also checks that no update is pending
+# beyond those it merged, and the module reads again when one is.
+#
+# No bound on an update's length, as a fold writes the whole snapshot: `CompactDocument`'s bounds,
+# on what the edit produced. `$title` is left out when the call does not change it, which leaves the
+# column alone and is what `GetOrganizationDocuments`' refresh asks of a fold before it pushes the
+# list, so an agent's writing pushes a card to nobody.
+#
+# `FoldDocumentForAgent` as the backend calls it from revisions on: an edit that changes the text
+# keeps the text it replaced as a `DocumentRevision` (`$isRevised`), in the same transaction, so
+# the two commit together or not at all, under the edit's key. The revision's variables are
+# required, as a skipped step's still are, so an edit that leaves the text as it was sends them
+# empty. `$revisionCallKey` is null when the call carries no key
+mutation FoldDocumentWithRevisionForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $revision: Int!
+  $state: String!
+  $content: String!
+  $contentText: String!
+  $updateIds: [UUID!]!
+  $title: String
+  $isWholeReplacement: Boolean!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+  $isRevised: Boolean!
+  $revisionScope: String!
+  $revisionCallKey: String
+  $revisionCompressedState: String!
+  $revisionContent: String!
+  $revisionAfterFingerprint: String!
+) @auth(level: NO_ACCESS) @transaction {
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      isAiReadable: { eq: true }
+      isAiWritable: { eq: true }
+      revision: { eq: $revision }
+    }
+    data: {
+      state: $state
+      content: $content
+      contentText: $contentText
+      title: $title
+      revision_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The document was folded, deleted or closed to agents since it was read")
+  documentRevision_insert(
+    data: {
+      documentId: $id
+      organizationId: $organizationId
+      userId: $userId
+      scope: $revisionScope
+      callKey: $revisionCallKey
+      compressedState: $revisionCompressedState
+      content: $revisionContent
+      afterFingerprint: $revisionAfterFingerprint
+    }
+  ) @include(if: $isRevised)
+  # A mutation takes one query step, and the pending updates have to be read once the row above is
+  # locked, so the membership and the variables are checked here too, after the writes before it:
+  # a refusal rolls them back all the same
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+        )
+        @check(
+          expr: "!has(vars.title) || vars.title == null || (size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$'))"
+          message: "A document's title is at most 200 characters on one line"
+        )
+        @check(
+          expr: "size(vars.content) <= 200000 && size(vars.contentText) <= 200000"
+          message: "A document's content is at most 200000 characters"
+        )
+        @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
+        @check(
+          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionContent) <= 200000 && size(vars.revisionAfterFingerprint) <= 64 && size(vars.revisionScope) <= 200"
+          message: "A revision holds at most 2000000 characters of state and 200000 of content"
+        )
+    }
+    # The title as committed, which a title this fold writes replaces: a document keeps a title or
+    # some text, so an edit emptying the text of an untitled one is refused, a rename blanking the
+    # title at the same moment included
+    document(id: $id) {
+      title
+        @check(
+          expr: "vars.content != '' || ((has(vars.title) && vars.title != null) ? vars.title.matches('[[:^space:]]') : this.matches('[[:^space:]]'))"
+          message: "A document keeps a title or some text"
+        )
+    }
+    pending: documentUpdates(where: { documentId: { eq: $id }, id: { nin: $updateIds } }, limit: 1)
+      @check(
+        expr: "!vars.isWholeReplacement || size(this) == 0"
+        message: "The document was edited since it was read"
+      ) {
+      id
+    }
+  }
+  documentUpdate_deleteMany(where: { documentId: { eq: $id }, id: { in: $updateIds } })
+}
+
+# A member going back to a revision of a document: its text written as a new edit, which the backend
+# applied to the snapshot with every pending update merged as a difference, so a block the two
+# share keeps whatever is typed in it meanwhile, stored as a fold is, under the revision read, the
+# updates it merged deleted. The text it replaces is kept as a revision of its own, under the id
+# the backend made, so the restore can be undone in turn. A member is never held to what the team
+# lets agents do, so neither AI permission is read.
+#
+# An Undo (`$isUndo`) goes back only while nobody has written to the document since the edit: the
+# backend compared the text it read with the fingerprint of what the edit left, and once the row is locked no
+# update may be pending beyond those it merged. A restore from the history takes what was written
+# since with it, as the member was told, and a push landing meanwhile merges with it
+mutation RestoreDocumentRevision(
+  $organizationId: UUID!
+  $userId: String!
+  $id: UUID!
+  $revision: Int!
+  $state: String!
+  $content: String!
+  $contentText: String!
+  $updateIds: [UUID!]!
+  $isUndo: Boolean!
+  $revisionId: UUID!
+  $revisionCompressedState: String!
+  $revisionContent: String!
+  $revisionAfterFingerprint: String!
+  $restoredVersionAt: Timestamp!
+) @auth(level: NO_ACCESS) @transaction {
+  document_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      revision: { eq: $revision }
+    }
+    data: {
+      state: $state
+      content: $content
+      contentText: $contentText
+      revision_update: { inc: 1 }
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The document was folded or deleted since it was read")
+  documentRevision_insert(
+    data: {
+      id: $revisionId
+      documentId: $id
+      organizationId: $organizationId
+      userId: $userId
+      compressedState: $revisionCompressedState
+      content: $revisionContent
+      afterFingerprint: $revisionAfterFingerprint
+      restoredVersionAt: $restoredVersionAt
+    }
+  )
+  # A mutation takes one query step, read once the row above is locked, so the membership and the
+  # variables are checked here, after the writes: a refusal rolls them back all the same
+  query @redact {
+    membership: userOrganizations(
+      where: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "size(vars.content) <= 200000 && size(vars.contentText) <= 200000"
+          message: "A document's content is at most 200000 characters"
+        )
+        @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
+        @check(
+          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionContent) <= 200000 && size(vars.revisionAfterFingerprint) <= 64"
+          message: "A revision holds at most 2000000 characters of state and 200000 of content"
+        )
+    }
+    document(id: $id) {
+      title
+        @check(
+          expr: "vars.content != '' || this.matches('[[:^space:]]')"
+          message: "A document keeps a title or some text"
+        )
+    }
+    pending: documentUpdates(where: { documentId: { eq: $id }, id: { nin: $updateIds } }, limit: 1)
+      @check(expr: "!vars.isUndo || size(this) == 0", message: "The document was edited since it was read") {
       id
     }
   }
@@ -5940,6 +6175,13 @@ mutation IndexDocumentText($id: UUID!, $revision: Int!, $contentText: String!) @
 # nothing, so a sweep that failed is finished by the next
 mutation DeleteExpiredDocuments @auth(level: NO_ACCESS) {
   document_deleteMany(where: { deletedAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}
+
+# The daily sweep's: deletes every document's revisions made over 30 days ago
+# (`DOCUMENT_REVISION_LIFETIME_DAYS`), so a member can go back a month and no further. Deleting them
+# twice deletes nothing, so a sweep that failed is finished by the next
+mutation DeleteExpiredDocumentRevisions @auth(level: NO_ACCESS) {
+  documentRevision_deleteMany(where: { createdAt: { lt_time: { now: true, sub: { days: 30 } } } })
 }
 
 # The daily sweep's: deletes the module call results past their expiry, an external agent's a day

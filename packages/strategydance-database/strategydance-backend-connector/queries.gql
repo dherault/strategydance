@@ -2026,6 +2026,81 @@ query GetDocumentForAgent($organizationId: UUID!, $userId: String!, $membershipC
   }
 }
 
+# A revision of a document the member's organization keeps, with the document's text as it stands,
+# for a member going back to it: the snapshot, the updates pending since and `content`, which seeds
+# a document that has none. Nothing once the document is deleted or the revision pruned. A member is
+# never held to what the team lets agents do, so neither AI permission is read
+query GetDocumentRevisionForMember($organizationId: UUID!, $userId: String!, $documentId: UUID!, $revisionId: UUID!)
+@auth(level: NO_ACCESS) {
+  documentRevisions(
+    where: {
+      id: { eq: $revisionId }
+      documentId: { eq: $documentId }
+      organizationId: { eq: $organizationId }
+      document: { deletedAt: { isNull: true } }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+    }
+    limit: 1
+  ) {
+    compressedState
+    afterFingerprint
+    createdAt
+    document {
+      title
+      revision
+      state
+      content
+      documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 100) {
+        id
+        payload
+      }
+    }
+  }
+}
+
+# The revisions an agent's edits kept from one scope, a conversation's, as its member made them, the
+# newest first, for the thread to offer Undo on the rows of the edits nobody has written over since
+query GetConversationDocumentRevisions($organizationId: UUID!, $userId: String!, $scope: String!)
+@auth(level: NO_ACCESS) {
+  documentRevisions(
+    where: {
+      scope: { eq: $scope }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+    }
+    orderBy: [{ createdAt: DESC }, { id: DESC }]
+    limit: 100
+  ) {
+    id
+    callKey
+    documentId
+    afterFingerprint
+  }
+}
+
+# One document's text as it stands, for a member, whatever the team lets agents do: the snapshot
+# and the updates pending since, as `GetDocument` reads them, and `content`, which seeds a
+# document that has no snapshot yet. Nothing once it is deleted
+query GetDocumentTextForMember($organizationId: UUID!, $userId: String!, $id: UUID!) @auth(level: NO_ACCESS) {
+  documents(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+    }
+    limit: 1
+  ) {
+    state
+    content
+    documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 100) {
+      id
+      payload
+    }
+  }
+}
+
 # What a module's write answered under an idempotency key, read before the write runs, and again
 # when the write finds its key taken, with the membership the module read: a stored result answers
 # only a caller who is still that member, as the write itself would refuse anybody else

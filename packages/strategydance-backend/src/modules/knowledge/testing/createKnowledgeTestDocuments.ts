@@ -75,7 +75,7 @@ function createKnowledgeTestDocuments(fake: ModuleDatabaseFake, organizationId: 
     return read.blocks
   }
 
-  return { measure, store, storeUnshared, type, read }
+  return { measure, store, storeUnshared, open, type, read }
 }
 
 export default createKnowledgeTestDocuments

@@ -100,6 +100,14 @@ export const ERROR_CODE_CONVERSATION_FULL = 'CONVERSATION_FULL' // 409
 export const ERROR_CODE_TOO_MANY_CONVERSATIONS = 'TOO_MANY_CONVERSATIONS' // 409
 
 /*
+  A 409 for a version of a document that cannot be written back as the document stands: longer
+  than a document may be once restored, or the text holding what this release's editor cannot
+  read, a newer one's block say. Another version may go back, and this one never will, where a
+  conflict, somebody writing since an Undo was offered, asks the reader to look again
+*/
+export const ERROR_CODE_DOCUMENT_REVISION_UNRESTORABLE = 'DOCUMENT_REVISION_UNRESTORABLE' // 409
+
+/*
   A 400 set apart for the consent page: the app asking for access could not be verified, its client
   ID metadata document unreachable, malformed or not naming the address it is sent back to, so the
   member can do nothing with the request but leave it
@@ -415,6 +423,13 @@ export const MAX_DOCUMENT_STATE_LENGTH = 2000000
 export const MAX_DOCUMENT_UPDATE_LENGTH = 50000
 export const DOCUMENT_COMPACTION_THRESHOLD = 50
 export const DOCUMENT_UPDATES_LIMIT = 100
+
+/*
+  How long the text a document held before an agent's edit is kept, for a member to go back to:
+  a month, after which the daily sweep prunes it. Written out again in
+  `DeleteExpiredDocumentRevisions`: change them together
+*/
+export const DOCUMENT_REVISION_LIFETIME_DAYS = 30
 
 /*
   The pictures a document's text shows, uploaded through the backend into the organization's part

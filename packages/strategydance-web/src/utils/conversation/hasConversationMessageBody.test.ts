@@ -34,4 +34,10 @@ describe('hasConversationMessageBody', () => {
       true,
     )
   })
+
+  it('reads the body of an edit of a document, whose call’s id finds the revision an Undo goes back to', () => {
+    expect(hasConversationMessageBody({ kind: ConversationMessageKind.TOOL_CALL, toolName: 'update_document' })).toBe(
+      true,
+    )
+  })
 })

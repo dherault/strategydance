@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test'
+import { gunzipSync } from 'node:zlib'
+
+import { richTextToMarkdown } from 'strategydance-design-system/lib/richTextToMarkdown'
 
 import type { ModuleCaller } from '~types'
 
+import fingerprintKnowledgeDocumentText from '~domain/knowledge/fingerprintKnowledgeDocumentText'
+import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
 import hashModuleCallArguments from '~domain/modules/hashModuleCallArguments'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
@@ -47,7 +52,7 @@ function beforeFirstFold(happen: () => void) {
   let hasHappened = false
 
   fake.beforeOperation = async name => {
-    if (name !== 'FoldDocumentForAgent' || hasHappened) return
+    if (name !== 'FoldDocumentWithRevisionForAgent' || hasHappened) return
 
     hasHappened = true
     happen()
@@ -57,6 +62,16 @@ function beforeFirstFold(happen: () => void) {
 afterEach(() => fake.reset())
 
 describe('update_document', () => {
+  it('says it can destroy, since an edit can rewrite the whole text, for a client to ask its member first', async () => {
+    const kit = await connect()
+    const { tools } = await kit.client.listTools()
+
+    expect(tools.find(tool => tool.name === 'update_document')?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: true,
+    })
+  })
+
   it('replaces the whole text with the version a read gave', async () => {
     const kit = await connect()
     const document = documents.store('Old plan\n\nOld detail')
@@ -167,7 +182,7 @@ describe('update_document', () => {
     await kit.answer('update_document', { id: document.id, append: 'Mine' })
 
     expect(markdownOf(document.id)).toEqual(['Intro', 'Theirs', 'Mine'])
-    expect(fake.calls.filter(name => name === 'FoldDocumentForAgent')).toHaveLength(2)
+    expect(fake.calls.filter(name => name === 'FoldDocumentWithRevisionForAgent')).toHaveLength(2)
   })
 
   it('refuses an edit past 200000 characters of content, its text and pending updates left as they were', async () => {
@@ -266,7 +281,7 @@ describe('update_document', () => {
     await kit.answer('update_document', { id: document.id, title: 'Retitled', append: 'More' })
 
     expect(fake.documents.get(document.id)!.title).toBe('Retitled')
-    expect(fake.calls.filter(name => name === 'FoldDocumentForAgent')).toHaveLength(1)
+    expect(fake.calls.filter(name => name === 'FoldDocumentWithRevisionForAgent')).toHaveLength(1)
   })
 
   it('refuses a change that would leave a document with neither a title nor any text', async () => {
@@ -366,7 +381,7 @@ describe('update_document', () => {
     })
 
     expect(await kit.answer('update_document', args, 'the-key')).toEqual(stored)
-    expect(fake.calls.filter(name => name === 'FoldDocumentForAgent')).toHaveLength(1)
+    expect(fake.calls.filter(name => name === 'FoldDocumentWithRevisionForAgent')).toHaveLength(1)
     expect(markdownOf(document.id)).toEqual(['Intro', 'Mine'])
   })
 
@@ -411,5 +426,146 @@ describe('update_document', () => {
       '2. Tell <u>everyone</u>',
       '[Chart](https://example.com/chart.png)',
     ])
+  })
+})
+
+describe('update_document keeps the text it replaced as a revision', () => {
+  // A revision's snapshot as the fold keeps it, compressed
+  function readRevisionState(compressedState: string) {
+    return gunzipSync(Buffer.from(compressedState, 'base64')).toString('base64')
+  }
+
+  // The text a revision keeps for a member to look at, in Markdown, as an agent would read it
+  function readRevisionContent(content: string) {
+    return content ? richTextToMarkdown(JSON.parse(content)) : ''
+  }
+
+  function readRevisionText(compressedState: string) {
+    const read = readKnowledgeDocumentText({ state: readRevisionState(compressedState), updates: [] })
+
+    return read.outcome === 'read' ? read.blocks.map(block => block.markdown) : null
+  }
+
+  it('with the text every pending update merged, where the agent acted from, its call and the version it left', async () => {
+    const kit = await connect()
+    const document = documents.store('Intro\n\nOutro')
+
+    documents.type(document.id, 0, 5, ' typed')
+    await kit.answer('update_document', { id: document.id, append: 'Added' }, 'toolu_append')
+
+    expect(fake.revisions).toHaveLength(1)
+
+    const [revision] = fake.revisions
+
+    expect(revision).toMatchObject({
+      documentId: document.id,
+      organizationId: fake.id(ORGANIZATION_ID),
+      userId: 'member',
+      scope: SCOPE,
+      callKey: 'toolu_append',
+      restoredVersionAt: null,
+    })
+    expect(readRevisionContent(revision.content)).toBe('Intro typed\n\nOutro')
+    expect(readRevisionText(revision.compressedState)).toEqual(['Intro typed', 'Outro'])
+    expect(fingerprintKnowledgeDocumentText(documents.open(document.id))).toBe(revision.afterFingerprint)
+  })
+
+  it('for every kind of edit, and for none that leaves the text as it was', async () => {
+    const kit = await connect()
+    const document = documents.store('Intro\n\nMiddle\n\nOutro')
+    const { version, blocks } = await kit.answer<Reading>('read_document', { id: document.id })
+
+    await kit.answer('update_document', { id: document.id, title: 'Renamed' })
+    await kit.answer('update_document', { id: document.id, replaceText: { find: 'Middle', replace: 'Middle' } })
+
+    expect(fake.revisions).toEqual([])
+
+    await kit.answer('update_document', { id: document.id, version, content: 'All new' })
+    await kit.answer('update_document', { id: document.id, append: 'Added' })
+    await kit.answer('update_document', { id: document.id, replaceText: { find: 'Added', replace: 'Changed' } })
+
+    const [first] = (await kit.answer<Reading>('read_document', { id: document.id })).blocks
+
+    await kit.answer('update_document', {
+      id: document.id,
+      replaceBlocks: { fromId: first.id, toId: first.id, content: 'Replaced' },
+    })
+
+    expect(fake.revisions.map(revision => readRevisionContent(revision.content))).toEqual([
+      blocks.map(block => block.markdown).join('\n\n'),
+      'All new',
+      'All new\n\nAdded',
+      'All new\n\nChanged',
+    ])
+  })
+
+  it('of a document stored before the editor was shared, as the fold seeded it', async () => {
+    const kit = await connect()
+    const document = documents.storeUnshared('Intro\n\nOutro')
+
+    await kit.answer('update_document', { id: document.id, append: 'Added' })
+
+    const [revision] = fake.revisions
+
+    expect(readRevisionText(revision.compressedState)).toEqual(['Intro', 'Outro'])
+    expect(
+      readKnowledgeDocumentText({ state: readRevisionState(revision.compressedState), updates: [] }),
+    ).toMatchObject({
+      blocks: (await kit.answer<Reading>('read_document', { id: document.id })).blocks.slice(0, 2),
+    })
+  })
+
+  it("for a change Markdown cannot say, a line break in a table's cell", async () => {
+    const kit = await connect()
+    const document = documents.store('| Head | Other |\n| --- | --- |\n| Alpha Beta | x |')
+
+    await kit.answer('update_document', {
+      id: document.id,
+      replaceText: { find: 'Alpha Beta', replace: 'Alpha\nBeta' },
+    })
+
+    expect(fake.revisions).toHaveLength(1)
+    expect(readRevisionContent(fake.revisions[0].content)).toContain('Alpha Beta')
+  })
+
+  it("under an external agent's connection, with no call key when it sent none", async () => {
+    const kit = await connect({ kind: 'external', idempotencyScope: 'connection:checked' })
+    const document = documents.store('Intro')
+
+    await kit.answer('update_document', { id: document.id, append: 'Added' })
+
+    expect(fake.revisions).toMatchObject([{ scope: 'connection:checked', callKey: null }])
+    expect(readRevisionContent(fake.revisions[0].content)).toBe('Intro')
+  })
+
+  it('for none an edit refused, and once for a call sent again under its key', async () => {
+    const kit = await connect()
+    const closed = documents.store('Closed', { isAiWritable: false })
+    const document = documents.store('Intro')
+    const { version } = await kit.answer<Reading>('read_document', { id: document.id })
+
+    documents.type(document.id, 0, 0, 'Typed ')
+
+    expect(await kit.refusal('update_document', { id: closed.id, append: 'Added' })).toBe(CLOSED)
+    expect(await kit.refusal('update_document', { id: document.id, version, content: 'New' })).toBe(CHANGED)
+    expect(fake.revisions).toEqual([])
+
+    await kit.answer('update_document', { id: document.id, append: 'Added' }, 'toolu_twice')
+    await kit.answer('update_document', { id: document.id, append: 'Added' }, 'toolu_twice')
+
+    expect(fake.revisions).toHaveLength(1)
+    expect(markdownOf(document.id)).toEqual(['Typed Intro', 'Added'])
+  })
+
+  it('in the fold that stores the edit, so a fold refused keeps none', async () => {
+    const kit = await connect()
+    const document = documents.store('Intro')
+
+    beforeFirstFold(() => {
+      fake.documents.get(document.id)!.isAiWritable = false
+    })
+
+    expect(await kit.refusal('update_document', { id: document.id, append: 'Added' })).toBe(CLOSED)
+    expect(fake.revisions).toEqual([])
   })
 })

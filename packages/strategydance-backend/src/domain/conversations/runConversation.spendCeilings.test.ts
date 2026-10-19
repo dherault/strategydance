@@ -90,6 +90,21 @@ describe('runConversation, at the daily spend ceilings', () => {
     })
   })
 
+  test('reads its room again and sends the request when the runs that held the ceiling left between its reads', async () => {
+    const reference = await kit.start()
+    const scripted = kit.createClient()
+
+    kit.seedSpend(24, { hoursAgo: 23 })
+
+    fake.beforeOperation = async name => {
+      if (name === 'GetDailySpendRows') fake.runSpends.clear()
+    }
+
+    expect(await runConversation(reference, { client: scripted.client })).toBe('finished')
+    expect(scripted.requests).toHaveLength(1)
+    expect(kit.readRun(reference)?.status).toBe('COMPLETED')
+  })
+
   test('sends a request without its fallback when the room holds one attempt and not two', async () => {
     const reference = await kit.start()
     const scripted = kit.createClient()

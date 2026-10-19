@@ -19,8 +19,17 @@ describe('findPassedSpendCeilings', () => {
         2_000_000,
       ),
     ).toEqual([
-      { scope: 'member', max: 25_000_000, need: 1_000_000 },
-      { scope: 'account', max: 50_000_000, need: 1_500_000 },
+      { scope: 'member', max: 25_000_000, need: 1_000_000, counted: 24_000_000 },
+      { scope: 'account', max: 50_000_000, need: 1_500_000, counted: 49_500_000 },
+    ])
+  })
+
+  test('keeps what the rows summed to apart from what was spent, as a run sets its own row apart', () => {
+    const spent = { member: 24_000_000, account: 24_000_000, organization: 24_000_000 }
+    const counted = { member: 24_500_000, account: 24_500_000, organization: 24_500_000 }
+
+    expect(findPassedSpendCeilings(spent, CEILINGS, 2_000_000, counted)).toEqual([
+      { scope: 'member', max: 25_000_000, need: 1_000_000, counted: 24_500_000 },
     ])
   })
 })

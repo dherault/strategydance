@@ -314,12 +314,16 @@ async function requestConversationTurn({
 
     const [passed, ...alsoPassed] =
       ceiling && limits.dailySpendCeilings && !hasFallbacks
-        ? findPassedSpendCeilings(ceiling.others, limits.dailySpendCeilings, spent + worstCase.single)
+        ? findPassedSpendCeilings(ceiling.others, limits.dailySpendCeilings, spent + worstCase.single, ceiling.sums)
         : []
 
     if (passed) {
-      // Of the ceilings it would pass, the one that has room last, which the note names
+      // Of the ceilings it would pass, the one that has room last, which the note names. Runs that
+      // held it may have left the window since the room was read: then it is read again
       const reached = await readSpendCeilingFreedAt(fence, [passed, ...alsoPassed])
+
+      if (!reached) continue
+
       const failure = `Its next request could cost up to ${toDollars(worstCase.single)}, past the ${toDollars(reached.max)} the ${reached.scope}'s runs may cost in 24 hours, ${toDollars(ceiling?.others[reached.scope] ?? 0)} spent by its other runs and ${toDollars(spent)} by this one`
 
       logger.warn(`Conversation run ${fence.runId}: ${failure}`)

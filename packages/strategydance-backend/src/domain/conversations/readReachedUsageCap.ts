@@ -78,6 +78,10 @@ async function readReachedUsageCap(
   if (isTimeless) return { kind: 'spend', scope: passed.scope, max: passed.max, retryAfterMs: 0 }
 
   const reached = await readSpendCeilingFreedAt(member, [passed, ...alsoPassed])
+
+  // The runs that held the ceiling left the window between the two reads
+  if (!reached) return cap
+
   const ceiling: ReachedUsageCap = {
     kind: 'spend',
     scope: reached.scope,

@@ -275,6 +275,19 @@ describe('the daily caps on what a member starts', () => {
     })
   })
 
+  test('lets a start through whose ceiling the window made room under between its two reads, never saying a day', async () => {
+    const idle = await startIdle()
+
+    kit.seedSpend(24, { hoursAgo: 23 })
+
+    // The run that held the ceiling leaves the window once the sums are read, before the rows are
+    fake.beforeOperation = async name => {
+      if (name === 'GetDailySpendRows') fake.runSpends.clear()
+    }
+
+    expect((await send(idle.conversationId)).outcome).toBe('sent')
+  })
+
   test('says, of a cap and a ceiling both reached, the one that has room last', async () => {
     const idle = await startIdle()
 

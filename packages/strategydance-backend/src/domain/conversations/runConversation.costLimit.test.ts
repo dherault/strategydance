@@ -201,8 +201,9 @@ describe('runConversation, at the cost limit of a run', () => {
       connectModules: connectTestModules([READ_LOG]),
     }
 
-    // The first run at $8 chains at once, sending nothing
-    await spend(subagent, [dollars(8)])
+    // The first run at $9 chains at once, sending nothing: its next request could cost some $1.75,
+    // which $8 would leave room for
+    await spend(subagent, [dollars(9)])
 
     expect(await runConversation(subagent, options)).toBe('finished')
     expect(kit.readRun(subagent)).toMatchObject({ status: 'CHAINED', failure: expect.stringContaining('could cost') })
@@ -217,8 +218,9 @@ describe('runConversation, at the cost limit of a run', () => {
       reference = enqueueRun.mock.calls.at(-1)?.[0] as ConversationRunReference
     }
 
-    // The fourth, at $8, ends there, failed, and reports
-    await spend(reference, [dollars(8)])
+    // The fourth, at $9, ends there, its next request past what is left of its $10, failed, and
+    // reports. At $8 it would still send one
+    await spend(reference, [dollars(9)])
 
     expect(await runConversation(reference, options)).toBe('finished')
     expect(kit.readRun(reference)).toMatchObject({ number: 3, status: 'FAILED' })

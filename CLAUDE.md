@@ -1008,6 +1008,11 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   - `max_tokens`: run nothing, `FAILED` with its note
   - `refusal`: the request's server-side fallback runs it again on another model, and a refusal
     that survives it ends `REFUSED`
+- A request Claude's API refuses before its stream starts, as rate limited, overloaded, failing or
+  unreachable, costs nothing and is sent again, after its `retry-after` or a delay doubled at each
+  refusal, four times in a row at most within the run's time (`MAX_CONVERSATION_API_RETRIES`). Any
+  other error of the API fails the run with its note, and an error of the worker's own before the
+  request reached the API settles it at nothing before the step fails
 - Every write that ends a run cancels the calls still `RUNNING` in its conversation, not only those
   its run drew, and lets go of `activeRunId` where it still names the run, in the write that sets
   `isAwaitingAnswer` when it ends `WAITING`

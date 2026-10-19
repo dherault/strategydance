@@ -705,7 +705,16 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   the credit system knows which figures are estimates. A request whose stream fails after it started
   is settled at the usage the stream last reported, its input as counted at the start, marked as
   estimated since its output is counted only by the final delta; one the API refused before it
-  started is settled at nothing (M9).
+  started is settled at nothing (M9), and so is one that never reached the API, the worker's own
+  error before it was sent, which a worker taking over would otherwise charge at its worst case.
+- **Claude's API failing for a while does not fail the run.** A request the API refuses before its
+  stream starts, as rate limited, overloaded, failing or unreachable, once the SDK's own two retries
+  are spent, costs nothing and is sent again, after what the answer's `retry-after` asks, at most a
+  minute, or five seconds doubled at each refusal in a row, up to four times while the run's ten
+  minutes allow it, a stop asked for meanwhile ending the run stopped
+  (`MAX_CONVERSATION_API_RETRIES`). Past that, and on any other error, the run fails with its note,
+  as M9 built it. The review of M1 to M38 added it: on the Evaluation tier a burst of runs met 429s
+  that failed each run at once.
 - **Queueing.** A task is named after its run, so creating one is idempotent: `ALREADY_EXISTS` counts
   as success, and an error that leaves it unclear whether the task exists (a timeout, `UNAVAILABLE`)
   is retried with the same name. Even a definite refusal leaves the run `QUEUED`, so every run
@@ -2684,7 +2693,8 @@ account, and until both exist every send in production answers 503.
     tokens a minute without what is read from the cache. A run streaming at Opus 5.5's pace writes
     some 3,000 to 4,000 tokens a minute, so 70 at once write some 250,000: the Start tier's 400,000
     holds them, and the Evaluation tier's 80,000 about twenty, past which requests are refused with
-    429 and retried twice by the SDK before the run fails. Input holds either way while the cache
+    429, retried twice by the SDK and then up to four times by the run, waiting what the API asks,
+    before the run fails (see A run § Claude's API failing for a while). Input holds either way while the cache
     does, the Start tier's 2,000,000 taking ten cold reactions of 200,000 tokens a minute. So the
     tier is raised to Start or above before M38, through Request tier increase on the Console's Rate
     limits page, which David asks for, as he chose on 2026-10-18, and while it is not, a queue's

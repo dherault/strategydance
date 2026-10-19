@@ -261,7 +261,7 @@ describe('runConversation, tagging', () => {
 
     await run(
       reference,
-      createClient([new Anthropic.InternalServerError(500, { type: 'error' }, 'Down', new Headers())]),
+      createClient([new Anthropic.BadRequestError(400, { type: 'invalid_request_error' }, 'Invalid', new Headers())]),
     )
 
     expect(readRun(reference)).toMatchObject({ status: 'FAILED' })

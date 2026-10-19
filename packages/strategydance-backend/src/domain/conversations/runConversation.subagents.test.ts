@@ -253,7 +253,7 @@ describe('runConversation, for a subagent', () => {
 
     await runConversation(failed.subagent, {
       client: kit.createClient([
-        new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+        new Anthropic.BadRequestError(400, { type: 'invalid_request_error' }, 'Invalid', new Headers()),
       ]).client,
     })
 

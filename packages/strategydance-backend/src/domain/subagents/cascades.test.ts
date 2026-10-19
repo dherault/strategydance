@@ -50,7 +50,8 @@ const LAUNCH = {
   title: 'Research the competitors',
   brief: 'Compare the pricing pages of our three closest competitors.',
 }
-const OVERLOADED = new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers())
+// A request Claude's API refuses for good, which no retry waits out, so the run fails at once
+const FAILING = new Anthropic.BadRequestError(400, { type: 'invalid_request_error' }, 'Invalid', new Headers())
 const STOPPED_REPORT = 'This subagent was stopped before it finished.'
 
 // A conversation of the member's whose run completed
@@ -64,7 +65,7 @@ async function startParent() {
 
 // Runs a run whose request Claude's API fails, which ends it failed with its note and offers Retry
 async function fail(parent: ConversationRunReference) {
-  await runConversation(parent, { client: kit.createClient([OVERLOADED]).client })
+  await runConversation(parent, { client: kit.createClient([FAILING]).client })
 }
 
 async function report(subagent: ConversationRunReference, text = 'Done.') {

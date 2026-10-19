@@ -128,6 +128,12 @@ export const ConversationTranscriptRole = {
   SYSTEM: 'SYSTEM',
 } as const
 
+export const SpendCeilingScope = {
+  MEMBER: 'MEMBER',
+  ACCOUNT: 'ACCOUNT',
+  ORGANIZATION: 'ORGANIZATION',
+} as const
+
 export type FakeConversation = {
   id: string
   userId: string
@@ -199,6 +205,9 @@ export type FakeMessage = {
   kind: string
   text: string | null
   noteKind: string | null
+  // A failed note's daily spend ceiling, when one stopped its run
+  ceilingScope?: string | null
+  ceilingFreesAt?: string | null
   toolStatus: string | null
   position: number
   citations?: unknown
@@ -283,6 +292,31 @@ export type FakeCappedStart = {
 
 type CappedStartKind = 'CONVERSATION' | 'RUN' | 'SUBAGENT'
 
+// What one run may have cost at most, kept past the run, its organization a plain id
+export type FakeRunSpend = {
+  runId: string
+  userId: string
+  organizationId: string
+  costBound: number
+  spentAt: string
+}
+
+// The writes of a run's ledger, each of which upserts its `RunSpend` once it applies, as the
+// connector's last step does in its transaction
+const SPEND_WRITES = new Set([
+  'RecordConversationRunUsage',
+  'StoreConversationTurn',
+  'StoreConversationTurnWithContext',
+  'TagConversationAspects',
+  'FinishConversationRunWaiting',
+  'FinishConversationRun',
+  'FinishConversationRunWithNote',
+  'FinishConversationRunFull',
+  'FinishSubagentRun',
+  'FinishSubagentRunWithNote',
+  'ChainSubagentRun',
+])
+
 type CapScope = 'member' | 'account' | 'organization'
 
 // Each cap by what it counts and whose, as the mutations write them out: subagents have no
@@ -354,8 +388,12 @@ function createConversationDatabaseFake() {
   const searches = new Map<string, FakeSearch>()
   const attachments = new Map<string, FakeAttachment>()
   const cappedStarts = new Map<string, FakeCappedStart>()
+  const runSpends = new Map<string, FakeRunSpend>()
   // Every operation called, by name, in order
   const calls: string[] = []
+  // The writes that carried a run's ledger without what it may have cost, by name, which the
+  // backend from M39 never makes: a ledger written so counts toward no daily spend ceiling
+  const unpricedLedgerWrites: string[] = []
   const modules = createModuleDatabaseFake()
   const integrations = createIntegrationDatabaseFake()
   let stamps = 0
@@ -373,7 +411,9 @@ function createConversationDatabaseFake() {
     searches,
     attachments,
     cappedStarts,
+    runSpends,
     calls,
+    unpricedLedgerWrites,
     beforeOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
     // Runs once an operation applied, where a test throws to lose a write's answer after it landed
     afterOperation: async (_name: string, _variables: AnyVariables): Promise<void> => {},
@@ -1098,6 +1138,55 @@ function createConversationDatabaseFake() {
     return findFencedRun(variables) ?? refuse("The run is no longer this worker's")
   }
 
+  // A daily spend ceiling goes on a failed note alone, with when it has room again
+  function checkNoteCeiling(variables: AnyVariables) {
+    if (variables.ceilingScope != null && (variables.noteKind !== 'FAILED' || variables.ceilingFreesAt == null)) {
+      refuse('Only a failed note names a daily spend ceiling, with when it has room again')
+    }
+  }
+
+  /*
+    Upserts what a run may have cost, as a write of its ledger's last step does: the bound it sent,
+    or the row's as it was when it sent none, 0 for a new one, and the database's clock. A write that
+    sent a ledger without its bound is recorded, which a test holds the backend to
+  */
+  function recordSpend(name: string, variables: AnyVariables) {
+    if (variables.usage !== undefined && variables.costBound == null) unpricedLedgerWrites.push(name)
+
+    const runId = id(variables.runId)
+    const costBound = variables.costBound == null ? (runSpends.get(runId)?.costBound ?? 0) : Number(variables.costBound)
+
+    runSpends.set(runId, {
+      runId,
+      userId: variables.userId,
+      organizationId: id(variables.organizationId),
+      costBound,
+      spentAt: now(),
+    })
+  }
+
+  // The runs that spent in the last 24 hours, the member's in the organization, the account's or the
+  // organization's, oldest first
+  function todaysSpends(variables: AnyVariables, scope: CapScope) {
+    const since = Date.now() - DAILY_CAP_WINDOW_HOURS * 60 * 60 * 1000
+
+    return [...runSpends.values()]
+      .filter(
+        spend =>
+          Date.parse(spend.spentAt) > since
+          && (scope === 'organization' || spend.userId === variables.userId)
+          && (scope === 'account' || spend.organizationId === id(variables.organizationId)),
+      )
+      .sort((a, b) => a.spentAt.localeCompare(b.spentAt))
+  }
+
+  // A scope's `costBound_sum`, as Int64 comes back, a string, and null over no rows
+  function sumSpends(variables: AnyVariables, scope: CapScope) {
+    const spends = todaysSpends(variables, scope)
+
+    return [{ costBound_sum: spends.length ? String(spends.reduce((sum, { costBound }) => sum + costBound, 0)) : null }]
+  }
+
   // The fence of a subagent's own draws and endings, which a conversation's run never passes
   function requireSubagentRun(variables: AnyVariables) {
     const run = requireFencedRun(variables)
@@ -1152,6 +1241,8 @@ function createConversationDatabaseFake() {
       kind: 'NOTE',
       text: null,
       noteKind,
+      ceilingScope: variables.ceilingScope ?? null,
+      ceilingFreesAt: variables.ceilingFreesAt ?? null,
       toolStatus: null,
       position: variables.position,
     })
@@ -1825,6 +1916,8 @@ function createConversationDatabaseFake() {
             position: message.position,
             text: message.text,
             noteKind: message.noteKind,
+            ceilingScope: message.ceilingScope ?? null,
+            ceilingFreesAt: message.ceilingFreesAt ?? null,
             toolName: message.toolName ?? null,
             toolStatus: message.toolStatus,
             questionPrompt: message.questionPrompt ?? null,
@@ -2030,6 +2123,8 @@ function createConversationDatabaseFake() {
           kind: message.kind,
           text: message.text,
           noteKind: message.noteKind,
+          ceilingScope: message.ceilingScope ?? null,
+          ceilingFreesAt: message.ceilingFreesAt ?? null,
           toolName: message.toolName ?? null,
           toolStatus: message.toolStatus,
           questionPrompt: message.questionPrompt ?? null,
@@ -2954,6 +3049,15 @@ function createConversationDatabaseFake() {
       return { conversationRun_updateMany: 1 }
     },
 
+    RecordConversationRunUsage: variables => {
+      const run = requireFencedRun(variables)
+
+      run.leaseExpiresAt = inSeconds(60)
+      assignGiven(run, { context: variables.context, usage: variables.usage })
+
+      return { conversationRun_updateMany: 1 }
+    },
+
     StoreConversationTurn: variables => {
       const run = requireFencedRun(variables)
 
@@ -3512,6 +3616,8 @@ function createConversationDatabaseFake() {
         refuse('A run ends with its own note: failed or full, stopped, or refused')
       }
 
+      checkNoteCeiling(variables)
+
       const conversation = requireNoteConversation(variables)
 
       if (messages.has(id(variables.noteId))) refuse('violates SQL unique constraint: conversation_message_pkey')
@@ -3908,6 +4014,8 @@ function createConversationDatabaseFake() {
       if (!notes[variables.status]?.includes(variables.noteKind)) {
         refuse('A run ends with its own note: failed or full, stopped, or refused')
       }
+
+      checkNoteCeiling(variables)
 
       checkReport(variables)
 
@@ -4570,6 +4678,46 @@ function createConversationDatabaseFake() {
       return { cappedStart_deleteMany: deleted }
     },
 
+    GetDailySpend: variables => ({
+      member: sumSpends(variables, 'member'),
+      account: sumSpends(variables, 'account'),
+      organization: sumSpends(variables, 'organization'),
+    }),
+
+    GetRunDailySpend: variables => {
+      const own = todaysSpends(variables, 'account').find(({ runId }) => runId === id(variables.runId))
+
+      return {
+        member: sumSpends(variables, 'member'),
+        account: sumSpends(variables, 'account'),
+        organization: sumSpends(variables, 'organization'),
+        own: own ? [{ costBound: String(own.costBound) }] : [],
+      }
+    },
+
+    GetDailySpendRows: variables => {
+      const read = (scope: CapScope) =>
+        todaysSpends(variables, scope)
+          .slice(0, 500)
+          .map(({ costBound, spentAt }) => ({ costBound: String(costBound), spentAt }))
+
+      return { member: read('member'), account: read('account'), organization: read('organization') }
+    },
+
+    DeleteExpiredRunSpends: () => {
+      const before = Date.now() - 24 * 60 * 60 * 1000
+      let deleted = 0
+
+      for (const spend of runSpends.values()) {
+        if (Date.parse(spend.spentAt) < before) {
+          runSpends.delete(spend.runId)
+          deleted++
+        }
+      }
+
+      return { runSpend_deleteMany: deleted }
+    },
+
     DeleteExpiredConversationSearches: () => {
       const before = Date.now() - 24 * 60 * 60 * 1000
       let deleted = 0
@@ -4879,6 +5027,7 @@ function createConversationDatabaseFake() {
     ConversationRunTrigger,
     ConversationToolStatus,
     ConversationTranscriptRole,
+    SpendCeilingScope,
   }
 
   for (const [name, operation] of Object.entries(operations)) {
@@ -4888,6 +5037,9 @@ function createConversationDatabaseFake() {
       await fake.beforeOperation(name, variables)
 
       const data = operation(variables)
+
+      if (SPEND_WRITES.has(name)) recordSpend(name, variables)
+      if (name === 'RenewConversationRunLease' && variables.usage !== undefined) unpricedLedgerWrites.push(name)
 
       await fake.afterOperation(name, variables)
 
@@ -4907,9 +5059,12 @@ function createConversationDatabaseFake() {
       searches,
       attachments,
       cappedStarts,
+      runSpends,
     ]) {
       table.clear()
     }
+
+    unpricedLedgerWrites.length = 0
 
     // The organizations stay, as `addMember` made them, but none suspended
     for (const organization of organizations.values()) organization.conversationsSuspendedAt = null

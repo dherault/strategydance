@@ -49,6 +49,7 @@ const BASE = {
   entryCount: 10,
   resultsLength: 200,
   model: 'claude-opus-5-5',
+  spendRoom: null,
 }
 
 describe('isSubagentReportDue', () => {
@@ -83,6 +84,15 @@ describe('isSubagentReportDue', () => {
   test('is due once the next request, reserved at its worst case, would leave no room for another', () => {
     expect(isSubagentReportDue({ ...BASE, usage: spent(4) })).toBe(false)
     expect(isSubagentReportDue({ ...BASE, usage: spent(4.5) })).toBe(true)
+  })
+
+  test('is due once a daily spend ceiling, tighter than its $10, would leave no room for another', () => {
+    // With $1 spent, $8 left by the member's other runs holds the next request's two attempts and one
+    // more, and $4 does not
+    expect(isSubagentReportDue({ ...BASE, usage: spent(1), spendRoom: 8_000_000 })).toBe(false)
+    expect(isSubagentReportDue({ ...BASE, usage: spent(1), spendRoom: 4_000_000 })).toBe(true)
+    // Its $10 still holds where the ceilings leave more
+    expect(isSubagentReportDue({ ...BASE, usage: spent(4.5), spendRoom: 20_000_000 })).toBe(true)
   })
 
   test('reckons the next request with the results it sends', () => {

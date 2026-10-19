@@ -90,6 +90,7 @@ import enqueueRun from '~domain/conversations/enqueueRun'
 import isSubagentReportDue from '~domain/conversations/isSubagentReportDue'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import readRunSpendRoom from '~domain/conversations/readRunSpendRoom'
 import readSubagentReportDeadline from '~domain/conversations/readSubagentReportDeadline'
 import readSubagentRunLimits from '~domain/conversations/readSubagentRunLimits'
 import requestConversationTagging from '~domain/conversations/requestConversationTagging'
@@ -627,7 +628,8 @@ async function takeStep({
         && toCanonicalUuid(entry.run?.id ?? '') !== toCanonicalUuid(fence.runId)
       const reports = isReanchored ? await readWaitingReports(fence) : { ids: [], blocks: [] }
       // A subagent's fourth run asks for its report once one of its budgets nears its end, so its
-      // next request, its last, is answered with the report, calling nothing
+      // next request, its last, is answered with the report, calling nothing: the daily spend
+      // ceilings among them, whose room is read only for that run
       const isReportDue =
         lastSubagentRunId !== null
         && (isReportedAtTimeLimit
@@ -638,6 +640,9 @@ async function takeStep({
             entryCount: context.conversationMessages.length,
             resultsLength: serializeTranscriptContent(results).length,
             model: (config.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
+            spendRoom: limits.dailySpendCeilings
+              ? (await readRunSpendRoom(fence, limits.dailySpendCeilings)).room
+              : null,
           }))
       const content = isReportDue
         ? [...results, { type: 'text' as const, text: SUBAGENT_REPORT_REQUEST }]

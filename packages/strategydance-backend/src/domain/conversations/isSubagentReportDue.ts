@@ -23,6 +23,9 @@ type Input = {
   resultsLength: number
   // The model the run's requests name
   model: string
+  // What the daily spend ceilings leave the run (`readRunSpendRoom`), held beside its $10, or null
+  // where they are lifted
+  spendRoom: number | null
 }
 
 /*
@@ -31,10 +34,10 @@ type Input = {
   report is that request's reply, whichever limit comes first. Its 24th request sent; under two
   minutes left of its ten; within five of its 100 entries; or a ledger whose next request, reserved
   at its worst case as `requestConversationTurn` reserves it, would leave no room for one more
-  attempt as dear, past the run's $10. The next request is reckoned from the last one's input and
-  output, and the results it adds, before it is measured
+  attempt as dear, past the run's $10 or what the daily spend ceilings leave it. The next request is
+  reckoned from the last one's input and output, and the results it adds, before it is measured
 */
-function isSubagentReportDue({ usage, limits, startedAt, entryCount, resultsLength, model }: Input) {
+function isSubagentReportDue({ usage, limits, startedAt, entryCount, resultsLength, model, spendRoom }: Input) {
   if (usage.requests.length >= limits.maxRequests - 1) return true
   if (Date.now() >= Date.parse(startedAt) + limits.maxDurationMs - SUBAGENT_REPORT_TIME_MS) return true
   if (entryCount >= MAX_CONVERSATION_RUN_ENTRIES - SUBAGENT_REPORT_ENTRY_MARGIN) return true
@@ -49,10 +52,10 @@ function isSubagentReportDue({ usage, limits, startedAt, entryCount, resultsLeng
     maxTokens: CONVERSATION_MAX_TOKENS,
     maxSearches: WEB_SEARCH_MAX_USES,
   })
-  const reserved =
-    spent + worstCase.withFallback <= limits.maxCostMicrodollars ? worstCase.withFallback : worstCase.single
+  const maxCost = Math.min(limits.maxCostMicrodollars, spendRoom ?? Number.POSITIVE_INFINITY)
+  const reserved = spent + worstCase.withFallback <= maxCost ? worstCase.withFallback : worstCase.single
 
-  return spent + reserved + worstCase.single > limits.maxCostMicrodollars
+  return spent + reserved + worstCase.single > maxCost
 }
 
 export default isSubagentReportDue

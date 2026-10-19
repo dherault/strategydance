@@ -776,4 +776,179 @@ describe('updateRichTextYDoc', () => {
     expect(readRichTextYDoc(doc)).toEqual({ value: '[]', isEmpty: true })
     expect(isWellFormed(doc)).toBe(true)
   })
+
+  describe('restores an earlier version of the text', () => {
+    function createVersion() {
+      return createDoc([
+        paragraph('Alpha'),
+        paragraph('Bravo'),
+        { type: 'bulletListItem', content: [{ type: 'text', text: 'Charlie' }], children: [paragraph('Nested')] },
+        { type: 'image', props: { url: 'https://example.com/plan.png', caption: 'The plan' } },
+        paragraph('Delta'),
+      ])
+    }
+
+    const edits: [string, (ids: string[]) => RichTextYDocEdit][] = [
+      [
+        'a range replaced',
+        ([, bravo, charlie]) => ({ type: 'replaceBlocks', fromId: bravo, toId: charlie, blocks: [paragraph('B')] }),
+      ],
+      ['blocks appended', () => ({ type: 'append', blocks: [paragraph('Echo'), paragraph('Foxtrot')] })],
+      ['a piece of text replaced', () => ({ type: 'replaceText', find: 'Bravo', replace: 'Beta' })],
+      [
+        'every block replaced',
+        ids => ({ type: 'replaceBlocks', fromId: ids[0], toId: ids.at(-1) as string, blocks: [paragraph('All new')] }),
+      ],
+      [
+        'every block deleted',
+        ids => ({ type: 'replaceBlocks', fromId: ids[0], toId: ids.at(-1) as string, blocks: [] }),
+      ],
+    ]
+
+    for (const [name, createEdit] of edits) {
+      it(`as it stood before ${name}, its blocks, their ids and its picture`, () => {
+        const doc = createVersion()
+        const version = fork(doc)
+
+        expect(updateRichTextYDoc(doc, createEdit(readIds(doc)))).toEqual({ outcome: 'updated' })
+        expect(read(doc)).not.toEqual(read(version))
+        expect(updateRichTextYDoc(doc, { type: 'restore', source: version })).toEqual({ outcome: 'updated' })
+        expect(read(doc)).toEqual(read(version))
+        expect(readIds(doc)).toEqual(readIds(version))
+        expect(isWellFormed(doc)).toBe(true)
+      })
+    }
+
+    it('keeps every block the two share, and the positions in them', () => {
+      const doc = createVersion()
+      const version = fork(doc)
+      const [, bravo] = readIds(doc)
+
+      updateRichTextYDoc(doc, {
+        type: 'replaceBlocks',
+        fromId: bravo,
+        toId: bravo,
+        blocks: [paragraph('X'), paragraph('Y')],
+      })
+
+      const [alpha, , , charlie] = readContainers(doc)
+      const nested = readChild(charlie)
+      const position = Y.createRelativePositionFromTypeIndex(readText(nested), 3)
+
+      updateRichTextYDoc(doc, { type: 'restore', source: version })
+
+      const containers = readContainers(doc)
+
+      expect(containers[0]).toBe(alpha)
+      expect(containers[2]).toBe(charlie)
+      expect(readChild(containers[2])).toBe(nested)
+      expect(Y.createAbsolutePositionFromRelativePosition(position, doc)?.type).toBe(readText(nested))
+    })
+
+    it('writes back each run of blocks between two it keeps, keeping the blocks between the runs', () => {
+      const doc = createDoc([paragraph('Alpha'), paragraph('Bravo'), paragraph('Charlie'), paragraph('Delta')])
+      const version = fork(doc)
+
+      updateRichTextYDoc(doc, { type: 'replaceText', find: 'Alpha', replace: 'One' })
+      updateRichTextYDoc(doc, { type: 'replaceText', find: 'Charlie', replace: 'Three' })
+
+      const [, bravo, , delta] = readContainers(doc)
+
+      expect(updateRichTextYDoc(doc, { type: 'restore', source: version })).toEqual({ outcome: 'updated' })
+      expect(read(doc)).toEqual(read(version))
+      expect(readIds(doc)).toEqual(readIds(version))
+      expect(readContainers(doc)[1]).toBe(bravo)
+      expect(readContainers(doc)[3]).toBe(delta)
+    })
+
+    it('merges with typing in a block it keeps on another copy, whichever update arrives first', () => {
+      for (const isRestoreFirst of [true, false]) {
+        const ana = createDoc([paragraph('Alpha'), paragraph('Bravo'), paragraph('Charlie')])
+        const version = fork(ana)
+        const [, bravo] = readIds(ana)
+
+        updateRichTextYDoc(ana, { type: 'replaceBlocks', fromId: bravo, toId: bravo, blocks: [paragraph('New')] })
+
+        // Ben types, and a third tab receives both edits, as the server relays them
+        const ben = fork(ana)
+        const third = fork(ana)
+        const stateVector = Y.encodeStateVector(ana)
+
+        updateRichTextYDoc(ana, { type: 'restore', source: version })
+        readText(readContainers(ben)[2]).insert(7, ' typed')
+
+        const restore = Y.encodeStateAsUpdate(ana, stateVector)
+        const typing = Y.encodeStateAsUpdate(ben, stateVector)
+
+        for (const update of isRestoreFirst ? [restore, typing] : [typing, restore]) Y.applyUpdate(third, update)
+
+        merge(ana, ben)
+
+        const expected = [paragraph('Alpha'), paragraph('Bravo'), paragraph('Charlie typed')]
+
+        expect(read(ana)).toEqual(expected)
+        expect(read(ben)).toEqual(expected)
+        expect(read(third)).toEqual(expected)
+        expect(readIds(third)).toEqual(readIds(ana))
+        expect(isWellFormed(third)).toBe(true)
+      }
+    })
+
+    it('drops what was typed meanwhile into a block it writes back', () => {
+      const ana = createDoc([paragraph('Alpha'), paragraph('Bravo')])
+      const version = fork(ana)
+
+      updateRichTextYDoc(ana, { type: 'replaceText', find: 'Bravo', replace: 'Beta' })
+
+      const ben = fork(ana)
+
+      readText(readContainers(ana)[1]).insert(4, ' typed')
+      updateRichTextYDoc(ben, { type: 'restore', source: version })
+      merge(ana, ben)
+
+      expect(read(ana)).toEqual([paragraph('Alpha'), paragraph('Bravo')])
+      expect(read(ben)).toEqual(read(ana))
+    })
+
+    it('writes a block moved since back where the source held it', () => {
+      const doc = createDoc([paragraph('Alpha'), paragraph('Bravo'), paragraph('Charlie')])
+      const version = fork(doc)
+      const group = doc.getXmlFragment(RICH_TEXT_YJS_FRAGMENT).get(0) as Y.XmlElement
+      const alpha = (group.get(0) as Y.XmlElement).clone()
+
+      group.delete(0, 1)
+      group.insert(2, [alpha])
+
+      expect(read(doc)).toEqual([paragraph('Bravo'), paragraph('Charlie'), paragraph('Alpha')])
+      expect(updateRichTextYDoc(doc, { type: 'restore', source: version })).toEqual({ outcome: 'updated' })
+      expect(read(doc)).toEqual(read(version))
+      expect(readIds(doc)).toEqual(readIds(version))
+      expect(isWellFormed(doc)).toBe(true)
+    })
+
+    it('changes nothing when the text reads as the source already', () => {
+      const doc = createVersion()
+      const stateVector = Y.encodeStateVector(doc)
+
+      expect(updateRichTextYDoc(doc, { type: 'restore', source: fork(doc) })).toEqual({ outcome: 'updated' })
+      expect(Y.encodeStateVector(doc)).toEqual(stateVector)
+    })
+
+    it('refuses a source holding a block the schema lacks, touching nothing', () => {
+      const doc = createDoc([paragraph('Alpha')])
+      const source = createDoc([paragraph('Alpha')])
+      const stateVector = Y.encodeStateVector(doc)
+
+      ;(source.getXmlFragment(RICH_TEXT_YJS_FRAGMENT).get(0) as Y.XmlElement).insert(0, [new Y.XmlElement('unknown')])
+
+      expect(updateRichTextYDoc(doc, { type: 'restore', source })).toEqual({ outcome: 'unknownContent' })
+      expect(Y.encodeStateVector(doc)).toEqual(stateVector)
+    })
+
+    it('refuses a source with no text', () => {
+      expect(updateRichTextYDoc(createDoc([paragraph('Alpha')]), { type: 'restore', source: new Y.Doc() })).toEqual({
+        outcome: 'unknownContent',
+      })
+    })
+  })
 })

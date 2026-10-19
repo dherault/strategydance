@@ -28,6 +28,11 @@ export type RichTextYDocEdit =
   | { type: 'append'; blocks: RichTextBlock[] }
   /** A piece of text that occurs exactly once, replaced by another */
   | { type: 'replaceText'; find: string; replace: string }
+  /**
+   * The top-level blocks of another copy of the text, an earlier one of the same document, written
+   * back as they stood there, every block the two share unchanged kept as it is
+   */
+  | { type: 'restore'; source: Y.Doc }
 
 export type UpdateRichTextYDocResult =
   | { outcome: 'updated' }
@@ -55,8 +60,12 @@ type Options = {
   origin?: unknown
 }
 
-// The next document, and the top-level blocks to delete from the shared text before writing it
-type Plan = { next: ProseMirrorNode; removed?: { index: number; length: number } }
+/*
+  The top-level blocks to delete from the shared text first, the last first, then the documents to
+  write one after the other, the last of them the next document. Every edit but a restore writes
+  one, and a restore one for each run of blocks it writes back between two it keeps
+*/
+type Plan = { steps: ProseMirrorNode[]; removed?: { index: number; length: number }[] }
 
 /*
   Applies an edit to a shared text in place, as a difference, the way an editor's own keystrokes
@@ -94,7 +103,12 @@ function updateRichTextYDoc(
 
   if (!copy) return { outcome: 'unknownContent' }
 
-  const verdict = planChecked(copy.root, edit, editor, blocks)
+  // A restore's source is read as the document is, so a block or a style the schema lacks refuses it too
+  const source = edit.type === 'restore' ? readRichTextYDocCopy(edit.source, editor.pmSchema) : null
+
+  if (edit.type === 'restore' && !source?.root.childCount) return { outcome: 'unknownContent' }
+
+  const verdict = planChecked(copy.root, edit, editor, blocks, source?.root)
 
   if ('outcome' in verdict) return verdict
 
@@ -103,7 +117,7 @@ function updateRichTextYDoc(
 
   doc.transact(() => {
     const { doc: root, meta } = initProseMirrorDoc(fragment, editor.pmSchema)
-    const plan = planEdit(root, edit, editor, blocks)
+    const plan = planEdit(root, edit, editor, blocks, source?.root)
 
     if ('outcome' in plan) {
       result = plan
@@ -111,9 +125,8 @@ function updateRichTextYDoc(
       return
     }
 
-    if (plan.removed) (fragment.get(0) as Y.XmlElement).delete(plan.removed.index, plan.removed.length)
-
-    updateYFragment(doc, fragment, plan.next, meta)
+    for (const { index, length } of plan.removed ?? []) (fragment.get(0) as Y.XmlElement).delete(index, length)
+    for (const step of plan.steps) updateYFragment(doc, fragment, step, meta)
   }, origin)
 
   return result
@@ -128,11 +141,12 @@ function planChecked(
   edit: RichTextYDocEdit,
   editor: HeadlessRichTextEditor,
   blocks: readonly RichTextEditorBlock[],
+  source?: ProseMirrorNode,
 ): ReturnType<typeof planEdit> {
   try {
-    const plan = planEdit(root, edit, editor, blocks)
+    const plan = planEdit(root, edit, editor, blocks, source)
 
-    if (!('outcome' in plan)) plan.next.check()
+    if (!('outcome' in plan)) plan.steps.at(-1)?.check()
 
     return plan
   } catch {
@@ -145,11 +159,13 @@ function planEdit(
   edit: RichTextYDocEdit,
   editor: HeadlessRichTextEditor,
   blocks: readonly RichTextEditorBlock[],
+  source?: ProseMirrorNode,
 ): Plan | Exclude<UpdateRichTextYDocResult, { outcome: 'updated' }> {
   const group = root.child(0)
   const children = readChildren(group)
 
   if (edit.type === 'replaceText') return planReplaceText(root, edit.find, edit.replace)
+  if (edit.type === 'restore') return source ? planRestore(root, source) : { outcome: 'unknownContent' }
 
   /*
     The blocks an agent writes load nothing from elsewhere: no picture, no video and no link
@@ -167,7 +183,7 @@ function planEdit(
   if (edit.type === 'append') {
     const isEmpty = children.length === 1 && isEmptyParagraph(children[0])
 
-    return { next: withChildren(root, group, isEmpty && added.length ? added : [...children, ...added]) }
+    return { steps: [withChildren(root, group, isEmpty && added.length ? added : [...children, ...added])] }
   }
 
   const from = findBlock(children, edit.fromId)
@@ -184,9 +200,91 @@ function planEdit(
   // A group holds one block at least, so a document emptied of every block keeps an empty paragraph,
   // which `normalizeRichText` would drop
   return {
-    next: withChildren(root, group, next.length ? next : createNodes(editor, [{ type: 'paragraph' }])),
-    removed: { index: from, length: to - from + 1 },
+    steps: [withChildren(root, group, next.length ? next : createNodes(editor, [{ type: 'paragraph' }]))],
+    removed: [{ index: from, length: to - from + 1 }],
   }
+}
+
+/*
+  The text written back as another copy of it held it, an earlier version of the same document. A
+  top-level block that stands there exactly as it stands here, its id included, is kept as it is,
+  with its Yjs items and whatever is typed in it meanwhile; every other block here is deleted, and
+  the source's own nodes are written in place of what it held differently, ids, pictures and all,
+  so the text reads as the source did. They are the document's own text, never an agent's, so
+  nothing normalizes them: what an agent wrote into them went through `normalizeRichText` when it
+  was written.
+
+  A block is kept only after the last one kept, so what is kept stands in the source's order: one
+  moved since is deleted and written back where the source held it. The source's blocks are written
+  one run at a time, each between two kept blocks, so that `updateYFragment` matches every kept
+  block by identity on both sides of the run and only inserts the run. Written in one go, its scan
+  would stop at the first run and turn the kept blocks between two runs into new ones in place,
+  merging what somebody types in them into the wrong block
+*/
+function planRestore(root: ProseMirrorNode, source: ProseMirrorNode): Plan {
+  const group = root.child(0)
+  const children = readChildren(group)
+  const sourceChildren = readChildren(source.child(0))
+  const indexesById = new Map<unknown, number[]>()
+
+  children.forEach((child, index) =>
+    indexesById.set(child.attrs.id, [...(indexesById.get(child.attrs.id) ?? []), index]),
+  )
+
+  // The index here of the block kept for each of the source's, in order
+  const kept: (number | null)[] = []
+  let last = -1
+
+  for (const node of sourceChildren) {
+    const index = indexesById.get(node.attrs.id)?.find(candidate => candidate > last && children[candidate].eq(node))
+
+    kept.push(index ?? null)
+
+    if (index !== undefined) last = index
+  }
+
+  const keptIndexes = new Set(kept.filter(index => index !== null))
+  const removed: { index: number; length: number }[] = []
+
+  children.forEach((_child, index) => {
+    if (keptIndexes.has(index)) return
+
+    const previous = removed.at(-1)
+
+    if (previous && previous.index + previous.length === index) previous.length += 1
+    else removed.push({ index, length: 1 })
+  })
+
+  const steps: ProseMirrorNode[] = []
+  let next = children.filter((_child, index) => keptIndexes.has(index))
+  let at = 0
+  let run: ProseMirrorNode[] = []
+
+  function writeRun() {
+    if (!run.length) return
+
+    next = [...next.slice(0, at), ...run, ...next.slice(at)]
+    at += run.length
+    run = []
+    steps.push(withChildren(root, group, next))
+  }
+
+  sourceChildren.forEach((node, index) => {
+    if (kept[index] === null) {
+      run.push(node)
+
+      return
+    }
+
+    writeRun()
+    at += 1
+  })
+  writeRun()
+
+  // Nothing to write back, only blocks to delete, or nothing at all when the text reads as the source
+  if (!steps.length) steps.push(withChildren(root, group, next))
+
+  return { steps, removed: removed.reverse() }
 }
 
 // Whether a top-level block is a paragraph holding nothing, nor any block nested under it
@@ -225,7 +323,7 @@ function planReplaceText(root: ProseMirrorNode, find: string, replace: string) {
 
   const [{ path, offset }] = matches
 
-  return { next: replaceAt(root, path, content => replaceInContent(content, offset, find.length, replace)) }
+  return { steps: [replaceAt(root, path, content => replaceInContent(content, offset, find.length, replace))] }
 }
 
 // Every occurrence of `find` in the inline content of a block under `node`, by the path to it

@@ -576,14 +576,18 @@ faces.
 - An agent's edit of the text keeps the text it replaced as a `DocumentRevision`, in the mutation
   that stores the edit, `FoldDocumentWithRevisionForAgent`, so the two commit together or not at
   all, under the edit's key: its snapshot compressed with gzip, its `content` for a member to look
-  at, where the agent acted from (the module call's scope) and the call's key, and the version the
-  edit left. A new `…ForAgent` write of a document's text keeps one the same way.
+  at, where the agent acted from (the module call's scope) and the call's key, and a fingerprint of
+  the text the edit left (`fingerprintKnowledgeDocumentText`). A new `…ForAgent` write of a
+  document's text keeps one the same way.
   `FoldDocumentForAgent` stays only for the backend from before the release, which deploys after
   Data Connect. Members alone read revisions, whatever the team lets agents do with the document,
   and go back to one through the backend (`routes/knowledge.ts`), which writes its text back as a
   difference, `updateRichTextYDoc`'s `restore`, keeping every block the two share, and keeps one of
-  its own for the restore. An Undo goes back only while the text is still the version the edit
-  left. They are kept 30 days (`DOCUMENT_REVISION_LIFETIME_DAYS`), which the daily sweep prunes
+  its own for the restore. An Undo goes back only while the text still has that fingerprint. It
+  hashes every node, attribute and character y-prosemirror reads, ids included, never the agent's
+  Markdown, which says nothing of a line break in a table's cell nor of a cell's alignment, so a
+  member's change Markdown cannot say would otherwise be overwritten. They are kept 30 days
+  (`DOCUMENT_REVISION_LIFETIME_DAYS`), which the daily sweep prunes
 - Data Connect takes 4 MiB a request, gRPC's bound, which the emulator names when one passes it,
   and a write carrying a document's text twice, the new snapshot beside a revision, can pass it: a
   knowledge write is measured first (`isKnowledgeWriteTooLarge`) and refused rather than sent, never

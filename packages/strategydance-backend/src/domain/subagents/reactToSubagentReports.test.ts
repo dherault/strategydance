@@ -435,4 +435,18 @@ describe('reactToSubagentReports at the daily caps', () => {
     expect(readReactions(parent)).toHaveLength(1)
     expect(isDelivered(subagent)).toBe(true)
   })
+
+  test('holds a reaction back at a daily spend ceiling, its reports waiting until the window has room', async () => {
+    const parent = await startParent()
+    const subagent = await kit.launch(parent)
+
+    await report(subagent)
+    kit.seedSpend(24, { hoursAgo: 23 })
+
+    expect((await reactToSubagentReports(parent)).outcome).toBe('capped')
+
+    setSystemTime(new Date(Date.now() + 61 * 60 * 1000))
+
+    expect((await reactToSubagentReports(parent)).outcome).toBe('started')
+  })
 })

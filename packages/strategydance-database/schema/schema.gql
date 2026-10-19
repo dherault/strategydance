@@ -604,6 +604,17 @@ enum ConversationNoteKind {
   FULL
 }
 
+# Whose daily spend ceiling stopped a run (`MAX_DAILY_SPEND_MICRODOLLARS_…` in strategydance-core).
+# Append a value; never reorder
+enum SpendCeilingScope {
+  # The member's in the organization
+  MEMBER
+  # The account's, across every organization it is in
+  ACCOUNT
+  # The organization's, whoever ran it
+  ORGANIZATION
+}
+
 # What started a run. Append a value; never reorder
 enum ConversationRunTrigger {
   MESSAGE
@@ -887,6 +898,11 @@ type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
   aspects: [CompanyAspect!]
   aspectsSetBy: ConversationActor
   noteKind: ConversationNoteKind
+  # A failed note's, when a daily spend ceiling stopped the run: whose ceiling, and when the backend
+  # read it would have room again, which a page draws as a note of its own. A page from before M39
+  # reads neither, and draws the failed note
+  ceilingScope: SpendCeilingScope
+  ceilingFreesAt: Timestamp
   # A call to an integration's, a tool call or an approval: the server it went to, which the
   # thread's warning strip matches the live list by, never by name. Implies an `integrationId: UUID`
   # column, set to null when the server is pruned
@@ -1053,6 +1069,34 @@ type CappedStart
   organizationId: UUID!
   kind: CappedStartKind!
   createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# What one run may have cost at most, in microdollars, kept so the backend can hold a member, an
+# account and an organization to what conversations may cost in 24 hours
+# (`MAX_DAILY_SPEND_MICRODOLLARS_…` in strategydance-core): the run's ledger as
+# `priceConversationUsageBound` prices it, what Claude's answers settled and the worst case each
+# request no answer settled reserved, a request in flight included.
+#
+# Upserted beside the ledger by every write of a run's `usage`, in the same transaction, so the
+# reservation that renews the lease counts the request about to go before it is sent, and `spentAt`
+# moves with each reservation and settlement: a run counts whole until 24 hours after its last, so
+# each of its requests counts a full day at least. Keyed by the run's id, which is a plain column
+# rather than a reference, as are its organization's: deleting the run, its conversation or its
+# organization erases nothing of a day's spend, which the daily sweep deletes once `spentAt` is over
+# a day old, by the index on `spentAt` alone. Read only by the backend
+type RunSpend
+  @table(key: ["runId"])
+  @index(fields: ["userId", "organizationId", "spentAt"])
+  @index(fields: ["userId", "spentAt"])
+  @index(fields: ["organizationId", "spentAt"])
+  @index(fields: ["spentAt"]) {
+  runId: UUID!
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  organizationId: UUID!
+  # Left out of an upsert by a backend from before M39, which inserts nothing but the row
+  costBound: Int64! @default(value: 0)
+  spentAt: Timestamp! @default(expr: "request.time")
 }
 
 # What one write of a module answered, kept under the idempotency key its caller sent, so a write

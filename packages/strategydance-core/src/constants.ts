@@ -208,6 +208,15 @@ export const ERROR_CODE_MEMBER_DAILY_RUNS_REACHED = 'MEMBER_DAILY_RUNS_REACHED' 
 export const ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED = 'ACCOUNT_DAILY_RUNS_REACHED' // 429
 export const ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED = 'ORGANIZATION_DAILY_RUNS_REACHED' // 429
 
+/*
+  A 429 for each daily spend ceiling a start reaches, the member's in this organization, the
+  account's across its organizations, or the organization's, answered with a `Retry-After` as the
+  caps' are
+*/
+export const ERROR_CODE_MEMBER_DAILY_SPEND_REACHED = 'MEMBER_DAILY_SPEND_REACHED' // 429
+export const ERROR_CODE_ACCOUNT_DAILY_SPEND_REACHED = 'ACCOUNT_DAILY_SPEND_REACHED' // 429
+export const ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED = 'ORGANIZATION_DAILY_SPEND_REACHED' // 429
+
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500
 
 // The server cannot take the request now, and the same request later can succeed, so the reader
@@ -474,6 +483,18 @@ export const MAX_DAILY_SUBAGENTS_PER_MEMBER = 30
 export const MAX_DAILY_SUBAGENTS_PER_ACCOUNT = 60
 export const DAILY_CAP_OVERRUN_FACTOR = 1.5
 export const DAILY_CAP_WINDOW_HOURS = 24
+
+/*
+  How much conversations may cost in 24 hours, in microdollars, over the caps' window and in their
+  three scopes, as David set them on 2026-10-19: $25 a member in each organization, $50 an account
+  across its organizations and $150 an organization, about ten times a heavy member's day. Each run
+  counts at the most its ledger may have cost, a request in flight at its reservation, and every
+  request a worker sends is held to them, as is every start, so what passes one is only the
+  requests in flight at once. Staff's included, until the credits replace them
+*/
+export const MAX_DAILY_SPEND_MICRODOLLARS_PER_MEMBER = 25_000_000
+export const MAX_DAILY_SPEND_MICRODOLLARS_PER_ACCOUNT = 50_000_000
+export const MAX_DAILY_SPEND_MICRODOLLARS_PER_ORGANIZATION = 150_000_000
 
 /*
   How many entries a conversation holds, which bounds what it stores and the history a reader pages

@@ -84,6 +84,19 @@ describe('parseConversationPreview', () => {
     expect(parseConversationPreview({ kind: 'TOOL_CALL', toolName: 'read_log' })).toBeNull()
     expect(parseConversationPreview({ kind: 'QUESTION', questionState: 'LATER', text: 'Why?' })).toBeNull()
     expect(parseConversationPreview({ kind: 'NOTE', noteKind: 'PAUSED' })).toBeNull()
+  })
+
+  it('keeps a failed note’s daily spend ceiling, and leaves out one it cannot read', () => {
+    const ceiling = { scope: 'ACCOUNT' as const, freesAt: '2026-10-20T09:30:00.000Z' }
+
+    expect(parseConversationPreview({ kind: 'NOTE', noteKind: 'FAILED', ceiling })).toEqual({
+      kind: 'NOTE',
+      noteKind: 'FAILED',
+      ceiling,
+    })
+    expect(
+      parseConversationPreview({ kind: 'NOTE', noteKind: 'FAILED', ceiling: { scope: 'TEAM', freesAt: 'soon' } }),
+    ).toEqual({ kind: 'NOTE', noteKind: 'FAILED' })
     expect(parseConversationPreview({ kind: 'ATTACHMENTS', count: 2 })).toBeNull()
   })
 })

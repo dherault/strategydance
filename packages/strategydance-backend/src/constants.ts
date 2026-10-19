@@ -3,11 +3,16 @@ import {
   DEVELOPMENT_API_URL,
   DEVELOPMENT_APP_URL,
   INTEGRATION_CONNECTED_PATH,
+  MAX_DAILY_SPEND_MICRODOLLARS_PER_ACCOUNT,
+  MAX_DAILY_SPEND_MICRODOLLARS_PER_MEMBER,
+  MAX_DAILY_SPEND_MICRODOLLARS_PER_ORGANIZATION,
   PRODUCTION_API_URL,
   PRODUCTION_APP_URL,
   SERVED_MODULES,
 } from 'strategydance-core'
 import type { TaskStatus } from 'strategydance-database/backend'
+
+import type { UsageCapScope } from '~types'
 
 /* ---
   ENVIRONMENT
@@ -34,9 +39,17 @@ export const IS_WORKER = process.env.SERVICE === 'worker'
   mutation that starts a conversation, a run or a subagent is told through `isUsageCapped`: they
   guard spend, so everywhere, staff included, but on the development backend, where placeholder runs
   cost nothing and a developer starts dozens. `USAGE_CAPPED=true` holds them there too, to try them.
-  The tests and the check scripts keep them. Rows are counted either way
+  The tests and the check scripts keep them. Rows are counted either way, and so are the daily spend
+  ceilings, which every request a worker sends and every start is held to here alone
 */
 export const IS_USAGE_CAPPED = !IS_DEVELOPMENT || process.env.USAGE_CAPPED === 'true'
+
+// The daily spend ceilings, in microdollars, by whose spend each holds
+export const DAILY_SPEND_CEILINGS: Record<UsageCapScope, number> = {
+  member: MAX_DAILY_SPEND_MICRODOLLARS_PER_MEMBER,
+  account: MAX_DAILY_SPEND_MICRODOLLARS_PER_ACCOUNT,
+  organization: MAX_DAILY_SPEND_MICRODOLLARS_PER_ORGANIZATION,
+}
 
 /*
   Whether a member starts or continues a run only once their ID token says their address is

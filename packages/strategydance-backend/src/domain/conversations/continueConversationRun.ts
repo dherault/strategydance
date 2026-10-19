@@ -32,8 +32,8 @@ const MAX_ROUNDS = 4
 export type ContinueConversationRunResult =
   // The run that carries the conversation on, started now or by an earlier try
   | { outcome: 'continued'; runId: string }
-  // A question of the turn still waits, the caller has 3 runs in flight, or started one and a half
-  // times a daily cap on runs: nothing starts yet
+  // A question of the turn still waits, the caller has 3 runs in flight, started one and a half
+  // times a daily cap on runs, or reached a daily spend ceiling: nothing starts yet
   | { outcome: 'waiting' }
   // The run waits for nothing: a send consumed its turn, or it is not the one that waits
   | { outcome: 'consumed' }
@@ -118,7 +118,7 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
 
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'waiting' }
     // Counted again by the mutation, whose refusal comes back here
-    if (await readReachedUsageCap(reference, ['runs'], { isFinishing: true })) return { outcome: 'waiting' }
+    if (await readReachedUsageCap(reference, ['runs', 'spend'], { isFinishing: true })) return { outcome: 'waiting' }
 
     const [lastEntry] = data.conversationTranscriptEntries
     // After every result, as a send carries them; a run carrying allowed calls on stores its own

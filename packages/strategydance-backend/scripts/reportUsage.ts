@@ -1,11 +1,14 @@
 import { parseArgs } from 'node:util'
 
+import { DAILY_SPEND_CEILINGS } from '~constants'
+
 import { dataConnect } from '~firebase'
 
 import summarizeConversationUsage, {
   type ConversationUsageTotals,
   type ReportedConversationRun,
 } from '~domain/conversations/summarizeConversationUsage'
+import summarizeDailySpend, { type DailySpend, type ReportedRunSpend } from '~domain/conversations/summarizeDailySpend'
 
 /*
   Prints what conversations cost over the last day, or the last `--days`, from the runs' ledgers,
@@ -18,7 +21,9 @@ import summarizeConversationUsage, {
   It sums the runs started in the window by organization and by account, the subagents' runs apart,
   and prints the tokens each model used, every request Claude billed past its reservation, which the
   searches' allowance is raised from, and how long members paused before writing again, which the
-  prompt cache's lifetime is chosen from.
+  prompt cache's lifetime is chosen from. Then, whatever the window, the last 24 hours of each daily
+  spend ceiling's scope against it, the member's in each organization, the account's and the
+  organization's, from what each run may have cost (`RunSpend`), which the ceilings are set from.
 
   A deleted organization's runs go with it, so the ledgers cannot say everything the workspace was
   billed: `--workspace-usage` takes the workspace's own usage over the same window, read in the
@@ -85,6 +90,55 @@ async function readRuns() {
     runs.push(...data.conversationRuns)
 
     if (data.conversationRuns.length < PAGE_SIZE) return runs
+  }
+}
+
+/*
+  What every run may have cost that spent in the last 24 hours, as the ceilings sum it, with the
+  names of the organizations still there. A project from before M39 has no such table, and says so
+*/
+async function readDailySpend() {
+  const spends: ReportedRunSpend[] = []
+  const since = new Date(until.getTime() - 24 * 60 * 60 * 1000).toISOString()
+
+  try {
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data } = await dataConnect.executeGraphqlRead<
+        { runSpends: ReportedRunSpend[] },
+        { since: string; offset: number; limit: number }
+      >(
+        `query ReportDailySpend($since: Timestamp!, $offset: Int!, $limit: Int!) {
+          runSpends(where: { spentAt: { gt: $since } }, orderBy: [{ spentAt: ASC }, { runId: ASC }], offset: $offset, limit: $limit) {
+            userId organizationId costBound user { email }
+          }
+        }`,
+        { variables: { since, offset, limit: PAGE_SIZE } },
+      )
+
+      spends.push(...data.runSpends)
+
+      if (data.runSpends.length < PAGE_SIZE) break
+    }
+  } catch (error) {
+    console.log(`\nWhat runs may have cost could not be read, as before M39's release: ${String(error)}`)
+
+    return null
+  }
+
+  const ids = [...new Set(spends.map(({ organizationId }) => organizationId))]
+  const { data } = await dataConnect.executeGraphqlRead<
+    { organizations: { id: string; name: string; slug: string | null }[] },
+    { ids: string[] }
+  >(
+    `query ReportDailySpendOrganizations($ids: [UUID!]!) { organizations(where: { id: { in: $ids } }) { id name slug } }`,
+    {
+      variables: { ids },
+    },
+  )
+
+  return {
+    spends,
+    organizations: new Map(data.organizations.map(organization => [organization.id.replaceAll('-', ''), organization])),
   }
 }
 
@@ -156,6 +210,48 @@ console.log(
     summary.accounts.map(account => [account.email, ...totalsRow(account)]),
   ),
 )
+
+const daily = await readDailySpend()
+
+if (daily) {
+  const spend = summarizeDailySpend(daily.spends, DAILY_SPEND_CEILINGS)
+  const nameOrganization = (id: string | null) => {
+    const organization = id ? daily.organizations.get(id.replaceAll('-', '')) : undefined
+
+    return organization ? `${organization.name} (${organization.slug ?? organization.id})` : `(deleted) ${id}`
+  }
+  const row = (day: DailySpend, whose: string) => [
+    whose,
+    dollars(day.microdollars),
+    dollars(day.ceiling),
+    `${Math.round((day.microdollars / day.ceiling) * 100)}%`,
+  ]
+  const HEAD = ['Spent at most', 'Ceiling', 'Share']
+
+  console.log(`\nThe daily spend ceilings, the last 24 hours to ${until.toISOString()}, the 20 nearest theirs\n`)
+  console.log(
+    table(
+      ['Member in an organization', ...HEAD],
+      spend.members
+        .slice(0, 20)
+        .map(day => row(day, `${day.email ?? day.userId} in ${nameOrganization(day.organizationId)}`)),
+    ),
+  )
+  console.log('')
+  console.log(
+    table(
+      ['Account', ...HEAD],
+      spend.accounts.slice(0, 20).map(day => row(day, day.email ?? String(day.userId))),
+    ),
+  )
+  console.log('')
+  console.log(
+    table(
+      ['Organization', ...HEAD],
+      spend.organizations.slice(0, 20).map(day => row(day, nameOrganization(day.organizationId))),
+    ),
+  )
+}
 
 console.log('\nBy model\n')
 console.log(

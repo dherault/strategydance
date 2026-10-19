@@ -22,7 +22,7 @@ import {
   getConversationRunContext,
   getConversationRunLedgers,
   reclaimConversationRun,
-  renewConversationRunLease,
+  recordConversationRunUsage,
   storeConversationToolResults,
   tagConversationAspects,
   getSubagentReactionContext,
@@ -45,6 +45,8 @@ import {
   CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
   CONVERSATION_RUN_STREAM_DEADLINE_MS,
   CONVERSATION_TOOL_CALL_TIMEOUT_MS,
+  DAILY_SPEND_CEILINGS,
+  IS_USAGE_CAPPED,
 } from '~constants'
 
 import { dataConnect } from '~firebase'
@@ -88,6 +90,7 @@ import enqueueRun from '~domain/conversations/enqueueRun'
 import isSubagentReportDue from '~domain/conversations/isSubagentReportDue'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import readRunSpendRoom from '~domain/conversations/readRunSpendRoom'
 import readSubagentReportDeadline from '~domain/conversations/readSubagentReportDeadline'
 import readSubagentRunLimits from '~domain/conversations/readSubagentRunLimits'
 import requestConversationTagging from '~domain/conversations/requestConversationTagging'
@@ -98,6 +101,7 @@ import requestConversationTurn, {
 import runConversationToolCalls from '~domain/conversations/runConversationToolCalls'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import storeConversationParts from '~domain/conversations/storeConversationParts'
+import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 import deriveChainedRunId from '~domain/subagents/deriveChainedRunId'
 import { isWaitingReport } from '~domain/subagents/findDueSubagentReports'
 import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
@@ -134,6 +138,7 @@ const LIMITS: ConversationRunLimits = {
   maxDurationMs: CONVERSATION_RUN_MAX_DURATION_MS,
   streamDeadlineMs: CONVERSATION_RUN_STREAM_DEADLINE_MS,
   maxCostMicrodollars: CONVERSATION_RUN_MAX_COST_MICRODOLLARS,
+  dailySpendCeilings: IS_USAGE_CAPPED ? DAILY_SPEND_CEILINGS : null,
 }
 
 type ConversationRunContext = GetConversationRunContextData
@@ -538,6 +543,7 @@ async function takeStep({
           streamDeadline: Date.parse(startedAt) + limits.streamDeadlineMs,
           stopCheckIntervalMs,
           maxCostMicrodollars: limits.maxCostMicrodollars,
+          dailySpendCeilings: limits.dailySpendCeilings,
         })
       }
 
@@ -622,7 +628,8 @@ async function takeStep({
         && toCanonicalUuid(entry.run?.id ?? '') !== toCanonicalUuid(fence.runId)
       const reports = isReanchored ? await readWaitingReports(fence) : { ids: [], blocks: [] }
       // A subagent's fourth run asks for its report once one of its budgets nears its end, so its
-      // next request, its last, is answered with the report, calling nothing
+      // next request, its last, is answered with the report, calling nothing: the daily spend
+      // ceilings among them, whose room is read only for that run
       const isReportDue =
         lastSubagentRunId !== null
         && (isReportedAtTimeLimit
@@ -633,6 +640,9 @@ async function takeStep({
             entryCount: context.conversationMessages.length,
             resultsLength: serializeTranscriptContent(results).length,
             model: (config.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
+            spendRoom: limits.dailySpendCeilings
+              ? (await readRunSpendRoom(fence, limits.dailySpendCeilings)).room
+              : null,
           }))
       const content = isReportDue
         ? [...results, { type: 'text' as const, text: SUBAGENT_REPORT_REQUEST }]
@@ -805,7 +815,7 @@ async function writeTagging({
     await lease.write(() =>
       tagConversationAspects(dataConnect, {
         ...fence,
-        usage,
+        ...toConversationUsageVariables(usage),
         aspects,
         noteId: deriveConversationMessageId(fence.runId, 'aspects'),
         position: conversation.nextMessagePosition,
@@ -815,13 +825,8 @@ async function writeTagging({
     return
   }
 
-  const { data } = await lease.write(() => renewConversationRunLease(dataConnect, { ...fence, usage }))
-
-  if (data.conversationRun_updateMany !== 1) {
-    throw new Error(
-      `Conversation run ${fence.runId}: its tagging's ledger renewed nothing, the run is not this worker's`,
-    )
-  }
+  // Refused once the run is no longer this worker's, which the step's next read finds out
+  await lease.write(() => recordConversationRunUsage(dataConnect, { ...fence, ...toConversationUsageVariables(usage) }))
 }
 
 /*

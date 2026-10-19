@@ -1,7 +1,7 @@
 import type { BetaMessage, MessageCountTokensParams } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { getConversationRunStop, renewConversationRunLease } from 'strategydance-database/backend'
+import { getConversationRunStop, recordConversationRunUsage } from 'strategydance-database/backend'
 
-import type { ClaudeClient, ConversationContentBlock, ConversationRunFence } from '~types'
+import type { ClaudeClient, ConversationContentBlock, ConversationRunFence, UsageCapScope } from '~types'
 
 import { CONVERSATION_TAGGING_TIMEOUT_MS } from '~constants'
 
@@ -23,9 +23,15 @@ import {
 import createConversationRequestSignal from '~domain/conversations/createConversationRequestSignal'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
-import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
+import {
+  priceConversationUsageBound,
+  priceCutRequestBound,
+  priceRequestWorstCase,
+} from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import readRunSpendRoom from '~domain/conversations/readRunSpendRoom'
 import type { ConversationTurnOutcome } from '~domain/conversations/requestConversationTurn'
+import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 
 type RequestConversationTaggingInput = {
   fence: ConversationRunFence
@@ -38,8 +44,9 @@ type RequestConversationTaggingInput = {
   // When the run's request cuts a stream, as its own time limit has it
   streamDeadline: number
   stopCheckIntervalMs: number
-  // What the run may cost, in microdollars, as its own limits have it
+  // What the run may cost, in microdollars, and the daily spend ceilings, as its own limits have them
   maxCostMicrodollars: number
+  dailySpendCeilings: Record<UsageCapScope, number> | null
 }
 
 /*
@@ -52,8 +59,8 @@ type RequestConversationTaggingInput = {
 
   It is never what fails a run: an error of Claude's API, a refusal, an answer cut at its length or
   not the schema's, a stream past a minute or cut by its member's stop leave the conversation
-  untagged, and the run ends as its reply does. Nor does the run's cost limit: a request whose worst
-  case, its fallback's attempt included, would take the run past it is never sent, recorded as
+  untagged, and the run ends as its reply does. Nor does the run's cost limit, nor a daily spend
+  ceiling: a request whose worst case would take the run past either is never sent, recorded as
   skipped, so the run tries it once all the same. Only the run's own signal, a lease lost, throws, as
   a reservation that renewed nothing does. The outcome holds the aspects, or null, with the ledger,
   for the next step to write
@@ -68,6 +75,7 @@ async function requestConversationTagging({
   streamDeadline,
   stopCheckIntervalMs,
   maxCostMicrodollars,
+  dailySpendCeilings,
 }: RequestConversationTaggingInput): Promise<ConversationTurnOutcome> {
   const { organizationId, userId, conversationId } = fence
   const entries = await readConversationTranscript({ organizationId, userId, conversationId })
@@ -86,8 +94,13 @@ async function requestConversationTagging({
     maxSearches: 0,
   }).single
 
-  if (priceConversationUsageBound(initialUsage) + worstCase > maxCostMicrodollars) {
-    logger.warn(`Conversation run ${fence.runId}: its tagging would pass its cost limit, and is skipped`)
+  const spent = priceConversationUsageBound(initialUsage)
+  const ceiling = dailySpendCeilings ? await readRunSpendRoom(fence, dailySpendCeilings) : null
+
+  if (spent + worstCase > maxCostMicrodollars || (ceiling && spent + worstCase > ceiling.room)) {
+    logger.warn(
+      `Conversation run ${fence.runId}: its tagging would pass its cost limit or a daily spend ceiling, and is skipped`,
+    )
 
     return {
       kind: 'tagging',
@@ -104,15 +117,10 @@ async function requestConversationTagging({
     worstCaseMicrodollars: worstCase,
     requestedModel: CONVERSATION_TAGGING_MODEL,
   })
-  const { data: reservation } = await lease.write(() =>
-    renewConversationRunLease(dataConnect, { ...fence, usage: reserved.usage }),
+  // Refused once the run is no longer this worker's, which throws, as its own signal does
+  await lease.write(() =>
+    recordConversationRunUsage(dataConnect, { ...fence, ...toConversationUsageVariables(reserved.usage) }),
   )
-
-  if (reservation.conversationRun_updateMany !== 1) {
-    throw new Error(
-      `Conversation run ${fence.runId}: its tagging's reservation renewed nothing, the run is not this worker's`,
-    )
-  }
 
   // The message so far, once the stream has reported its usage
   const streamed: { message: BetaMessage | null } = { message: null }
@@ -131,6 +139,9 @@ async function requestConversationTagging({
     },
     stopCheckIntervalMs,
   })
+
+  // When it went, which bounds what a stream cut partway wrote
+  const sentAt = Date.now()
 
   try {
     const message = await client.stream(body, {
@@ -165,7 +176,13 @@ async function requestConversationTagging({
       kind: 'tagging',
       aspects: null,
       usage: streamed.message
-        ? settleInterruptedConversationRequest(reserved.usage, reserved.index, streamed.message)
+        ? settleInterruptedConversationRequest(reserved.usage, reserved.index, streamed.message, {
+            cutBoundMicrodollars: priceCutRequestBound({
+              message: streamed.message,
+              streamedMs: Date.now() - sentAt,
+              maxTokens: CONVERSATION_TAGGING_MAX_TOKENS,
+            }),
+          })
         : settleFailedConversationRequest(reserved.usage, reserved.index),
     }
   } finally {

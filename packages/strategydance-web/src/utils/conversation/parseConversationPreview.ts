@@ -1,4 +1,4 @@
-import type { ConversationPreview } from 'strategydance-core'
+import type { ConversationPreview, ConversationSpendCeiling, ConversationSpendCeilingScope } from 'strategydance-core'
 
 type ToolStatus = Extract<ConversationPreview, { kind: 'TOOL_CALL' }>['toolStatus']
 type QuestionState = Extract<ConversationPreview, { kind: 'QUESTION' }>['questionState']
@@ -9,6 +9,11 @@ const TOOL_STATUSES: readonly unknown[] = ['RUNNING', 'SUCCEEDED', 'FAILED', 'CA
 const QUESTION_STATES: readonly unknown[] = ['WAITING', 'ANSWERED', 'SKIPPED'] satisfies QuestionState[]
 const NOTE_KINDS: readonly unknown[] = ['STOPPED', 'FAILED', 'REFUSED', 'INTERRUPTED', 'FULL'] satisfies NoteKind[]
 const APPROVAL_STATES: readonly unknown[] = ['PENDING', 'ALLOWED', 'DENIED'] satisfies ApprovalState[]
+const CEILING_SCOPES: readonly unknown[] = [
+  'MEMBER',
+  'ACCOUNT',
+  'ORGANIZATION',
+] satisfies ConversationSpendCeilingScope[]
 
 /*
   A conversation's `preview`, as strategydance-core's `buildConversationPreview` wrote it, read back
@@ -66,11 +71,24 @@ function parseConversationPreview(value: unknown): ConversationPreview | null {
         : null
     case 'NOTE':
       return NOTE_KINDS.includes(preview.noteKind)
-        ? { kind: preview.kind, noteKind: preview.noteKind as NoteKind }
+        ? {
+            kind: preview.kind,
+            noteKind: preview.noteKind as NoteKind,
+            ...(isSpendCeiling(preview.ceiling) ? { ceiling: preview.ceiling } : {}),
+          }
         : null
     default:
       return null
   }
+}
+
+// A failed note's daily spend ceiling, whose and when it has room again, or nothing this page can read
+function isSpendCeiling(value: unknown): value is ConversationSpendCeiling {
+  if (!value || typeof value !== 'object') return false
+
+  const { scope, freesAt } = value as Record<string, unknown>
+
+  return CEILING_SCOPES.includes(scope) && typeof freesAt === 'string' && !Number.isNaN(Date.parse(freesAt))
 }
 
 export default parseConversationPreview

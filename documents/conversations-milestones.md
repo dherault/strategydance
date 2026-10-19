@@ -91,7 +91,7 @@ review of M1 to M38 added on 2026-10-18, each start once M38 has merged, in any 
 | M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
 | M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | #210 |
 | M38 | Launch | all | all | #211 |
-| M39 | Daily spend ceilings | core, database, backend, web, root | M38 | |
+| M39 | Daily spend ceilings | core, database, backend, web, root | M38 | #232 |
 | M40 | Document revisions for agents' edits | database, backend, web, root | M38 | #230 |
 | M41 | Races against a real Postgres | database, backend, root | M38 | #231 |
 | M42 | A subagent's report at any limit | backend | M38 | #229 |
@@ -3060,6 +3060,67 @@ caps).
   organization deleted and made again, its spend still counted; a run whose last request came nine
   minutes after its first, still counted a day after its first; and a reaction waiting at its
   ceiling. `check:conversation-runs` sums `costBound` against the emulators.
+- Built with these settled, on 2026-10-19:
+  - **The amounts**, David's on 2026-10-19: $25 a member in each organization, $50 an account and
+    $150 an organization, the milestone's own.
+  - **The row and its writes.** `RunSpend`, keyed by the run's id, `costBound` an `Int64` defaulting
+    to 0 and `spentAt`. The ten fenced writes of a run's `usage` take an optional `$costBound` and
+    upsert the row last, so a backend from before inserts 0 and leaves a bound as it was, which
+    `check:conversation-runs` shows the emulator does. The reservation and the other ledger writes
+    that went through `RenewConversationRunLease` go through `RecordConversationRunUsage`, fenced
+    with `@check(this == 1)`, since the lease's renewal, which the timer sends and a lost run answers
+    with 0, could not refuse without changing how a worker loses its lease; `RenewConversationRunLease`
+    keeps `$usage` and `$context` for backends mid-rollout.
+  - **The reads**: `GetDailySpend` for the starts, `GetRunDailySpend` with the run's own row for the
+    worker, in one snapshot, and `GetDailySpendRows`, the 500 oldest of each scope, read once a
+    ceiling is reached, to say when it has room. Of several caps and ceilings reached, the one that
+    has room last is named, a run's note included.
+  - **The worker** holds `spent + worstCase` to the $10 and to each ceiling less what the scope's
+    other runs hold, the $10's failure text kept when it binds first. A run a ceiling stops ends
+    failed at its limits, never chained, its subagent's report saying the member's daily spending
+    ceiling stopped it.
+  - **The note of its own**, as David chose on 2026-10-19 over the failed note: a failed note with
+    two columns, `ceilingScope` and `ceilingFreesAt`, and the same on the NOTE preview, so a page on
+    the bundle from before draws the failed note, where a new note kind would have broken its thread.
+    It says whose ceiling, its amount and when it has room, moving on as the reader waits, and that
+    it has room once it has; Resume and Retry stay offered.
+  - **A start** is at a ceiling once the least a request reserves no longer fits: one attempt, some
+    14000 tokens of system prompt and tools, the whole output and five searches, about $1.85. With
+    no input counted, a browser check found a Retry admitted that stopped at its first request, the
+    placeholder's request near $1.81 over a room of $1.80. Continuations and reactions take no
+    overrun past a ceiling. A promotion reads the ceilings once, its runs left pending for the
+    five-minute reconcile, and the chain point reads them before it chains.
+  - **A stream cut partway**, as David chose on 2026-10-19: the milestone's estimate from the text and
+    thinking streamed would miss the reasoning, billed but never streamed under `display: "updates"`,
+    so the bound is the time it streamed at the model's top rate, five seconds of grace after, its
+    input as the stream's start billed it and the searches it showed, never past its reservation.
+    `cutBoundMicrodollars` keeps it on the request, beside the output the stream reported, which the
+    credits decide on. The rates are provisional, 400 tokens a second on Opus and Sonnet and 1000 on
+    Haiku, until `probe:claude` measures them.
+  - **Searches read again**: each search's results are read again by every later step, ten times for
+    five searches at the cache-read rate, which `priceRequestWorstCase` now counts. A request of some
+    1200 tokens reserves about $1.77 alone and $4.01 with its fallback.
+  - **`probe:claude`** gained a request of five searches read through `usage.iterations`, each step's
+    first reading held to the allowance and its input to what the worst case reserves, and a timing
+    of every stream, each model's fastest held to half its top rate. Neither has run: gcloud asked
+    David to sign in again before it read the API key.
+  - **Found on the way**: `readReachedUsageCap` handed `GetCappedStarts` and `GetDailySpend` a send's
+    whole input, which the emulator refused and the fake let through; it hands them the member
+    alone, and the fake now refuses a variable those reads do not declare.
+  - Verified: the four checks; `check:conversation-runs`, `check:subagent-runs` and
+    `check:subagents-module` against an emulator of the branch's schema, every check passing, the
+    spend's own among them: the reservation recorded and summed by scope, a refused fence writing
+    nothing, a settlement lowering the row, a write without a bound keeping it as its time moves on,
+    a deleted conversation's and a deleted organization's spend kept, the rows oldest first, the
+    prune, and a chain recording the run it ends. The scratch emulator started only once a preload
+    raised firebase-tools' configure retries for its process alone, its compile taking longer than
+    the CLI waits under load. In a browser against it, a worktree backend with `USAGE_CAPPED=true`
+    and the placeholder agent, the spend seeded near the member's $25: a run stopped before its first
+    request with the ceiling's note, in a docked window, on the page and in the list's preview,
+    "has room again" once its time passed, Retry and the composer refused with the ceiling's words
+    and when it frees, and the account's $50 from an organization deleted since, at 1280 and 390
+    wide. Not looked at in a browser: the organization's ceiling and a subagent's note, which the
+    tests cover.
 
 ### M40: Document revisions for agents' edits
 

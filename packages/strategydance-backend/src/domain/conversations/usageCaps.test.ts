@@ -229,4 +229,71 @@ describe('the daily caps on what a member starts', () => {
     expect(refused.cap.retryAfterMs).toBeGreaterThan(14 * HOUR - 99 * 1000 - 5000)
     expect(refused.cap.retryAfterMs).toBeLessThanOrEqual(14 * HOUR - 98 * 1000)
   })
+
+  test("refuses a send, Resume and Retry at the member's $25 a day in the organization, saying when it has room", async () => {
+    const idle = await startIdle()
+    const stopped = await startStopped()
+
+    // $24 spent ten hours ago leaves $1, short of the some $1.73 the least request reserves
+    kit.seedSpend(24, { hoursAgo: 10 })
+
+    const refused = await send(idle.conversationId)
+
+    expect(refused).toMatchObject({ outcome: 'capped', cap: { kind: 'spend', scope: 'member', max: 25_000_000 } })
+    expect(await resumeConversationRun(stopped)).toMatchObject({ outcome: 'capped', cap: { kind: 'spend' } })
+    expect(await retryConversationRun(stopped)).toMatchObject({ outcome: 'capped', cap: { kind: 'spend' } })
+
+    if (refused.outcome !== 'capped') return
+
+    expect(refused.cap.retryAfterMs).toBeGreaterThan(14 * HOUR - 5000)
+    expect(refused.cap.retryAfterMs).toBeLessThanOrEqual(14 * HOUR)
+
+    // $23 leaves room for one more request
+    fake.runSpends.clear()
+    kit.seedSpend(23)
+
+    expect((await send(idle.conversationId)).outcome).toBe('sent')
+  })
+
+  test("refuses a start at the account's $50 across its organizations, one gone since, and the organization's $150", async () => {
+    const idle = await startIdle()
+
+    kit.seedSpend(24, { organization: OTHER_ORGANIZATION_ID })
+    kit.seedSpend(25, { organization: THIRD_ORGANIZATION_ID })
+
+    expect(await send(idle.conversationId)).toMatchObject({
+      outcome: 'capped',
+      cap: { kind: 'spend', scope: 'account' },
+    })
+
+    fake.runSpends.clear()
+    kit.seedSpend(149, { userId: 'teammate', count: 10 })
+
+    expect(await send(idle.conversationId)).toMatchObject({
+      outcome: 'capped',
+      cap: { kind: 'spend', scope: 'organization', max: 150_000_000 },
+    })
+  })
+
+  test('lets a start through whose ceiling the window made room under between its two reads, never saying a day', async () => {
+    const idle = await startIdle()
+
+    kit.seedSpend(24, { hoursAgo: 23 })
+
+    // The run that held the ceiling leaves the window once the sums are read, before the rows are
+    fake.beforeOperation = async name => {
+      if (name === 'GetDailySpendRows') fake.runSpends.clear()
+    }
+
+    expect((await send(idle.conversationId)).outcome).toBe('sent')
+  })
+
+  test('says, of a cap and a ceiling both reached, the one that has room last', async () => {
+    const idle = await startIdle()
+
+    seed('RUN', 99, { hoursAgo: 20 })
+    kit.seedSpend(24, { hoursAgo: 2 })
+
+    expect(await send(idle.conversationId)).toMatchObject({ outcome: 'capped', cap: { kind: 'spend' } })
+  })
 })

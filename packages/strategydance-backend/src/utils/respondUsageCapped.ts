@@ -2,10 +2,13 @@ import type { Response } from 'express'
 import {
   ERROR_CODE_ACCOUNT_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED,
+  ERROR_CODE_ACCOUNT_DAILY_SPEND_REACHED,
   ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_MEMBER_DAILY_RUNS_REACHED,
+  ERROR_CODE_MEMBER_DAILY_SPEND_REACHED,
   ERROR_CODE_ORGANIZATION_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED,
+  ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED,
   ERROR_CODE_TOO_MANY_REQUESTS,
 } from 'strategydance-core'
 
@@ -13,8 +16,8 @@ import type { ReachedUsageCap, UsageCapKind, UsageCapScope } from '~types'
 
 import respondError from '~utils/respondError'
 
-// Each cap a member's start can reach, by what it counts and whose. A launch is the agent's, which
-// no route answers
+// Each cap a member's start can reach, by what it counts and whose, a daily spend ceiling among
+// them. A launch is the agent's, which no route answers
 const ERROR_CODES: Record<UsageCapKind, Partial<Record<UsageCapScope, string>>> = {
   conversations: {
     member: ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
@@ -27,12 +30,23 @@ const ERROR_CODES: Record<UsageCapKind, Partial<Record<UsageCapScope, string>>> 
     organization: ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED,
   },
   subagents: {},
+  spend: {
+    member: ERROR_CODE_MEMBER_DAILY_SPEND_REACHED,
+    account: ERROR_CODE_ACCOUNT_DAILY_SPEND_REACHED,
+    organization: ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED,
+  },
 }
 
 const WHOSE: Record<UsageCapScope, string> = {
   member: 'You started {max} {kind} in this organization in the last 24 hours',
   account: 'You started {max} {kind} across your organizations in the last 24 hours',
   organization: 'This organization started {max} {kind} in the last 24 hours',
+}
+
+const WHOSE_SPEND: Record<UsageCapScope, string> = {
+  member: 'Your conversations in this organization cost as much as the {max} they may in 24 hours',
+  account: 'Your conversations across your organizations cost as much as the {max} they may in 24 hours',
+  organization: "This organization's conversations cost as much as the {max} they may in 24 hours",
 }
 
 /*
@@ -47,7 +61,9 @@ function respondUsageCapped(response: Response, cap: ReachedUsageCap) {
     response,
     429,
     ERROR_CODES[cap.kind][cap.scope] ?? ERROR_CODE_TOO_MANY_REQUESTS,
-    `${WHOSE[cap.scope].replace('{max}', String(cap.max)).replace('{kind}', cap.kind === 'runs' ? 'responses' : cap.kind)}, the most allowed`,
+    cap.kind === 'spend'
+      ? WHOSE_SPEND[cap.scope].replace('{max}', `$${cap.max / 1_000_000}`)
+      : `${WHOSE[cap.scope].replace('{max}', String(cap.max)).replace('{kind}', cap.kind === 'runs' ? 'responses' : cap.kind)}, the most allowed`,
   )
 }
 

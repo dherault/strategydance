@@ -8,6 +8,7 @@ import { placeConversationRequest } from '~domain/conversations/conversationRunU
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import type { ConversationTurnOutcome } from '~domain/conversations/requestConversationTurn'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
+import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 
 type StoreConversationPartsInput = {
   fence: ConversationRunFence
@@ -53,12 +54,18 @@ async function storeConversationParts({ fence, lease, turn, storedEntryIds }: St
           entryId: part.entryId,
           position,
           content,
-          usage: partUsage,
+          ...toConversationUsageVariables(partUsage),
         }),
       )
     } else {
       await lease.write(() =>
-        storeConversationTurn(dataConnect, { ...fence, entryId: part.entryId, position, content, usage: partUsage }),
+        storeConversationTurn(dataConnect, {
+          ...fence,
+          entryId: part.entryId,
+          position,
+          content,
+          ...toConversationUsageVariables(partUsage),
+        }),
       )
     }
   }

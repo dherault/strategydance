@@ -37,7 +37,8 @@ export type SubagentReaction =
   // reconcile, the sweep, or the member's next message
   | { outcome: 'busy' }
   // The member started one and a half times a daily cap on runs, which a reaction passes a cap by
-  // at most: the reports wait as they do for a run, until the window has room
+  // at most, or reached a daily spend ceiling: the reports wait as they do for a run, until the
+  // window has room
   | { outcome: 'capped' }
   // The parent is full: its waiting reports were marked delivered, with no run
   | { outcome: 'delivered' }
@@ -146,7 +147,7 @@ async function reactToSubagentReports(parent: Omit<ConversationRunReference, 'ru
 
       if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'busy' }
       // Counted again by the mutation, whose refusal comes back here
-      if (await readReachedUsageCap(member, ['runs'], { isFinishing: true })) return { outcome: 'capped' }
+      if (await readReachedUsageCap(member, ['runs', 'spend'], { isFinishing: true })) return { outcome: 'capped' }
 
       const blocks = await readSubagentReportBlocks({ ...member, membershipCreatedAt: membership.createdAt }, due)
       const runId = randomUUID().replaceAll('-', '')

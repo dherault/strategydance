@@ -44,7 +44,8 @@ export type RetryConversationRunResult =
   | { outcome: 'busy' }
   // The run is not the conversation's latest, or did not end with a note
   | { outcome: 'conflict' }
-  // A daily cap on the runs the caller starts is reached, which has room again after `retryAfterMs`
+  // A daily cap on the runs the caller starts is reached, or a daily spend ceiling, which has room
+  // again after `retryAfterMs`
   | { outcome: 'capped'; cap: ReachedUsageCap }
   // The run is started, but could not be queued: it stays queued, and the same retry sent again
   // queues it again, as its page's reconcile does meanwhile
@@ -147,7 +148,7 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
     if (data.conversationRuns.length >= MAX_ACTIVE_RUNS_PER_MEMBER) return { outcome: 'busy' }
 
     // Counted before anything is stored, and again by the mutation, whose refusal reads them again
-    const cap = await readReachedUsageCap(reference, ['runs'])
+    const cap = await readReachedUsageCap(reference, ['runs', 'spend'])
 
     if (cap) return { outcome: 'capped', cap }
 

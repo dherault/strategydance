@@ -42,6 +42,10 @@ function describeEnding(ending: ConversationRunEnding) {
 
   switch (ending.noteKind) {
     case ConversationNoteKind.FAILED:
+      if (ending.ceiling) {
+        return "This subagent stopped before it finished: the member's daily spending ceiling was reached, so no subagent can go on for now."
+      }
+
       return ending.isAtLimit
         ? 'This subagent stopped at its limits before it finished.'
         : 'This subagent failed before it finished.'

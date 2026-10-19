@@ -8,8 +8,11 @@ import formatConversationPreview from '~utils/conversation/formatConversationPre
 // English from each message's own words, as a reader with no catalogue loaded sees them
 const intl = createIntl({ locale: 'en', messages: {} })
 
+// The time the tests read previews at
+const NOW = Date.parse('2026-10-19T12:00:00.000Z')
+
 function format(preview: unknown, activeRunId: string | null = null) {
-  return formatConversationPreview(intl, { activeRunId, preview })
+  return formatConversationPreview(intl, { activeRunId, preview }, NOW)
 }
 
 describe('formatConversationPreview', () => {
@@ -132,6 +135,21 @@ describe('formatConversationPreview', () => {
     expect(format({ kind: 'NOTE', noteKind: 'REFUSED' })).toBe('Strategy Dance could not answer this.')
     expect(format({ kind: 'NOTE', noteKind: 'INTERRUPTED' })).toBe('This response was interrupted.')
     expect(format({ kind: 'NOTE', noteKind: 'FULL' })).toBe('This conversation is full. Start a new one to go on.')
+  })
+
+  it('says which daily spend ceiling stopped a failed note’s run, and when it has room', () => {
+    const ceiling = (scope: string, freesAt: string) =>
+      format({ kind: 'NOTE', noteKind: 'FAILED', ceiling: { scope, freesAt } })
+
+    expect(ceiling('MEMBER', '2026-10-19T15:00:00.000Z')).toBe(
+      'This response stopped: your conversations in this organization cost as much as the $25 they may in 24 hours. It can go on in 3 hours.',
+    )
+    expect(ceiling('ORGANIZATION', '2026-10-19T12:20:00.000Z')).toBe(
+      "This response stopped: your team's conversations in this organization cost as much as the $150 they may in 24 hours. It can go on in 20 minutes.",
+    )
+    expect(ceiling('ACCOUNT', '2026-10-19T11:00:00.000Z')).toBe(
+      'This response stopped at a daily spending limit, which has room again.',
+    )
   })
 
   it('shows no line for a preview it cannot read', () => {

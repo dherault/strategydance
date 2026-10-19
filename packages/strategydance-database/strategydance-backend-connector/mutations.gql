@@ -2362,9 +2362,10 @@ mutation ReclaimConversationRun(
 }
 
 # Renews a claimed run's lease for another minute, and writes the progress line the thinking
-# indicator shows when there is a new one: an omitted `$step` leaves the one before. Before a
-# request to Claude it also writes the run's context, built once, and its usage with the request
-# reserved, each left as it was when omitted.
+# indicator shows when there is a new one: an omitted `$step` leaves the one before. It takes the
+# run's context and its usage too, each left as it was when omitted, for a backend from before M39:
+# from M39 a ledger goes through `RecordConversationRunUsage`, which records what the run may have
+# cost beside it.
 #
 # This is the fence every write of a worker starts with: the run still `RUNNING`, at the attempt
 # the worker claimed (`$attempts`, after its claim), and its author still the member it was queued
@@ -2402,6 +2403,53 @@ mutation RenewConversationRunLease(
   )
 }
 
+# Writes a claimed run's ledger with the lease renewed, before a request to Claude with the request
+# reserved and the run's context, built once, when it has one, or once a request settled without a
+# part to store: fenced as `RenewConversationRunLease` is, and upserting what the run may have cost
+# beside the ledger (`RunSpend`), so the request about to go counts toward the daily spend ceilings
+# before it is sent. A transaction, so a run no longer this worker's is refused and writes neither
+mutation RecordConversationRunUsage(
+  $organizationId: UUID!
+  $userId: String!
+  $conversationId: UUID!
+  $runId: UUID!
+  $attempts: Int!
+  $membershipCreatedAt: Timestamp!
+  $context: String
+  $usage: Any!
+  $costBound: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  conversationRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      status: { eq: RUNNING }
+      attempts: { eq: $attempts }
+      membershipCreatedAt: { eq: $membershipCreatedAt }
+      conversation: {
+        id: { eq: $conversationId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        organization: {
+          userOrganizations_on_organization: {
+            exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+          }
+        }
+      }
+    }
+    data: { context: $context, usage: $usage, leaseExpiresAt_time: { now: true, add: { seconds: 60 } } }
+  ) @check(expr: "this == 1", message: "The run is no longer this worker's")
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
+    }
+  )
+}
+
 # Stores a turn of the agent in the transcript, as the JSON text of exactly what it answered, after
 # the last entry: a whole turn, or one part of a turn paused by `pause_turn`. Fenced as
 # `RenewConversationRunLease` is, which renews the lease in the same write, and settles the
@@ -2418,6 +2466,7 @@ mutation StoreConversationTurn(
   $position: Int!
   $content: String!
   $usage: Any
+  $costBound: Int64
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -2448,6 +2497,16 @@ mutation StoreConversationTurn(
       content: $content
     }
   )
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
+    }
+  )
 }
 
 # Stores a run's first turn with its context message, which every request of the run sent last
@@ -2469,6 +2528,7 @@ mutation StoreConversationTurnWithContext(
   $position: Int!
   $content: String!
   $usage: Any
+  $costBound: Int64
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -2510,6 +2570,16 @@ mutation StoreConversationTurnWithContext(
       position: $position
       role: ASSISTANT
       content: $content
+    }
+  )
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
     }
   )
 }
@@ -3416,6 +3486,7 @@ mutation TagConversationAspects(
   $attempts: Int!
   $membershipCreatedAt: Timestamp!
   $usage: Any!
+  $costBound: Int64
   $aspects: [CompanyAspect!]!
   $noteId: UUID!
   $position: Int!
@@ -3469,6 +3540,16 @@ mutation TagConversationAspects(
       position: $position
     }
   )
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
+    }
+  )
 }
 
 # Ends a run on the questions its turn asked: `WAITING`, with `$usage` settling what its requests
@@ -3484,6 +3565,7 @@ mutation FinishConversationRunWaiting(
   $attempts: Int!
   $membershipCreatedAt: Timestamp!
   $usage: Any
+  $costBound: Int64
   $preview: Any
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
@@ -3514,6 +3596,16 @@ mutation FinishConversationRunWaiting(
     where: { id: { eq: $conversationId }, activeRunId: { eq: $runId } }
     data: { activeRunId: null, isAwaitingAnswer: true, preview: $preview, updatedAt_expr: "request.time" }
   )
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
+    }
+  )
 }
 
 # Ends a run its worker brought to an end: `COMPLETED`, or `STOPPED` in a conversation deleted
@@ -3531,6 +3623,7 @@ mutation FinishConversationRun(
   $membershipCreatedAt: Timestamp!
   $status: ConversationRunStatus!
   $usage: Any
+  $costBound: Int64
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
     where: {
@@ -3565,6 +3658,16 @@ mutation FinishConversationRun(
     where: { id: { eq: $conversationId }, activeRunId: { eq: $runId } }
     data: { activeRunId: null }
   )
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
+    }
+  )
 }
 
 # Ends a run its worker brought to an end with a note the thread draws, such as a run at a limit
@@ -3584,10 +3687,13 @@ mutation FinishConversationRunWithNote(
   $membershipCreatedAt: Timestamp!
   $status: ConversationRunStatus!
   $noteKind: ConversationNoteKind!
+  $ceilingScope: SpendCeilingScope
+  $ceilingFreesAt: Timestamp
   $noteId: UUID!
   $position: Int!
   $preview: Any!
   $usage: Any
+  $costBound: Int64
   $isFull: Boolean
   $failure: String
 ) @auth(level: NO_ACCESS) @transaction {
@@ -3615,6 +3721,10 @@ mutation FinishConversationRunWithNote(
     @check(
       expr: "(vars.status == 'FAILED' && (vars.noteKind == 'FAILED' || vars.noteKind == 'FULL')) || (vars.status == 'STOPPED' && vars.noteKind == 'STOPPED') || (vars.status == 'REFUSED' && vars.noteKind == 'REFUSED')"
       message: "A run ends with its own note: failed or full, stopped, or refused"
+    )
+    @check(
+      expr: "(!has(vars.ceilingScope) || vars.ceilingScope == null) || (vars.noteKind == 'FAILED' && has(vars.ceilingFreesAt) && vars.ceilingFreesAt != null)"
+      message: "Only a failed note names a daily spend ceiling, with when it has room again"
     )
   conversationMessage_updateMany(
     where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
@@ -3646,7 +3756,19 @@ mutation FinishConversationRunWithNote(
       runId: $runId
       kind: NOTE
       noteKind: $noteKind
+      ceilingScope: $ceilingScope
+      ceilingFreesAt: $ceilingFreesAt
       position: $position
+    }
+  )
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
     }
   )
 }
@@ -3669,6 +3791,7 @@ mutation FinishConversationRunFull(
   $position: Int!
   $preview: Any!
   $usage: Any
+  $costBound: Int64
   $isFull: Boolean
   $failure: String
 ) @auth(level: NO_ACCESS) @transaction {
@@ -3735,6 +3858,16 @@ mutation FinishConversationRunFull(
       reportDeliveredAt: { isNull: true }
     }
     data: { reportDeliveredAt_expr: "request.time" }
+  )
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
+    }
   )
 }
 
@@ -4253,6 +4386,7 @@ mutation FinishSubagentRun(
   $membershipCreatedAt: Timestamp!
   $status: ConversationRunStatus!
   $usage: Any
+  $costBound: Int64
   $report: String!
 ) @auth(level: NO_ACCESS) @transaction {
   conversationRun_updateMany(
@@ -4295,6 +4429,16 @@ mutation FinishSubagentRun(
     }
     data: { activeRunId: null, report: $report, reportedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "The subagent could not take its report")
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
+    }
+  )
 }
 
 # Ends a subagent's run with a note, as `FinishConversationRunWithNote` ends a conversation's, and
@@ -4309,10 +4453,13 @@ mutation FinishSubagentRunWithNote(
   $membershipCreatedAt: Timestamp!
   $status: ConversationRunStatus!
   $noteKind: ConversationNoteKind!
+  $ceilingScope: SpendCeilingScope
+  $ceilingFreesAt: Timestamp
   $noteId: UUID!
   $position: Int!
   $preview: Any!
   $usage: Any
+  $costBound: Int64
   $isFull: Boolean
   $failure: String
   $report: String!
@@ -4341,6 +4488,10 @@ mutation FinishSubagentRunWithNote(
     @check(
       expr: "(vars.status == 'FAILED' && (vars.noteKind == 'FAILED' || vars.noteKind == 'FULL')) || (vars.status == 'STOPPED' && vars.noteKind == 'STOPPED') || (vars.status == 'REFUSED' && vars.noteKind == 'REFUSED')"
       message: "A run ends with its own note: failed or full, stopped, or refused"
+    )
+    @check(
+      expr: "(!has(vars.ceilingScope) || vars.ceilingScope == null) || (vars.noteKind == 'FAILED' && has(vars.ceilingFreesAt) && vars.ceilingFreesAt != null)"
+      message: "Only a failed note names a daily spend ceiling, with when it has room again"
     )
     @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
   conversationMessage_updateMany(
@@ -4375,7 +4526,19 @@ mutation FinishSubagentRunWithNote(
       runId: $runId
       kind: NOTE
       noteKind: $noteKind
+      ceilingScope: $ceilingScope
+      ceilingFreesAt: $ceilingFreesAt
       position: $position
+    }
+  )
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
     }
   )
 }
@@ -4474,6 +4637,7 @@ mutation ChainSubagentRun(
   $nextRunId: UUID!
   $nextRunNumber: Int!
   $usage: Any
+  $costBound: Int64
   $failure: String
   $pendingToolResults: String
 ) @auth(level: NO_ACCESS) @transaction {
@@ -4522,6 +4686,16 @@ mutation ChainSubagentRun(
       anchorPosition: $anchorPosition
       pendingToolResults: $pendingToolResults
       leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
+    }
+  )
+  # What the run may have cost, as the ledger it writes prices it (`RunSpend`)
+  runSpend_upsert(
+    data: {
+      runId: $runId
+      userId: $userId
+      organizationId: $organizationId
+      costBound: $costBound
+      spentAt_expr: "request.time"
     }
   )
 }
@@ -5235,6 +5409,13 @@ mutation DeleteExpiredConversationSearches @auth(level: NO_ACCESS) {
 # nothing, so a sweep that failed is finished by the next
 mutation DeleteExpiredCappedStarts @auth(level: NO_ACCESS) {
   cappedStart_deleteMany(where: { createdAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}
+
+# The daily sweep's: deletes what runs may have cost that last spent over a day ago, whoever ran them
+# and whatever became of their organization, which no sum reads any more. Deleting them twice deletes
+# nothing, so a sweep that failed is finished by the next
+mutation DeleteExpiredRunSpends @auth(level: NO_ACCESS) {
+  runSpend_deleteMany(where: { spentAt: { lt_time: { now: true, sub: { days: 1 } } } })
 }
 
 # Reserves the place of a file the caller uploads to a conversation, before any of its bytes is

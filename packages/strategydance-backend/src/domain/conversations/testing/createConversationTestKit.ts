@@ -162,6 +162,28 @@ function createConversationTestKit(
     }
   }
 
+  /*
+    What runs spent, `dollars` across `count` runs that last spent `hoursAgo` ago, each a second
+    before the one after it: the author's in this organization unless told whose, in an organization
+    that may be gone since. Each run is a run nobody else names, as one deleted since would be
+  */
+  function seedSpend(
+    dollars: number,
+    { userId = author, organization = organizationId, hoursAgo = 1, count = 1 } = {},
+  ) {
+    for (let index = 0; index < count; index++) {
+      const runId = createId()
+
+      fake.runSpends.set(runId, {
+        runId,
+        userId,
+        organizationId: organization,
+        costBound: Math.round((dollars * 1_000_000) / count),
+        spentAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000 - (count - 1 - index) * 1000).toISOString(),
+      })
+    }
+  }
+
   // Claims a queued run as a worker that then crashes would, and answers its fence
   async function claim(reference: ConversationRunReference) {
     const fence = { ...reference, attempts: 0, membershipCreatedAt: readMembershipCreatedAt() }
@@ -221,6 +243,7 @@ function createConversationTestKit(
     send,
     launch,
     seedStarts,
+    seedSpend,
     claim,
     expireLease,
     readMembershipCreatedAt,

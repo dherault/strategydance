@@ -1,6 +1,7 @@
 import {
   ERROR_CODE_ACCOUNT_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED,
+  ERROR_CODE_ACCOUNT_DAILY_SPEND_REACHED,
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
   ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET,
@@ -8,8 +9,10 @@ import {
   ERROR_CODE_CONVERSATION_FULL,
   ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_MEMBER_DAILY_RUNS_REACHED,
+  ERROR_CODE_MEMBER_DAILY_SPEND_REACHED,
   ERROR_CODE_ORGANIZATION_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED,
+  ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED,
   ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_TOO_MANY_CONVERSATIONS,
 } from 'strategydance-core'
@@ -20,8 +23,9 @@ import getConversationAccessFailure, {
 
 import { ApiError } from '~data/api'
 
-// A daily cap a start reached: on the conversations or the runs the reader starts, theirs in the
-// organization, their account's across its organizations, or the organization's
+// A daily cap a start reached: on the conversations or the runs the reader starts, or on what their
+// conversations cost, theirs in the organization, their account's across its organizations, or the
+// organization's
 export type ConversationCapFailure =
   | 'memberConversationsCapped'
   | 'accountConversationsCapped'
@@ -29,6 +33,9 @@ export type ConversationCapFailure =
   | 'memberRunsCapped'
   | 'accountRunsCapped'
   | 'organizationRunsCapped'
+  | 'memberSpendCapped'
+  | 'accountSpendCapped'
+  | 'organizationSpendCapped'
 
 // Why a message could not be sent, as far as the reader can do something about it
 export type ConversationSendFailure =
@@ -49,6 +56,9 @@ const CAP_FAILURES: Record<string, ConversationCapFailure> = {
   [ERROR_CODE_MEMBER_DAILY_RUNS_REACHED]: 'memberRunsCapped',
   [ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED]: 'accountRunsCapped',
   [ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED]: 'organizationRunsCapped',
+  [ERROR_CODE_MEMBER_DAILY_SPEND_REACHED]: 'memberSpendCapped',
+  [ERROR_CODE_ACCOUNT_DAILY_SPEND_REACHED]: 'accountSpendCapped',
+  [ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED]: 'organizationSpendCapped',
 }
 
 /*

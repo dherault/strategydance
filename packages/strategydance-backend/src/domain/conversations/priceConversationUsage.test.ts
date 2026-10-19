@@ -20,6 +20,7 @@ const {
   default: priceConversationUsage,
   priceConversationRequest,
   priceConversationUsageBound,
+  priceCutRequestBound,
   priceRequestWorstCase,
   readModelPrice,
 } = await import('./priceConversationUsage')
@@ -126,7 +127,7 @@ describe('priceConversationUsage', () => {
 })
 
 describe('priceRequestWorstCase', () => {
-  test('prices an attempt at its input written to the cache, its whole output, and five searches each reading it again', () => {
+  test('prices an attempt at its input written to the cache, its whole output, five searches each reading it again, and their results read again', () => {
     const { single, withFallback } = priceRequestWorstCase({
       model: 'claude-opus-5-5',
       inputTokens: 700_000,
@@ -134,11 +135,12 @@ describe('priceRequestWorstCase', () => {
       maxSearches: 5,
     })
 
-    // $3.50 of input, $1.28 of output, and each search $0.14 of cache reads, $0.08 for its allowance
-    // of 16000 tokens and its own cent
-    expect(single).toBeCloseTo(3_500_000 + 1_280_000 + 5 * (140_000 + 80_000 + 10_000))
-    // Opus 5, the dearest fallback: $4.375, $1.60, and each search $0.35, $0.10 and a cent
-    expect(withFallback - single).toBeCloseTo(4_375_000 + 1_600_000 + 5 * (350_000 + 100_000 + 10_000))
+    // $3.50 of input, $1.28 of output, each search $0.14 of cache reads, $0.08 for its allowance of
+    // 16000 tokens and its own cent, and the ten readings again of earlier results, $0.0032 each
+    expect(single).toBeCloseTo(3_500_000 + 1_280_000 + 5 * (140_000 + 80_000 + 10_000) + 10 * 3200)
+    // Opus 5, the dearest fallback: $4.375, $1.60, each search $0.35, $0.10 and a cent, and the ten
+    // readings again at $0.008
+    expect(withFallback - single).toBeCloseTo(4_375_000 + 1_600_000 + 5 * (350_000 + 100_000 + 10_000) + 10 * 8000)
   })
 
   test('prices a request without searches, as tagging is, at its input and output alone', () => {
@@ -196,5 +198,65 @@ describe('priceConversationUsageBound', () => {
     })
 
     expect(priceConversationUsageBound(usage)).toBeCloseTo(1000 * 4 + 64_000 * 20)
+  })
+
+  test('counts a request cut partway at the most it may have written meanwhile, never past its worst case', () => {
+    const cut = (cutBoundMicrodollars: number) =>
+      parseConversationRunUsage({
+        requests: [
+          {
+            ...base,
+            model: 'claude-opus-5-5',
+            isEstimated: true,
+            isSettled: true,
+            worstCaseMicrodollars: 3e6,
+            cutBoundMicrodollars,
+          },
+        ],
+      })
+
+    expect(priceConversationUsageBound(cut(70_000))).toBe(70_000)
+    expect(priceConversationUsageBound(cut(5e6))).toBe(3e6)
+  })
+})
+
+describe('priceCutRequestBound', () => {
+  // What a stream reported before it was cut: its input at the start, its content so far
+  function cut(content: unknown[], model = 'claude-opus-5-5') {
+    return {
+      ...message(model, { input_tokens: 1000, cache_read_input_tokens: 10_000, output_tokens: 3 }),
+      content,
+    } as BetaMessage
+  }
+
+  test('bounds a cut stream by its billed input and what its model writes at most in the time it streamed', () => {
+    // Ten seconds and five of grace at 400 tokens a second: 6000 tokens, $0.12, beside $0.006 of input
+    expect(priceCutRequestBound({ message: cut([]), streamedMs: 10_000, maxTokens: 64_000 })).toBeCloseTo(
+      1000 * 4 + 10_000 * 0.2 + 6000 * 20,
+    )
+    // Never past the request's whole output
+    expect(priceCutRequestBound({ message: cut([]), streamedMs: 600_000, maxTokens: 64_000 })).toBeCloseTo(
+      1000 * 4 + 10_000 * 0.2 + 64_000 * 20,
+    )
+  })
+
+  test('counts each search it shows as the worst case prices one, its results read again after it', () => {
+    const search = { type: 'server_tool_use', id: 'srvtoolu_1', name: 'web_search', input: {} }
+    const bare = priceCutRequestBound({ message: cut([]), streamedMs: 0, maxTokens: 64_000 }) ?? 0
+    const searched = priceCutRequestBound({
+      message: cut([search, { ...search, id: 'srvtoolu_2' }]),
+      streamedMs: 0,
+      maxTokens: 64_000,
+    })
+
+    // Two searches, each a reading of the 11000 tokens and 16000 retrieved, and one reading again
+    expect((searched ?? 0) - bare).toBeCloseTo(2 * (11_000 * 0.2 + 16_000 * 5 + 10_000) + 16_000 * 0.2)
+  })
+
+  test('bounds nothing a fallback answered, nor a model with no rate', () => {
+    const fallback = { type: 'fallback', from: { model: 'claude-opus-5-5' }, to: { model: 'claude-opus-5' } }
+
+    expect(priceCutRequestBound({ message: cut([fallback]), streamedMs: 1000, maxTokens: 64_000 })).toBeNull()
+    expect(priceCutRequestBound({ message: cut([], 'claude-unknown'), streamedMs: 1000, maxTokens: 64_000 })).toBeNull()
   })
 })

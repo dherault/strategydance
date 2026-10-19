@@ -89,6 +89,7 @@ import isSubagentReportDue from '~domain/conversations/isSubagentReportDue'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import readSubagentReportDeadline from '~domain/conversations/readSubagentReportDeadline'
+import readSubagentRunLimits from '~domain/conversations/readSubagentRunLimits'
 import requestConversationTagging from '~domain/conversations/requestConversationTagging'
 import requestConversationTurn, {
   type ConversationRunLimits,
@@ -265,7 +266,7 @@ async function runConversation(
       signal: controller.signal,
       client,
       retryDelayMs,
-      limits: { ...LIMITS, ...limits },
+      limits: { ...LIMITS, ...(isSubagent ? readSubagentRunLimits() : {}), ...limits },
       stopCheckIntervalMs,
       apiRetryDelayMs,
       config: isSubagent

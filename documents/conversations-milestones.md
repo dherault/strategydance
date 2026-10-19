@@ -3090,6 +3090,45 @@ revision a member can go back to, Strategy Dance's agents' and external agents' 
 - **Verify**: the fold and its revision commit together or not at all, a revision restored merges with
   concurrent typing both ways as `updateRichTextYDoc`'s tests do, `check:knowledge-module` against the
   emulators, and the history and Undo looked at in a browser, desktop and phone.
+- Built with these settled, on 2026-10-19:
+  - **The hint costs no conversation its reasoning**, unlike this milestone said: Claude's tool list
+    keeps a module's name, description and input schema alone (`toConversationModuleTool`), so
+    `destructiveHint` reaches external agents' clients only, the conversation's and the subagent's
+    pinned hashes did not move, and `probe:claude` had nothing to check.
+  - **A fold of its own.** A required variable is a breaking connector change, which would stop the
+    release, and the emulator refused optional ones left out under an `@include` defaulting to false
+    ("$revisionState is missing"), as a skipped step's variables are required all the same, so the
+    revision goes through
+    `FoldDocumentWithRevisionForAgent`, `FoldDocumentForAgent` kept as it was for the backend from
+    before while the release deploys, and named in no refresh but its own.
+  - **The revision's text is its content, never Markdown.** No agent reads a revision, and the
+    thread's `Markdown` would draw an underline's tag as text and a code block as a paragraph, so a
+    revision keeps BlockNote's blocks, as `Document.content` holds them, and the history draws them
+    through `RichText`.
+  - **Its snapshot is compressed**: the emulator refused a fold at its bounds carrying a whole
+    snapshot beside the new one, 4800816 bytes past gRPC's 4194304. A revision keeps its snapshot
+    gzipped, and a knowledge write still past 4000000 bytes, which `check:knowledge-module` sends
+    through just short of, is refused before it is sent.
+  - **A restore is a difference in runs**: `updateRichTextYDoc`'s `restore` keeps the blocks the two
+    texts share, with their Yjs items, and writes the revision's own nodes back, ids included, one
+    `updateYFragment` a run of blocks between two it keeps. In one go, its scan turned a kept block
+    between two runs into a new one, which its tests show.
+  - **Undo is offered from the backend's read**: whether nobody has written since takes the text as
+    it stands, which only the backend merges, so the thread asks it once it holds an edit and again
+    on focus (`GET …/knowledge/revisions/undoable/:conversationId`), and the restore checks again,
+    its write refusing an update pending beyond those it merged. An edit's row reads its body, as a
+    launch's does, for the call's id the revision is found by. A subagent's viewer offers Undo too:
+    what it takes back is the document's text, not the conversation.
+  - **The history** opens from the document's menu, and from `?history=true`, where the thread's
+    notification sends a reader whose Undo found the text written over. Restore asks inline, never in
+    a second dialog, saying how many later entries go with it, waits for the reader's own typing to
+    be stored, and its notification undoes it.
+  - Verified: the four checks; `check:knowledge-module` against an emulator of the branch's schema,
+    every check passing; and in a browser against it, at 1280 and 390 wide, a scripted agent's
+    `update_document` in a conversation, Undo on its row and Redo, the history with Strategy Dance's,
+    an external agent's and a member's entries, the text before drawn with its heading, underline and
+    code, Restore this version with its warning, the open editor showing the restore without a reload,
+    and Undo gone from the row once a member typed in the document.
 
 ### M41: Races against a real Postgres
 

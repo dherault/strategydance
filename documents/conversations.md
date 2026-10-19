@@ -86,7 +86,11 @@ kept as a revision a member can undo, in M40, since one edit can rewrite a docum
 nobody watching (see Risks); the locks the runs are reasoned about are exercised against a real
 Postgres, in M41; and a subagent asks for its report before any of its limits, not only its 25
 requests, in M42. What the review found beside them is fixed in pull requests of their own, and what
-it left is in Risks. When a decision changes, change it here first.
+it left is in Risks. Revised on 2026-10-19, in M40, with what building document revisions settled, in
+Rich text and Markdown: a revision keeps its text as BlockNote's blocks, never Markdown, which no
+agent reads and the page would draw worse, and its snapshot compressed, since a fold carrying two
+whole snapshots passes the 4 MiB Data Connect takes in a request. When a decision changes, change
+it here first.
 
 ## The design
 
@@ -1465,7 +1469,7 @@ agents in M20:
 | `list_documents` | `{ aspects?, cursor? }`: the documents AI may read, 50 at a time, latest updated first and then by id, since two can share an instant, with id, title, aspects, `updatedAt` and `isAiWritable`, and a `cursor`, holding the last one's `updatedAt` and id, while more remain, for an agent that would rather look round than search | read |
 | `read_document` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, a mention written as `[title](doc:<id>)` or `[name](task:<id>)`, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text. Refused, before anything of the document is loaded, when the team keeps it from AI, `isAiReadable` off ("The team keeps this document from AI. Tell the member you cannot read it."), which a member's mention of it does not change | read |
 | `create_document` | `{ title, aspects, content }`: a new document, content in Markdown, mentions included, stored as its first Yjs snapshot with `content` and `contentText` beside it, under the knowledge cap, as `CreateDocument` holds it. It starts with `isAiReadable` and `isAiWritable` on, as a document made on the page does, so the agent that made it can read and edit it, and the team can turn either off | write |
-| `update_document` | `{ id, version?, title?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, never a mention, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. A call makes one edit: `title` alone, or with at most one of `content`, `append`, `replaceBlocks` and `replaceText`, the schema refusing two of them together, or none of the five, before anything is read, so no two implementations can disagree on which applies first. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the team keeps AI from changing the document, `isAiWritable` off, or from reading it ("The team keeps AI from changing this document. Tell the member instead."); for `content`, which rewrites everything the model read, when it comes without the `version` `read_document` gave or the text is no longer that version, before anything is written; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document | write |
+| `update_document` | `{ id, version?, title?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, never a mention, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. A call makes one edit: `title` alone, or with at most one of `content`, `append`, `replaceBlocks` and `replaceText`, the schema refusing two of them together, or none of the five, before anything is read, so no two implementations can disagree on which applies first. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the team keeps AI from changing the document, `isAiWritable` off, or from reading it ("The team keeps AI from changing this document. Tell the member instead."); for `content`, which rewrites everything the model read, when it comes without the `version` `read_document` gave or the text is no longer that version, before anything is written; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document. An edit that changes the text keeps the text it replaced as a revision a member can go back to for 30 days, in the fold that stores it (see Rich text and Markdown), and the tool says `destructiveHint: true`, which an external agent's client may read to ask its member first: the hint is advisory, and the revision is what guards the text | write |
 | `set_document_aspects` | `{ id, aspects }`: flags the document with its aspects, replacing them all, each at most once, as the aspects dialog does. Refused as `update_document` is | write |
 | `delete_document` | `{ id }`: deletes the document as its page's Delete does, setting `deletedAt`, so it can be restored for a day, which the result says. Refused unless AI may both read and change it | write |
 | `restore_document` | `{ id }`: restores a document deleted less than a day ago, under the knowledge cap, as `RestoreDocument` does. Refused unless AI may both read and change it | write |
@@ -2484,6 +2488,30 @@ for Strategy Dance's agent and an external one alike (see `CLAUDE.md` § The dat
   nearly full document is refused with a result the model can explain, and nothing is written or
   deleted. A document with no `state` is seeded in the same write, under
   `SeedDocumentState`'s condition.
+- **Keeping what it replaced**, from M40: the fold that stores an edit changing the text,
+  `FoldDocumentWithRevisionForAgent`, inserts a `DocumentRevision` in the same transaction, under
+  the edit's key, so an edit and the text it replaced commit together or not at all. It holds the
+  text as the fold read it, every pending update merged: its snapshot, compressed with gzip, which
+  only the backend reads, and its `content`, BlockNote's blocks, which the document's history draws
+  as the page draws a document; who made it, the member, and where from, the module call's scope,
+  `conversation:<id>` or `connection:<id>`; the call's key, Claude's `tool_use` id for Strategy
+  Dance's agent; and the version of the text the edit left, by which an Undo knows nobody has written
+  since. Kept 30 days, which the daily sweep prunes, and deleted with the document. Only members read
+  them, whatever the team lets agents do with the document. Data Connect takes 4 MiB a request,
+  gRPC's own bound, which a fold carrying two whole snapshots at their bounds passed (4800816 bytes
+  in the emulator): compressed, a revision fits beside the new snapshot as a rule, and a fold still
+  past 4000000 bytes is refused before it is sent, as a snapshot past its bound is, never written
+  without its revision.
+- **Going back** is a member's: the backend reads the document as it stands and writes the
+  revision's text back as a new edit, through `updateRichTextYDoc`'s `restore`, which keeps every
+  top-level block the two share exactly, its Yjs items and whatever is typed in it meanwhile,
+  deletes the others and writes the revision's own nodes back, ids, pictures and all, one run of
+  blocks at a time between two it keeps: written in one go, y-prosemirror's scan would turn a kept
+  block between two runs into a new one in place. The restore is stored as a fold is, under the
+  revision read, and keeps a revision of its own, so it can be undone in turn. Undo, on the tool
+  call's row, goes back only while the text is still the version the edit left, which the thread
+  asks the backend once it holds an edit and again on focus; a restore from the document's history
+  says first that everything written since goes too, every later entry and whatever members typed.
 
 The thread draws the agent's Markdown with the design system's `Markdown` component, built in M3 on
 `react-markdown`, `remark-gfm` and `remark-breaks`: HTML drawn as text, an element allowlist with
@@ -2920,9 +2948,12 @@ members' once they write.
   with nobody watching as it happens. Its row, its thread, its report, the AI permissions and a
   restore for a day bound it as they bound the parent, and a reaction launches nothing, so injected
   text cannot start more subagents. An edit can still rewrite a document's whole text, which no
-  restore brings back, since a document keeps one snapshot and no history: the tool call row and
-  the report name it, and a document's history is what would close it, which M40 builds for an
-  agent's edits, as David chose on 2026-10-18 after the review of M1 to M38. If that proves too
+  restore brought back until M40, since a document kept one snapshot and no history: every edit an
+  agent makes now keeps the text it replaced for 30 days, which Undo on the tool call's row and the
+  document's history bring back, as David chose on 2026-10-18 after the review of M1 to M38. What a
+  subagent wrote over is still lost past those 30 days, and what members typed since goes with a
+  restore. A revision holds a whole compressed snapshot, so a month of an agent's edits to a long
+  document takes room in the database, which the daily sweep's prune bounds. If that proves too
   loose, a
   grant of tools per launch fits `launch_subagent`'s input, at the cost of the prefix the subagents
   share in the cache.

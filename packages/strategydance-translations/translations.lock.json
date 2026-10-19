@@ -3785,6 +3785,30 @@
         "hash": "ba58b941b24a5962",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.history": {
+        "hash": "6f2bc3b91aa2b7f9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.historyClose": {
+        "hash": "da3f973055d88c81",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.historyDescription": {
+        "hash": "29b2e75872ceffd9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.historyEmpty": {
+        "hash": "475ba95e1ad0d0c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.historyError": {
+        "hash": "77ba78283ea4be2a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.historyTitle": {
+        "hash": "9c0375664c1c77db",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.lead": {
         "hash": "37c6edbbe5b19ffb",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3810,7 +3834,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.moreActions": {
-        "hash": "b3dab16d8741e2a7",
+        "hash": "fe5acab51c7f2f2a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.moreHere": {
@@ -3841,8 +3865,72 @@
         "hash": "7c8f9f8615aeacce",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.restoreUndoError": {
+        "hash": "9335d7a2dee6079b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.restoreVersion": {
+        "hash": "2c62ec7f4865439c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.restoreVersionCancel": {
+        "hash": "5ce0e6dcaa8e03c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.restoreVersionConfirm": {
+        "hash": "12ecd52de401f9d2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.restoreVersionWaiting": {
+        "hash": "45433e4d17fd8025",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.restoreVersionWarning": {
+        "hash": "e9207ba2045f10c6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.retry": {
         "hash": "716596781f39ac89",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.revisionByAgent": {
+        "hash": "f0b1fd79935d5fba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.revisionByStrategyDance": {
+        "hash": "bb2bbe30cb8ffb7f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.revisionFormerMember": {
+        "hash": "8247934e09cb928a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.revisionHide": {
+        "hash": "836e55fbf727e531",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.revisionJustNow": {
+        "hash": "a5b159c884baa36b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.revisionOpenConversation": {
+        "hash": "2c0821ece06ee3b3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.revisionRestored": {
+        "hash": "b84e2a95c3fd7827",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.revisionTextEmpty": {
+        "hash": "c5ec21c3bf509bce",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.revisionTextError": {
+        "hash": "77ec3415e98b10fd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.revisionView": {
+        "hash": "41f3cd5a5e7b4fce",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "knowledge.save": {
@@ -3877,8 +3965,28 @@
         "hash": "6cac6edbe5aa0efe",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "knowledge.undoRestore": {
+        "hash": "bd1a72ad2116423d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "knowledge.untitled": {
         "hash": "88ccadd9ec6ac06c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.versionGone": {
+        "hash": "4cabe5cf5922caea",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.versionRestoreError": {
+        "hash": "e8ce91993dad895f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.versionRestored": {
+        "hash": "5dd4bb1d2d1a40a6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "knowledge.versionUnrestorable": {
+        "hash": "0b5122ed48d1c9bf",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },

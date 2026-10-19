@@ -13,6 +13,8 @@ type Props = {
   // Whether the address opened a draft rather than a stored document
   isNew: boolean
   aspect: CompanyAspect | null
+  // Whether the address asks for the document's history open over it
+  isHistoryRequested: boolean
 }
 
 /*
@@ -27,7 +29,7 @@ type Props = {
   knowledge, and the page stays on its own until the navigation has gone through the editor's,
   which sends what is left first
 */
-function KnowledgeDocumentPage({ documentId, isNew, aspect }: Props) {
+function KnowledgeDocumentPage({ documentId, isNew, aspect, isHistoryRequested }: Props) {
   const { organization } = useCurrentOrganization()
   const [isDraft] = useState(isNew)
   const [organizationId] = useState(organization?.id ?? null)
@@ -55,6 +57,7 @@ function KnowledgeDocumentPage({ documentId, isNew, aspect }: Props) {
           documentId={documentId}
           knowledgeDocument={isDraft ? null : knowledgeDocument}
           draftAspect={aspect}
+          isHistoryRequested={isHistoryRequested}
         />
       </KnowledgeDocumentBouncer>
     </KnowledgeDocumentWait>

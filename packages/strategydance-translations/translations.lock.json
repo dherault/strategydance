@@ -1765,6 +1765,14 @@
         "hash": "a76b123242458aa1",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.documentEditChangedSince": {
+        "hash": "71bbc255cd731c6e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.documentEditUndone": {
+        "hash": "a1a8850ac4fb65e3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.documentGone": {
         "hash": "87c6424c781dd84f",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1941,6 +1949,10 @@
         "hash": "410b2e2f9b9d16e3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.openDocumentHistory": {
+        "hash": "1fe9bc5240a94ae5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.openInDock": {
         "hash": "308002124689e8c9",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2055,6 +2067,14 @@
       },
       "conversation.question.writeOwn": {
         "hash": "7e0762a3dc21017a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.redoDocumentEdit": {
+        "hash": "cc502b2ea50d0a2d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.redoDocumentEditError": {
+        "hash": "e1887fc295532aef",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.restoreDocument": {
@@ -2535,6 +2555,14 @@
       },
       "conversation.undo": {
         "hash": "6cac6edbe5aa0efe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.undoDocumentEdit": {
+        "hash": "219d62de97511a35",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.undoDocumentEditError": {
+        "hash": "b29215a4a47c64fd",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.updated": {

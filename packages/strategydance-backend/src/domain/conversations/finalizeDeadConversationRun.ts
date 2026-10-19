@@ -178,7 +178,7 @@ function describeDeath(status: ConversationRunStatus) {
 
 /*
   Whether a queued run past its lease is still coming, as Cloud Tasks says, pushing its lease back
-  twenty minutes when it is:
+  another queued lease when it is:
 
   - its task is there, waiting or being delivered
   - Cloud Tasks could not say, which changes nothing, and the page asks again in two minutes

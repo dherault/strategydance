@@ -24,6 +24,8 @@ import {
   DAILY_CAP_WINDOW_HOURS,
 } from 'strategydance-core'
 
+import { CONVERSATION_RUN_QUEUED_LEASE_MS } from '~constants'
+
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 import toSortableInstant from '~utils/toSortableInstant'
 
@@ -387,6 +389,9 @@ function createConversationDatabaseFake() {
 
     return now().replace('Z', `${String(stamps % 1000).padStart(3, '0')}Z`)
   }
+
+  // What every write that queues a run sets its lease to, as the mutations write it out
+  const QUEUED_LEASE_SECONDS = CONVERSATION_RUN_QUEUED_LEASE_MS / 1000
 
   function inSeconds(seconds: number) {
     return new Date(Date.now() + seconds * 1000).toISOString()
@@ -962,7 +967,7 @@ function createConversationDatabaseFake() {
       step: null,
       anchorPosition,
       stopRequestedAt: null,
-      leaseExpiresAt: inSeconds(20 * 60),
+      leaseExpiresAt: inSeconds(QUEUED_LEASE_SECONDS),
       attempts: 0,
       createdAt: now(),
       startedAt: null,
@@ -2174,7 +2179,7 @@ function createConversationDatabaseFake() {
         step: null,
         anchorPosition: 0,
         stopRequestedAt: null,
-        leaseExpiresAt: inSeconds(20 * 60),
+        leaseExpiresAt: inSeconds(QUEUED_LEASE_SECONDS),
         attempts: 0,
         createdAt: now(),
         startedAt: null,
@@ -2588,7 +2593,7 @@ function createConversationDatabaseFake() {
 
       if (!run) return { conversationRun_updateMany: 0 }
 
-      run.leaseExpiresAt = inSeconds(20 * 60)
+      run.leaseExpiresAt = inSeconds(QUEUED_LEASE_SECONDS)
 
       return { conversationRun_updateMany: 1 }
     },
@@ -2788,7 +2793,7 @@ function createConversationDatabaseFake() {
         step: null,
         anchorPosition: variables.anchorPosition,
         stopRequestedAt: null,
-        leaseExpiresAt: inSeconds(20 * 60),
+        leaseExpiresAt: inSeconds(QUEUED_LEASE_SECONDS),
         attempts: 0,
         createdAt: now(),
         startedAt: null,
@@ -2881,7 +2886,7 @@ function createConversationDatabaseFake() {
         step: null,
         anchorPosition: variables.anchorPosition,
         stopRequestedAt: null,
-        leaseExpiresAt: inSeconds(20 * 60),
+        leaseExpiresAt: inSeconds(QUEUED_LEASE_SECONDS),
         attempts: 0,
         createdAt: now(),
         startedAt: null,
@@ -4343,7 +4348,7 @@ function createConversationDatabaseFake() {
         refuse('The run is no longer waiting for a slot')
       }
 
-      Object.assign(run, { status: 'QUEUED', createdAt: now(), leaseExpiresAt: inSeconds(20 * 60) })
+      Object.assign(run, { status: 'QUEUED', createdAt: now(), leaseExpiresAt: inSeconds(QUEUED_LEASE_SECONDS) })
 
       return { conversationRun_updateMany: 1 }
     },

@@ -89,9 +89,9 @@ function readNotes(reference: ConversationRunReference) {
     .map(({ noteKind }) => noteKind)
 }
 
-// Whether the lease is about twenty minutes out, as a queued run's is
+// Whether the lease is about a queued run's lease out again
 function isPushedBack(reference: ConversationRunReference) {
-  return readLease(reference) > Date.now() + 19 * 60 * 1000
+  return readLease(reference) > Date.now() + constants.CONVERSATION_RUN_QUEUED_LEASE_MS - 10 * 1000
 }
 
 beforeEach(() => {

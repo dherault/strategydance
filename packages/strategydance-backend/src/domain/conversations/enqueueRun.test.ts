@@ -42,7 +42,7 @@ function readMembershipCreatedAt() {
   return fake.memberships.get(`${AUTHOR}:${ORGANIZATION_ID}`)?.createdAt
 }
 
-// A conversation started as a send starts one, its run queued with twenty minutes' lease
+// A conversation started as a send starts one, its run queued with a queued run's lease
 async function start(): Promise<ConversationRunReference> {
   const reference = { organizationId: ORGANIZATION_ID, userId: AUTHOR, conversationId: createId(), runId: createId() }
 

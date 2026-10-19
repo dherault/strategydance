@@ -346,4 +346,19 @@ describe('the sweep', () => {
     expect(await sweepSubagentReactions()).toEqual({ started: 1 })
     expect(readReactions(parent)).toHaveLength(1)
   })
+
+  test('throws once done when a member’s reactions due could not be read, so its route reports it', async () => {
+    const parent = await startParent()
+
+    await report(await kit.launch(parent))
+
+    fake.beforeOperation = async name => {
+      if (name === 'GetDueSubagentReactions') throw new Error('The database is unreachable')
+    }
+
+    await expect(sweepSubagentReactions()).rejects.toThrow(
+      'sweepSubagentReactions: 1 of its reads or reconciles failed',
+    )
+    expect(readReactions(parent)).toEqual([])
+  })
 })

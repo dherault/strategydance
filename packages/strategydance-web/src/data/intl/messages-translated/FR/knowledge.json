@@ -59,6 +59,7 @@
   "knowledge.editorVideoUnsupported": "Collez un lien vers une vidéo YouTube, Vimeo ou Loom",
   "knowledge.emptyText": "Ajoutez des notes, des plans et des décisions concernant votre entreprise. Associez chaque élément à des aspects pour qu'il apparaisse sur ces pages.",
   "knowledge.emptyTitle": "Aucune connaissance pour l'instant",
+  "knowledge.eyebrow": "Tout ce que vous savez, en un seul endroit",
   "knowledge.goToAll": "Voir toutes les connaissances",
   "knowledge.lead": "{count, plural, one {# élément} other {# éléments}} dans vos aspects",
   "knowledge.leave": "Quitter",

@@ -403,9 +403,19 @@ only way the app talks to them.
   `SearchConversationsBySubstring` puts them
 - An operation takes no `@check` of its own. A check that reads only variables sits on a field
   of the first, redacted step, where `@check` is repeatable
-- A `query` step of a mutation does not see what the same mutation wrote, though it sees what
-  another transaction committed before it once a lock is taken. Count around the rows the mutation
-  writes, by their ids, as `AnswerConversationQuestion` leaves out the question it answers
+- A mutation runs as one SQL statement, each step a part of it, unless a step reads an earlier
+  step's `response`: then every step runs as a statement of its own, in order. Every part of one
+  Postgres statement reads the snapshot it started with, so a step after a lock never sees what the
+  writer holding the lock committed while it waited, and only a condition in an update's `where` is
+  checked again, on the row as it stands. A step that counts, or writes rows it finds by a filter,
+  after a lock another writer takes reads the lock's response, as the starts' membership reads
+  `response.userOrganization_update.userId`, or a query step's after it, as
+  `AnswerConversationQuestion`'s count of the questions left reads the waiting run's conversation
+  (M41). The mutations outside conversations still count in one statement, which a later pull
+  request takes on
+- A step that runs as a statement of its own sees what its own mutation wrote before it, and one
+  statement does not: either way, count around the rows the mutation writes, by their ids, as
+  `AnswerConversationQuestion` leaves out the question it answers
 - A mutation takes one `query` step: a second is refused ("selecting `query` again is not yet
   supported"). A check that has to follow a write, once its row is locked, goes in that one step,
   after the write, with the membership's and the variables' checks beside it, as
@@ -423,10 +433,11 @@ only way the app talks to them.
   lock's check can: the backend reads both messages as one refusal (`isMembershipRefusal`), as it
   reads a token's reference to a connection gone meanwhile as a revoked grant
   (`isConnectionGoneRefusal`)
-- A mutation writes each row once. Data Connect runs the first write to a row and silently skips
-  any later one in the same mutation, aliased or not: an `organization_update` row lock followed
-  by another `organization_update`, or by `organization_delete`, changes nothing. When the row a
-  mutation locks is the row it writes, the write itself is the lock, and the checks follow it
+- A mutation writes each row once. In one statement Data Connect runs the first write to a row and
+  silently skips any later one, aliased or not: an `organization_update` row lock followed by
+  another `organization_update`, or by `organization_delete`, changes nothing, while steps that run
+  apart apply both. When the row a mutation locks is the row it writes, the write itself is the
+  lock, and the checks follow it
 - Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
   shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
   lookup, and its comment says what that costs. The other exception is the authorization server's:
@@ -453,7 +464,9 @@ only way the app talks to them.
   under a lock on the member's own row, which their consents in every organization take in turn,
   and the list reads that many, so it is never cut short and Disconnect reaches every agent acting
   as them. The emulator's PGlite runs one transaction at a time, so no race shows there: a lock's
-  reasoning is Postgres', and `check:oauth` guards the outcome
+  reasoning is Postgres', and `check:oauth` guards the outcome. That count reads its one
+  statement's snapshot, which misses a consent committed while it waited on the lock, until the
+  pull request after M41 has it read the lock's response
 - An operation that finds its row by `auth.token.email` rather than `auth.uid`, as the
   invitation ones do, is `USER_EMAIL_VERIFIED`. A password sign-up can name any address nobody
   has claimed yet, so the address proves nothing until it is verified. The claim lives in the ID
@@ -1364,8 +1377,11 @@ A conversation is kept twice, once for Claude and once for the page, and
   report that comes after is marked with no run (`MarkSubagentReportsDelivered`), from whatever reads
   the parent full, the subagent's end, the reconcile or the sweep
 - Every write on a parent and its subagents keeps one lock order: the membership, the parent's runs,
-  the parent's row, its subagents' runs, then their rows, so whichever of a launch and a cascade
-  commits second sees the first. The parent's Stop asks its anchor's live subagents to stop in the
+  the parent's row, its subagents' runs, then their rows, and each reads its lock's response, so its
+  steps run apart and whichever of a launch and a cascade commits second sees the first. The
+  subagents' stops take the membership's lock to read its response, the suspensions read the runs
+  through the locked account's or organization's, and the web's `DeleteConversation` reads its
+  subagents through its membership read. The parent's Stop asks its anchor's live subagents to stop in the
   same write (`RequestConversationRunStopWithSubagents`, `StopQueuedConversationRunWithSubagents`),
   Stop all and a row's Stop go through the parent's routes (`POST …/subagents/stop`, `POST
   …/subagents/:subagentId/stop`), Retry stops and deletes the cut runs' subagents at an instant of
@@ -1376,6 +1392,15 @@ A conversation is kept twice, once for Claude and once for the page, and
   only once idle, lowering a remaining parent's `subagentCount` (`PruneClaimedSubagents`).
   `check:conversation-runs` reads the order off the mutations themselves, since PGlite serializes
   every race: a new write on a parent keeps it
+- `bun run check:conversation-races`, in the backend's package, races the runs' bounds and cascades
+  against a real Postgres: one run per conversation, three in flight, five slots, promotions,
+  reactions, a stop beside a chain, a delete beside a launch and a suspension beside a send, each
+  the backend's own writers released at once, many rounds over, printing the interleaving of a
+  round that fails. It never runs in CI: run it before a release that changes a run's mutations, as
+  `probe:claude` runs before one that changes a request. It needs Docker, where it starts a
+  throwaway Postgres, with four emulators on it behind a proxy, since one emulator runs one
+  operation at a time on any database (`withPostgresEmulators.ts`), on ports beside the person's
+  stack. `bun run emulators:postgres` serves the same until Ctrl-C, for any check pointed at it
 - A domain function hands an operation only the variables it declares: Data Connect refuses one it
   does not, which the fakes let through, so pass a member as `{ organizationId, userId }`, never a
   run reference that carries more

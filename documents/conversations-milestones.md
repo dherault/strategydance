@@ -3125,3 +3125,29 @@ a sentence about what it was about to do, which is all its parent reads of it (s
   when its time and its cost allow it.
 - **Verify**: `runConversation.chains.test.ts` at each limit, the report being the reply to the
   request, and `measure:subagents` on one brief made to run long, its cost capped as M33's was.
+- Built with these settled, on 2026-10-19:
+  - **Nothing the reply to the request calls runs.** The request says no call after it can run, yet
+    a 25th request's calls ran. A run that asks early would otherwise go on, and ask again: the
+    reply's calls are planned refused and drawn failed, from the transcript alone, and a reply that
+    calls any ends the run `FAILED` at its limits, its report the reply's text.
+  - **The cost rule is the worst case's**: the ledger's bound, plus the next request reserved as
+    `requestConversationTurn` reserves it, with its fallback when that fits, plus one more attempt
+    without, past the $10. Small requests of Opus 5.5 ask from some $4.40 spent, against the $8.26 a
+    run can spend before it sends nothing more, so a report fits after any next request within its
+    worst case.
+    The next request is reckoned before it is measured, from the last one's input and output and the
+    results at three characters a token.
+  - **The time a report is given** is two minutes, `SUBAGENT_REPORT_TIME_MS`: asked once less is
+    left of the ten minutes, and sent past them until two minutes before the stream's cut at 14,
+    `readSubagentReportDeadline`, API retries included.
+  - **The ten minutes between two calls**, the commonest way they cut a fourth run, ask too: the
+    calls they kept from starting are answered `UNRUN_AT_TIME_LIMIT_CALL_RESULT` beside the request.
+  - **A brief made to run long** is `measure:subagents --briefs long`, its runs held to two and a
+    half minutes through `SUBAGENT_RUN_LIMITS`, which only the script sets outside production, as
+    `SUBAGENT_REQUEST_SETTINGS` is set, so it chains three times and its fourth asks within minutes.
+  - Verified: the four checks; `runConversation.chains.test.ts` at each limit, the report the reply to
+    the request: its 24th request, its 26th after a turn paused past its 24th, eight and a half
+    minutes, $5 spent, 95 entries, the ten minutes between two writes, past the ten minutes and past
+    the 100 entries once asked, nothing sent past 12 minutes, and a reply that calls a tool;
+    `isSubagentReportDue.test.ts` at each rule's edge. `measure:subagents --briefs long` against
+    emulators of the branch with the placeholder agent.

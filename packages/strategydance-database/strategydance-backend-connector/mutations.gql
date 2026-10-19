@@ -5088,9 +5088,17 @@ mutation MarkSubagentReportsDelivered(
   )
     @check(expr: "this == 1", message: "No such conversation of the caller's")
     @check(expr: "size(vars.subagentIds) <= 100", message: "A conversation holds at most 100 subagents")
+  # The parent read back after its lock, whose response the count reads, so every step runs as a
+  # statement of its own, and the count sees a run a retry committed while the lock was waited for,
+  # which one statement would miss (CLAUDE.md § The database)
+  locked: query @redact {
+    conversation(id: $conversationId) {
+      id
+    }
+  }
   query @redact {
     later: conversationRuns(
-      where: { conversationId: { eq: $conversationId }, number: { gt: $parentRunNumber } }
+      where: { conversationId: { eq_expr: "response.locked.conversation.id" }, number: { gt: $parentRunNumber } }
       limit: 1
     ) @check(expr: "size(this) == 0", message: "The conversation started a run since it was full") {
       id

@@ -54,6 +54,24 @@ export type RichTextImageData = {
 }
 
 /*
+  The edits a conversation's agent made to documents that an Undo can still take back, nobody
+  having written to their document since: each revision's id, the key of the call that made it,
+  Claude's id for the call, by which the thread finds its row, and its document
+*/
+export type UndoableDocumentRevisionsData = {
+  revisions: { id: string; callKey: string; documentId: string }[]
+}
+
+/*
+  What going back to a version of a document answers with: the revision the restore kept of the
+  text it replaced, which an Undo of the restore goes back to, or null when the text read as the
+  version already and nothing was written
+*/
+export type RestoreDocumentRevisionData = {
+  revisionId: string | null
+}
+
+/*
   What a web page says of itself, as a link preview card in a document draws it: the address it
   was asked for, and whatever the page names of its title, its description, its site and its
   picture, each left out when it names none. A page that could not be read is its address alone

@@ -3113,6 +3113,12 @@ revision a member can go back to, Strategy Dance's agents' and external agents' 
     texts share, with their Yjs items, and writes the revision's own nodes back, ids included, one
     `updateYFragment` a run of blocks between two it keeps. In one go, its scan turned a kept block
     between two runs into a new one, which its tests show.
+  - **A fingerprint, never a version**: whether nobody has written since, and whether an edit or a
+    restore changed anything, compares a hash of everything y-prosemirror reads from the text, ids
+    included (`afterFingerprint`). The first round compared `read_document`'s version, which hashes
+    the agent's Markdown: Copilot found that a member's line break in a table's cell, or a cell's
+    alignment, left it unchanged, so Undo wrote over them, and an agent's line break in a cell kept
+    no revision.
   - **Undo is offered from the backend's read**: whether nobody has written since takes the text as
     it stands, which only the backend merges, so the thread asks it once it holds an edit and again
     on focus (`GET …/knowledge/revisions/undoable/:conversationId`), and the restore checks again,

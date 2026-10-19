@@ -2495,8 +2495,11 @@ for Strategy Dance's agent and an external one alike (see `CLAUDE.md` § The dat
   only the backend reads, and its `content`, BlockNote's blocks, which the document's history draws
   as the page draws a document; who made it, the member, and where from, the module call's scope,
   `conversation:<id>` or `connection:<id>`; the call's key, Claude's `tool_use` id for Strategy
-  Dance's agent; and the version of the text the edit left, by which an Undo knows nobody has written
-  since. Kept 30 days, which the daily sweep prunes, and deleted with the document. Only members read
+  Dance's agent; and a fingerprint of the text the edit left, a hash of every node, attribute and
+  character y-prosemirror reads from it, ids included, by which an Undo knows nobody has written
+  since and an edit knows it changed something. Never `read_document`'s version, a hash of the
+  agent's Markdown, which flattens a line break in a table's cell and says nothing of a cell's
+  alignment, so an Undo would write over a member's change to either. Kept 30 days, which the daily sweep prunes, and deleted with the document. Only members read
   them, whatever the team lets agents do with the document. Data Connect takes 4 MiB a request,
   gRPC's own bound, which a fold carrying two whole snapshots at their bounds passed (4800816 bytes
   in the emulator): compressed, a revision fits beside the new snapshot as a rule, and a fold still
@@ -2509,7 +2512,7 @@ for Strategy Dance's agent and an external one alike (see `CLAUDE.md` § The dat
   blocks at a time between two it keeps: written in one go, y-prosemirror's scan would turn a kept
   block between two runs into a new one in place. The restore is stored as a fold is, under the
   revision read, and keeps a revision of its own, so it can be undone in turn. Undo, on the tool
-  call's row, goes back only while the text is still the version the edit left, which the thread
+  call's row, goes back only while the text still has the fingerprint the edit left, which the thread
   asks the backend once it holds an edit and again on focus; a restore from the document's history
   says first that everything written since goes too, every later entry and whatever members typed.
 

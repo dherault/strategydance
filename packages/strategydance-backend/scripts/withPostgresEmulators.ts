@@ -138,7 +138,8 @@ for (let index = 0; index < EMULATOR_COUNT; index++) {
   emulatorPorts.push(findFreePort(FIRST_EMULATOR_PORT, emulatorPorts))
 }
 
-const proxyPort = findFreePort(FIRST_PROXY_PORT)
+// Clear of the emulators' ports too, which nothing listens on until they start
+const proxyPort = findFreePort(FIRST_PROXY_PORT, emulatorPorts)
 const directory = await mkdtemp(join(tmpdir(), 'strategydance-races-'))
 
 const emulators: Bun.Subprocess[] = []

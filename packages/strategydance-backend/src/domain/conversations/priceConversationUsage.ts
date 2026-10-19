@@ -109,14 +109,25 @@ type WorstCaseInput = {
   bring about, its output at the whole `max_tokens`, and each search it may make as one more reading
   of its input, at the cache-read rate, the first reading having cached it within the request, as
   David chose on 2026-10-18 and `probe:claude` checks, what the search retrieves, as much as the
-  allowance, at the cache-write rate, and the search's own price
+  allowance, at the cache-write rate, and the search's own price. Each step of the search loop reads
+  again what every search before it retrieved, at the cache-read rate too, so the results of five
+  searches are read ten times more than once each
 */
-function priceAttemptWorstCase(model: string, { inputTokens, maxTokens, maxSearches }: Omit<WorstCaseInput, 'model'>) {
+export function priceAttemptWorstCase(
+  model: string,
+  { inputTokens, maxTokens, maxSearches }: Omit<WorstCaseInput, 'model'>,
+) {
   const price = readModelPrice(model)
   const search =
     inputTokens * price.cacheRead + WEB_SEARCH_RESULT_TOKEN_ALLOWANCE * price.cacheWrite + WEB_SEARCH_PRICE_MICRODOLLARS
+  const readingsAgain = (maxSearches * (maxSearches - 1)) / 2
 
-  return inputTokens * price.cacheWrite + maxTokens * price.output + maxSearches * search
+  return (
+    inputTokens * price.cacheWrite
+    + maxTokens * price.output
+    + maxSearches * search
+    + readingsAgain * WEB_SEARCH_RESULT_TOKEN_ALLOWANCE * price.cacheRead
+  )
 }
 
 /*

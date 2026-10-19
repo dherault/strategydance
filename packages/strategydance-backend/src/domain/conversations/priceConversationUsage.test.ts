@@ -126,7 +126,7 @@ describe('priceConversationUsage', () => {
 })
 
 describe('priceRequestWorstCase', () => {
-  test('prices an attempt at its input written to the cache, its whole output, and five searches each reading it again', () => {
+  test('prices an attempt at its input written to the cache, its whole output, five searches each reading it again, and their results read again', () => {
     const { single, withFallback } = priceRequestWorstCase({
       model: 'claude-opus-5-5',
       inputTokens: 700_000,
@@ -134,11 +134,12 @@ describe('priceRequestWorstCase', () => {
       maxSearches: 5,
     })
 
-    // $3.50 of input, $1.28 of output, and each search $0.14 of cache reads, $0.08 for its allowance
-    // of 16000 tokens and its own cent
-    expect(single).toBeCloseTo(3_500_000 + 1_280_000 + 5 * (140_000 + 80_000 + 10_000))
-    // Opus 5, the dearest fallback: $4.375, $1.60, and each search $0.35, $0.10 and a cent
-    expect(withFallback - single).toBeCloseTo(4_375_000 + 1_600_000 + 5 * (350_000 + 100_000 + 10_000))
+    // $3.50 of input, $1.28 of output, each search $0.14 of cache reads, $0.08 for its allowance of
+    // 16000 tokens and its own cent, and the ten readings again of earlier results, $0.0032 each
+    expect(single).toBeCloseTo(3_500_000 + 1_280_000 + 5 * (140_000 + 80_000 + 10_000) + 10 * 3200)
+    // Opus 5, the dearest fallback: $4.375, $1.60, each search $0.35, $0.10 and a cent, and the ten
+    // readings again at $0.008
+    expect(withFallback - single).toBeCloseTo(4_375_000 + 1_600_000 + 5 * (350_000 + 100_000 + 10_000) + 10 * 8000)
   })
 
   test('prices a request without searches, as tagging is, at its input and output alone', () => {

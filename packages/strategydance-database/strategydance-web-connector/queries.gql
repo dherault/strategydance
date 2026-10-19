@@ -2044,6 +2044,8 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
       aspects
       aspectsSetBy
       noteKind
+      ceilingScope
+      ceilingFreesAt
       approvalState
     }
   }
@@ -2155,6 +2157,8 @@ query GetConversationMessagesBefore($organizationId: UUID!, $id: UUID!, $beforeP
     aspects
     aspectsSetBy
     noteKind
+    ceilingScope
+    ceilingFreesAt
     approvalState
     text
     citations

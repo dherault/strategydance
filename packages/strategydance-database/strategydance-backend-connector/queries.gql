@@ -312,6 +312,8 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
     position
     text
     noteKind
+    ceilingScope
+    ceilingFreesAt
     toolName
     toolStatus
     questionPrompt
@@ -418,6 +420,8 @@ query GetConversationRetryContext(
     kind
     text
     noteKind
+    ceilingScope
+    ceilingFreesAt
     toolName
     toolStatus
     questionPrompt

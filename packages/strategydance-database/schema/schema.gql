@@ -604,6 +604,17 @@ enum ConversationNoteKind {
   FULL
 }
 
+# Whose daily spend ceiling stopped a run (`MAX_DAILY_SPEND_MICRODOLLARS_…` in strategydance-core).
+# Append a value; never reorder
+enum SpendCeilingScope {
+  # The member's in the organization
+  MEMBER
+  # The account's, across every organization it is in
+  ACCOUNT
+  # The organization's, whoever ran it
+  ORGANIZATION
+}
+
 # What started a run. Append a value; never reorder
 enum ConversationRunTrigger {
   MESSAGE
@@ -887,6 +898,11 @@ type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
   aspects: [CompanyAspect!]
   aspectsSetBy: ConversationActor
   noteKind: ConversationNoteKind
+  # A failed note's, when a daily spend ceiling stopped the run: whose ceiling, and when the backend
+  # read it would have room again, which a page draws as a note of its own. A page from before M39
+  # reads neither, and draws the failed note
+  ceilingScope: SpendCeilingScope
+  ceilingFreesAt: Timestamp
   # A call to an integration's, a tool call or an approval: the server it went to, which the
   # thread's warning strip matches the live list by, never by name. Implies an `integrationId: UUID`
   # column, set to null when the server is pruned

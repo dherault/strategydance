@@ -3634,6 +3634,8 @@ mutation FinishConversationRunWithNote(
   $membershipCreatedAt: Timestamp!
   $status: ConversationRunStatus!
   $noteKind: ConversationNoteKind!
+  $ceilingScope: SpendCeilingScope
+  $ceilingFreesAt: Timestamp
   $noteId: UUID!
   $position: Int!
   $preview: Any!
@@ -3667,6 +3669,10 @@ mutation FinishConversationRunWithNote(
       expr: "(vars.status == 'FAILED' && (vars.noteKind == 'FAILED' || vars.noteKind == 'FULL')) || (vars.status == 'STOPPED' && vars.noteKind == 'STOPPED') || (vars.status == 'REFUSED' && vars.noteKind == 'REFUSED')"
       message: "A run ends with its own note: failed or full, stopped, or refused"
     )
+    @check(
+      expr: "(!has(vars.ceilingScope) || vars.ceilingScope == null) || (vars.noteKind == 'FAILED' && has(vars.ceilingFreesAt) && vars.ceilingFreesAt != null)"
+      message: "Only a failed note names a daily spend ceiling, with when it has room again"
+    )
   conversationMessage_updateMany(
     where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
     data: { toolStatus: CANCELLED }
@@ -3697,6 +3703,8 @@ mutation FinishConversationRunWithNote(
       runId: $runId
       kind: NOTE
       noteKind: $noteKind
+      ceilingScope: $ceilingScope
+      ceilingFreesAt: $ceilingFreesAt
       position: $position
     }
   )
@@ -4388,6 +4396,8 @@ mutation FinishSubagentRunWithNote(
   $membershipCreatedAt: Timestamp!
   $status: ConversationRunStatus!
   $noteKind: ConversationNoteKind!
+  $ceilingScope: SpendCeilingScope
+  $ceilingFreesAt: Timestamp
   $noteId: UUID!
   $position: Int!
   $preview: Any!
@@ -4422,6 +4432,10 @@ mutation FinishSubagentRunWithNote(
       expr: "(vars.status == 'FAILED' && (vars.noteKind == 'FAILED' || vars.noteKind == 'FULL')) || (vars.status == 'STOPPED' && vars.noteKind == 'STOPPED') || (vars.status == 'REFUSED' && vars.noteKind == 'REFUSED')"
       message: "A run ends with its own note: failed or full, stopped, or refused"
     )
+    @check(
+      expr: "(!has(vars.ceilingScope) || vars.ceilingScope == null) || (vars.noteKind == 'FAILED' && has(vars.ceilingFreesAt) && vars.ceilingFreesAt != null)"
+      message: "Only a failed note names a daily spend ceiling, with when it has room again"
+    )
     @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
   conversationMessage_updateMany(
     where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
@@ -4455,6 +4469,8 @@ mutation FinishSubagentRunWithNote(
       runId: $runId
       kind: NOTE
       noteKind: $noteKind
+      ceilingScope: $ceilingScope
+      ceilingFreesAt: $ceilingFreesAt
       position: $position
     }
   )

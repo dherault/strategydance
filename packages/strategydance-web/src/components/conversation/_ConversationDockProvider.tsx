@@ -12,6 +12,8 @@ import usePersistedState from '~hooks/common/usePersistedState'
 import useDiscardConversationDraft from '~hooks/conversation/useDiscardConversationDraft'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import readPersistedValue from '~utils/common/readPersistedValue'
+import mergeChangedDockSets from '~utils/conversation/mergeChangedDockSets'
 import parseConversationDock from '~utils/conversation/parseConversationDock'
 import pushOutDockWindows from '~utils/conversation/pushOutDockWindows'
 
@@ -19,8 +21,20 @@ import { getConversationComposerDraftKey, readConversationComposerDraft } from '
 
 const NO_WINDOWS: ConversationDockWindow[] = []
 
+// Where the windows are kept in localStorage, every member's in every organization
+const DOCK_STORAGE_KEY = 'conversationDock'
+
+// What a change writes: the sets it changed, over the dock as storage holds it now
+function writeOwnSets(next: ConversationDockWindows, previous: ConversationDockWindows) {
+  return mergeChangedDockSets(readPersistedValue(DOCK_STORAGE_KEY, previous, parseConversationDock), previous, next)
+}
+
 /*
-  Holds the dock's windows, kept in localStorage so a reload finds them as they were.
+  Holds the dock's windows, kept in localStorage so a reload finds them as they were. A tab writes
+  only the sets it changed, over what storage holds then (`writeOwnSets`), so it never writes over
+  the sets another tab keeps, another organization's or account's, and keeps its own as it has them,
+  whatever other tabs store. Two tabs of one member in one organization each keep the windows they
+  opened, their drafts being theirs alone, the last to write leaving its set for the next reload.
 
   Every member's windows in every organization sit under one key, each set under
   `${userId}:${organizationId}`: neither is known when the provider mounts, and the key a persisted
@@ -34,9 +48,9 @@ function ConversationDockProvider({ children }: PropsWithChildren) {
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
   const [dock, setDock] = usePersistedState<ConversationDockWindows>(
-    'conversationDock',
+    DOCK_STORAGE_KEY,
     {},
-    { parser: parseConversationDock },
+    { parser: parseConversationDock, toStored: writeOwnSets },
   )
   const [focusRequest, setFocusRequest] = useState<ConversationDockContextType['focusRequest']>(null)
   const discardConversationDraft = useDiscardConversationDraft()

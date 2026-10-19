@@ -55,7 +55,7 @@ const NOTICE_MESSAGES = {
 
   Deciding carries the conversation on once nothing of the turn waits, as answering a question does.
   An Allow given after the server, the tool or the reader's account changed is denied instead, which
-  the card says, Strategy Dance proposing the call again if it still needs it. One the response it
+  the call it became says, Strategy Dance proposing the call again if it still needs it. One the response it
   belongs to was stopped or cut off before, which a resume makes answerable again, shows its buttons
   off. The thread draws it as the call it became once it is decided.
 
@@ -78,12 +78,13 @@ function ConversationApproval({
   const refreshConversationAccess = useRefreshConversationAccess()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   /*
-    What deciding came to when it did not start a run: a failure, a decision kept that the
-    conversation goes on from later, or an Allow denied because the server changed. Each is said
-    while the conversation still waits on the run it was sent to, but the last, which stays
+    What deciding came to when it did not start a run: a failure, or a decision kept that the
+    conversation goes on from later, each said while the conversation still waits on the run it was
+    sent to. An Allow denied because the server changed is kept with the answer instead, since the
+    approval makes way for the call it became, which says it (`ConversationDecidedApproval`)
   */
   const [notice, setNotice] = useState<{
-    kind: ConversationAnswerFailure | 'queued' | 'changed'
+    kind: ConversationAnswerFailure | 'queued'
     waitingRunId: string
   } | null>(null)
   const isAnswerable = waitingRunId !== null
@@ -105,7 +106,7 @@ function ConversationApproval({
         isAllowed,
       })
 
-      if (isChanged) setNotice({ kind: 'changed', waitingRunId })
+      if (isChanged) changeAnswer({ isChanged: true })
       if (runId) onRunStart({ runId, previousRunId: waitingRunId })
       else if (!hasOtherWaiting && !isChanged) setNotice({ kind: 'queued', waitingRunId })
     } catch (error) {
@@ -122,7 +123,7 @@ function ConversationApproval({
   }
 
   function renderNotice() {
-    if (!notice || (notice.kind !== 'changed' && notice.waitingRunId !== waitingRunId)) return null
+    if (!notice || notice.waitingRunId !== waitingRunId) return null
 
     const isFailure = notice.kind !== 'queued'
 
@@ -131,9 +132,7 @@ function ConversationApproval({
         role={isFailure ? 'alert' : 'status'}
         className={cn('m-0 text-xs', isFailure ? 'text-danger' : 'text-muted-foreground')}
       >
-        {notice.kind === 'changed'
-          ? formatMessage(conversationMessages.approvalChanged, { server: integrationName })
-          : formatMessage(NOTICE_MESSAGES[notice.kind], { email: SUPPORT_CONTACT.email })}
+        {formatMessage(NOTICE_MESSAGES[notice.kind], { email: SUPPORT_CONTACT.email })}
       </p>
     )
   }

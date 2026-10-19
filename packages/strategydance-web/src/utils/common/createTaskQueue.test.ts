@@ -107,4 +107,22 @@ describe('createTaskQueue', () => {
     expect(log).toEqual(['first', 'again'])
     expect(again!.isAborted).toBe(false)
   })
+
+  it('takes every waiting task out of the line, and aborts those under way, at once', async () => {
+    const log: string[] = []
+    const queue = createTaskQueue(1)
+    const [first, second] = ['first', 'second'].map(name => createTask(log, name))
+
+    queue.run('a', first!.task)
+    queue.run('b', second!.task)
+    queue.abortAll()
+    await settle()
+
+    expect(first!.isAborted).toBe(true)
+
+    first!.end()
+    await settle()
+
+    expect(log).toEqual(['first'])
+  })
 })

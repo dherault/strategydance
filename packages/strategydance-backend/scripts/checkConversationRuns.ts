@@ -16,6 +16,7 @@ import {
   connectorConfig,
   continueConversationRun,
   continueConversationRunWithCalls,
+  deleteExpiredRunSpends,
   deleteClaimedConversations,
   deleteConversationModuleCallResults,
   ConversationToolStatus,
@@ -43,12 +44,16 @@ import {
   getConversationSendContext,
   getConversationTurnContext,
   getCappedStarts,
+  getDailySpend,
+  getDailySpendRows,
+  getRunDailySpend,
   getConversationsSuspension,
   interruptConversationRun,
   interruptDeadConversationRun,
   liftOrganizationConversationsSuspension,
   liftUserConversationsSuspension,
   reclaimConversationRun,
+  recordConversationRunUsage,
   renewConversationRunLease,
   renewQueuedConversationRunLease,
   requestConversationRunStop,
@@ -138,6 +143,8 @@ const userIds = {
   teammate: `check-conversation-runs-${checkId}-teammate`,
   suspended: `check-conversation-runs-${checkId}-suspended`,
   bystander: `check-conversation-runs-${checkId}-bystander`,
+  spender: `check-conversation-runs-${checkId}-spender`,
+  cosigner: `check-conversation-runs-${checkId}-cosigner`,
 }
 
 const failures: string[] = []
@@ -3009,6 +3016,145 @@ async function sendTo(started: Started, position: number, runNumber: number, ove
   })
 }
 
+// What one run may have cost, as a write of its ledger upserts it, or as the sweep finds one a day old
+async function insertSpend(userId: string, costBound: number, { organization = organizationId, hoursAgo = 0 } = {}) {
+  const runId = createId()
+
+  await write(
+    `mutation SeedSpend($runId: UUID!, $userId: String!, $organizationId: UUID!, $costBound: Int64!, $spentAt: Timestamp!) {
+      runSpend_insert(
+        data: { runId: $runId, userId: $userId, organizationId: $organizationId, costBound: $costBound, spentAt: $spentAt }
+      )
+    }`,
+    {
+      runId,
+      userId,
+      organizationId: organization,
+      costBound: String(costBound),
+      spentAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString(),
+    },
+  )
+
+  return runId
+}
+
+async function readSpend(runId: string) {
+  const data = await read<{ runSpend: { costBound: string; spentAt: string } | null }>(
+    `query ReadSpend($runId: UUID!) { runSpend(key: { runId: $runId }) { costBound spentAt } }`,
+    { runId },
+  )
+
+  return data.runSpend
+}
+
+/*
+  What each run may have cost (`RunSpend`), which every write of a run's ledger upserts beside it and
+  the daily spend ceilings sum: the reservation's write counting it before its request goes, a
+  settlement lowering it, a write sent no bound keeping it as its time moves on, one refused for its
+  fence recording nothing, the sums of the member's, the account's and the organization's last 24
+  hours as Int64 strings, null over none, the run's own row apart, each scope's rows oldest first, a
+  deleted conversation's and a deleted organization's kept, and the sweep deleting those over a day
+*/
+async function checkDailySpend() {
+  const userId = userIds.spender
+  const member = { organizationId, userId }
+  const empty = await getDailySpend(dataConnect, member)
+
+  check(
+    "a day nothing was spent in sums to null for the member and the account, the organization's holding the other checks' runs",
+    empty.data.member[0]?.costBound_sum == null
+      && empty.data.account[0]?.costBound_sum == null
+      && empty.data.organization[0]?.costBound_sum != null,
+  )
+
+  const started = await start(userId, await readMembershipCreatedAt(userId))
+  const ledger = { requests: [], byModel: {} }
+
+  await claimQueuedConversationRun(dataConnect, fence(started, 0))
+  await recordConversationRunUsage(dataConnect, { ...fence(started, 1), usage: ledger, costBound: '3900000' })
+
+  const reserved = await getRunDailySpend(dataConnect, { ...member, runId: started.runId })
+
+  check(
+    "the reservation's write records what the run may have cost, summed by member and account, its own row apart",
+    reserved.data.member[0]?.costBound_sum === '3900000'
+      && reserved.data.account[0]?.costBound_sum === '3900000'
+      && Number(reserved.data.organization[0]?.costBound_sum) >= 3_900_000
+      && reserved.data.own[0]?.costBound === '3900000',
+  )
+  check(
+    'a write of the ledger refused for its fence records nothing',
+    (await isRefused(
+      recordConversationRunUsage(dataConnect, { ...fence(started, 7), usage: ledger, costBound: '9000000' }),
+      "The run is no longer this worker's",
+    )) && (await readSpend(started.runId))?.costBound === '3900000',
+  )
+
+  await storeConversationTurn(dataConnect, {
+    ...fence(started, 1),
+    entryId: createId(),
+    position: 1,
+    content: '[]',
+    usage: ledger,
+    costBound: '20000',
+  })
+
+  const settled = await readSpend(started.runId)
+
+  check('a settlement lowers what the run may have cost', settled?.costBound === '20000')
+
+  await finishConversationRun(dataConnect, {
+    ...fence(started, 1),
+    status: ConversationRunStatus.COMPLETED,
+    usage: ledger,
+  })
+
+  const ended = await readSpend(started.runId)
+
+  check(
+    'a write of the ledger from before M39, with no bound, keeps the one recorded and moves its time on',
+    ended?.costBound === '20000' && !!settled && Date.parse(ended.spentAt) >= Date.parse(settled.spentAt),
+  )
+
+  await write(`mutation DeleteSpent($id: UUID!) { conversation_delete(id: $id) }`, { id: started.conversationId })
+
+  check('what a run may have cost outlives its conversation', (await readSpend(started.runId))?.costBound === '20000')
+
+  // The account's runs in an organization deleted since, a teammate's in this one, and a day-old run
+  await insertSpend(userId, 5_000_000, { organization: createId() })
+  await insertSpend(userIds.cosigner, 7_000_000)
+  await insertSpend(userId, 1_000_000, { hoursAgo: 3 })
+  await insertSpend(userId, 2_000_000, { hoursAgo: 2 })
+
+  const expired = await insertSpend(userId, 40_000_000, { hoursAgo: 25 })
+  const day = await getDailySpend(dataConnect, member)
+  const organizationDay = Number(day.data.organization[0]?.costBound_sum)
+
+  check(
+    "the sums take the member's runs in the organization, the account's elsewhere, a deleted organization's too, and the organization's whoever ran them, within 24 hours",
+    day.data.member[0]?.costBound_sum === '3020000'
+      && day.data.account[0]?.costBound_sum === '8020000'
+      && organizationDay >= 10_020_000,
+  )
+
+  const rows = await getDailySpendRows(dataConnect, member)
+
+  check(
+    "a scope's rows come oldest first, so the oldest leave the window first",
+    rows.data.member.map(({ costBound }) => costBound).join() === '1000000,2000000,20000'
+      && rows.data.account.length === 4,
+  )
+
+  const { data: pruned } = await deleteExpiredRunSpends(dataConnect)
+
+  check(
+    'the sweep deletes what runs that last spent over a day ago may have cost, and keeps the rest',
+    pruned.runSpend_deleteMany >= 1
+      && (await readSpend(expired)) === null
+      && (await readSpend(started.runId))?.costBound === '20000',
+  )
+}
+
 /*
   The daily caps, which every mutation that starts a conversation, a run or a subagent counts on the
   `CappedStart` rows of the 24 hours before it: the member's under the membership's lock, so two
@@ -3348,6 +3494,7 @@ try {
   await checkApprovals()
   // Before the caps' checks, which fill the organization's daily caps
   await checkSuspension()
+  await checkDailySpend()
   await checkDailyCaps()
 } finally {
   await tearDown()

@@ -1514,7 +1514,7 @@ async function checkChain() {
   )
 
   await updateRun(subagent.runId, 'number: 0')
-  await chain()
+  await chain({ usage: { requests: [], byModel: {} }, costBound: '1750000' })
 
   const chained = await readRun(subagent.runId)
   const continued = await readRun(next.runId)
@@ -1536,6 +1536,10 @@ async function checkChain() {
       && continued.pendingToolResults?.includes('toolu_checked') === true
       && stored?.activeRunId === next.runId,
   )
+  check(
+    'a chain records what the run it ends may have cost, and nothing yet of the run it queues',
+    (await readSpend(subagent.runId)) === '1750000' && (await readSpend(next.runId)) === null,
+  )
   // Postgres reports the next run's number, which the insert after the fence violates, before the
   // fence's own check: either way the chain is refused whole
   check(
@@ -1551,6 +1555,16 @@ async function checkChain() {
   })
 
   check('the web reads the run a chain queued as the subagent’s latest', webRun.conversationRuns[0]?.id === next.runId)
+}
+
+// What a run may have cost as its writes recorded it (`RunSpend`), or null for one that recorded none
+async function readSpend(runId: string) {
+  const data = await read<{ runSpend: { costBound: string } | null }>(
+    `query ReadSpend($runId: UUID!) { runSpend(key: { runId: $runId }) { costBound } }`,
+    { runId },
+  )
+
+  return data.runSpend?.costBound ?? null
 }
 
 // Ends every run of the author's conversations that goes, which no check after reads, so a section

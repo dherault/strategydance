@@ -1330,7 +1330,7 @@ A conversation is kept twice, once for Claude and once for the page, and
   (`planConversationToolCalls`' `maxCalls`). The fourth run's results entry ends asking for the
   report (`SUBAGENT_REPORT_REQUEST`) once any of its budgets nears its end (`isSubagentReportDue`):
   its 24th request, two minutes left of its ten, 95 entries, or a next request whose worst case leaves
-  no room for another. Once asked, that request, its last, goes past the requests, the entries and
+  no room for another, within the $10 or what the daily spend ceilings leave it. Once asked, that request, its last, goes past the requests, the entries and
   the ten minutes until 12 minutes after the claim (`readSubagentReportDeadline`), its cost held as
   any request's, and nothing its reply calls runs. Only the last run writes the report
 - A member has five subagent runs at once in an organization

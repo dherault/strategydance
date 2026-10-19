@@ -292,7 +292,7 @@ describe('POST /internal/sweep', () => {
       userId: AUTHOR,
       scope: 'conversation:checked',
       callKey: id,
-      state: '',
+      compressedState: '',
       markdown: '',
       afterVersion: '',
       restoredVersionAt: null,

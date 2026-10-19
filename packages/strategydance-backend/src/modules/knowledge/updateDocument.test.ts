@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test'
+import { gunzipSync } from 'node:zlib'
 
 import type { ModuleCaller } from '~types'
 
@@ -426,8 +427,13 @@ describe('update_document', () => {
 })
 
 describe('update_document keeps the text it replaced as a revision', () => {
-  function readRevisionText(state: string) {
-    const read = readKnowledgeDocumentText({ state, updates: [] })
+  // A revision's snapshot as the fold keeps it, compressed
+  function readRevisionState(compressedState: string) {
+    return gunzipSync(Buffer.from(compressedState, 'base64')).toString('base64')
+  }
+
+  function readRevisionText(compressedState: string) {
+    const read = readKnowledgeDocumentText({ state: readRevisionState(compressedState), updates: [] })
 
     return read.outcome === 'read' ? read.blocks.map(block => block.markdown) : null
   }
@@ -452,7 +458,7 @@ describe('update_document keeps the text it replaced as a revision', () => {
       markdown: 'Intro typed\n\nOutro',
       restoredVersionAt: null,
     })
-    expect(readRevisionText(revision.state)).toEqual(['Intro typed', 'Outro'])
+    expect(readRevisionText(revision.compressedState)).toEqual(['Intro typed', 'Outro'])
     expect(revision.afterVersion).toBe((await kit.answer<Reading>('read_document', { id: document.id })).version)
   })
 
@@ -493,8 +499,10 @@ describe('update_document keeps the text it replaced as a revision', () => {
 
     const [revision] = fake.revisions
 
-    expect(readRevisionText(revision.state)).toEqual(['Intro', 'Outro'])
-    expect(readKnowledgeDocumentText({ state: revision.state, updates: [] })).toMatchObject({
+    expect(readRevisionText(revision.compressedState)).toEqual(['Intro', 'Outro'])
+    expect(
+      readKnowledgeDocumentText({ state: readRevisionState(revision.compressedState), updates: [] }),
+    ).toMatchObject({
       blocks: (await kit.answer<Reading>('read_document', { id: document.id })).blocks.slice(0, 2),
     })
   })

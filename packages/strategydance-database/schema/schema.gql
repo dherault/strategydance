@@ -526,9 +526,10 @@ type DocumentRevision
   # thread finds the revision of a tool call's row. Null when the call carried none, and for a
   # member's restore
   callKey: String
-  # The text before the edit, its snapshot with every pending update merged, in base64 as
-  # `Document.state` is, at most 2000000 characters (`MAX_DOCUMENT_STATE_LENGTH`)
-  state: String!
+  # The text before the edit, its snapshot with every pending update merged, compressed with gzip
+  # and in base64, at most 2000000 characters: the fold sends it beside the new snapshot, and Data
+  # Connect takes 4 MiB a request, which two whole snapshots can pass. Only the backend reads it
+  compressedState: String!
   # The same text in Markdown, as an agent reads it, for a member to look at before restoring it
   markdown: String!
   # The version of the text the edit left, as `read_document` hashes one: while the text is still

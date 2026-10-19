@@ -5696,7 +5696,7 @@ mutation FoldDocumentWithRevisionForAgent(
   $isRevised: Boolean!
   $revisionScope: String!
   $revisionCallKey: String
-  $revisionState: String!
+  $revisionCompressedState: String!
   $revisionMarkdown: String!
   $revisionAfterVersion: String!
 ) @auth(level: NO_ACCESS) @transaction {
@@ -5737,7 +5737,7 @@ mutation FoldDocumentWithRevisionForAgent(
       userId: $userId
       scope: $revisionScope
       callKey: $revisionCallKey
-      state: $revisionState
+      compressedState: $revisionCompressedState
       markdown: $revisionMarkdown
       afterVersion: $revisionAfterVersion
     }
@@ -5769,7 +5769,7 @@ mutation FoldDocumentWithRevisionForAgent(
         )
         @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
         @check(
-          expr: "size(vars.revisionState) <= 2000000 && size(vars.revisionMarkdown) <= 400000 && size(vars.revisionAfterVersion) <= 64 && size(vars.revisionScope) <= 200"
+          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionMarkdown) <= 400000 && size(vars.revisionAfterVersion) <= 64 && size(vars.revisionScope) <= 200"
           message: "A revision holds at most 2000000 characters of state and 400000 of Markdown"
         )
     }
@@ -5816,7 +5816,7 @@ mutation RestoreDocumentRevision(
   $updateIds: [UUID!]!
   $isUndo: Boolean!
   $revisionId: UUID!
-  $revisionState: String!
+  $revisionCompressedState: String!
   $revisionMarkdown: String!
   $revisionAfterVersion: String!
   $restoredVersionAt: Timestamp!
@@ -5842,7 +5842,7 @@ mutation RestoreDocumentRevision(
       documentId: $id
       organizationId: $organizationId
       userId: $userId
-      state: $revisionState
+      compressedState: $revisionCompressedState
       markdown: $revisionMarkdown
       afterVersion: $revisionAfterVersion
       restoredVersionAt: $restoredVersionAt
@@ -5862,7 +5862,7 @@ mutation RestoreDocumentRevision(
         )
         @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
         @check(
-          expr: "size(vars.revisionState) <= 2000000 && size(vars.revisionMarkdown) <= 400000 && size(vars.revisionAfterVersion) <= 64"
+          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionMarkdown) <= 400000 && size(vars.revisionAfterVersion) <= 64"
           message: "A revision holds at most 2000000 characters of state and 400000 of Markdown"
         )
     }

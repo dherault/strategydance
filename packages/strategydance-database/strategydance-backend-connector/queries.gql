@@ -2042,7 +2042,7 @@ query GetDocumentRevisionForMember($organizationId: UUID!, $userId: String!, $do
     }
     limit: 1
   ) {
-    state
+    compressedState
     afterVersion
     createdAt
     document {

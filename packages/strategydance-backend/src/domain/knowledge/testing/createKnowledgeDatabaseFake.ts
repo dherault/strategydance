@@ -43,7 +43,7 @@ export type FakeDocumentRevision = {
   userId: string | null
   scope: string | null
   callKey: string | null
-  state: string
+  compressedState: string
   markdown: string
   afterVersion: string
   restoredVersionAt: string | null
@@ -118,7 +118,7 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
 
   // A revision kept by a write, with what the write holds it to
   function keepRevision(fields: Omit<FakeDocumentRevision, 'id' | 'createdAt'> & { id?: string }) {
-    if (fields.state.length > 2000000 || fields.markdown.length > 400000 || fields.afterVersion.length > 64) {
+    if (fields.compressedState.length > 2000000 || fields.markdown.length > 400000 || fields.afterVersion.length > 64) {
       refuse('A revision holds at most 2000000 characters of state and 400000 of Markdown')
     }
 
@@ -242,7 +242,7 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
           userId: String(variables.userId),
           scope: variables.revisionScope ?? null,
           callKey: variables.revisionCallKey ?? null,
-          state: variables.revisionState,
+          compressedState: variables.revisionCompressedState,
           markdown: variables.revisionMarkdown,
           afterVersion: variables.revisionAfterVersion,
           restoredVersionAt: null,
@@ -495,7 +495,7 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
         userId: String(variables.userId),
         scope: null,
         callKey: null,
-        state: String(variables.revisionState),
+        compressedState: String(variables.revisionCompressedState),
         markdown: String(variables.revisionMarkdown),
         afterVersion: String(variables.revisionAfterVersion),
         restoredVersionAt: String(variables.restoredVersionAt),
@@ -647,7 +647,7 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
       return {
         documentRevisions: [
           {
-            state: revision.state,
+            compressedState: revision.compressedState,
             afterVersion: revision.afterVersion,
             createdAt: revision.createdAt,
             document: {

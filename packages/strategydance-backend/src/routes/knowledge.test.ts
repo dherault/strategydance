@@ -278,7 +278,7 @@ describe('POST /:documentId/revisions/:revisionId/restore', () => {
     const document = documents.store('Intro')
 
     await agent.answer('update_document', { id: document.id, append: 'Added' }, 'toolu_append')
-    revisionOf('toolu_append').state = Buffer.from('not a snapshot').toString('base64')
+    revisionOf('toolu_append').compressedState = Buffer.from('not a snapshot').toString('base64')
 
     expect(await restore(document.id, revisionOf('toolu_append').id, false)).toMatchObject({
       status: 409,

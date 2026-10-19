@@ -13,6 +13,7 @@ import { dataConnect } from '~firebase'
 import explainKnowledgeDocumentRefusal from '~domain/knowledge/explainKnowledgeDocumentRefusal'
 import foldKnowledgeDocumentEdit from '~domain/knowledge/foldKnowledgeDocumentEdit'
 import hashKnowledgeDocumentText from '~domain/knowledge/hashKnowledgeDocumentText'
+import isKnowledgeWriteTooLarge from '~domain/knowledge/isKnowledgeWriteTooLarge'
 import { EDITED_REFUSAL, EMPTY_REFUSAL, FOLDED_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
 import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
 import toKnowledgeDocumentRevisionVariables from '~domain/knowledge/toKnowledgeDocumentRevisionVariables'
@@ -153,25 +154,30 @@ async function updateKnowledgeDocument(
       ...(edit.type === 'content' && { version: afterVersion }),
     }
 
+    const variables = {
+      ...reference,
+      revision: row.revision,
+      state: folded.state,
+      content: folded.content,
+      contentText: folded.contentText,
+      updateIds: folded.updateIds,
+      // Left out when the call keeps the title, which leaves it alone and pushes no card
+      ...(title !== undefined && { title }),
+      isWholeReplacement: edit.type === 'content',
+      ...toModuleCallVariables(caller, call, result),
+      ...toKnowledgeDocumentRevisionVariables(folded.previous.blocks, {
+        state: folded.previous.state,
+        afterVersion,
+        scope: caller.idempotencyScope,
+        callKey: call?.key ?? null,
+      }),
+    }
+
+    // A document so large that the edit and the text it replaces pass what one write takes
+    if (isKnowledgeWriteTooLarge(variables)) return { outcome: 'stateTooLong' }
+
     try {
-      await foldDocumentWithRevisionForAgent(dataConnect, {
-        ...reference,
-        revision: row.revision,
-        state: folded.state,
-        content: folded.content,
-        contentText: folded.contentText,
-        updateIds: folded.updateIds,
-        // Left out when the call keeps the title, which leaves it alone and pushes no card
-        ...(title !== undefined && { title }),
-        isWholeReplacement: edit.type === 'content',
-        ...toModuleCallVariables(caller, call, result),
-        ...toKnowledgeDocumentRevisionVariables(folded.previous.blocks, {
-          state: folded.previous.state,
-          afterVersion,
-          scope: caller.idempotencyScope,
-          callKey: call?.key ?? null,
-        }),
-      })
+      await foldDocumentWithRevisionForAgent(dataConnect, variables)
 
       return { outcome: 'written', result }
     } catch (error) {

@@ -8,7 +8,9 @@ import { dataConnect } from '~firebase'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
+import compressKnowledgeDocumentRevisionState from '~domain/knowledge/compressKnowledgeDocumentRevisionState'
 import hashKnowledgeDocumentText from '~domain/knowledge/hashKnowledgeDocumentText'
+import isKnowledgeWriteTooLarge from '~domain/knowledge/isKnowledgeWriteTooLarge'
 import { EDITED_REFUSAL, EMPTY_REFUSAL, RESTORE_FOLDED_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
 import measureKnowledgeDocumentText from '~domain/knowledge/measureKnowledgeDocumentText'
 import openKnowledgeDocumentRevision from '~domain/knowledge/openKnowledgeDocumentRevision'
@@ -80,7 +82,7 @@ async function restoreKnowledgeDocumentRevision({
     if (!current) return { outcome: 'unrestorable' }
     if (isUndo && current.version !== row.afterVersion) return { outcome: 'changed' }
 
-    const source = openKnowledgeDocumentRevision(row.state)
+    const source = openKnowledgeDocumentRevision(row.compressedState)
 
     if (!source) return { outcome: 'unrestorable' }
 
@@ -100,33 +102,37 @@ async function restoreKnowledgeDocumentRevision({
     if (afterVersion === current.version) return { outcome: 'unchanged' }
 
     const restoreId = toCanonicalUuid(crypto.randomUUID())
+    const variables = {
+      organizationId,
+      userId,
+      id: documentId,
+      revision: document.revision,
+      state: measured.state,
+      content: measured.content,
+      contentText: measured.contentText,
+      updateIds: current.updateIds,
+      isUndo,
+      revisionId: restoreId,
+      revisionCompressedState: compressKnowledgeDocumentRevisionState(previousState),
+      revisionMarkdown: toKnowledgeDocumentMarkdown(current.blocks).slice(0, MAX_DOCUMENT_REVISION_MARKDOWN_LENGTH),
+      revisionAfterVersion: afterVersion,
+      restoredVersionAt: row.createdAt,
+    }
+
+    if (isKnowledgeWriteTooLarge(variables)) return { outcome: 'unrestorable' }
 
     try {
-      await restoreDocumentRevision(dataConnect, {
-        organizationId,
-        userId,
-        id: documentId,
-        revision: document.revision,
-        state: measured.state,
-        content: measured.content,
-        contentText: measured.contentText,
-        updateIds: current.updateIds,
-        isUndo,
-        revisionId: restoreId,
-        revisionState: previousState,
-        revisionMarkdown: toKnowledgeDocumentMarkdown(current.blocks).slice(0, MAX_DOCUMENT_REVISION_MARKDOWN_LENGTH),
-        revisionAfterVersion: afterVersion,
-        restoredVersionAt: row.createdAt,
-      })
+      await restoreDocumentRevision(dataConnect, variables)
 
       return { outcome: 'restored', revisionId: restoreId }
     } catch (error) {
       if (isOperationRefusal(error, RESTORE_FOLDED_REFUSAL)) continue
+      // First, as the checks nested under the membership are named aborted in the same message
+      if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notFound' }
       // Somebody typed between the read and the write, which an Undo does not go back over
       if (isOperationRefusal(error, EDITED_REFUSAL)) return { outcome: 'changed' }
       // An empty version of a document whose title went blank since
       if (isOperationRefusal(error, EMPTY_REFUSAL)) return { outcome: 'unrestorable' }
-      if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notFound' }
 
       throw error
     }

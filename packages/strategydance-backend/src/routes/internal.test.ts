@@ -174,7 +174,57 @@ describe('POST /internal/conversation-runs', () => {
   })
 })
 
+describe('POST /internal/runs-reconcile', () => {
+  test('finalizes a run no page reconciled once its lease has passed, and answers 200', async () => {
+    const run = await start()
+    const stored = fake.runs.get(run.runId)
+
+    if (stored) stored.leaseExpiresAt = new Date(Date.now() - 1000).toISOString()
+
+    const response = await fetch(`${origin}/internal/runs-reconcile`, { method: 'POST' })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ status: 'success' })
+    expect(fake.runs.get(run.runId)?.status).toBe('INTERRUPTED')
+  })
+
+  test('answers 500 naming a sweep whose read failed, once the others ran', async () => {
+    const run = await start()
+    const stored = fake.runs.get(run.runId)
+
+    if (stored) stored.leaseExpiresAt = new Date(Date.now() - 1000).toISOString()
+
+    fake.beforeOperation = async name => {
+      if (name === 'GetSubagentSweepMembers') throw new Error('The database is unreachable')
+    }
+
+    const response = await fetch(`${origin}/internal/runs-reconcile`, { method: 'POST' })
+
+    expect(response.status).toBe(500)
+    expect(((await response.json()) as { message: string }).message).toBe(
+      "The reconcile's steps failed: sweepSubagentRuns",
+    )
+    // The step after it ran all the same
+    expect(fake.runs.get(run.runId)?.status).toBe('INTERRUPTED')
+  })
+})
+
 describe('POST /internal/sweep', () => {
+  test('runs every prune past one that failed, and answers 500 naming it', async () => {
+    pruneDeletedTasks.mockClear()
+    pruneDeletedIntegrations.mockClear()
+    pruneDeletedTasks.mockImplementationOnce(async () => {
+      throw new Error('The database is unreachable')
+    })
+
+    const response = await fetch(`${origin}/internal/sweep`, { method: 'POST' })
+
+    expect(response.status).toBe(500)
+    expect(((await response.json()) as { message: string }).message).toContain('pruneDeletedTasks')
+    expect(pruneDeletedTasks).toHaveBeenCalledTimes(1)
+    expect(pruneDeletedIntegrations).toHaveBeenCalledTimes(1)
+  })
+
   test('removes the conversations deleted over a day ago, and keeps the rest', async () => {
     const old = await start()
     const kept = await start()

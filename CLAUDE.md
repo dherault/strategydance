@@ -899,11 +899,19 @@ in `utils/`, one concern per file.
   ago (`PruneIntegrationAuthorizations`), the conversation searches over a day old, which
   no count reads any more, the module call results past their expiry, and the authorization
   server's requests expired over a day ago, its tokens past their expiry and the registrations
-  nobody uses (`domain/oauth/prune…`). Before all of them, it reconciles the subagent runs no page
-  reconciled, every member's with one past its lease or waiting for a slot (`sweepSubagentRuns`),
-  logging rather than throwing, so the prunes run whatever it meets. A milestone that keeps
+  nobody uses (`domain/oauth/prune…`). Before all of them, it reconciles the runs no page
+  reconciled, as the reconcile below does. Each step runs whatever the steps before it met
+  (`runSweepSteps`), and the route answers 500 naming those that failed. A milestone that keeps
   something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
   sweep that failed is finished by the next
+- The worker's `POST /internal/runs-reconcile`, which Cloud Scheduler calls every five minutes,
+  reconciles the runs no page watches: every member's subagent runs past their lease or waiting for
+  a slot (`sweepSubagentRuns`), the runs of members' conversations past their lease
+  (`sweepDeadConversationRuns`), and the reactions to subagents' reports no run's end started
+  (`sweepSubagentReactions`), each step on its own (`runSweepSteps`), each going on past what fails
+  in it and throwing once done when anything did (`SweepIncomplete`), so the route answers 500. A
+  queued run whose task never came is queued again while it is young, and a slot freed is promoted
+  into within minutes. A new kind of run no page watches is reconciled there too
 - The worker's `POST /internal/directories-check`, which Cloud Scheduler calls once a day, checks
   a day's directories and commits what it found to one rolling pull request into `dev`, from the
   branch `directories-check`, which only it writes (`publishDirectoryCheck` in
@@ -1000,6 +1008,11 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   - `max_tokens`: run nothing, `FAILED` with its note
   - `refusal`: the request's server-side fallback runs it again on another model, and a refusal
     that survives it ends `REFUSED`
+- A request Claude's API refuses before its stream starts, as rate limited, overloaded, failing or
+  unreachable, costs nothing and is sent again, after its `retry-after` or a delay doubled at each
+  refusal, four times in a row at most within the run's time (`MAX_CONVERSATION_API_RETRIES`). Any
+  other error of the API fails the run with its note, and an error of the worker's own before the
+  request reached the API settles it at nothing before the step fails
 - Every write that ends a run cancels the calls still `RUNNING` in its conversation, not only those
   its run drew, and lets go of `activeRunId` where it still names the run, in the write that sets
   `isAwaitingAnswer` when it ends `WAITING`
@@ -1179,14 +1192,17 @@ A conversation is kept twice, once for Claude and once for the page, and
   `activeRunId` names it, a `PENDING` run with no lease and no task. Every write that ends a run
   lets go of it in the same mutation, matching `activeRunId` on the run and never filtering on
   `deletedAt`, or a conversation restored later stays busy for good. A run's lease is set from the
-  database's clock (`leaseExpiresAt_time`), the clock the filters that find it dead read: twenty
-  minutes while it is queued, then a minute, which every write of its worker renews. A claimed run
+  database's clock (`leaseExpiresAt_time`), the clock the filters that find it dead read: two
+  minutes while it is queued (`CONVERSATION_RUN_QUEUED_LEASE_MS`, which every mutation that queues
+  one writes out), then a minute, which every write of its worker renews. A claimed run
   past its lease is dead, and a route finalizes it as interrupted before it counts or starts
   another, as the page's reconcile does. A queued run's lease only says when to ask Cloud Tasks
   whether it is still coming (`finalizeDeadConversationRun`): its task there, the lease is pushed
   back; gone, the run is queued again while it is under twenty minutes old, and finalized once
-  older. A run whose task could not be queued has its lease brought in to now, so its page
-  reconciles it at once. Development has no queue, and a queued run past its lease is dead there
+  older, so a run whose task never came, its process gone between storing it and queueing it, is
+  queued again within minutes, by its page or the worker's reconcile. A run whose task could not be
+  queued has its lease brought in to now, so its page reconciles it at once. Development has no
+  queue, and a queued run past its lease is dead there
 - Every write of a worker is fenced: its first step is the run's own update, matching the run
   `RUNNING`, the attempt its worker claimed and its author's membership by the `createdAt` the run
   recorded, as `RenewConversationRunLease` does alone. It is the run's only write in the mutation,

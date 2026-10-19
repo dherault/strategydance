@@ -58,6 +58,7 @@ import ConversationAgentMessage from '~components/conversation/ConversationAgent
 import ConversationApproval from '~components/conversation/ConversationApproval'
 import ConversationAspectsNote from '~components/conversation/ConversationAspectsNote'
 import ConversationBrief from '~components/conversation/ConversationBrief'
+import ConversationDecidedApproval from '~components/conversation/ConversationDecidedApproval'
 import ConversationDocumentRestore from '~components/conversation/ConversationDocumentRestore'
 import ConversationIntegrationIssue from '~components/conversation/ConversationIntegrationIssue'
 import ConversationMemberMessage from '~components/conversation/ConversationMemberMessage'
@@ -130,7 +131,7 @@ function ConversationThread({
   // A subagent's, which the reader follows and never acts in
   const isReadOnly = conversation.parentId !== null
   const { formatMessage } = intl
-  const { entries, bodies, hasOlder, olderStatus, isFilling, loadOlder, dropRuns } = useConversationThread(conversation)
+  const { entries, bodies, hasOlder, olderStatus, loadOlder, dropRuns } = useConversationThread(conversation)
   const listRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [openToolCall, setOpenToolCall] = useState<ConversationThreadEntry | null>(null)
@@ -443,7 +444,8 @@ function ConversationThread({
 
         // Decided, it is the call it became: allowed and waiting to run, run, or denied
         return (
-          <ConversationToolCall
+          <ConversationDecidedApproval
+            messageId={entry.id}
             toolName={entry.toolName ?? ''}
             status={entry.toolStatus ?? ConversationToolStatus.RUNNING}
             onOpen={() => setOpenToolCall(entry)}
@@ -553,7 +555,7 @@ function ConversationThread({
         ref={listRef}
         role="log"
         aria-label={formatMessage(conversationMessages.threadLabel)}
-        aria-busy={olderStatus === 'loading' || isFilling}
+        aria-busy={olderStatus === 'loading'}
         className="flex flex-col gap-4"
       >
         {rows.map(({ id, content, isTight }) => (

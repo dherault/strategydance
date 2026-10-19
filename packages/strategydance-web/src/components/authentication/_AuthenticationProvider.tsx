@@ -1,7 +1,10 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { type User as Viewer, signOut as firebaseSignOut, onIdTokenChanged } from 'firebase/auth'
-import { type PropsWithChildren, useEffect, useState } from 'react'
+import { type PropsWithChildren, useEffect, useEffectEvent, useState } from 'react'
 
 import AuthenticationContext, { type AuthenticationContextType } from '~contexts/AuthenticationContext'
+
+import forgetAccount from '~utils/authentication/forgetAccount'
 
 import { authentication } from '~data/firebase'
 
@@ -19,6 +22,10 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
   const [viewer, setViewer] = useState<Viewer | null>(null)
   const [emailVerified, setEmailVerified] = useState(false)
   const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+
+  // Once the listener has the next account, and before anything reads as it
+  const forgetPreviousAccount = useEffectEvent(() => forgetAccount(queryClient))
 
   // Reads `currentUser` rather than the state above, which keeps the callback identity stable
   // across a sign-in and lets a consumer put it in a dependency list without re-running
@@ -61,6 +68,9 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
       latest call commits, and unsubscribing retires any call still in flight
     */
     let latestCall = 0
+    // The account the listener last committed, so the one that leaves is forgotten as the next comes,
+    // and nothing for the first
+    let committedUid: string | null = null
 
     const unsubscribe = onIdTokenChanged(authentication, async nextViewer => {
       const call = ++latestCall
@@ -80,6 +90,11 @@ function AuthenticationProvider({ children }: PropsWithChildren) {
       }
 
       if (call !== latestCall) return
+
+      // Before the next account is set, so its first reads start on a cache the last one left nothing in
+      if (committedUid && committedUid !== (nextViewer?.uid ?? null)) forgetPreviousAccount()
+
+      committedUid = nextViewer?.uid ?? null
 
       setViewer(nextViewer)
       setEmailVerified(nextEmailVerified)

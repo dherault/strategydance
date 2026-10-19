@@ -106,6 +106,7 @@ function KnowledgeDocuments() {
   return (
     <ContainerLayout className="gap-8">
       <PageHeader
+        eyebrow={formatMessage(knowledgeMessages.eyebrow)}
         title={formatMessage(navigationMessages.knowledge)}
         lead={
           knowledgeDocuments.length
@@ -113,7 +114,7 @@ function KnowledgeDocuments() {
             : undefined
         }
       />
-      <div className="flex flex-col gap-3">
+      <div className="@container flex flex-col gap-3">
         <PageToolbar
           actions={
             <>

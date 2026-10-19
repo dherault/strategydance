@@ -13,17 +13,17 @@ function readText(request: ReturnType<typeof buildConversationTaggingRequest>) {
 }
 
 describe('buildConversationTaggingRequest', () => {
-  test('asks Opus 5.5 at low effort for the aspects, held to its schema, with no tools', () => {
+  test('asks Haiku 5.5 at low effort for the aspects, held to its schema, with no tools and no fallback', () => {
     const request = buildConversationTaggingRequest({ member: [], reply: [] })
 
     expect(request).toMatchObject({
-      model: 'claude-opus-5-5',
+      model: 'claude-haiku-5-5',
       max_tokens: 8000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
       output_config: { effort: 'low', format: { type: 'json_schema', schema: CONVERSATION_TAGGING_SCHEMA } },
       system: CONVERSATION_TAGGING_PROMPT,
     })
+    expect(request).not.toHaveProperty('fallbacks')
+    expect(request).not.toHaveProperty('betas')
     expect(request).not.toHaveProperty('tools')
     expect(request).not.toHaveProperty('thinking')
     expect(CONVERSATION_TAGGING_SCHEMA.properties.aspects.items.enum).toEqual(Object.values(CompanyAspect))

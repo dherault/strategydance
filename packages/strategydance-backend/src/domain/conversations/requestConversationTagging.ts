@@ -10,7 +10,7 @@ import { dataConnect } from '~firebase'
 import logger from '~utils/logger'
 
 import buildConversationTaggingRequest from '~domain/agent/buildConversationTaggingRequest'
-import { CONVERSATION_MODEL, CONVERSATION_TAGGING_MAX_TOKENS } from '~domain/agent/conversationRequestSettings'
+import { CONVERSATION_TAGGING_MAX_TOKENS, CONVERSATION_TAGGING_MODEL } from '~domain/agent/conversationRequestSettings'
 import readConversationTagging from '~domain/agent/readConversationTagging'
 import {
   type ConversationRunUsage,
@@ -78,12 +78,13 @@ async function requestConversationTagging({
   })
   const estimatedInputTokens = await countInput(client, body)
   const inputEndPosition = entries.at(-1)?.position ?? 0
+  // It sends no fallback, which its model has none of
   const worstCase = priceRequestWorstCase({
-    model: CONVERSATION_MODEL,
+    model: CONVERSATION_TAGGING_MODEL,
     inputTokens: estimatedInputTokens,
     maxTokens: CONVERSATION_TAGGING_MAX_TOKENS,
     maxSearches: 0,
-  }).withFallback
+  }).single
 
   if (priceConversationUsageBound(initialUsage) + worstCase > maxCostMicrodollars) {
     logger.warn(`Conversation run ${fence.runId}: its tagging would pass its cost limit, and is skipped`)
@@ -101,6 +102,7 @@ async function requestConversationTagging({
     inputEndPosition,
     purpose: 'tagging',
     worstCaseMicrodollars: worstCase,
+    requestedModel: CONVERSATION_TAGGING_MODEL,
   })
   const { data: reservation } = await lease.write(() =>
     renewConversationRunLease(dataConnect, { ...fence, usage: reserved.usage }),

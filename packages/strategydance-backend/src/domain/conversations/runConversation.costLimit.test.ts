@@ -169,8 +169,9 @@ describe('runConversation, at the cost limit of a run', () => {
 
   test('skips tagging the conversation when its request would pass the limit, and tries it no more', async () => {
     const reference = await kit.start('Help me price the beta', { aspects: null })
-    // A reply that cost some $2.20, after which the tagging's worst case no longer fits
-    const scripted = kit.createClient([answer(undefined, { outputTokens: 110_000 })])
+    // A reply that cost some $2.50, which leaves nothing for even the tagging's worst case, a fraction
+    // of a cent on Haiku 5.5
+    const scripted = kit.createClient([answer(undefined, { outputTokens: 125_000 })])
 
     await spend(reference, [dollars(7.5)])
     await runConversation(reference, { client: scripted.client })
@@ -201,8 +202,9 @@ describe('runConversation, at the cost limit of a run', () => {
       connectModules: connectTestModules([READ_LOG]),
     }
 
-    // The first run at $8 chains at once, sending nothing
-    await spend(subagent, [dollars(8)])
+    // The first run at $9 chains at once, sending nothing: its next request could cost some $1.75,
+    // which $8 would leave room for
+    await spend(subagent, [dollars(9)])
 
     expect(await runConversation(subagent, options)).toBe('finished')
     expect(kit.readRun(subagent)).toMatchObject({ status: 'CHAINED', failure: expect.stringContaining('could cost') })
@@ -217,8 +219,9 @@ describe('runConversation, at the cost limit of a run', () => {
       reference = enqueueRun.mock.calls.at(-1)?.[0] as ConversationRunReference
     }
 
-    // The fourth, at $8, ends there, failed, and reports
-    await spend(reference, [dollars(8)])
+    // The fourth, at $9, ends there, its next request past what is left of its $10, failed, and
+    // reports. At $8 it would still send one
+    await spend(reference, [dollars(9)])
 
     expect(await runConversation(reference, options)).toBe('finished')
     expect(kit.readRun(reference)).toMatchObject({ number: 3, status: 'FAILED' })

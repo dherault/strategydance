@@ -5,6 +5,12 @@ import { LOCAL_STORAGE_PREFIX } from '~constants'
 type Options<T> = {
   enabled?: boolean
   parser?: (value: any) => T
+  /*
+    What is written for a change, from the state it makes and the state before it, when that is not
+    the state itself: the dock writes its own set over what other tabs stored meanwhile, and keeps
+    its state as it was
+  */
+  toStored?: (next: T, previous: T) => T
 }
 
 const identity = (value: any) => value
@@ -21,7 +27,7 @@ const isBrowser = typeof localStorage !== 'undefined'
   fresh component anyway
 */
 function usePersistedState<T>(key: string, defaultValue: T, options?: Options<T>) {
-  const { parser = identity, enabled = true } = options || {}
+  const { parser = identity, enabled = true, toStored } = options || {}
 
   const localStorageKey = `${LOCAL_STORAGE_PREFIX}${key}`
 
@@ -45,11 +51,19 @@ function usePersistedState<T>(key: string, defaultValue: T, options?: Options<T>
     setState(previousState => {
       const nextValue = typeof nextState === 'function' ? (nextState as (previous: T) => T)(previousState) : nextState
 
+      // A change that changes nothing writes nothing, so it never writes a stale copy over another tab's
+      if (nextValue === previousState) return previousState
+
       // Guarded like the read above, and it matters more here: this runs inside the state updater,
       // so a full quota (or Safari private browsing) would throw during render rather than in an
       // effect, taking the tree down to the nearest error boundary
       try {
-        if (isBrowser) localStorage.setItem(localStorageKey, JSON.stringify(nextValue))
+        if (isBrowser) {
+          localStorage.setItem(
+            localStorageKey,
+            JSON.stringify(toStored ? toStored(nextValue, previousState) : nextValue),
+          )
+        }
       } catch (error) {
         console.error(`Error on localStorage.setItem of ${key}`, error)
       }

@@ -65,10 +65,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.activesearchresults.com/",
     "submissionUrl": "https://www.activesearchresults.com/addwebsite.php",
-    "description": "",
-    "categories": [],
+    "description": "Independent web search engine where website owners submit their site's URL and email to have it crawled and indexed.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-19",
     "unreachableSince": null
   },
   {
@@ -1187,10 +1189,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://appslisto.com/",
     "submissionUrl": "https://appslisto.com/submit-your-app/",
-    "description": "",
-    "categories": [],
+    "description": "Online magazine that reviews and lists iPhone, Android and web apps, where developers submit their app for a review.",
+    "categories": [
+      "MOBILE_APPS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-19",
     "unreachableSince": null
   },
   {
@@ -2195,10 +2199,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.exactseek.com/",
     "submissionUrl": "https://www.exactseek.com/add.html",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "description": "General web search engine and directory where website owners submit their URL for inclusion in its search results.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": "2026-10-19",
     "unreachableSince": null
   },
   {
@@ -3802,18 +3808,6 @@
     "unreachableSince": null
   },
   {
-    "id": "ogfolio",
-    "name": "OGFolio",
-    "type": "WEBSITE",
-    "rootUrl": "https://www.ogfolio.com/",
-    "submissionUrl": "https://www.ogfolio.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
-    "unreachableSince": null
-  },
-  {
     "id": "ogimage-gallery",
     "name": "OGimage.gallery",
     "type": "WEBSITE",
@@ -4128,10 +4122,10 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.productinspire.com/",
     "submissionUrl": "https://www.productinspire.com/register",
-    "description": "",
+    "description": "Software discovery directory where vendors and founders list their products by category so business buyers can browse, compare and review them.",
     "categories": [],
-    "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-10-19",
     "unreachableSince": null
   },
   {
@@ -4854,10 +4848,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://sidehunt.io/",
     "submissionUrl": "https://sidehunt.io/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
+    "description": "A weekly launch platform for side projects and indie products, where makers submit their launches and compete for votes, badges and backlinks.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": "2026-10-19",
     "unreachableSince": null
   },
   {
@@ -5513,10 +5509,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://superbcrew.com/",
     "submissionUrl": "https://superbcrew.com/your-voice/",
-    "description": "",
-    "categories": [],
+    "description": "Business news site that publishes stories, funding news and founder interviews about startups and companies, where founders can pay to have their story published.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-19",
     "unreachableSince": null
   },
   {
@@ -5803,10 +5801,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://todaylaunches.com/",
     "submissionUrl": "https://todaylaunches.com/pricing",
-    "description": "",
-    "categories": [],
+    "description": "Daily directory of new product launches, including SaaS tools, AI apps and mobile apps, where makers submit their own products by category.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-19",
     "unreachableSince": null
   },
   {
@@ -5962,7 +5962,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-19",
     "unreachableSince": null
   },
   {
@@ -6129,10 +6129,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://twelve.tools/",
     "submissionUrl": "https://twelve.tools/submit-your-tool",
-    "description": "",
-    "categories": [],
+    "description": "Directory of startups and web tools across many categories, with twelve new tools featured each day, where makers submit their own tools for a dofollow link.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-19",
     "unreachableSince": null
   },
   {

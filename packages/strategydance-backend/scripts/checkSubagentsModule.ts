@@ -829,9 +829,35 @@ async function checkStopping() {
     ),
   )
 
+  // A call its chain left running for it, which nothing runs once it is stopped
+  const runningCallId = createId()
+
+  await write(
+    `mutation Call($id: UUID!, $conversationId: UUID!, $runId: UUID!) {
+      conversationMessage_insert(
+        data: {
+          id: $id
+          conversationId: $conversationId
+          runId: $runId
+          kind: TOOL_CALL
+          position: 1000
+          toolStatus: RUNNING
+          toolUseId: "toolu_checked"
+          toolName: "read_document"
+        }
+      )
+    }`,
+    { id: runningCallId, conversationId: queued.conversationId, runId: queued.runId },
+  )
   await stopQueuedSubagentRun(dataConnect, note)
 
   const ended = await readConversation(queued.conversationId)
+  const { conversationMessage: runningCall } = await read<{ conversationMessage: { toolStatus: string } | null }>(
+    `query Call($id: UUID!) { conversationMessage(id: $id) { toolStatus } }`,
+    { id: runningCallId },
+  )
+
+  check('a queued run stopped cancels the calls its chain left running', runningCall?.toolStatus === 'CANCELLED')
 
   check(
     'a queued run asked to stop ends stopped, with its report, letting its subagent go',

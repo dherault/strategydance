@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test'
 
-import createTabStore from '~utils/common/createTabStore'
+import createTabStore, { clearTabStores } from '~utils/common/createTabStore'
 
 type Note = { text: string }
 
@@ -66,5 +66,20 @@ describe('createTabStore', () => {
     notes.update('a', () => ({ text: 'Hello' }))
 
     expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('empties every store the tab made at once, as an account leaving does, and tells their listeners', () => {
+    const notes = createNotes()
+    const others = createNotes()
+    const listener = mock(() => {})
+
+    notes.update('a', () => ({ text: 'Hello' }))
+    others.update('b', () => ({ text: 'World' }))
+    notes.subscribe(listener)
+    clearTabStores()
+
+    expect(notes.read('a')).toBe(EMPTY)
+    expect(others.read('b')).toBe(EMPTY)
+    expect(listener).toHaveBeenCalledTimes(1)
   })
 })

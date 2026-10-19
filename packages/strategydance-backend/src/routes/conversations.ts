@@ -46,6 +46,7 @@ import authenticationMiddleware from '~middleware/authentication'
 import conversationAttachmentReadRateLimitMiddleware from '~middleware/conversationAttachmentReadRateLimit'
 import conversationAttachmentRemovalRateLimitMiddleware from '~middleware/conversationAttachmentRemovalRateLimit'
 import conversationAttachmentUploadRateLimitMiddleware from '~middleware/conversationAttachmentUploadRateLimit'
+import conversationRunControlRateLimitMiddleware from '~middleware/conversationRunControlRateLimit'
 import createConversationSearchRateLimitMiddleware from '~middleware/conversationSearchRateLimit'
 import conversationsSuspensionMiddleware from '~middleware/conversationsSuspension'
 import organizationMemberMiddleware from '~middleware/organizationMember'
@@ -398,6 +399,7 @@ function createConversationsRouter() {
     '/:conversationId/runs/:runId/reconcile',
     appCheckMiddleware,
     authenticationMiddleware,
+    conversationRunControlRateLimitMiddleware,
     validateMiddleware({ params: runParamsSchema }),
     organizationMemberMiddleware,
     async (request: RunRequest, response: Response<ApiResponse>) => {
@@ -430,6 +432,7 @@ function createConversationsRouter() {
     '/:conversationId/subagents/reconcile',
     appCheckMiddleware,
     authenticationMiddleware,
+    conversationRunControlRateLimitMiddleware,
     validateMiddleware({ params: messagesParamsSchema }),
     organizationMemberMiddleware,
     async (
@@ -462,6 +465,7 @@ function createConversationsRouter() {
     '/:conversationId/subagents/stop',
     appCheckMiddleware,
     authenticationMiddleware,
+    conversationRunControlRateLimitMiddleware,
     validateMiddleware({ params: messagesParamsSchema }),
     organizationMemberMiddleware,
     async (
@@ -500,6 +504,7 @@ function createConversationsRouter() {
     '/:conversationId/subagents/:subagentId/stop',
     appCheckMiddleware,
     authenticationMiddleware,
+    conversationRunControlRateLimitMiddleware,
     validateMiddleware({ params: subagentParamsSchema }),
     organizationMemberMiddleware,
     async (
@@ -535,6 +540,7 @@ function createConversationsRouter() {
     '/:conversationId/runs/:runId/stop',
     appCheckMiddleware,
     authenticationMiddleware,
+    conversationRunControlRateLimitMiddleware,
     validateMiddleware({ params: runParamsSchema }),
     organizationMemberMiddleware,
     async (request: RunRequest, response: Response<ApiResponse>) => {

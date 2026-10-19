@@ -87,7 +87,7 @@ describe('reconcileSubagentRuns, where runs go through the queue', () => {
       [waiting, 'subagent-runs'],
       [waiting, 'subagent-runs'],
     ])
-    expect(kit.readRun(waiting)).toMatchObject({ status: 'QUEUED', leaseExpiresAt: '2026-10-16T10:51:00.000Z' })
+    expect(kit.readRun(waiting)).toMatchObject({ status: 'QUEUED', leaseExpiresAt: '2026-10-16T10:33:00.000Z' })
   })
 
   test('finalizes a subagent run whose task is gone once it is past twenty minutes queued, with its report', async () => {

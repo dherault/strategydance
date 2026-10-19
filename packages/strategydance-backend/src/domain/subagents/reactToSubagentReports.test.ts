@@ -149,6 +149,30 @@ describe('reactToSubagentReports', () => {
     expect(readReactions(parent)).toHaveLength(1)
   })
 
+  test('queues the run its start stored when the start’s answer was lost, though its reports went with it', async () => {
+    const parent = await startParent()
+
+    await report(await kit.launch(parent))
+
+    let isLost = false
+
+    fake.afterOperation = async name => {
+      if (name !== 'StartSubagentReaction' || isLost) return
+
+      isLost = true
+
+      throw new Error('The connection closed before the answer came')
+    }
+
+    const reaction = await reactToSubagentReports(parent)
+    const [run] = readReactions(parent)
+
+    expect(readReactions(parent)).toHaveLength(1)
+    expect(reaction).toEqual({ outcome: 'started', runId: run?.id ?? '' })
+    expect(enqueueRun).toHaveBeenCalledTimes(1)
+    expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: run?.id }), 'conversation-runs')
+  })
+
   test('reacts to each batch whole: the first’s completion delivers its reports alone, the second’s its own', async () => {
     const parent = await startParent()
     const [first, second] = [await kit.launch(parent), await kit.launch(parent)]

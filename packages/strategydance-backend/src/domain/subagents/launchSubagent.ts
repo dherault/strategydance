@@ -296,7 +296,8 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
 
     const content: ConversationContentBlock[] = [
       ...files.map(file => buildConversationAttachmentBlock(file, { fileId: file.claudeFileId })),
-      { type: 'text', text: input.brief },
+      // As stored, without U+0000, so the transcript and its measure hold what the thread draws
+      { type: 'text', text },
     ]
 
     if (files.length) {

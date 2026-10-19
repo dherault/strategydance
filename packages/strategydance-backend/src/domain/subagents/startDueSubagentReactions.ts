@@ -31,7 +31,7 @@ type Options = {
   reaction would pass by more than it may; the sweep goes through every one. A suspension of the
   member's conversations stops either. A read or a reaction
   that fails is logged and left to the next, never failing what it follows. Answers how many
-  started
+  started, and how many reads and reactions failed, which the sweep reports
 */
 async function startDueSubagentReactions(
   { organizationId, userId }: Pick<ConversationRunReference, 'organizationId' | 'userId'>,
@@ -40,12 +40,15 @@ async function startDueSubagentReactions(
   // The member alone, since an operation refuses a variable it does not take
   const member = { organizationId, userId }
   let started = 0
+  let failures = 0
   let due: { id: string }[] = []
 
   try {
     due = (await getDueSubagentReactions(dataConnect, member)).data.conversations
   } catch (error) {
     logger.warn(`Member ${member.userId}: the reactions due could not be read`, error)
+
+    failures++
   }
 
   const conversationIds = [
@@ -58,15 +61,19 @@ async function startDueSubagentReactions(
 
       if (reaction.outcome === 'started' || reaction.outcome === 'unavailable') started++
       // The member's runs taken, or past one and a half times a daily cap, hold back every other too,
-      // and a suspension holds back every other even on the sweep
+      // and a suspension holds back every other even on the sweep. A reaction stored whose task could
+      // not be queued holds one of the member's runs as one queued does, and is queued again by a
+      // reconcile, so a run's end starts no other beside it
       if (reaction.outcome === 'suspended') break
-      if (!isThorough && ['started', 'busy', 'capped'].includes(reaction.outcome)) break
+      if (!isThorough && ['started', 'unavailable', 'busy', 'capped'].includes(reaction.outcome)) break
     } catch (error) {
       logger.warn(`Conversation ${conversationId}: its reaction to its subagents' reports could not start`, error)
+
+      failures++
     }
   }
 
-  return started
+  return { started, failures }
 }
 
 export default startDueSubagentReactions

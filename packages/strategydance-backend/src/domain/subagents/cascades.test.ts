@@ -50,7 +50,8 @@ const LAUNCH = {
   title: 'Research the competitors',
   brief: 'Compare the pricing pages of our three closest competitors.',
 }
-const OVERLOADED = new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers())
+// A request Claude's API refuses for good, which no retry waits out, so the run fails at once
+const FAILING = new Anthropic.BadRequestError(400, { type: 'invalid_request_error' }, 'Invalid', new Headers())
 const STOPPED_REPORT = 'This subagent was stopped before it finished.'
 
 // A conversation of the member's whose run completed
@@ -64,7 +65,7 @@ async function startParent() {
 
 // Runs a run whose request Claude's API fails, which ends it failed with its note and offers Retry
 async function fail(parent: ConversationRunReference) {
-  await runConversation(parent, { client: kit.createClient([OVERLOADED]).client })
+  await runConversation(parent, { client: kit.createClient([FAILING]).client })
 }
 
 async function report(subagent: ConversationRunReference, text = 'Done.') {
@@ -345,5 +346,20 @@ describe('the sweep', () => {
 
     expect(await sweepSubagentReactions()).toEqual({ started: 1 })
     expect(readReactions(parent)).toHaveLength(1)
+  })
+
+  test('throws once done when a member’s reactions due could not be read, so its route reports it', async () => {
+    const parent = await startParent()
+
+    await report(await kit.launch(parent))
+
+    fake.beforeOperation = async name => {
+      if (name === 'GetDueSubagentReactions') throw new Error('The database is unreachable')
+    }
+
+    await expect(sweepSubagentReactions()).rejects.toThrow(
+      'sweepSubagentReactions: 1 of its reads or reconciles failed',
+    )
+    expect(readReactions(parent)).toEqual([])
   })
 })

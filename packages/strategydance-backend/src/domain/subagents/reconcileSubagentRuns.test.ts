@@ -169,6 +169,30 @@ describe('reconcileSubagentRuns', () => {
     expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: waiting?.runId }), 'subagent-runs')
   })
 
+  test('promotes into the slot free though a run it should end cannot be, and throws once done', async () => {
+    const { running, pending } = await fillSlots(2)
+    const [ofBefore, waiting] = pending
+    const run = kit.readRun(ofBefore ?? MEMBER_RUN)
+
+    // A run of a membership since replaced, whose ending the database refuses every time
+    if (run) run.membershipCreatedAt = '2026-01-01T00:00:00.000000Z'
+
+    fake.beforeOperation = async name => {
+      if (name === 'InterruptPendingSubagentRun') throw new Error('The database is unreachable')
+    }
+
+    await kit.call('finishSubagentRun', {
+      ...(await kit.claim(running[0] ?? MEMBER_RUN)),
+      status: 'COMPLETED',
+      report: 'Done.',
+    })
+
+    await expect(reconcileSubagentRuns(MEMBER)).rejects.toThrow('1 of its runs could not be ended')
+
+    expect(readStatuses(pending)).toEqual(['PENDING', 'QUEUED'])
+    expect(enqueueRun).toHaveBeenCalledWith(expect.objectContaining({ runId: waiting?.runId }), 'subagent-runs')
+  })
+
   test('ends every run the promotion skips, a hundred at a time, past the first hundred', async () => {
     await fillSlots(0)
 
@@ -190,6 +214,55 @@ describe('reconcileSubagentRuns', () => {
     await reconcileSubagentRuns(MEMBER)
 
     expect(readStatuses(skipped).every(status => status === 'STOPPED')).toBe(true)
+  })
+
+  test('finalizes every dead run past one it cannot, and promotes into the slots they freed', async () => {
+    const { running, pending } = await fillSlots()
+    const [stuck, dead] = running
+
+    if (!stuck || !dead) throw new Error('No subagent launched')
+
+    kit.expireLease(stuck)
+    kit.expireLease(dead)
+
+    fake.beforeOperation = async (name, variables) => {
+      if (name === 'InterruptDeadSubagentRun' && variables.runId === stuck.runId) throw new Error('Unreachable')
+    }
+
+    await expect(reconcileSubagentRuns(MEMBER, { retryDelayMs: 0 })).rejects.toThrow('1 of its runs could not be ended')
+
+    expect(readStatuses([stuck, dead])).toEqual(['QUEUED', 'INTERRUPTED'])
+    expect(readStatuses(pending)).toEqual(['QUEUED'])
+  })
+
+  test('ends the runs past a hundred it cannot, which its reads leave out before their limits', async () => {
+    await fillSlots(0)
+
+    const skipped: ConversationRunReference[] = []
+
+    for (let parentIndex = 0; parentIndex < 11; parentIndex++) {
+      const parent = await startParent()
+
+      for (let index = 0; index < 10; index++) skipped.push(await kit.launch(parent))
+    }
+
+    for (const reference of skipped) {
+      const run = kit.readRun(reference)
+
+      if (run) run.stopRequestedAt = new Date().toISOString()
+    }
+
+    // The oldest hundred the database refuses to end, every time
+    const stuck = new Set(skipped.slice(0, 100).map(({ runId }) => runId))
+
+    fake.beforeOperation = async (name, variables) => {
+      if (name === 'StopPendingSubagentRun' && stuck.has(variables.runId)) throw new Error('Unreachable')
+    }
+
+    await expect(reconcileSubagentRuns(MEMBER, { retryDelayMs: 0 })).rejects.toThrow(
+      '100 of its runs could not be ended',
+    )
+    expect(readStatuses(skipped.slice(100)).every(status => status === 'STOPPED')).toBe(true)
   })
 
   test('sweeps every member with a subagent run nobody reconciled, and nobody else', async () => {

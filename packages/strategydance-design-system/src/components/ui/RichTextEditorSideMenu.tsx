@@ -11,8 +11,9 @@ import {
   useExtensionState,
   usePortalElement,
 } from '@blocknote/react'
+import { useShadCNComponentsContext } from '@blocknote/shadcn'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
-import type { ComponentProps } from 'react'
+import { type ComponentProps, type DragEvent, useState } from 'react'
 import type { RichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { getRichTextBlockTypeItems } from 'strategydance-design-system/lib/richTextEditorMenus'
 
@@ -122,39 +123,78 @@ function AddBlockButton() {
   )
 }
 
-// While its menu is open the side menu stays on the block, wherever the pointer goes
+/*
+  The handle drags its block, and a click on it opens the block's menu, while which the side menu
+  stays on the block, wherever the pointer goes. Base UI opens a menu as its trigger is pressed, so
+  a press that went on to drag carried the menu along: its press handlers are skipped, which leaves
+  the click, which a drag never fires, to open it, as a key does. A drag from an open menu closes
+  it, and the side menu stays frozen until the drop, since hiding it would take away the handle the
+  drag started from, and the drag with it.
+
+  The menu is built from the shadcn components BlockNote's view hands down rather than from its
+  generic menu, which cannot be told to close
+*/
 function DragHandleButton() {
   const Components = useComponentsContext()!
-  const portalElement = usePortalElement()
+  const ShadCNComponents = useShadCNComponentsContext()!
   const dictionary = useDictionary()
   const sideMenu = useExtension(SideMenuExtension)
   const block = useExtensionState(SideMenuExtension, { selector: state => state?.block })
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   if (!block) return null
 
+  function handleOpenChange(isOpen: boolean) {
+    setIsMenuOpen(isOpen)
+
+    if (isOpen) sideMenu.freezeMenu()
+    else sideMenu.unfreezeMenu()
+  }
+
+  function skipPress(event: { preventBaseUIHandler: () => void }) {
+    event.preventBaseUIHandler()
+  }
+
+  function handleDragStart(event: DragEvent) {
+    if (!block) return
+
+    setIsMenuOpen(false)
+    sideMenu.blockDragStart(event, block)
+  }
+
+  function handleDragEnd() {
+    sideMenu.blockDragEnd()
+
+    if (sideMenu.menuFrozen) sideMenu.unfreezeMenu()
+  }
+
   return (
-    <Components.Generic.Menu.Root
-      position="left"
-      portalElement={portalElement}
-      onOpenChange={(isOpen: boolean) => (isOpen ? sideMenu.freezeMenu() : sideMenu.unfreezeMenu())}
+    <ShadCNComponents.DropdownMenu.DropdownMenu
+      open={isMenuOpen}
+      modal={false}
+      onOpenChange={handleOpenChange}
     >
-      <Components.Generic.Menu.Trigger>
-        <Components.SideMenu.Button
-          className="bn-button"
-          label={dictionary.side_menu.drag_handle_label}
-          icon={
-            <GripVerticalIcon
-              size={ICON_SIZE}
-              strokeWidth={ICON_STROKE_WIDTH}
-            />
-          }
-          draggable
-          onDragStart={event => sideMenu.blockDragStart(event, block)}
-          onDragEnd={() => sideMenu.blockDragEnd()}
-        />
-      </Components.Generic.Menu.Trigger>
+      <ShadCNComponents.DropdownMenu.DropdownMenuTrigger
+        render={
+          <Components.SideMenu.Button
+            className="bn-button"
+            label={dictionary.side_menu.drag_handle_label}
+            icon={
+              <GripVerticalIcon
+                size={ICON_SIZE}
+                strokeWidth={ICON_STROKE_WIDTH}
+              />
+            }
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          />
+        }
+        onPointerDown={skipPress}
+        onMouseDown={skipPress}
+      />
       <BlockMenu />
-    </Components.Generic.Menu.Root>
+    </ShadCNComponents.DropdownMenu.DropdownMenu>
   )
 }
 
@@ -169,6 +209,7 @@ function DragHandleButton() {
 */
 function BlockMenu() {
   const Components = useComponentsContext()!
+  const ShadCNComponents = useShadCNComponentsContext()!
   const portalElement = usePortalElement()
   const dictionary = useDictionary() as RichTextDictionary
   const editor = useBlockNoteEditor()
@@ -200,7 +241,10 @@ function BlockMenu() {
   }
 
   return (
-    <Components.Generic.Menu.Dropdown className="bn-menu-dropdown bn-drag-handle-menu">
+    <ShadCNComponents.DropdownMenu.DropdownMenuContent
+      className="bn-menu-dropdown bn-drag-handle-menu"
+      container={portalElement}
+    >
       {block && hasText(editor, block.type) ? (
         <Components.Generic.Menu.Root
           position="right"
@@ -238,7 +282,7 @@ function BlockMenu() {
         </Components.Generic.Menu.Root>
       ) : null}
       <RemoveBlockItem>{dictionary.drag_handle.delete_menuitem}</RemoveBlockItem>
-    </Components.Generic.Menu.Dropdown>
+    </ShadCNComponents.DropdownMenu.DropdownMenuContent>
   )
 }
 

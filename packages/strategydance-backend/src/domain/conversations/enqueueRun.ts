@@ -18,8 +18,8 @@ import runConversation from '~domain/conversations/runConversation'
   a send retried after its run was queued completes what the first one did not.
 
   A run whose task could not be queued stays queued, and its lease is brought in to now, so its page
-  asks the backend to reconcile it at once, which queues the task again, rather than twenty minutes
-  later
+  asks the backend to reconcile it at once, which queues the task again, rather than once its queued
+  lease has passed
 */
 async function enqueueRun(reference: ConversationRunReference, queue: ConversationRunQueue) {
   const { organizationId, userId, conversationId, runId } = reference

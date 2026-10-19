@@ -205,6 +205,19 @@ export const WEB_SEARCH_RESULT_TOKEN_ALLOWANCE = 16_000
 // reads it before each request too
 export const CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS = 2000
 
+/*
+  How a run rides out Claude's API failing for a while, once the SDK's own two retries are spent: a
+  request refused before its stream started, as rate limited (429), overloaded (529), failing (5xx)
+  or unreachable, which costs nothing, is sent again up to four times in a row, after what the
+  answer's `retry-after` asks, at most a minute, or after five seconds doubled at each failure, while
+  the run's ten minutes allow it. Past that the run fails with its note, as any other failure of the
+  API does. The Evaluation tier's output tokens a minute refuse requests past some twenty runs at once
+  (Setup 14 in documents/conversations.md), which a member would otherwise meet as a failed run
+*/
+export const MAX_CONVERSATION_API_RETRIES = 4
+export const CONVERSATION_API_RETRY_DELAY_MS = 5000
+export const CONVERSATION_API_MAX_RETRY_DELAY_MS = 60 * 1000
+
 // How long the request that tags a conversation with its aspects may take before it is cut, and the
 // conversation is left untagged: a few seconds at low effort, so a minute is a request gone wrong
 export const CONVERSATION_TAGGING_TIMEOUT_MS = 60 * 1000
@@ -218,10 +231,21 @@ export const CONVERSATION_TOOL_CALL_TIMEOUT_MS = 60 * 1000
 export const CONVERSATION_READ_CALLS_AT_ONCE = 4
 
 /*
+  How long a queued run's lease is, which only says when to ask Cloud Tasks whether its task is still
+  coming: every write that queues a run sets it, and the one that finds its task there pushes it back
+  as far, each writing it out in its mutation, which this mirrors for the tests' fake. Short of the
+  window below, so a run whose task never came, its process gone between storing it and queueing
+  it, is found and queued again while it is young, by its page or by the worker's reconcile every
+  few minutes for a run no page watches, a subagent's or a reaction's
+*/
+export const CONVERSATION_RUN_QUEUED_LEASE_MS = 2 * 60 * 1000
+
+/*
   How long after a run was queued a route that finds its task gone queues it again, rather than
-  finalizing the run as interrupted: as long as a queued run's first lease. A task that could not be
-  queued, or was lost, is queued again while the member still waits on its page, which asks every
-  two minutes, and a run whose task keeps going missing ends once it is older
+  finalizing the run as interrupted: ten of a queued run's leases. A task that could not be queued,
+  or was lost, is queued again while the member still waits on its page, which asks every two
+  minutes, or the worker's reconcile finds it, and a run whose task keeps going missing ends once it
+  is older
 */
 export const CONVERSATION_RUN_REQUEUE_WINDOW_MS = 20 * 60 * 1000
 

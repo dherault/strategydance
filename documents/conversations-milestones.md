@@ -1,6 +1,6 @@
 # Conversations: the milestones
 
-The thirty-eight milestones that build the conversations feature, each one pull request into `dev`
+The forty-two milestones that build the conversations feature, each one pull request into `dev`
 that a Claude Code session can implement, with the conventions every one of them follows. What they
 build, and why, is in [conversations.md](conversations.md): the sections named here, such as The
 data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
@@ -48,7 +48,8 @@ and M25 have, M35 and M36 as soon as M33 has, M37 once M35 and M36 have, and M12
 before their neighbours. M33 lets the agent launch, and only M34 has the page reconcile a parent's
 subagents and Retry ask before it discards them, so M33 keeps `launch_subagent` refusing in
 production behind a gate of its own, which M34 removes: a release cut between the two launches
-nothing, rather than leave the daily sweep their only recovery.
+nothing, rather than leave the daily sweep their only recovery. M39 to M42, which the adversarial
+review of M1 to M38 added on 2026-10-18, each start once M38 has merged, in any order.
 
 | # | Milestone | Packages | Depends on | PR |
 | --- | --- | --- | --- | --- |
@@ -90,6 +91,10 @@ nothing, rather than leave the daily sweep their only recovery.
 | M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
 | M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | #210 |
 | M38 | Launch | all | all | #211 |
+| M39 | Daily spend ceilings | core, database, backend, web, root | M38 | |
+| M40 | Document revisions for agents' edits | database, backend, web, root | M38 | |
+| M41 | Races against a real Postgres | database, backend, root | M38 | |
+| M42 | A subagent's report at any limit | backend | M38 | |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 
@@ -2999,3 +3004,124 @@ and Risks). It removes no gate: M38 does.
     agent listed the integrations and launched two subagents, each of which read the tool and called
     DeepWiki, `call_integration_tool` succeeding, and the parent's reaction gathering both reports,
     $0.37 by the ledger.
+
+### M39: Daily spend ceilings
+
+The daily caps count what members start, and a run's $10 bounds what one start spends, so an account
+at its ceilings can still spend some $5400 a day, and an organization more: the workspace's spend
+limit, the guard above them, stops every customer at once. As David chose on 2026-10-18, after the
+review of M1 to M38, a day is bounded in dollars too, per member in each organization, per account
+and per organization, over the caps' rolling 24 hours, until the credits replace both (see Usage
+caps).
+
+- **What a run has cost, kept where no deletion reaches it.** A `RunSpend` row per run, keyed by the
+  run's id, holding its account and its organization as `CappedStart` holds them, the organization a
+  plain id, so deleting the organization, or the conversation, erases nothing of a day's spend, and
+  `costBound`, an `Int64` of microdollars: the most the run's ledger may have cost
+  (`priceConversationUsageBound`), what Claude's answers settled and the worst case each request no
+  answer settled reserved, a request in flight included. Every write that writes a run's `usage`
+  upserts it beside, through an optional `$costBound` the backend computes from the ledger it sends,
+  so the reservation that renews the lease counts the request about to go before it is sent, and
+  `spentAt`, set from the database's clock by each of those writes. A run counts whole while its
+  `spentAt` is within the window, and so for 24 hours after its last reservation or settlement,
+  which counts each of its requests at least a full day and some a little longer, rather than drop
+  a request made at 12:09 of a run started at 12:00 at 12:01 the next day. The sums filter on
+  `spentAt` and the daily sweep prunes rows whose `spentAt` is over a day old, the same timestamp
+  for both. A run from before the table counts nothing, which lasts a day.
+- **Read before every request, not only at a start.** A start could be checked alone only if
+  nothing it admits went on spending, and a subagent waiting for a slot is promoted, and one at its
+  limits chains, with no start between: ten launches admitted under a ceiling would spend up to $400.
+  So the ceiling is held where the run's $10 is, before each request a worker sends
+  (`requestConversationTurn`), a side request's included: the day's `costBound_sum` in each of the
+  three scopes, the member's in the organization, the account's across its organizations and the
+  organization's, plus the most the request about to go can cost, past which the request is not
+  sent and the run ends at its limits, with its note, a subagent's with its report, which a chain
+  then does not carry on. What passes a ceiling is then the requests in flight across the scope at
+  once, each bounded by its worst case, rather than whole runs.
+- **Read at every start too**, so nothing starts only to stop at its first request: beside the caps
+  on starts, `readReachedUsageCap` reads the same sums for a send, an answer, an approval, Resume,
+  Retry, a launch, a promotion and a reaction. One at its ceiling is refused as a cap is, 429 with
+  the ceiling's code and `Retry-After`, read from when enough of the window's spend leaves it,
+  oldest run first; a launch is refused with its sentence, a promotion leaves the run waiting, and a
+  reaction waits, as at a cap. The development backend lifts it with the caps (`IS_USAGE_CAPPED`).
+- **The amounts** are David's, before it merges. The milestone starts from $25 a member in each
+  organization, $50 an account and $150 an organization, some ten times a heavy member's typical day
+  at the caps (see Cost).
+- **The ledger made exact where the ceilings read it.** A stream cut by a stop or its deadline is
+  charged the output it streamed, estimated from the text and thinking it sent, rather than the
+  count `message_start` reported; and `probe:claude` measures what a request of five searches is
+  billed past one reading of each result, which `priceRequestWorstCase` counts once.
+- **The page** says the ceiling is reached and when it frees, as it says a cap is, in the
+  `conversation` catalogue; `report:usage` lists each scope's day against its ceiling.
+- **Verify**: domain tests at each scope against `createConversationDatabaseFake`: runs of one
+  account in two organizations, and of two members in one, admitted side by side under the ceilings
+  and stopped at their next request once past; a backlog of pending subagents crossing it, the rest
+  left waiting and the running ones ending with their reports; a chain refused past it; an
+  organization deleted and made again, its spend still counted; a run whose last request came nine
+  minutes after its first, still counted a day after its first; and a reaction waiting at its
+  ceiling. `check:conversation-runs` sums `costBound` against the emulators.
+
+### M40: Document revisions for agents' edits
+
+An agent's edit can rewrite a document's whole text (`update_document` with `content`, or
+`replaceBlocks` over every block), a subagent's with nobody watching, and text it read can ask it to,
+while a document keeps one snapshot and no history: no restore brings the text back (see Risks). As
+David chose on 2026-10-18, after the review of M1 to M38, every edit an agent makes is kept as a
+revision a member can go back to, Strategy Dance's agents' and external agents' alike.
+
+- **`DocumentRevision`**: the document, its organization, the text as it stood before the edit, the
+  Yjs state the fold read with every pending update merged, base64 as `Document.state` is, its
+  Markdown for the list, who made it (the member, and the conversation or the connection the agent
+  acted from, the module call's scope), the call's id, and when. Inserted by the mutation that folds
+  the agent's edit (`FoldDocumentForAgent`, and any later `…ForAgent` write of a document's text), so
+  an edit and its revision commit together, under the edit's idempotency key. Kept 30 days, which
+  the daily sweep prunes, and deleted with its document.
+- **Going back** writes the revision's text as a new edit, through `updateRichTextYDoc`, so it merges
+  with whoever is typing and keeps every block it does not change, and is itself an edit a member
+  can go back from. Offered as Undo on the tool call's row in the thread while nobody has written to
+  the document since, and as Restore this version, saying what written since goes too, in a history
+  of the document's agents' edits on its page, which is where a member finds an external agent's.
+  A document the team keeps from AI keeps its revisions, which only members read.
+- **`update_document` says it can destroy** (`destructiveHint: true`), which an external agent's
+  client may read to ask its member before calling it, by its own policy: the hint is advisory, so it
+  guarantees nothing, and the revisions are what guard the text. A module's tool list is pinned by its
+  bytes, so the release costs every conversation its earlier reasoning once, and `probe:claude` runs
+  after it.
+- **Verify**: the fold and its revision commit together or not at all, a revision restored merges with
+  concurrent typing both ways as `updateRichTextYDoc`'s tests do, `check:knowledge-module` against the
+  emulators, and the history and Undo looked at in a browser, desktop and phone.
+
+### M41: Races against a real Postgres
+
+Every bound the runs keep, one run per conversation, three in flight, five subagent slots, a report
+delivered once, a promotion into each slot freed, and the order every cascade takes its locks in, is
+reasoned from Postgres' semantics, and none has met a second writer: the emulator's PGlite runs one
+transaction at a time (see Risks). As the review of M1 to M38 proposed on 2026-10-18, they are raced.
+
+- **The emulator on Postgres.** The Data Connect emulator runs against a local Postgres instead of
+  PGlite, through firebase-tools' option for an external database, confirmed against the version
+  the repository pins before anything is built on it, in a script that starts a throwaway Postgres
+  and the emulators on spare ports, as the person's own stack keeps the usual ones.
+- **`bun run check:conversation-races`**, in the backend's package, against it, each scenario a set
+  of writers released at once, many times over: two sends to one conversation start one run; sends
+  across four conversations at three in flight start three; six launches start five and leave one
+  pending, which a run's end promotes once; two subagents of one batch ending at once start one
+  reaction and deliver each report once; a stop racing a chain ends the run stopped; a parent's
+  delete racing a launch leaves no live subagent under a deleted parent; and a suspension racing a
+  send. A failure prints the interleaving it saw.
+- **Not in CI**, which runs no emulators: it runs before a release that changes a run's mutations,
+  as `probe:claude` runs before one that changes a request, and CLAUDE.md says so.
+
+### M42: A subagent's report at any limit
+
+A subagent's fourth run asks for its report only before its 25th request (`SUBAGENT_REPORT_REQUEST`),
+so one that reaches its 10 minutes, its $10 or its 100 entries first ends with its last text, often
+a sentence about what it was about to do, which is all its parent reads of it (see Subagents).
+
+- **Asked before any limit.** The fourth run's results entry carries the report request once any of
+  its budgets nears its end: its 24th request, under two minutes left of its ten, a ledger whose next
+  request's worst case would leave no room for another, or within five of its 100 entries; and a run
+  that reaches a limit anyway, with a turn of calls answered, sends that one request rather than end,
+  when its time and its cost allow it.
+- **Verify**: `runConversation.chains.test.ts` at each limit, the report being the reply to the
+  request, and `measure:subagents` on one brief made to run long, its cost capped as M33's was.

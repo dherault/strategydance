@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 
 import type { ConversationRunQueue, ConversationRunReference } from '~types'
 
@@ -40,6 +40,10 @@ beforeEach(() => {
   queueConversationRun.mockImplementation(async () => 'unavailable')
 })
 
+afterEach(() => {
+  setSystemTime()
+})
+
 describe('sweepDeadConversationRuns', () => {
   test('queues again a reaction whose task could not be created, which no page polls for', async () => {
     const parent = await kit.start()
@@ -72,7 +76,39 @@ describe('sweepDeadConversationRuns', () => {
     )
   })
 
-  test('finalizes as interrupted a reaction whose task never came, once twenty minutes old', async () => {
+  test('queues again a reaction whose task never came, its process gone before queueing it, once its lease passed', async () => {
+    setSystemTime(new Date('2026-10-18T10:00:00Z'))
+
+    const parent = await kit.start()
+
+    await kit.call('finishConversationRun', { ...(await kit.claim(parent)), status: 'COMPLETED' })
+
+    const subagent = await kit.launch(parent)
+
+    await kit.call('finishSubagentRun', { ...(await kit.claim(subagent)), status: 'COMPLETED', report: 'Done.' })
+
+    // Stored with its queued lease, and its task never asked for, as a process gone right after the
+    // write leaves it
+    const reaction = await reactToSubagentReports(parent)
+    const run = fake.runs.get(reaction.outcome === 'unavailable' ? reaction.runId : '')
+
+    if (!run) throw new Error(`The reaction answered ${reaction.outcome}`)
+
+    run.leaseExpiresAt = new Date(Date.parse(run.createdAt) + constants.CONVERSATION_RUN_QUEUED_LEASE_MS).toISOString()
+
+    // The worker's reconcile, a few minutes later, finds its task gone and the run young
+    setSystemTime(new Date('2026-10-18T10:05:00Z'))
+    queueConversationRun.mockImplementation(async () => 'queued')
+
+    expect(await sweepDeadConversationRuns()).toEqual({ ended: 0 })
+    expect(fake.runs.get(run.id)).toMatchObject({ status: 'QUEUED', leaseExpiresAt: '2026-10-18T10:07:00.000Z' })
+    expect(queueConversationRun).toHaveBeenLastCalledWith(
+      expect.objectContaining({ runId: run.id }),
+      'conversation-runs',
+    )
+  })
+
+  test('finalizes as interrupted a reaction whose task never came, once past the window it is queued again within', async () => {
     const parent = await kit.start()
 
     await kit.call('finishConversationRun', { ...(await kit.claim(parent)), status: 'COMPLETED' })

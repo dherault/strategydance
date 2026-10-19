@@ -383,7 +383,7 @@ mutation StartConversation(
       messageCount: 1
     }
   )
-  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  # Two minutes out, which in a queued run only says when to ask whether it is still coming
   conversationRun_insert(
     data: {
       id: $runId
@@ -393,7 +393,7 @@ mutation StartConversation(
       status: QUEUED
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: 0
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
   conversationMessage_insert(
@@ -571,7 +571,7 @@ mutation SendConversationMessage(
       status: QUEUED
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: $transcriptPosition
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
   conversationMessage_insert(
@@ -840,7 +840,7 @@ mutation SendConversationMessageAnsweringCalls(
       status: QUEUED
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: $transcriptPosition
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
   conversationMessage_insert(
@@ -1084,7 +1084,7 @@ mutation AnswerConversationApproval(
 #   so only one of them carries it on, and a late one finds nothing to consume
 # - the conversation takes the run and waits for no answer any more. A full one too: the run then
 #   ends at once with the full note, which is how a question waiting there is still answered
-# - the run is inserted, queued with a twenty minutes' lease and anchored on the answers' entry,
+# - the run is inserted, queued with a two minutes' lease and anchored on the answers' entry,
 #   then the entry
 #
 # It counts toward the daily caps as a run, as `StartConversation` counts, but finishes work under way,
@@ -1226,7 +1226,7 @@ mutation ContinueConversationRun(
       status: QUEUED
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: $transcriptPosition
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
   conversationTranscriptEntry_insert(
@@ -1413,7 +1413,7 @@ mutation ContinueConversationRunWithCalls(
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: $anchorPosition
       pendingToolResults: $pendingToolResults
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
   cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: RUN })
@@ -1488,7 +1488,7 @@ mutation InterruptDeadConversationRun(
   )
 }
 
-# Pushes a queued run's lease twenty minutes out again, once the backend has seen its task still in
+# Pushes a queued run's lease two minutes out again, once the backend has seen its task still in
 # Cloud Tasks' queue: a queued run's lease only says when to ask the queue whether the run is still
 # coming, and a backlog can outlast it. Only while the run is still queued, in the caller's
 # conversation. One conditional update and no transaction, and the backend reads whether it moved
@@ -1508,12 +1508,12 @@ mutation RenewQueuedConversationRunLease(
       status: { eq: QUEUED }
       conversation: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
     }
-    data: { leaseExpiresAt_time: { now: true, add: { minutes: 20 } } }
+    data: { leaseExpiresAt_time: { now: true, add: { minutes: 2 } } }
   )
 }
 
 # Brings a queued run's lease in to now, when the backend could not queue its task, so its page asks
-# the backend to reconcile it at once rather than twenty minutes later: the reconcile queues the task
+# the backend to reconcile it at once rather than two minutes later: the reconcile queues the task
 # again while the run is young, and the member is not left waiting on a run nothing will deliver.
 # Only while the run is still queued, in the caller's conversation.
 #
@@ -1711,6 +1711,11 @@ mutation StopQueuedConversationRunWithSubagents(
       leaseExpiresAt: null
     }
   ) @check(expr: "this == 1", message: "The run is no longer queued")
+  # As every write that ends a run does, though a member's queued run has started none of its own
+  conversationMessage_updateMany(
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
   conversation_updateMany(
     # One `_and`, because a filter cannot put `_or` beside plain fields
     where: {
@@ -1880,7 +1885,7 @@ mutation LiftOrganizationConversationsSuspension($organizationId: UUID!) @auth(l
 # - the conversation is idle, not deleted, its counter right after the note, and it takes the new
 #   run, with one message fewer and the preview of the message before the note
 # - the note is deleted
-# - the run is inserted, queued with a twenty minutes' lease, as a send queues one, with the
+# - the run is inserted, queued with a two minutes' lease, as a send queues one, with the
 #   results of the calls the resumed run's turn finished (`$pendingToolResults`), which it carries
 #   on: it runs the others, and sends them all
 #
@@ -2029,7 +2034,7 @@ mutation ResumeConversationRun(
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: $anchorPosition
       pendingToolResults: $pendingToolResults
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
   cappedStart_insert(data: { userId: $userId, organizationId: $organizationId, kind: RUN })
@@ -2050,7 +2055,7 @@ mutation ResumeConversationRun(
 #   again, nothing unread, no longer full, and the preview of the newest message kept
 # - the messages are deleted, exactly as many as the retry counted
 # - the transcript after the anchor is deleted
-# - the run is inserted, queued with a twenty minutes' lease, as a send queues one
+# - the run is inserted, queued with a two minutes' lease, as a send queues one
 # - the live subagents the runs it cuts launched, those on the anchor, are asked to stop and deleted,
 #   after the parent's row, at an instant of their own, so restoring the parent never brings them
 #   back: their reports are never delivered, and what they wrote stays written. The backend ends
@@ -2199,7 +2204,7 @@ mutation RetryConversationRun(
       status: QUEUED
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: $anchorPosition
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
   subagentRuns: conversationRun_updateMany(
@@ -3908,7 +3913,7 @@ mutation LaunchSubagent(
       launchAnchorPosition: $anchorPosition
     }
   )
-  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  # Two minutes out, which in a queued run only says when to ask whether it is still coming
   conversationRun_insert(
     data: {
       id: $runId
@@ -3918,7 +3923,7 @@ mutation LaunchSubagent(
       status: QUEUED
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: 0
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
   conversationMessage_insert(
@@ -4389,7 +4394,7 @@ mutation InterruptSubagentRun(
 # Hands a subagent's run that reached one of its limits, its 25 requests, its 10 minutes or its 100
 # entries, before its fourth run (`MAX_SUBAGENT_RUNS` in strategydance-core), on to the next, in one
 # write: the run ends `CHAINED`, settling its usage, and the next run, `CONTINUE`, on the same anchor,
-# is queued with a twenty minutes' lease and takes its conversation's `activeRunId` at once, so the
+# is queued with a two minutes' lease and takes its conversation's `activeRunId` at once, so the
 # chain never frees the slot it holds and nothing is promoted after it. The next run carries on as a
 # resumed run does, without a note: it runs the calls that never started, the results of those that
 # did carried over (`$pendingToolResults`), then sends its context and the request. The calls running
@@ -4448,7 +4453,7 @@ mutation ChainSubagentRun(
     where: { id: { eq: $conversationId }, activeRunId: { eq: $runId }, nextRunNumber: { eq: $nextRunNumber } }
     data: { activeRunId: $nextRunId, nextRunNumber_update: { inc: 1 } }
   ) @check(expr: "this == 1", message: "The subagent could not take the run its run chains to")
-  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  # Two minutes out, which in a queued run only says when to ask whether it is still coming
   conversationRun_insert(
     data: {
       id: $nextRunId
@@ -4459,13 +4464,13 @@ mutation ChainSubagentRun(
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: $anchorPosition
       pendingToolResults: $pendingToolResults
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
 }
 
 # Promotes one of the member's subagent runs waiting for a slot into one that is free: `PENDING` to
-# `QUEUED`, with a twenty minutes' lease and its `createdAt` set again from the database's clock, so
+# `QUEUED`, with a two minutes' lease and its `createdAt` set again from the database's clock, so
 # the twenty minutes a run is queued again within count from its promotion, not its launch. The
 # backend queues it right after, and promotes the next while slots stay free, oldest first.
 #
@@ -4525,7 +4530,7 @@ mutation PromoteSubagentRun(
         deletedAt: { isNull: true }
       }
     }
-    data: { status: QUEUED, createdAt_expr: "request.time", leaseExpiresAt_time: { now: true, add: { minutes: 20 } } }
+    data: { status: QUEUED, createdAt_expr: "request.time", leaseExpiresAt_time: { now: true, add: { minutes: 2 } } }
   ) @check(expr: "this == 1", message: "The run is no longer waiting for a slot")
 }
 
@@ -4630,6 +4635,11 @@ mutation StopQueuedSubagentRun(
   )
     @check(expr: "this == 1", message: "The run is no longer queued to be stopped")
     @check(expr: "size(vars.report) <= 8000", message: "A subagent's report holds at most 8000 characters")
+  # A run a chain queued carries on the calls its predecessor left running, which nothing runs now
+  conversationMessage_updateMany(
+    where: { conversationId: { eq: $conversationId }, kind: { in: [TOOL_CALL, APPROVAL] }, toolStatus: { eq: RUNNING } }
+    data: { toolStatus: CANCELLED }
+  )
   conversation_updateMany(
     # One `_and`, because a filter cannot put `_or` beside plain fields
     where: {
@@ -4963,7 +4973,7 @@ mutation StartSubagentReaction(
       status: QUEUED
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: $transcriptPosition
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
   conversationTranscriptEntry_insert(
@@ -6654,7 +6664,7 @@ mutation LaunchSubagentForAgent(
       launchAnchorPosition: $anchorPosition
     }
   )
-  # Twenty minutes out, which in a queued run only says when to ask whether it is still coming
+  # Two minutes out, which in a queued run only says when to ask whether it is still coming
   conversationRun_insert(
     data: {
       id: $runId
@@ -6664,7 +6674,7 @@ mutation LaunchSubagentForAgent(
       status: QUEUED
       membershipCreatedAt: $membershipCreatedAt
       anchorPosition: 0
-      leaseExpiresAt_time: { now: true, add: { minutes: 20 } }
+      leaseExpiresAt_time: { now: true, add: { minutes: 2 } }
     }
   )
   conversationMessage_insert(

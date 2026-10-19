@@ -311,6 +311,13 @@ export const KNOWLEDGE_READ_PAGE_LENGTH = 40000
 export const KNOWLEDGE_FOLD_ATTEMPTS = 3
 
 /*
+  How much Markdown a document's revision keeps for a member to look at: twice a document's
+  content, which `FoldDocumentWithRevisionForAgent` and `RestoreDocumentRevision` hold it to, since
+  Markdown escapes what would read as Markdown and can run a little longer than the text it writes
+*/
+export const MAX_DOCUMENT_REVISION_MARKDOWN_LENGTH = 400000
+
+/*
   The board's columns, left to right, as the web's `TASK_STATUSES` lists them: the order the Tasks
   module lists a board in, column by column. Strings rather than the enum's values, which a test
   holds to the schema's, so reading them loads nothing of the database's

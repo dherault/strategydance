@@ -143,6 +143,12 @@ function createModuleDatabaseFakeBase() {
     )
   }
 
+  // Whether somebody belongs to an organization, however long, as an operation a member calls for
+  // themselves matches them, on the uid the backend verified
+  function hasMember(variables: AnyVariables) {
+    return memberships.has(membershipKey(variables.userId, variables.organizationId))
+  }
+
   // The members of an organization, by when they joined, as the operations that list them read them
   function membersOf(organizationId: unknown) {
     const suffix = `:${id(organizationId)}`
@@ -316,6 +322,7 @@ function createModuleDatabaseFakeBase() {
     addMember,
     removeMember,
     isMember,
+    hasMember,
     membersOf,
     membershipOf,
     matchesLike,

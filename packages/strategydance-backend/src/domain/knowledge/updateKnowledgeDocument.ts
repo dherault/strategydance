@@ -1,4 +1,8 @@
-import { foldDocumentForAgent, getDocumentForAgent, renameDocumentForAgent } from 'strategydance-database/backend'
+import {
+  foldDocumentWithRevisionForAgent,
+  getDocumentForAgent,
+  renameDocumentForAgent,
+} from 'strategydance-database/backend'
 
 import type { KnowledgeDocumentEdit, KnowledgeWriteResult, ModuleCall, ModuleCaller } from '~types'
 
@@ -11,6 +15,7 @@ import foldKnowledgeDocumentEdit from '~domain/knowledge/foldKnowledgeDocumentEd
 import hashKnowledgeDocumentText from '~domain/knowledge/hashKnowledgeDocumentText'
 import { EDITED_REFUSAL, EMPTY_REFUSAL, FOLDED_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
 import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
+import toKnowledgeDocumentRevisionVariables from '~domain/knowledge/toKnowledgeDocumentRevisionVariables'
 import toKnowledgeFoldRefusal from '~domain/knowledge/toKnowledgeFoldRefusal'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
@@ -49,7 +54,11 @@ export type UpdatedKnowledgeDocument = {
 
   A document keeps a title or some text, as it starts with one: a change that would leave it with
   neither is refused, as the page deletes one somebody empties rather than keep it. The operations
-  check it once they hold the row, so a rename and an edit at the same moment cannot pass it together
+  check it once they hold the row, so a rename and an edit at the same moment cannot pass it together.
+
+  An edit that changes the text keeps the text it replaced as a revision, stored by the fold, so a
+  member can go back to it: an Undo on the call's row while nobody has written since, or the
+  document's history
 */
 async function updateKnowledgeDocument(
   caller: ModuleCaller,
@@ -137,14 +146,15 @@ async function updateKnowledgeDocument(
       call wrote the whole text, which the agent then knows whole: any other edit leaves text it may
       never have read, which only a read that holds it all gives a version of
     */
+    const afterVersion = hashKnowledgeDocumentText(read.blocks)
     const result = {
       id,
       ...(title !== undefined && { title }),
-      ...(edit.type === 'content' && { version: hashKnowledgeDocumentText(read.blocks) }),
+      ...(edit.type === 'content' && { version: afterVersion }),
     }
 
     try {
-      await foldDocumentForAgent(dataConnect, {
+      await foldDocumentWithRevisionForAgent(dataConnect, {
         ...reference,
         revision: row.revision,
         state: folded.state,
@@ -155,6 +165,12 @@ async function updateKnowledgeDocument(
         ...(title !== undefined && { title }),
         isWholeReplacement: edit.type === 'content',
         ...toModuleCallVariables(caller, call, result),
+        ...toKnowledgeDocumentRevisionVariables(folded.previous.blocks, {
+          state: folded.previous.state,
+          afterVersion,
+          scope: caller.idempotencyScope,
+          callKey: call?.key ?? null,
+        }),
       })
 
       return { outcome: 'written', result }

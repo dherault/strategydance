@@ -360,8 +360,12 @@ function KnowledgeDocumentEditor({ organizationId, documentId, knowledgeDocument
 
   const aspectNames = aspects.map(aspect => formatMessage(aspectMessages[aspect]))
 
+  // Half a screen of room under the text, so its end scrolls up past the middle of the screen while it is written there
   return (
-    <KnowledgeDocumentLayout onBlur={handleBlur}>
+    <KnowledgeDocumentLayout
+      onBlur={handleBlur}
+      className="pb-[50svh]"
+    >
       <div className="flex items-center gap-3">
         <KnowledgeBackLink />
         <span

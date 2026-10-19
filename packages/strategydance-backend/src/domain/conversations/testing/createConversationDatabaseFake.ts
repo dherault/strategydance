@@ -1138,6 +1138,14 @@ function createConversationDatabaseFake() {
     return findFencedRun(variables) ?? refuse("The run is no longer this worker's")
   }
 
+  // Refuses a variable the operation does not declare, as Data Connect does, for the reads a domain
+  // function is apt to hand a whole input: the daily caps' and the daily spend ceilings'
+  function requireDeclared(name: string, variables: AnyVariables, declared: string[]) {
+    const extra = Object.keys(variables).filter(key => !declared.includes(key))
+
+    if (extra.length) refuse(`${name}: ${extra.map(key => `$${key} is not expected`).join(' ')}`)
+  }
+
   // A daily spend ceiling goes on a failed note alone, with when it has room again
   function checkNoteCeiling(variables: AnyVariables) {
     if (variables.ceilingScope != null && (variables.noteKind !== 'FAILED' || variables.ceilingFreesAt == null)) {
@@ -4647,6 +4655,8 @@ function createConversationDatabaseFake() {
     },
 
     GetCappedStarts: variables => {
+      requireDeclared('GetCappedStarts', variables, ['organizationId', 'userId'])
+
       const read = (kind: CappedStartKind, scope: CapScope, limit: number) =>
         todaysStarts(variables, kind, scope)
           .slice(0, limit)
@@ -4678,13 +4688,19 @@ function createConversationDatabaseFake() {
       return { cappedStart_deleteMany: deleted }
     },
 
-    GetDailySpend: variables => ({
-      member: sumSpends(variables, 'member'),
-      account: sumSpends(variables, 'account'),
-      organization: sumSpends(variables, 'organization'),
-    }),
+    GetDailySpend: variables => {
+      requireDeclared('GetDailySpend', variables, ['organizationId', 'userId'])
+
+      return {
+        member: sumSpends(variables, 'member'),
+        account: sumSpends(variables, 'account'),
+        organization: sumSpends(variables, 'organization'),
+      }
+    },
 
     GetRunDailySpend: variables => {
+      requireDeclared('GetRunDailySpend', variables, ['organizationId', 'userId', 'runId'])
+
       const own = todaysSpends(variables, 'account').find(({ runId }) => runId === id(variables.runId))
 
       return {
@@ -4696,6 +4712,8 @@ function createConversationDatabaseFake() {
     },
 
     GetDailySpendRows: variables => {
+      requireDeclared('GetDailySpendRows', variables, ['organizationId', 'userId'])
+
       const read = (scope: CapScope) =>
         todaysSpends(variables, scope)
           .slice(0, 500)

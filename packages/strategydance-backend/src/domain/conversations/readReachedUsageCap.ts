@@ -42,11 +42,14 @@ type Options = {
   context. Of several caps and ceilings reached, the one that has room last
 */
 async function readReachedUsageCap(
-  member: Member,
+  { organizationId, userId }: Member,
   kinds: UsageCapKind[],
   { isFinishing = false, isSubagent = false, isTimeless = false }: Options = {},
 ): Promise<ReachedUsageCap | null> {
   if (!IS_USAGE_CAPPED) return null
+
+  // The two variables the reads declare, whatever else the caller holds, which Data Connect refuses
+  const member = { organizationId, userId }
 
   const counted = kinds.filter((kind): kind is UsageCountKind => kind !== 'spend')
   const [starts, spend] = await Promise.all([

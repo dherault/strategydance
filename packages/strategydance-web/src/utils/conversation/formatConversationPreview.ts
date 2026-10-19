@@ -1,5 +1,6 @@
 import type { IntlShape } from 'react-intl'
 
+import getConversationCeilingNoteText from '~utils/conversation/getConversationCeilingNoteText'
 import getConversationNoteText from '~utils/conversation/getConversationNoteText'
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
 import parseConversationPreview from '~utils/conversation/parseConversationPreview'
@@ -15,11 +16,12 @@ type Conversation = {
   The line the list shows under a conversation's title: "Thinking…" while a run goes, then what
   its last entry is, worded from the facts its preview keeps: a message of files alone by its
   file's name, or how many it sent, a call to an integration by its server, "Called Stripe", and an
-  approval by its server and tool, "Approval: Stripe · create_payment_link". A conversation with no preview holds
+  approval by its server and tool, "Approval: Stripe · create_payment_link", and a note stopped at a daily spend
+  ceiling by when, from `now`, it has room. A conversation with no preview holds
   nothing yet. One whose preview this page cannot read, of a kind a later release added, shows no
   line rather than a wrong one
 */
-function formatConversationPreview(intl: IntlShape, { activeRunId, preview }: Conversation) {
+function formatConversationPreview(intl: IntlShape, { activeRunId, preview }: Conversation, now: number) {
   const { formatMessage } = intl
 
   if (activeRunId) return formatMessage(conversationMessages.previewThinking)
@@ -77,7 +79,9 @@ function formatConversationPreview(intl: IntlShape, { activeRunId, preview }: Co
 
       return formatMessage(conversationMessages.previewQuestion, { text: parsed.text })
     case 'NOTE':
-      return getConversationNoteText(intl, parsed.noteKind)
+      return parsed.ceiling && parsed.noteKind === 'FAILED'
+        ? getConversationCeilingNoteText(intl, parsed.ceiling, 'conversation', now)
+        : getConversationNoteText(intl, parsed.noteKind)
   }
 
   // A call's label, with how it ended when it did not succeed

@@ -518,6 +518,11 @@ function ConversationThread({
             noteKind={entry.noteKind}
             actions={renderNoteActions(entry)}
             subject={isReadOnly ? 'subagent' : 'conversation'}
+            ceiling={
+              entry.ceilingScope && entry.ceilingFreesAt
+                ? { scope: entry.ceilingScope, freesAt: entry.ceilingFreesAt }
+                : null
+            }
           />
         ) : null
       default:

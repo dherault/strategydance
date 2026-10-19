@@ -7,6 +7,9 @@ const CAP_FAILURES: readonly ConversationSendFailure[] = [
   'memberRunsCapped',
   'accountRunsCapped',
   'organizationRunsCapped',
+  'memberSpendCapped',
+  'accountSpendCapped',
+  'organizationSpendCapped',
 ]
 
 // Whether a failed send, resume or retry reached a daily cap, which says when it has room again

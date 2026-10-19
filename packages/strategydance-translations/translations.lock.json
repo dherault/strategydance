@@ -1505,6 +1505,10 @@
         "hash": "bd956b0c01beaa64",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.cap.accountSpend": {
+        "hash": "ad597833d8d49b78",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.cap.freed": {
         "hash": "71f8dc9195f93d18",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1517,12 +1521,20 @@
         "hash": "dac3d481097ecd1d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.cap.memberSpend": {
+        "hash": "d58a0dd26b85e172",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.cap.organizationConversations": {
         "hash": "7d2bac3772071943",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.cap.organizationRuns": {
         "hash": "8c7bc72ab7d9fdee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.cap.organizationSpend": {
+        "hash": "e2a38d14a9d81917",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.citationLabel": {
@@ -1897,6 +1909,22 @@
         "hash": "ba772e441dfd6621",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.note.ceilingAccount": {
+        "hash": "1d0e371c8282c4d6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.ceilingFreed": {
+        "hash": "1d771d8f5a879c09",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.ceilingMember": {
+        "hash": "af0c83fab7859cf0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.ceilingOrganization": {
+        "hash": "7fcb262f9330786a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.note.failed": {
         "hash": "450490e158ec8bb6",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1923,6 +1951,22 @@
       },
       "conversation.note.stopped": {
         "hash": "7d6a3e4f53fe2a93",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.subagentCeilingAccount": {
+        "hash": "dd5d222b275425ab",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.subagentCeilingFreed": {
+        "hash": "b8bcd5685563b9af",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.subagentCeilingMember": {
+        "hash": "b9dc5f79a92c582b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.note.subagentCeilingOrganization": {
+        "hash": "88e35e44ce8d9d17",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.note.subagentFailed": {

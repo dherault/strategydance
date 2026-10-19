@@ -23,6 +23,7 @@ import createGitHubClient from '~domain/github/createGitHubClient'
 import pruneDeletedIntegrations from '~domain/integrations/pruneDeletedIntegrations'
 import pruneIntegrationAuthorizations from '~domain/integrations/pruneIntegrationAuthorizations'
 import pruneDeletedDocuments from '~domain/knowledge/pruneDeletedDocuments'
+import pruneDocumentRevisions from '~domain/knowledge/pruneDocumentRevisions'
 import pruneModuleCallResults from '~domain/modules/pruneModuleCallResults'
 import pruneAgentConnectionTokens from '~domain/oauth/pruneAgentConnectionTokens'
 import pruneOAuthAuthorizationRequests from '~domain/oauth/pruneOAuthAuthorizationRequests'
@@ -128,7 +129,8 @@ function createInternalRouter() {
     members' connections, deleted over a day ago, and the files uploaded to conversations and never
     sent. A milestone that keeps something else deleted for a while adds its prune here. So does one
     that keeps a count or a record for a while, as the conversation searches and the starts the daily
-    caps counted over a day old go, the module call results past their expiry, members' Connects to
+    caps counted over a day old go, documents' revisions over 30 days old, the module call results
+    past their expiry, members' Connects to
     MCP servers expired over an hour ago, and the authorization server's requests expired over a day
     ago, its tokens past their expiry and the registrations nobody uses.
 
@@ -147,6 +149,7 @@ function createInternalRouter() {
       pruneCappedStarts,
       pruneDeletedTasks,
       pruneDeletedDocuments,
+      pruneDocumentRevisions,
       pruneDeletedIntegrations,
       pruneIntegrationAuthorizations,
       pruneModuleCallResults,

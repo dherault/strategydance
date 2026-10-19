@@ -283,6 +283,28 @@ describe('POST /internal/sweep', () => {
     expect([...modules.documents.keys()].sort()).toEqual([recent.id, live.id].sort())
   })
 
+  test("removes the documents' revisions made over 30 days ago, and keeps the rest", async () => {
+    const document = modules.insertDocument({ organizationId: ORGANIZATION_ID })
+    const revision = (id: string, daysAgo: number) => ({
+      id,
+      documentId: document.id,
+      organizationId: document.organizationId,
+      userId: AUTHOR,
+      scope: 'conversation:checked',
+      callKey: id,
+      state: '',
+      markdown: '',
+      afterVersion: '',
+      restoredVersionAt: null,
+      createdAt: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
+    })
+
+    modules.revisions.push(revision('old', 31), revision('recent', 29))
+
+    expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
+    expect(modules.revisions.map(({ id }) => id)).toEqual(['recent'])
+  })
+
   test('removes the module call results past their expiry, and keeps those that never expire', async () => {
     const result = (key: string, expiresAt: string | null) => ({
       idempotencyScope: 'connection:checked',

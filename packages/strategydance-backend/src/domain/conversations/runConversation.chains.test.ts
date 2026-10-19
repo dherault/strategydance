@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 
 import type { BetaMessageStreamParams } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER, MAX_CONVERSATION_RUN_ENTRIES } from 'strategydance-core'
+import {
+  MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER,
+  MAX_CONVERSATION_RUN_ENTRIES,
+  MAX_SUBAGENT_RUNS,
+} from 'strategydance-core'
 
 import type { ConversationRunQueue, ConversationRunReference, ConversationToolRunner } from '~types'
 
@@ -57,6 +61,19 @@ function calling(...calls: ReturnType<typeof call>[]) {
 
 function readRequest(requests: string[], index: number) {
   return JSON.parse(requests[index] ?? '{}') as BetaMessageStreamParams
+}
+
+// Runs a subagent's runs before its fourth, each chaining at its limits, and answers the fourth's
+async function chainToFourthRun(subagent: ConversationRunReference, options: Parameters<typeof runConversation>[1]) {
+  let reference = subagent
+
+  for (let index = 0; index < MAX_SUBAGENT_RUNS - 1; index++) {
+    expect(await runConversation(reference, options)).toBe('finished')
+
+    reference = readQueued().reference
+  }
+
+  return reference
 }
 
 // A subagent's runs, first to last
@@ -138,6 +155,53 @@ describe('runConversation, chaining a subagent’s runs', () => {
     for (let index = 0; index < 7; index++) expect(scripted.requests[index]).not.toContain('You have one request left')
 
     expect(kit.readConversation(subagent)).toMatchObject({ activeRunId: null, report: REPLY })
+  })
+
+  test('runs nothing the reply to its report request calls, and ends the fourth run at its limits with that reply', async () => {
+    const { subagent } = await launch()
+    const made: string[] = []
+    const runner: ConversationToolRunner = {
+      name: 'read_log',
+      isReadOnly: true,
+      run: async () => {
+        made.push('read_log')
+
+        return { entries: [] }
+      },
+    }
+    const scripted = kit.createClient([
+      ...Array.from({ length: 7 }, (_, index) => calling(call(`toolu_${index}`))),
+      answer(
+        [
+          { type: 'text', text: 'I read the log twice. One more read would settle it.', citations: null },
+          call('toolu_after'),
+        ],
+        { stopReason: 'tool_use' },
+      ),
+    ])
+    const options = {
+      client: scripted.client,
+      limits: { maxRequests: 2 },
+      connectModules: connectTestModules([runner]),
+    }
+    const fourth = await chainToFourthRun(subagent, options)
+
+    expect(await runConversation(fourth, options)).toBe('finished')
+    expect(scripted.requests).toHaveLength(8)
+    // Each run before the last made its calls, and the reply to the report request made none
+    expect(made).toHaveLength(7)
+    expect(kit.readRun(fourth)).toMatchObject({
+      status: 'FAILED',
+      failure: 'The reply to its report request called 1 tools, which never ran',
+    })
+
+    const after = [...fake.messages.values()].find(message => message.toolUseId === 'toolu_after')
+
+    expect(after).toMatchObject({ kind: 'TOOL_CALL', toolStatus: 'FAILED' })
+    expect(after?.toolOutput).toContain('no call runs after it')
+    expect(kit.readConversation(subagent)?.report).toBe(
+      'This subagent stopped at its limits before it finished.\n\nI read the log twice. One more read would settle it.',
+    )
   })
 
   test('chains a run at its 100 entries, sending nothing', async () => {

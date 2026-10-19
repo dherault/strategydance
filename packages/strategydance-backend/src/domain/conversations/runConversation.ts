@@ -55,6 +55,7 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 import type { ConversationRequestConfig } from '~domain/agent/buildConversationRequest'
 import buildConversationTools from '~domain/agent/buildConversationTools'
 import buildSubagentTools, { isSubagentTool } from '~domain/agent/buildSubagentTools'
+import carriesSubagentReportRequest from '~domain/agent/carriesSubagentReportRequest'
 import checkTranscript from '~domain/agent/checkTranscript'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
@@ -166,7 +167,8 @@ type ConversationRunContext = GetConversationRunContextData
   fourth run it chains instead, to a run that carries it on, which is queued once this one has let
   go of its lease, the run answering `held` while it cannot be, so the delivery comes back to queue
   it, as a delivery finding the run chained does. Its calls count 50 for each run of the chain, and
-  its fourth run's last request, after a turn's results, asks for its report.
+  its fourth run's last request, after a turn's results, asks for its report, and nothing the reply
+  to it calls runs.
 
   What a request came to, the turn to store or the run's end, is kept until it is written, so a
   write refused once is tried again, never paid for again. Every write is fenced on the run's
@@ -474,20 +476,38 @@ async function takeStep({
     const parts = sinceAnchor
       .filter(({ role }) => role === ConversationTranscriptRole.ASSISTANT)
       .map(part => ({ ...part, blocks: parseTranscriptContent(part.content) }))
-    const plans = planCalls(parts, runners, isSubagent, readMaxCalls(context, isSubagent))
+    // The reply the transcript ends on is its parts after the last results, or after the anchor, and
+    // a subagent's last when those results asked for its report
+    const lastResults = sinceAnchor.findLast(({ role }) => role === ConversationTranscriptRole.USER)
+    const isReportReply = carriesSubagentReportRequest(lastResults)
+    const plans = planCalls(parts, runners, isSubagent, readMaxCalls(context, isSubagent), {
+      reportRequestPosition: isReportReply ? (lastResults?.position ?? null) : null,
+    })
     const drawn = await drawConversationTurn({ fence, lease, entries: parts, plans, position, isSubagent })
 
     if (drawn === 'drawn') return 'next'
 
-    // The reply the transcript ends on, its parts after the last results, or after the anchor
-    const lastResultsPosition = sinceAnchor.findLast(({ role }) => role === ConversationTranscriptRole.USER)?.position
-    const turn = parts.filter(({ position: partPosition }) => partPosition > (lastResultsPosition ?? -1))
+    const turn = parts.filter(({ position: partPosition }) => partPosition > (lastResults?.position ?? -1))
     const ledgers = await readTurnLedgers(fence, turn, usage)
     const pausedRequest = findPausedRequest(entry, ledgers)
     const startedAt = run?.startedAt ?? new Date().toISOString()
 
     if (!pausedRequest) {
       const calls = readConversationToolCalls(parts.at(-1)?.blocks ?? [])
+
+      // The reply to a subagent's report request is its run's last, and nothing it calls runs: the
+      // run ends at its limits, its report its text
+      if (isReportReply && calls.length) {
+        return end({
+          kind: 'noted',
+          status: ConversationRunStatus.FAILED,
+          noteKind: ConversationNoteKind.FAILED,
+          failure: `The reply to its report request called ${calls.length} tools, which never ran`,
+          usage,
+          isAtLimit: true,
+        })
+      }
+
       const turnPlans = calls.flatMap(call => plans.get(call.id) ?? [])
       // Read from what the thread drew, since an approval is drawn only once the server is read
       const isWaiting = calls.length ? await isWaitingForMember(fence, calls) : false
@@ -828,19 +848,20 @@ async function isWaitingForMember(fence: ConversationRunFence, calls: { id: stri
   What becomes of each call the run's replies made to Strategy Dance's own tools, by its id, as
   `planConversationToolCalls` plans it, counting each reply's calls after those of the replies
   before it, within the run's budget (`readMaxCalls`). A subagent's questions are refused, since
-  nobody answers them
+  nobody answers them, and so is every call of the reply after the entry asking for its report
 */
 function planCalls(
-  parts: { blocks: ConversationContentBlock[] }[],
+  parts: { position: number; blocks: ConversationContentBlock[] }[],
   runners: ConversationToolRunner[],
   isSubagent: boolean,
   maxCalls: number,
+  { reportRequestPosition }: { reportRequestPosition: number | null },
 ) {
   const plans = new Map<string, ConversationToolCallPlan>()
   const runnerNames = runners.map(({ name }) => name)
   let callsBefore = 0
 
-  for (const { blocks } of parts) {
+  for (const { position, blocks } of parts) {
     const calls = readConversationToolCalls(blocks)
 
     for (const plan of planConversationToolCalls(calls, {
@@ -848,6 +869,7 @@ function planCalls(
       runnerNames,
       asksQuestions: !isSubagent,
       maxCalls,
+      isReportReply: reportRequestPosition !== null && position > reportRequestPosition,
     })) {
       plans.set(plan.call.id, plan)
     }

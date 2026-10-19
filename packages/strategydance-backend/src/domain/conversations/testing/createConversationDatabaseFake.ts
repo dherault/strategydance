@@ -388,11 +388,6 @@ function createConversationDatabaseFake() {
     return now().replace('Z', `${String(stamps % 1000).padStart(3, '0')}Z`)
   }
 
-  // Whether a read's optional `$skippedIds` leaves a run out, none when it is left out
-  function isSkipped(variables: AnyVariables, run: FakeRun) {
-    return ((variables.skippedIds as string[] | undefined) ?? []).map(id).includes(run.id)
-  }
-
   function inSeconds(seconds: number) {
     return new Date(Date.now() + seconds * 1000).toISOString()
   }
@@ -664,6 +659,11 @@ function createConversationDatabaseFake() {
         )
       })
       .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0))
+  }
+
+  // Whether a read's optional `$skippedIds` leaves a run out, none when it is left out
+  function isSkipped(variables: AnyVariables, run: FakeRun) {
+    return ((variables.skippedIds as string[] | undefined) ?? []).map(id).includes(run.id)
   }
 
   // The subagent runs no page may reconcile, past their lease or waiting for a slot, with their

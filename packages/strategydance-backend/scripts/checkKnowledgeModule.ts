@@ -1,15 +1,21 @@
 import { randomUUID } from 'node:crypto'
+import { gzipSync } from 'node:zlib'
 
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
 import {
   connectorConfig,
   createDocumentForAgent,
+  deleteExpiredDocumentRevisions,
   deleteExpiredDocuments,
   deleteExpiredModuleCallResults,
   foldDocumentForAgent,
+  foldDocumentWithRevisionForAgent,
+  getConversationDocumentRevisions,
   getDocumentAccessForAgent,
   getDocumentForAgent,
+  getDocumentRevisionForMember,
+  getDocumentTextForMember,
   getDocumentSearchCorpusForAgent,
   getModuleCallResult,
   getUnindexedDocumentsForAgent,
@@ -17,12 +23,13 @@ import {
   listDocumentsForAgent,
   renameDocumentForAgent,
   restoreDocumentForAgent,
+  restoreDocumentRevision,
   searchDocumentsBySubstringForAgent,
   searchDocumentsForAgent,
   seedDocumentStateForAgent,
 } from 'strategydance-database/backend'
 
-import { FIREBASE_PROJECT_ID } from '~constants'
+import { FIREBASE_PROJECT_ID, MAX_KNOWLEDGE_WRITE_REQUEST_BYTES } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -41,7 +48,7 @@ import buildSubstringSearchPatterns from '~domain/conversations/buildSubstringSe
   the SQL's.
 
   The sweep's deletes take no organization: they remove every document in the emulator deleted over
-  a day ago and every module call result past its expiry.
+  a day ago, every document revision over 30 days old and every module call result past its expiry.
 
   Like `checkConversationSearch.ts`, it refuses to run unless it points at the emulator
 */
@@ -108,6 +115,21 @@ async function refusal(operation: Promise<unknown>) {
     return null
   } catch (error) {
     return (error instanceof Error ? error.message : String(error)).split('\n')[0] ?? ''
+  }
+}
+
+/*
+  The whole of a refusal's message, every check it names: a check nested under the membership a
+  write reads is reported aborted when the membership is not there, before the membership's own,
+  which follows it in the same message
+*/
+async function fullRefusal(operation: Promise<unknown>) {
+  try {
+    await operation
+
+    return null
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error)
   }
 }
 
@@ -347,6 +369,302 @@ async function checkFolds() {
       && access.data.membership.length === 1
       && stranger.data.membership.length === 0,
   )
+}
+
+// The revisions kept of a document, oldest first, as the table holds them
+async function readRevisions(documentId: string) {
+  const data = await read<{
+    documentRevisions: {
+      id: string
+      userId: string | null
+      scope: string | null
+      callKey: string | null
+      compressedState: string
+      markdown: string
+      afterVersion: string
+      restoredVersionAt: string | null
+    }[]
+  }>(
+    `query ReadRevisions($documentId: UUID!) {
+      documentRevisions(where: { documentId: { eq: $documentId } }, orderBy: [{ createdAt: ASC }]) {
+        id userId scope callKey compressedState markdown afterVersion restoredVersionAt
+      }
+    }`,
+    { documentId },
+  )
+
+  return data.documentRevisions
+}
+
+async function checkRevisions() {
+  const id = await insertDocument({ title: 'Revised', state: 'AAA=', content: '[]', revision: 0 })
+  const revised = {
+    isRevised: true,
+    revisionScope: scope,
+    revisionCallKey: 'toolu_revised',
+    revisionCompressedState: 'BEFORE=',
+    revisionMarkdown: 'Before',
+    revisionAfterVersion: 'after-version',
+  }
+  const fold = (fields: Variables) =>
+    foldDocumentWithRevisionForAgent(dataConnect, {
+      ...caller(),
+      id,
+      revision: 0,
+      state: 'BBB=',
+      content: '',
+      contentText: 'revised',
+      updateIds: [],
+      isWholeReplacement: false,
+      ...UNKEYED,
+      ...revised,
+      ...fields,
+    })
+
+  check(
+    'a fold over a revision that moved keeps no revision',
+    ((await refusal(fold({ revision: 9 })))?.includes('folded, deleted or closed to agents') ?? false)
+      && (await readRevisions(id)).length === 0,
+  )
+  check(
+    'a fold by a membership other than the one read keeps no revision',
+    ((await fullRefusal(fold({ membershipCreatedAt: '2020-01-01T00:00:00Z' })))?.includes('no longer a member')
+      ?? false)
+      && (await readRevisions(id)).length === 0,
+  )
+
+  await write(
+    `mutation Push($documentId: UUID!, $id: UUID!) { documentUpdate_insert(data: { documentId: $documentId, id: $id, payload: "AAA=" }) }`,
+    { documentId: id, id: createId() },
+  )
+
+  check(
+    'a whole text replaced refused on a pending update keeps no revision',
+    ((await refusal(fold({ isWholeReplacement: true })))?.includes('edited since it was read') ?? false)
+      && (await readRevisions(id)).length === 0,
+  )
+  check(
+    'a revision past its bounds refuses the fold',
+    (await refusal(fold({ revisionMarkdown: 'x'.repeat(400001) })))?.includes('A revision holds at most') ?? false,
+  )
+
+  await fold({})
+
+  const [kept] = await readRevisions(id)
+
+  check(
+    'a fold keeps the text it replaced as one revision, with where the agent acted from and its call',
+    (await readRevisions(id)).length === 1
+      && kept?.userId === userId
+      && kept.scope === scope
+      && kept.callKey === 'toolu_revised'
+      && kept.compressedState === 'BEFORE='
+      && kept.markdown === 'Before'
+      && kept.afterVersion === 'after-version'
+      && kept.restoredVersionAt === null,
+  )
+
+  await fold({ revision: 1, isRevised: false, revisionCallKey: null })
+
+  check('a fold that leaves the text as it was keeps none', (await readRevisions(id)).length === 1)
+
+  const keyed = {
+    isKeyed: true,
+    idempotencyScope: scope,
+    idempotencyKey: `revised-${checkId}`,
+    tool: 'update_document',
+  }
+
+  await fold({ revision: 2, ...keyed, argumentsHash: 'hash', result: '{}' })
+
+  check(
+    'a fold sent again under its key keeps no second revision',
+    ((await refusal(fold({ revision: 3, ...keyed, argumentsHash: 'hash', result: '{}' }))) ?? '') !== ''
+      && (await readRevisions(id)).length === 2,
+  )
+
+  const { data: conversation } = await getConversationDocumentRevisions(dataConnect, { organizationId, userId, scope })
+  const { data: stranger } = await getConversationDocumentRevisions(dataConnect, {
+    organizationId,
+    userId: `${userId}-stranger`,
+    scope,
+  })
+
+  check(
+    "a conversation's revisions are its member's, the newest first, by their calls' keys",
+    conversation.documentRevisions.length >= 2
+      && conversation.documentRevisions[0]?.callKey === 'toolu_revised'
+      && conversation.documentRevisions[0]?.documentId === id
+      && stranger.documentRevisions.length === 0,
+  )
+
+  const revisionId = kept?.id ?? ''
+
+  await write(
+    `mutation Close($id: UUID!) { document_update(id: $id, data: { isAiReadable: false, isAiWritable: false }) }`,
+    {
+      id,
+    },
+  )
+
+  const { data: member } = await getDocumentRevisionForMember(dataConnect, {
+    organizationId,
+    userId,
+    documentId: id,
+    revisionId,
+  })
+  const { data: elsewhere } = await getDocumentRevisionForMember(dataConnect, {
+    organizationId,
+    userId,
+    documentId: createId(),
+    revisionId,
+  })
+  const { data: outsider } = await getDocumentRevisionForMember(dataConnect, {
+    organizationId,
+    userId: `${userId}-stranger`,
+    documentId: id,
+    revisionId,
+  })
+  const { data: text } = await getDocumentTextForMember(dataConnect, { organizationId, userId, id })
+
+  check(
+    "a member reads a revision with its document's text, whatever the team lets agents do, and nobody else does",
+    member.documentRevisions[0]?.compressedState === 'BEFORE='
+      && member.documentRevisions[0]?.document.revision === 3
+      && member.documentRevisions[0]?.document.documentUpdates_on_document.length === 1
+      && elsewhere.documentRevisions.length === 0
+      && outsider.documentRevisions.length === 0
+      && text.documents[0]?.documentUpdates_on_document.length === 1,
+  )
+
+  const restoreId = createId()
+  const restore = (fields: Variables) =>
+    restoreDocumentRevision(dataConnect, {
+      organizationId,
+      userId,
+      id,
+      revision: 3,
+      state: 'RESTORED=',
+      content: '',
+      contentText: 'restored',
+      updateIds: [],
+      isUndo: false,
+      revisionId: restoreId,
+      revisionCompressedState: 'REPLACED=',
+      revisionMarkdown: 'Replaced',
+      revisionAfterVersion: 'restored-version',
+      restoredVersionAt: new Date().toISOString(),
+      ...fields,
+    })
+
+  check(
+    'an Undo is refused while an update it did not merge is pending, keeping no revision',
+    ((await refusal(restore({ isUndo: true })))?.includes('edited since it was read') ?? false)
+      && (await readRevisions(id)).length === 2,
+  )
+  check(
+    'a restore over a revision that moved is refused',
+    (await refusal(restore({ revision: 2 })))?.includes('folded or deleted since it was read') ?? false,
+  )
+  // An account of its own, which a revision's author references, outside the organization
+  const nonMember = `${userId}-outsider`
+
+  await webConnector.executeMutation(
+    'CreateCurrentUser',
+    { locale: 'EN', authenticationProviders: [] },
+    { impersonate: { authClaims: { sub: nonMember, email: `${nonMember}@example.com` } } },
+  )
+
+  check(
+    'a restore by somebody outside the organization is refused',
+    (await fullRefusal(restore({ userId: nonMember })))?.includes('no longer a member') ?? false,
+  )
+
+  await write(`mutation DropNonMember($id: String!) { user_delete(id: $id) }`, { id: nonMember })
+
+  await restore({})
+
+  const restored = await readRevisions(id)
+  const { data: after } = await getDocumentTextForMember(dataConnect, { organizationId, userId, id })
+
+  check(
+    'a restore goes through on a document closed to agents, keeps its own revision, and leaves the push pending',
+    (await readDocument(id))?.contentText === 'restored'
+      && (await readDocument(id))?.revision === 4
+      && restored.at(-1)?.id === restoreId
+      && restored.at(-1)?.scope === null
+      && restored.at(-1)?.restoredVersionAt !== null
+      && after.documents[0]?.documentUpdates_on_document.length === 1,
+  )
+
+  const impersonate = { impersonate: { authClaims: { sub: userId, email: `${userId}@example.com` } } }
+  const { data: history } = await webConnector.executeQuery<
+    { documentRevisions: { id: string; scope: string | null; user: { id: string } | null }[] },
+    Variables
+  >('GetDocumentRevisions', { organizationId, documentId: id }, impersonate)
+  const { data: markdown } = await webConnector.executeQuery<{ documentRevisions: { markdown: string }[] }, Variables>(
+    'GetDocumentRevisionMarkdown',
+    { organizationId, id: revisionId },
+    impersonate,
+  )
+
+  check(
+    "the history lists the document's revisions to a member, the newest first, and reads one's Markdown",
+    history.documentRevisions.length === 3
+      && history.documentRevisions[0]?.id === restoreId
+      && history.documentRevisions[0]?.user?.id === userId
+      && markdown.documentRevisions[0]?.markdown === 'Before',
+  )
+
+  /*
+    A fold at its bounds with its revision, its variables as long as the backend sends one, just
+    short of `MAX_KNOWLEDGE_WRITE_REQUEST_BYTES`: what says the bound fits what Data Connect takes in
+    a request. The revision's snapshot is filled with what gzip makes of a real one, bytes that do
+    not compress again
+  */
+  const large = await insertDocument({ title: 'Large', state: 'AAA=', content: '[]', revision: 0 })
+  const largeFold = {
+    ...caller(),
+    id: large,
+    revision: 0,
+    state: 'A'.repeat(2000000),
+    content: 'c'.repeat(200000),
+    contentText: 'c'.repeat(200000),
+    updateIds: [],
+    isWholeReplacement: false,
+    ...UNKEYED,
+    ...revised,
+    revisionCompressedState: '',
+    revisionMarkdown: 'm'.repeat(400000),
+  }
+  const room = MAX_KNOWLEDGE_WRITE_REQUEST_BYTES - Buffer.byteLength(JSON.stringify(largeFold)) - 100
+  const filler = gzipSync(Buffer.from(randomUUID().repeat(room))).toString('base64')
+
+  largeFold.revisionCompressedState = (filler + 'B'.repeat(room)).slice(0, room)
+
+  check(
+    'a fold just short of the bound a write is held to goes through with its revision',
+    (await refusal(foldDocumentWithRevisionForAgent(dataConnect, largeFold))) === null
+      && (await readRevisions(large)).length === 1,
+  )
+
+  await write(
+    `mutation Age($id: UUID!, $createdAt: Timestamp!) { documentRevision_update(id: $id, data: { createdAt: $createdAt }) }`,
+    { id: revisionId, createdAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString() },
+  )
+
+  const { data: swept } = await deleteExpiredDocumentRevisions(dataConnect)
+
+  check(
+    'the sweep deletes the revisions over 30 days old and keeps the rest',
+    swept.documentRevision_deleteMany >= 1
+      && (await readRevisions(id)).map(revision => revision.id).indexOf(revisionId) === -1
+      && (await readRevisions(id)).length === 2,
+  )
+
+  await write(`mutation Drop($id: UUID!) { document_delete(id: $id) }`, { id: large })
+
+  check('a document deleted takes its revisions with it', (await readRevisions(large)).length === 0)
 }
 
 async function checkEmptiness() {
@@ -603,6 +921,7 @@ try {
   await setUp()
   await checkIdempotency()
   await checkFolds()
+  await checkRevisions()
   await checkEmptiness()
   await checkSeeding()
   await checkSearch()

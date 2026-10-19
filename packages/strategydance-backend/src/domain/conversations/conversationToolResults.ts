@@ -19,6 +19,10 @@ export const SKIPPED_QUESTION_RESULT = 'The member skipped this question.'
 export const STOPPED_CALL_RESULT = 'The member stopped the response before this ran.'
 export const INTERRUPTED_CALL_RESULT = 'This call was interrupted and may have run. Check before you rely on it.'
 
+// What a call a subagent's last run never started, its ten minutes up, is answered with beside the
+// request for its report
+export const UNRUN_AT_TIME_LIMIT_CALL_RESULT = 'Not run: your time ran out before this call could start.'
+
 // What a call to an integration waiting for the member's approval is answered with when they deny
 // it, when they send a message instead, and when they send one before a call they allowed ran
 export const DENIED_CALL_RESULT = 'The member denied this call. Do not propose it again unless they ask.'

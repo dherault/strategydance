@@ -36,6 +36,8 @@ type Options = {
   // How many calls the turns since the anchor run in all: 50 for a run, and for a subagent's 50 for
   // each run its chain has taken, since its runs share their anchor
   maxCalls?: number
+  // Whether the turn answers a subagent's report request, after which no call runs
+  isReportReply?: boolean
 }
 
 /*
@@ -43,17 +45,21 @@ type Options = {
   crash plans the same. A question past its bounds is never drawn, whatever else holds. A turn runs
   at most 10 calls, and the turns answering one member's entry 50, questions included, or as many as
   `maxCalls` says for a subagent's chain: a call past either is drawn as failed and answered as not
-  run. A call to a tool nobody runs is drawn as failed
+  run. A call to a tool nobody runs is drawn as failed, and so is every call of a reply to a
+  subagent's report request, its run's last
 */
 function planConversationToolCalls(
   calls: ConversationToolCall[],
-  { callsBefore, runnerNames, asksQuestions = true, maxCalls = MAX_TOOL_CALLS_PER_RUN }: Options,
+  { callsBefore, runnerNames, asksQuestions = true, maxCalls = MAX_TOOL_CALLS_PER_RUN, isReportReply = false }: Options,
 ): ConversationToolCallPlan[] {
   return calls.map((call, index) => {
     // Checked before the limits, so a question past its bounds never reaches the thread
     const checked = asksQuestions && call.name === ASK_USER_TOOL_NAME ? checkConversationQuestion(call.input) : null
 
     if (checked?.outcome === 'invalid') return { kind: 'refused', call, reason: checked.reason, isDrawn: false }
+
+    if (isReportReply)
+      return refuse(call, 'Not run: your last request asked for your report, and no call runs after it.')
 
     if (index >= MAX_TOOL_CALLS_PER_TURN) {
       return refuse(

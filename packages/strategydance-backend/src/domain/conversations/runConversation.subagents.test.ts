@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 
 import Anthropic from '@anthropic-ai/sdk'
 import type { BetaMessageStreamParams } from '@anthropic-ai/sdk/resources/beta/messages/messages'
@@ -232,13 +232,29 @@ describe('runConversation, for a subagent', () => {
       ),
     ])
 
-    expect(
-      await runConversation(subagent, {
-        client: scripted.client,
-        limits: { maxRequests: 1 },
-        connectModules: connectTestModules([READ_LOG]),
-      }),
-    ).toBe('finished')
+    // Its read takes it past the time its report request would need, which it then never sends
+    const slowRead: ConversationToolRunner = {
+      ...READ_LOG,
+      run: async () => {
+        setSystemTime(new Date(Date.now() + 13 * 60 * 1000))
+
+        return { entries: [] }
+      },
+    }
+
+    try {
+      expect(
+        await runConversation(subagent, {
+          client: scripted.client,
+          limits: { maxRequests: 1 },
+          connectModules: connectTestModules([slowRead]),
+        }),
+      ).toBe('finished')
+    } finally {
+      setSystemTime()
+    }
+
+    expect(scripted.requests).toHaveLength(1)
     expect(kit.readRun(subagent)?.status).toBe('FAILED')
     expect(readReport(subagent)).toBe(
       'This subagent stopped at its limits before it finished.\n\nTwo of three pages read.',

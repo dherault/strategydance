@@ -2037,13 +2037,23 @@ way (see The orchestrator).
   then sends its context and the request. At the ten minutes, the calls running finish, no other
   starts, and the run chains. The fifty tool calls count from the anchor, as a resumed run's do, fifty
   for each run the chain has taken, which `planConversationToolCalls` reads from the run's number. The
-  fourth run's last request, its 25th, when it follows a turn's tool results, carries a text block
-  after them in that results entry, telling the subagent it has one request left and to write its
-  report now, calling no tool, as David chose on 2026-10-13, so work the limits cut off still ends
-  with a report, and ends `COMPLETED` when it does. Only the requests can be seen coming: a fourth
-  run ended by its ten minutes or its 100 entries reports its last text as before. A fourth run that
-  reaches a limit ends `FAILED`, as a conversation's run ends, and its report says it stopped at its
-  limits.
+  fourth run's last request, when it follows a turn's tool results, carries a text block after them
+  in that results entry (`SUBAGENT_REPORT_REQUEST`), telling the subagent it has one request left and
+  to write its report now, calling no tool, as David chose on 2026-10-13, so work the limits cut off
+  still ends with a report, and ends `COMPLETED` when it does. From M42 the entry asks once any of
+  the run's budgets nears its end, not only before its 25th request (`isSubagentReportDue`): its 24th
+  request sent, under two minutes left of its ten, 95 of its 100 entries drawn, or a ledger whose next
+  request, reserved at its worst case, would leave no room within the $10 for one more attempt as
+  dear, the next request reckoned from the last one's input and output and the results it adds. Once
+  asked, the request goes past the run's requests, entries and ten minutes, while two minutes are
+  left before its stream would be cut, 12 minutes after the claim (`SUBAGENT_REPORT_TIME_MS`), and
+  its cost is held to the $10 as any request's is. A fourth run whose ten minutes come between two of
+  a turn's calls answers those they kept from starting as not run for lack of time
+  (`UNRUN_AT_TIME_LIMIT_CALL_RESULT`) and asks in the same entry. Nothing the reply to the request
+  calls runs: its calls are drawn failed, and the run ends at its limits, its report the reply's
+  text. A fourth run that reaches a limit without a report, one whose report request cannot fit its
+  time or its cost, ends `FAILED`, as a conversation's run ends, and its report says it stopped at its
+  limits, beside its last text.
 - **The report** is its last `AGENT_TEXT`, its pieces joined, cut to 8000 characters
   (`MAX_SUBAGENT_REPORT_LENGTH`), as David chose on 2026-10-13: a batch of ten then delivers some
   20000 tokens rather than 50000, which could mark its parent full, and a full conversation is never

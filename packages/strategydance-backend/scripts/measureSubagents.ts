@@ -23,6 +23,7 @@ import type { ConversationRequestSettings } from '~domain/agent/conversationRequ
 import SUBAGENT_REPORT_REQUEST from '~domain/agent/subagentReportRequest'
 import { parseConversationRunUsage } from '~domain/conversations/conversationRunUsage'
 import priceConversationUsage from '~domain/conversations/priceConversationUsage'
+import type { ConversationRunLimits } from '~domain/conversations/requestConversationTurn'
 import stopConversationRun from '~domain/conversations/stopConversationRun'
 import createKnowledgeDocument from '~domain/knowledge/createKnowledgeDocument'
 import launchSubagent from '~domain/subagents/launchSubagent'
@@ -34,13 +35,20 @@ import createTask from '~domain/tasks/createTask'
   Measures what a subagent costs and does on each model and effort David weighs for subagents, as
   M33 asks, before he chooses (`SUBAGENT_REQUEST_SETTINGS`):
 
-    bun run measure:subagents [--configurations <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]
+    bun run measure:subagents [--configurations <name,…>] [--briefs <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]
 
   Three short briefs, each meant to end within one run, a piece of web research, a task read from
   the board and planned in its description, and a document written from what the knowledge holds,
   each run as a subagent on each configuration: Opus 5.5 at medium effort, today's, Opus 5.5 at low,
   Sonnet 5.5 at medium, and Opus 5.5 at medium with a task budget. Twelve subagents, as David chose
   on 2026-10-17 over the eighteen M33 first planned.
+
+  A fourth brief, `long`, which `--briefs long` picks, is made to run long, as M42 asks: research a
+  tool at a time, past what one run can do, its runs held to two and a half minutes each
+  (`SUBAGENT_RUN_LIMITS`, which only this script sets), so it chains three times and its fourth run
+  asks for its report before its time is up, within minutes and a few dollars:
+
+    bun run measure:subagents --briefs long --configurations opus-medium --max-subagent 3 --max-total 3
 
   Cheap by design: the script launches each subagent itself, on a parent of each configuration's
   whose own run never goes, so no parent's request is paid, and runs each configuration's three back
@@ -88,6 +96,7 @@ const { values } = parseArgs({
   args: process.argv.slice(2),
   options: {
     configurations: { type: 'string' },
+    briefs: { type: 'string' },
     'max-total': { type: 'string' },
     'max-subagent': { type: 'string' },
     out: { type: 'string' },
@@ -97,6 +106,7 @@ const { values } = parseArgs({
 const configurations = values.configurations
   ? CONFIGURATIONS.filter(({ name }) => values.configurations?.split(',').includes(name))
   : CONFIGURATIONS
+const briefNames = values.briefs?.split(',') ?? ['research', 'task', 'document']
 const maxTotal = Number(values['max-total'] ?? 15)
 const maxSubagent = Number(values['max-subagent'] ?? 1)
 const outDirectory = values.out ?? `${process.env.TMPDIR ?? '/tmp'}/measure-subagents`
@@ -198,8 +208,15 @@ async function seed(caller: ModuleCaller) {
   return { taskId: task.result.id, documentId: document.result.id }
 }
 
-// The three briefs, each meant to end within one run
-function buildBriefs({ taskId, documentId }: { taskId: string; documentId: string }) {
+type Brief = {
+  name: string
+  text: string
+  // The limits its runs keep instead of a conversation run's, for one made to run long
+  runLimits?: Partial<ConversationRunLimits>
+}
+
+// The three short briefs, each meant to end within one run, and the long one
+function buildBriefs({ taskId, documentId }: { taskId: string; documentId: string }): Brief[] {
   return [
     {
       name: 'research',
@@ -212,6 +229,11 @@ function buildBriefs({ taskId, documentId }: { taskId: string; documentId: strin
     {
       name: 'document',
       text: `Read the document ${documentId} in the knowledge. Create a new document titled "Pricing summary" holding a summary of it in five bullets, tagged with the aspects it is about. Change nothing else. Report the new document's link.`,
+    },
+    {
+      name: 'long',
+      text: 'Find the monthly price per seat of the cheapest paid plan of each of these twelve tools, from its own pricing page, one tool at a time: Linear, Notion, Asana, Trello, ClickUp, Monday.com, Jira, Basecamp, Airtable, Shortcut, Todoist and Height. Write nothing into the knowledge or the tasks. Report a table of each tool, its plan, its price and the link, saying which you could not find.',
+      runLimits: { maxDurationMs: 150_000 },
     },
   ]
 }
@@ -237,7 +259,13 @@ async function startParent(membershipCreatedAt: string) {
 
 type SubagentRead = {
   conversation: { report: string | null; reportedAt: string | null } | null
-  conversationRuns: { number: number; status: string; usage: unknown; leaseExpiresAt: string | null }[]
+  conversationRuns: {
+    number: number
+    status: string
+    failure: string | null
+    usage: unknown
+    leaseExpiresAt: string | null
+  }[]
   conversationTranscriptEntries: { content: string }[]
 }
 
@@ -248,6 +276,7 @@ async function readSubagent(conversationId: string) {
       conversationRuns(where: { conversationId: { eq: $id } }, orderBy: [{ number: ASC }], limit: 10) {
         number
         status
+        failure
         usage
         leaseExpiresAt
       }
@@ -285,7 +314,7 @@ function measure(runs: SubagentRead['conversationRuns']) {
 
 const membershipCreatedAt = await setUp()
 const caller = toCaller(membershipCreatedAt)
-const briefs = buildBriefs(await seed(caller))
+const briefs = buildBriefs(await seed(caller)).filter(({ name }) => briefNames.includes(name))
 const records: Record<string, unknown>[] = []
 let total = 0
 let isOverTotal = false
@@ -307,6 +336,10 @@ for (const configuration of configurations) {
 
       break
     }
+
+    // Read by each run of the subagent's, in this process
+    if (brief.runLimits) process.env.SUBAGENT_RUN_LIMITS = JSON.stringify(brief.runLimits)
+    else delete process.env.SUBAGENT_RUN_LIMITS
 
     const launched = await launchSubagent({
       organizationId,
@@ -360,6 +393,7 @@ for (const configuration of configurations) {
       cost: Number(measured.cost.toFixed(4)),
       runs: read.conversationRuns.length,
       endings: read.conversationRuns.map(({ status }) => status),
+      failures: read.conversationRuns.map(({ failure }) => failure),
       isReportAsked: lastEntry.includes(SUBAGENT_REPORT_REQUEST),
       isStoppedAtCap: isAskedToStop,
       seconds: Math.round((Date.now() - startedAt) / 1000),

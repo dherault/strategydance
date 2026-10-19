@@ -182,6 +182,16 @@ export const CONVERSATION_RUN_MAX_DURATION_MS = 10 * 60 * 1000
 export const CONVERSATION_RUN_STREAM_DEADLINE_MS = 14 * 60 * 1000
 
 /*
+  What a subagent's fourth run keeps for its report, as M42 settles it. It asks for the report once
+  less than two minutes are left of its ten, or it has drawn 95 of its 100 entries; and once it has
+  asked, the request goes past the run's requests, its entries and its ten minutes, but not once
+  less than two minutes are left before its stream would be cut, 12 minutes after the run was first
+  claimed
+*/
+export const SUBAGENT_REPORT_TIME_MS = 2 * 60 * 1000
+export const SUBAGENT_REPORT_ENTRY_MARGIN = 5
+
+/*
   A run's cost limit, $10 in microdollars, as David chose on 2026-10-16, since a cap on starts
   bounds nothing a single run spends: before each request, the run's ledger priced at list prices,
   each request it has no answer for at the worst case its reservation recorded, plus the most the

@@ -22,8 +22,9 @@ export type UndoableKnowledgeDocumentRevision = {
 
 /*
   The edits a conversation's agent made to documents, as its member made them, that an Undo can
-  still take back: those whose document's text is still the version the edit left, so nobody has
-  written to it since. The thread offers Undo on their rows, and the restore checks again.
+  still take back: those whose document's text is still exactly what the edit left, by its
+  fingerprint, so nobody has written to it since. The thread offers Undo on their rows, and the
+  restore checks again.
 
   The text is read as it stands, every pending update merged, for the documents of the newest
   edits first, 20 at most, a read each, since only the newest edit of a document can be still what
@@ -58,11 +59,11 @@ async function listUndoableKnowledgeDocumentRevisions({
         })
       : null
 
-    if (current) versions.set(documentIds[index], current.version)
+    if (current) versions.set(documentIds[index], current.fingerprint)
   })
 
-  return data.documentRevisions.flatMap(({ id, callKey, documentId, afterVersion }) =>
-    callKey && versions.get(documentId) === afterVersion ? [{ id, callKey, documentId }] : [],
+  return data.documentRevisions.flatMap(({ id, callKey, documentId, afterFingerprint }) =>
+    callKey && versions.get(documentId) === afterFingerprint ? [{ id, callKey, documentId }] : [],
   )
 }
 

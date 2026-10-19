@@ -381,13 +381,13 @@ async function readRevisions(documentId: string) {
       callKey: string | null
       compressedState: string
       content: string
-      afterVersion: string
+      afterFingerprint: string
       restoredVersionAt: string | null
     }[]
   }>(
     `query ReadRevisions($documentId: UUID!) {
       documentRevisions(where: { documentId: { eq: $documentId } }, orderBy: [{ createdAt: ASC }]) {
-        id userId scope callKey compressedState content afterVersion restoredVersionAt
+        id userId scope callKey compressedState content afterFingerprint restoredVersionAt
       }
     }`,
     { documentId },
@@ -404,7 +404,7 @@ async function checkRevisions() {
     revisionCallKey: 'toolu_revised',
     revisionCompressedState: 'BEFORE=',
     revisionContent: 'Before',
-    revisionAfterVersion: 'after-version',
+    revisionAfterFingerprint: 'after-fingerprint',
   }
   const fold = (fields: Variables) =>
     foldDocumentWithRevisionForAgent(dataConnect, {
@@ -460,7 +460,7 @@ async function checkRevisions() {
       && kept.callKey === 'toolu_revised'
       && kept.compressedState === 'BEFORE='
       && kept.content === 'Before'
-      && kept.afterVersion === 'after-version'
+      && kept.afterFingerprint === 'after-fingerprint'
       && kept.restoredVersionAt === null,
   )
 
@@ -552,7 +552,7 @@ async function checkRevisions() {
       revisionId: restoreId,
       revisionCompressedState: 'REPLACED=',
       revisionContent: 'Replaced',
-      revisionAfterVersion: 'restored-version',
+      revisionAfterFingerprint: 'restored-fingerprint',
       restoredVersionAt: new Date().toISOString(),
       ...fields,
     })

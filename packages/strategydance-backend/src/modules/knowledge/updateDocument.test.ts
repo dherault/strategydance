@@ -5,6 +5,7 @@ import { richTextToMarkdown } from 'strategydance-design-system/lib/richTextToMa
 
 import type { ModuleCaller } from '~types'
 
+import fingerprintKnowledgeDocumentText from '~domain/knowledge/fingerprintKnowledgeDocumentText'
 import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
 import hashModuleCallArguments from '~domain/modules/hashModuleCallArguments'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
@@ -466,7 +467,7 @@ describe('update_document keeps the text it replaced as a revision', () => {
     })
     expect(readRevisionContent(revision.content)).toBe('Intro typed\n\nOutro')
     expect(readRevisionText(revision.compressedState)).toEqual(['Intro typed', 'Outro'])
-    expect(revision.afterVersion).toBe((await kit.answer<Reading>('read_document', { id: document.id })).version)
+    expect(fingerprintKnowledgeDocumentText(documents.open(document.id))).toBe(revision.afterFingerprint)
   })
 
   it('for every kind of edit, and for none that leaves the text as it was', async () => {
@@ -512,6 +513,19 @@ describe('update_document keeps the text it replaced as a revision', () => {
     ).toMatchObject({
       blocks: (await kit.answer<Reading>('read_document', { id: document.id })).blocks.slice(0, 2),
     })
+  })
+
+  it("for a change Markdown cannot say, a line break in a table's cell", async () => {
+    const kit = await connect()
+    const document = documents.store('| Head | Other |\n| --- | --- |\n| Alpha Beta | x |')
+
+    await kit.answer('update_document', {
+      id: document.id,
+      replaceText: { find: 'Alpha Beta', replace: 'Alpha\nBeta' },
+    })
+
+    expect(fake.revisions).toHaveLength(1)
+    expect(readRevisionContent(fake.revisions[0].content)).toContain('Alpha Beta')
   })
 
   it("under an external agent's connection, with no call key when it sent none", async () => {

@@ -8,6 +8,7 @@ import * as Y from 'yjs'
 
 import type { KnowledgeDocumentBlock, KnowledgeDocumentEdit, StoredKnowledgeDocumentText } from '~types'
 
+import fingerprintKnowledgeDocumentText from '~domain/knowledge/fingerprintKnowledgeDocumentText'
 import measureKnowledgeDocumentText from '~domain/knowledge/measureKnowledgeDocumentText'
 import openKnowledgeDocumentText from '~domain/knowledge/openKnowledgeDocumentText'
 import readKnowledgeDocumentBlocks from '~domain/knowledge/readKnowledgeDocumentBlocks'
@@ -24,9 +25,11 @@ type FoldKnowledgeDocumentEditResult =
       updateIds: string[]
       // Whether the document had no snapshot, which the fold seeds, under `SeedDocumentState`'s condition
       isSeed: boolean
-      // The text the edit replaced, which a revision keeps: its snapshot in base64, its blocks as an
-      // agent reads them, and its content, for a member to look at
-      previous: { state: string; blocks: KnowledgeDocumentBlock[]; content: string }
+      // A fingerprint of the text the edit left, which a revision keeps
+      fingerprint: string
+      // The text the edit replaced, which a revision keeps: its snapshot in base64, its content, for a
+      // member to look at, and its fingerprint
+      previous: { state: string; content: string; fingerprint: string }
     }
   /** The snapshot cannot be merged */
   | { outcome: 'unreadableState' }
@@ -60,15 +63,16 @@ function foldKnowledgeDocumentEdit(
   if (!opened) return { outcome: 'unreadableState' }
 
   const blocks = readKnowledgeDocumentBlocks(opened.doc)
+  const previousFingerprint = fingerprintKnowledgeDocumentText(opened.doc)
 
-  if (!blocks) return { outcome: 'unknownContent' }
+  if (!blocks || !previousFingerprint) return { outcome: 'unknownContent' }
 
   // Read before the snapshot is encoded, as `measureKnowledgeDocumentText` reads its text
   const previousContent = readKnowledgeDocumentContent(opened.doc)
   const previous = {
     state: Buffer.from(Y.encodeStateAsUpdate(opened.doc)).toString('base64'),
-    blocks,
     content: previousContent,
+    fingerprint: previousFingerprint,
   }
   const change = toRichTextYDocEdit(blocks, edit)
 
@@ -83,8 +87,11 @@ function foldKnowledgeDocumentEdit(
   if (measured.outcome !== 'measured') return measured
 
   const { state, content, contentText } = measured
+  const fingerprint = fingerprintKnowledgeDocumentText(opened.doc)
 
-  return { outcome: 'folded', state, content, contentText, updateIds: opened.updateIds, isSeed, previous }
+  if (!fingerprint) return { outcome: 'invalidEdit' }
+
+  return { outcome: 'folded', state, content, contentText, updateIds: opened.updateIds, isSeed, fingerprint, previous }
 }
 
 // The edit in the stored model, a whole text replaced being every top-level block the text holds replaced

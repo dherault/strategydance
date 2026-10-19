@@ -5698,7 +5698,7 @@ mutation FoldDocumentWithRevisionForAgent(
   $revisionCallKey: String
   $revisionCompressedState: String!
   $revisionContent: String!
-  $revisionAfterVersion: String!
+  $revisionAfterFingerprint: String!
 ) @auth(level: NO_ACCESS) @transaction {
   moduleCallResult_insert(
     data: {
@@ -5739,7 +5739,7 @@ mutation FoldDocumentWithRevisionForAgent(
       callKey: $revisionCallKey
       compressedState: $revisionCompressedState
       content: $revisionContent
-      afterVersion: $revisionAfterVersion
+      afterFingerprint: $revisionAfterFingerprint
     }
   ) @include(if: $isRevised)
   # A mutation takes one query step, and the pending updates have to be read once the row above is
@@ -5769,7 +5769,7 @@ mutation FoldDocumentWithRevisionForAgent(
         )
         @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
         @check(
-          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionContent) <= 200000 && size(vars.revisionAfterVersion) <= 64 && size(vars.revisionScope) <= 200"
+          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionContent) <= 200000 && size(vars.revisionAfterFingerprint) <= 64 && size(vars.revisionScope) <= 200"
           message: "A revision holds at most 2000000 characters of state and 200000 of content"
         )
     }
@@ -5802,7 +5802,7 @@ mutation FoldDocumentWithRevisionForAgent(
 # lets agents do, so neither AI permission is read.
 #
 # An Undo (`$isUndo`) goes back only while nobody has written to the document since the edit: the
-# backend compared the text it read with the version the edit left, and once the row is locked no
+# backend compared the text it read with the fingerprint of what the edit left, and once the row is locked no
 # update may be pending beyond those it merged. A restore from the history takes what was written
 # since with it, as the member was told, and a push landing meanwhile merges with it
 mutation RestoreDocumentRevision(
@@ -5818,7 +5818,7 @@ mutation RestoreDocumentRevision(
   $revisionId: UUID!
   $revisionCompressedState: String!
   $revisionContent: String!
-  $revisionAfterVersion: String!
+  $revisionAfterFingerprint: String!
   $restoredVersionAt: Timestamp!
 ) @auth(level: NO_ACCESS) @transaction {
   document_updateMany(
@@ -5844,7 +5844,7 @@ mutation RestoreDocumentRevision(
       userId: $userId
       compressedState: $revisionCompressedState
       content: $revisionContent
-      afterVersion: $revisionAfterVersion
+      afterFingerprint: $revisionAfterFingerprint
       restoredVersionAt: $restoredVersionAt
     }
   )
@@ -5862,7 +5862,7 @@ mutation RestoreDocumentRevision(
         )
         @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
         @check(
-          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionContent) <= 200000 && size(vars.revisionAfterVersion) <= 64"
+          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionContent) <= 200000 && size(vars.revisionAfterFingerprint) <= 64"
           message: "A revision holds at most 2000000 characters of state and 200000 of content"
         )
     }

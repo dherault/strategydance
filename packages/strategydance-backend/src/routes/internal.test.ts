@@ -294,7 +294,7 @@ describe('POST /internal/sweep', () => {
       callKey: id,
       compressedState: '',
       content: '',
-      afterVersion: '',
+      afterFingerprint: '',
       restoredVersionAt: null,
       createdAt: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
     })

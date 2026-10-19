@@ -9,12 +9,11 @@ import { dataConnect } from '~firebase'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import compressKnowledgeDocumentRevisionState from '~domain/knowledge/compressKnowledgeDocumentRevisionState'
-import hashKnowledgeDocumentText from '~domain/knowledge/hashKnowledgeDocumentText'
+import fingerprintKnowledgeDocumentText from '~domain/knowledge/fingerprintKnowledgeDocumentText'
 import isKnowledgeWriteTooLarge from '~domain/knowledge/isKnowledgeWriteTooLarge'
 import { EDITED_REFUSAL, EMPTY_REFUSAL, RESTORE_FOLDED_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
 import measureKnowledgeDocumentText from '~domain/knowledge/measureKnowledgeDocumentText'
 import openKnowledgeDocumentRevision from '~domain/knowledge/openKnowledgeDocumentRevision'
-import readKnowledgeDocumentBlocks from '~domain/knowledge/readKnowledgeDocumentBlocks'
 import readKnowledgeDocumentContent from '~domain/knowledge/readKnowledgeDocumentContent'
 import readKnowledgeDocumentVersion from '~domain/knowledge/readKnowledgeDocumentVersion'
 import isOperationRefusal from '~domain/modules/isOperationRefusal'
@@ -48,7 +47,8 @@ export type RestoreKnowledgeDocumentRevisionResult =
   meanwhile. The text it replaces is kept as a revision of its own, whose id it answers, so the
   restore can be undone in turn.
 
-  An Undo goes back only while the text is still the version the edit left, which the mutation
+  An Undo goes back only while the text is still exactly what the edit left, by its fingerprint,
+  which the mutation
   holds once the row is locked too, no update pending beyond those merged; a restore from the
   history takes what was written since with it, as the member was told. The member is never held to
   what the team lets agents do. As an agent's edit, it is stored under the revision read, and read
@@ -80,7 +80,7 @@ async function restoreKnowledgeDocumentRevision({
     })
 
     if (!current) return { outcome: 'unrestorable' }
-    if (isUndo && current.version !== row.afterVersion) return { outcome: 'changed' }
+    if (isUndo && current.fingerprint !== row.afterFingerprint) return { outcome: 'changed' }
 
     const source = openKnowledgeDocumentRevision(row.compressedState)
 
@@ -95,13 +95,10 @@ async function restoreKnowledgeDocumentRevision({
     }
 
     const measured = measureKnowledgeDocumentText(current.doc)
-    const restored = readKnowledgeDocumentBlocks(current.doc)
+    const afterFingerprint = fingerprintKnowledgeDocumentText(current.doc)
 
-    if (measured.outcome !== 'measured' || !restored) return { outcome: 'unrestorable' }
-
-    const afterVersion = hashKnowledgeDocumentText(restored)
-
-    if (afterVersion === current.version) return { outcome: 'unchanged' }
+    if (measured.outcome !== 'measured' || !afterFingerprint) return { outcome: 'unrestorable' }
+    if (afterFingerprint === current.fingerprint) return { outcome: 'unchanged' }
 
     const restoreId = toCanonicalUuid(crypto.randomUUID())
     const variables = {
@@ -117,7 +114,7 @@ async function restoreKnowledgeDocumentRevision({
       revisionId: restoreId,
       revisionCompressedState: compressKnowledgeDocumentRevisionState(previousState),
       revisionContent: previousContent,
-      revisionAfterVersion: afterVersion,
+      revisionAfterFingerprint: afterFingerprint,
       restoredVersionAt: row.createdAt,
     }
 

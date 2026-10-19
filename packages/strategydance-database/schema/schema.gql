@@ -534,9 +534,10 @@ type DocumentRevision
   # for a member to look at before restoring it, drawn as the document is. An empty string when the
   # text was empty, or longer than a document's content may be, which only the snapshot then keeps
   content: String!
-  # The version of the text the edit left, as `read_document` hashes one: while the text is still
-  # that version, nobody has written to the document since, and the edit can be undone
-  afterVersion: String!
+  # A fingerprint of the text the edit left, a hash of every node, attribute and character the
+  # editor keeps, block ids included, never the agent's Markdown, which misses some: while the text
+  # still has it, nobody has written to the document since, and the edit can be undone
+  afterFingerprint: String!
   # For a member's restore, when the revision it brought back was made
   restoredVersionAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")

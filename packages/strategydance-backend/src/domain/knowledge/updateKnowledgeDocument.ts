@@ -147,11 +147,10 @@ async function updateKnowledgeDocument(
       call wrote the whole text, which the agent then knows whole: any other edit leaves text it may
       never have read, which only a read that holds it all gives a version of
     */
-    const afterVersion = hashKnowledgeDocumentText(read.blocks)
     const result = {
       id,
       ...(title !== undefined && { title }),
-      ...(edit.type === 'content' && { version: afterVersion }),
+      ...(edit.type === 'content' && { version: hashKnowledgeDocumentText(read.blocks) }),
     }
 
     const variables = {
@@ -166,7 +165,7 @@ async function updateKnowledgeDocument(
       isWholeReplacement: edit.type === 'content',
       ...toModuleCallVariables(caller, call, result),
       ...toKnowledgeDocumentRevisionVariables(folded.previous, {
-        afterVersion,
+        afterFingerprint: folded.fingerprint,
         scope: caller.idempotencyScope,
         callKey: call?.key ?? null,
       }),

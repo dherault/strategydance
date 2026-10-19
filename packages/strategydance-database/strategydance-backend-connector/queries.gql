@@ -2043,7 +2043,7 @@ query GetDocumentRevisionForMember($organizationId: UUID!, $userId: String!, $do
     limit: 1
   ) {
     compressedState
-    afterVersion
+    afterFingerprint
     createdAt
     document {
       title
@@ -2075,7 +2075,7 @@ query GetConversationDocumentRevisions($organizationId: UUID!, $userId: String!,
     id
     callKey
     documentId
-    afterVersion
+    afterFingerprint
   }
 }
 

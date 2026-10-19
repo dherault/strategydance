@@ -45,7 +45,7 @@ export type FakeDocumentRevision = {
   callKey: string | null
   compressedState: string
   content: string
-  afterVersion: string
+  afterFingerprint: string
   restoredVersionAt: string | null
   createdAt: string
 }
@@ -118,7 +118,11 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
 
   // A revision kept by a write, with what the write holds it to
   function keepRevision(fields: Omit<FakeDocumentRevision, 'id' | 'createdAt'> & { id?: string }) {
-    if (fields.compressedState.length > 2000000 || fields.content.length > 200000 || fields.afterVersion.length > 64) {
+    if (
+      fields.compressedState.length > 2000000
+      || fields.content.length > 200000
+      || fields.afterFingerprint.length > 64
+    ) {
       refuse('A revision holds at most 2000000 characters of state and 200000 of content')
     }
 
@@ -244,7 +248,7 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
           callKey: variables.revisionCallKey ?? null,
           compressedState: variables.revisionCompressedState,
           content: variables.revisionContent,
-          afterVersion: variables.revisionAfterVersion,
+          afterFingerprint: variables.revisionAfterFingerprint,
           restoredVersionAt: null,
         })
       : null
@@ -497,7 +501,7 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
         callKey: null,
         compressedState: String(variables.revisionCompressedState),
         content: String(variables.revisionContent),
-        afterVersion: String(variables.revisionAfterVersion),
+        afterFingerprint: String(variables.revisionAfterFingerprint),
         restoredVersionAt: String(variables.restoredVersionAt),
       })
       // Rolled back with the rest of the mutation when a check below refuses
@@ -648,7 +652,7 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
         documentRevisions: [
           {
             compressedState: revision.compressedState,
-            afterVersion: revision.afterVersion,
+            afterFingerprint: revision.afterFingerprint,
             createdAt: revision.createdAt,
             document: {
               title,
@@ -675,11 +679,11 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
             )
             .sort(byNewest)
             .slice(0, 100)
-            .map(({ id: revisionId, callKey, documentId, afterVersion }) => ({
+            .map(({ id: revisionId, callKey, documentId, afterFingerprint }) => ({
               id: revisionId,
               callKey,
               documentId,
-              afterVersion,
+              afterFingerprint,
             }))
         : [],
     }),

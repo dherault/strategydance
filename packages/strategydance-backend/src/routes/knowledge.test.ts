@@ -9,7 +9,9 @@ import {
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_UNAUTHORIZED_AUTHENTICATION,
 } from 'strategydance-core'
+import { RICH_TEXT_YJS_FRAGMENT } from 'strategydance-design-system/lib/richText'
 import { richTextToMarkdown } from 'strategydance-design-system/lib/richTextToMarkdown'
+import * as Y from 'yjs'
 
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
@@ -98,6 +100,18 @@ function undoable(conversationId = CONVERSATION_ID, viewer?: string | null) {
   return call('GET', `/revisions/undoable/${conversationId}`, undefined, viewer)
 }
 
+// A member aligning a table's first cell, as a tab pushes the change: nothing its Markdown says
+function alignFirstCell(documentId: string) {
+  const doc = documents.open(documentId)
+  const before = Y.encodeStateVector(doc)
+  const [cell] = doc
+    .getXmlFragment(RICH_TEXT_YJS_FRAGMENT)
+    .createTreeWalker(type => type instanceof Y.XmlElement && type.nodeName === 'tableCell')
+
+  ;(cell as Y.XmlElement).setAttribute('textAlignment', 'center')
+  fake.pushUpdate(documentId, Buffer.from(Y.encodeStateAsUpdate(doc, before)).toString('base64'))
+}
+
 function markdownOf(documentId: string) {
   return documents.read(documentId).map(block => block.markdown)
 }
@@ -162,6 +176,25 @@ describe('POST /:documentId/revisions/:revisionId/restore', () => {
     expect(markdownOf(document.id)).toEqual(['Intro', 'Outro'])
     expect(fake.pendingUpdates(document.id)).toEqual([])
     expect(richTextToMarkdown(JSON.parse(fake.revisions.at(-1)?.content ?? '[]'))).toBe('Intro typed\n\nEnding')
+  })
+
+  test("refuses an Undo once somebody changed what Markdown cannot say, a table's alignment", async () => {
+    const agent = await connectAgent()
+    const document = documents.store('| Head | Other |\n| --- | --- |\n| Alpha | x |')
+
+    await agent.answer('update_document', { id: document.id, append: 'Added' }, 'toolu_append')
+
+    const markdown = markdownOf(document.id)
+
+    alignFirstCell(document.id)
+
+    expect(markdownOf(document.id)).toEqual(markdown)
+    expect((await undoable()).body.data.revisions).toEqual([])
+    expect(await restore(document.id, revisionOf('toolu_append').id, true)).toMatchObject({
+      status: 409,
+      body: { code: ERROR_CODE_CONFLICT },
+    })
+    expect(fake.pendingUpdates(document.id)).toHaveLength(1)
   })
 
   test('refuses an Undo when a push lands between its read and its write', async () => {

@@ -15,7 +15,7 @@ import {
 
 import type { ClaudeClient, ConversationRunFence } from '~types'
 
-import { CONVERSATION_API_MAX_RETRY_DELAY_MS, MAX_CONVERSATION_API_RETRIES, SUBAGENT_REPORT_TIME_MS } from '~constants'
+import { CONVERSATION_API_MAX_RETRY_DELAY_MS, MAX_CONVERSATION_API_RETRIES } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -51,6 +51,7 @@ import type { ConversationRunLease } from '~domain/conversations/createConversat
 import type { ConversationRunEnding } from '~domain/conversations/endConversationRun'
 import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import readSubagentReportDeadline from '~domain/conversations/readSubagentReportDeadline'
 
 type RequestConversationTurnInput = {
   fence: ConversationRunFence
@@ -208,11 +209,10 @@ async function requestConversationTurn({
   const isReportRequest = carriesSubagentReportRequest(
     entries.findLast(({ role }) => role === ConversationTranscriptRole.USER),
   )
-  const sendingTime = isReportRequest
-    ? Math.max(limits.maxDurationMs, limits.streamDeadlineMs - SUBAGENT_REPORT_TIME_MS)
-    : limits.maxDurationMs
-  const sendDeadline = Date.parse(startedAt) + sendingTime
-  const durationFailure = `The run passed ${sendingTime / 1000} seconds since it was first claimed`
+  const sendDeadline = isReportRequest
+    ? readSubagentReportDeadline(startedAt, limits)
+    : Date.parse(startedAt) + limits.maxDurationMs
+  const durationFailure = `The run passed ${(sendDeadline - Date.parse(startedAt)) / 1000} seconds since it was first claimed`
   const isPastDuration = () => Date.now() >= sendDeadline
   // Whether a fallback's boundary came in the turn, which strips its parts
   let isStripped = false

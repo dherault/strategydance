@@ -503,6 +503,79 @@ describe('runConversation, chaining a subagent’s runs', () => {
     )
   })
 
+  test('answers the calls its ten minutes kept its fourth run from making, and asks for its report', async () => {
+    const made: string[] = []
+    const writer = (name: string, minutes = 0): ConversationToolRunner => ({
+      name,
+      isReadOnly: false,
+      run: async () => {
+        made.push(name)
+        setSystemTime(new Date(Date.now() + minutes * 60 * 1000))
+
+        return { written: name }
+      },
+    })
+    const { subagent } = await launch()
+    const scripted = kit.createClient([
+      ...Array.from({ length: 3 }, (_, index) => calling(call(`toolu_${index}`))),
+      calling(call('toolu_a', 'write_a'), call('toolu_b', 'write_b')),
+      answer(),
+    ])
+    // Its run's ten minutes pass while the first write is made
+    const modules = connectTestModules([READ_LOG, writer('write_a', 10.5), writer('write_b')])
+    const fourth = await chainToFourthRun(subagent, {
+      client: scripted.client,
+      limits: { maxRequests: 1 },
+      connectModules: modules,
+    })
+
+    expect(await runConversation(fourth, { client: scripted.client, connectModules: modules })).toBe('finished')
+    expect(made).toEqual(['write_a'])
+    expect(readRequest(scripted.requests, 4).messages.at(-1)?.content).toEqual([
+      expect.objectContaining({ tool_use_id: 'toolu_a', content: JSON.stringify({ written: 'write_a' }) }),
+      {
+        type: 'tool_result',
+        tool_use_id: 'toolu_b',
+        content: 'Not run: your time ran out before this call could start.',
+        is_error: true,
+      },
+      { type: 'text', text: SUBAGENT_REPORT_REQUEST },
+    ])
+    expect(kit.readRun(fourth)?.status).toBe('COMPLETED')
+    expect(kit.readConversation(subagent)?.report).toBe(REPLY)
+  })
+
+  test('ends its fourth run at its limits when its ten minutes stop it too late for its report', async () => {
+    const { subagent } = await launch()
+    const scripted = kit.createClient([
+      ...Array.from({ length: 3 }, (_, index) => calling(call(`toolu_${index}`))),
+      calling(call('toolu_a', 'write_a'), call('toolu_b', 'write_b')),
+    ])
+    const late: ConversationToolRunner = {
+      name: 'write_a',
+      isReadOnly: false,
+      run: async () => {
+        setSystemTime(new Date(Date.now() + 12.5 * 60 * 1000))
+
+        return { written: 'write_a' }
+      },
+    }
+    const modules = connectTestModules([READ_LOG, late, { ...late, name: 'write_b' }])
+    const fourth = await chainToFourthRun(subagent, {
+      client: scripted.client,
+      limits: { maxRequests: 1 },
+      connectModules: modules,
+    })
+
+    expect(await runConversation(fourth, { client: scripted.client, connectModules: modules })).toBe('finished')
+    expect(scripted.requests).toHaveLength(4)
+    expect(kit.readRun(fourth)).toMatchObject({
+      status: 'FAILED',
+      failure: expect.stringContaining('before its next call'),
+    })
+    expect(kit.readConversation(subagent)?.report).toBe('This subagent stopped at its limits before it finished.')
+  })
+
   test('stops a run its member asked to stop as it reached its limits, rather than chain it', async () => {
     const { subagent } = await launch()
 

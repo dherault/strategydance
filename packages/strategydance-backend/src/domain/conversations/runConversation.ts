@@ -73,7 +73,10 @@ import {
   chargeUnsettledRequests,
   parseConversationRunUsage,
 } from '~domain/conversations/conversationRunUsage'
-import { serializePendingToolResults } from '~domain/conversations/conversationToolResults'
+import {
+  UNRUN_AT_TIME_LIMIT_CALL_RESULT,
+  serializePendingToolResults,
+} from '~domain/conversations/conversationToolResults'
 import createConversationRunLease, { type ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import drawConversationTurn from '~domain/conversations/drawConversationTurn'
@@ -85,6 +88,7 @@ import enqueueRun from '~domain/conversations/enqueueRun'
 import isSubagentReportDue from '~domain/conversations/isSubagentReportDue'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import readSubagentReportDeadline from '~domain/conversations/readSubagentReportDeadline'
 import requestConversationTagging from '~domain/conversations/requestConversationTagging'
 import requestConversationTurn, {
   type ConversationRunLimits,
@@ -572,7 +576,14 @@ async function takeStep({
         })
       }
       if (ran.outcome === 'stopped') return stop('Its member stopped it before its next call')
-      if (ran.outcome === 'expired') {
+
+      const isLastSubagentRun = isSubagent && run?.number === MAX_SUBAGENT_RUNS - 1
+      // A subagent's last run its ten minutes stopped between calls answers those it kept from
+      // starting, and asks for its report, while that request has the time to go
+      const isReportedAtTimeLimit =
+        ran.outcome === 'expired' && isLastSubagentRun && Date.now() < readSubagentReportDeadline(startedAt, limits)
+
+      if (ran.outcome === 'expired' && !isReportedAtTimeLimit) {
         return end(
           {
             kind: 'noted',
@@ -591,6 +602,7 @@ async function takeStep({
         messages: ran.messages,
         pending: ran.pending,
         skipsQuestions: false,
+        ...(isReportedAtTimeLimit ? { unrunResult: UNRUN_AT_TIME_LIMIT_CALL_RESULT } : {}),
       })
       /*
         A run an answer started that stores the results of a turn another run drew carried a waiting
@@ -607,8 +619,7 @@ async function takeStep({
       // A subagent's fourth run asks for its report once one of its budgets nears its end, so its
       // next request, its last, is answered with the report, calling nothing
       const isReportDue =
-        isSubagent
-        && run?.number === MAX_SUBAGENT_RUNS - 1
+        isLastSubagentRun
         && isSubagentReportDue({
           usage,
           limits,

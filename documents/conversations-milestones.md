@@ -91,7 +91,7 @@ review of M1 to M38 added on 2026-10-18, each start once M38 has merged, in any 
 | M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
 | M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | #210 |
 | M38 | Launch | all | all | #211 |
-| M39 | Daily spend ceilings | core, database, backend, web, root | M38 | |
+| M39 | Daily spend ceilings | core, database, backend, web, root | M38 | #232 |
 | M40 | Document revisions for agents' edits | database, backend, web, root | M38 | #230 |
 | M41 | Races against a real Postgres | database, backend, root | M38 | |
 | M42 | A subagent's report at any limit | backend | M38 | #229 |

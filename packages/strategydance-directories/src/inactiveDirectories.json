@@ -1217,7 +1217,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-19",
     "unreachableSince": null,
     "inactiveReason": "UNREACHABLE"
   },
@@ -1337,6 +1337,19 @@
     "lastChecked": null,
     "unreachableSince": null,
     "inactiveReason": "UNREACHABLE"
+  },
+  {
+    "id": "ogfolio",
+    "name": "OGFolio",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.ogfolio.com/",
+    "submissionUrl": "https://www.ogfolio.com/",
+    "description": "",
+    "categories": [],
+    "businessModel": "PAID",
+    "lastChecked": "2026-10-19",
+    "unreachableSince": null,
+    "inactiveReason": "NO_SUBMISSION"
   },
   {
     "id": "orbic-ai",

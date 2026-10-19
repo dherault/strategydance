@@ -1925,6 +1925,17 @@ async function checkCascades() {
   })
 
   check('Stop all asks every live subagent to stop', (await readRun(earlier.runId))?.stopRequestedAt !== null)
+  check(
+    'a stop by somebody who is no member, whose membership it locks first, is refused',
+    await isRefused(
+      requestConversationSubagentsStop(dataConnect, {
+        organizationId,
+        userId: `check-subagent-runs-${checkId}-stranger`,
+        conversationId: parent.conversationId,
+      }),
+      'Only a member of an organization can stop its conversations',
+    ),
+  )
 
   // A launch after the stop is refused, from the run asked to stop
   const { variables } = launchVariables(parent, { anchorPosition: 3, launchRunId: parent.runId })

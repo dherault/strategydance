@@ -2626,6 +2626,11 @@ function createConversationDatabaseFake() {
     },
 
     RequestConversationRunStopWithSubagents: variables => {
+      // Their membership's row is the first they take
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can stop its conversations')
+      }
+
       const run = findOwnedRun(variables, 'RUNNING')
 
       if (run && !run.stopRequestedAt && conversations.get(run.conversationId)?.parentId == null) {
@@ -2638,6 +2643,11 @@ function createConversationDatabaseFake() {
     },
 
     StopQueuedConversationRunWithSubagents: variables => {
+      // Their membership's row is the first they take
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can stop its conversations')
+      }
+
       const run = findQueuedRun(variables)
 
       if (!run || conversations.get(run.conversationId)?.parentId != null) refuse('The run is no longer queued')
@@ -2656,6 +2666,11 @@ function createConversationDatabaseFake() {
     },
 
     RequestConversationSubagentsStop: variables => {
+      // Their membership's row is the first they take
+      if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) {
+        refuse('Only a member of an organization can stop its conversations')
+      }
+
       const conversation = conversations.get(id(variables.conversationId))
 
       if (

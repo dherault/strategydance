@@ -244,9 +244,11 @@ mutation StartConversation(
       message: "A message sends at most 10 files"
     )
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -474,9 +476,11 @@ mutation SendConversationMessage(
       message: "A message sends at most 10 files"
     )
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -688,9 +692,11 @@ mutation SendConversationMessageAnsweringCalls(
       message: "A message sends at most 10 files"
     )
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -960,6 +966,9 @@ mutation AnswerConversationQuestion(
       limit: 1
     ) @check(expr: "size(this) == 1", message: "The run no longer waits for an answer") {
       id
+      conversation {
+        id
+      }
     }
   }
   conversationMessage_updateMany(
@@ -975,7 +984,10 @@ mutation AnswerConversationQuestion(
     conversationMessages(
       where: {
         id: { ne: $messageId }
-        conversationId: { eq: $conversationId }
+        # Of the conversation the waiting run read, which reading a response runs as a statement of its
+        # own, after the lock, so it sees an answer committed while the lock was waited for, which one
+        # statement would not (CLAUDE.md § The database)
+        conversationId: { eq_expr: "response.query.waiting[0].conversation.id" }
         kind: { in: [QUESTION, APPROVAL] }
         answeredAt: { isNull: true }
       }
@@ -1038,6 +1050,9 @@ mutation AnswerConversationApproval(
       limit: 1
     ) @check(expr: "size(this) == 1", message: "The run no longer waits for an answer") {
       id
+      conversation {
+        id
+      }
     }
   }
   conversationMessage_updateMany(
@@ -1059,7 +1074,10 @@ mutation AnswerConversationApproval(
     conversationMessages(
       where: {
         id: { ne: $messageId }
-        conversationId: { eq: $conversationId }
+        # Of the conversation the waiting run read, which reading a response runs as a statement of its
+        # own, after the lock, so it sees an answer committed while the lock was waited for, which one
+        # statement would not (CLAUDE.md § The database)
+        conversationId: { eq_expr: "response.query.waiting[0].conversation.id" }
         kind: { in: [QUESTION, APPROVAL] }
         answeredAt: { isNull: true }
       }
@@ -1108,9 +1126,11 @@ mutation ContinueConversationRun(
     data: { updatedAt_expr: "request.time" }
   ) @redact @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -1293,9 +1313,11 @@ mutation ContinueConversationRunWithCalls(
     data: { updatedAt_expr: "request.time" }
   ) @redact @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -1637,6 +1659,13 @@ mutation RequestConversationRunStopWithSubagents(
   $runId: UUID!
   $anchorPosition: Int!
 ) @auth(level: NO_ACCESS) @transaction {
+  # The membership's row first, as every write on a parent and its subagents takes it, whose response
+  # the subagents' runs read, so each step runs as a statement of its own: a launch committed while a
+  # lock was waited for is reached, which one statement would miss (CLAUDE.md § The database)
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can stop its conversations")
   conversationRun_updateMany(
     where: {
       id: { eq: $runId }
@@ -1671,7 +1700,7 @@ mutation RequestConversationRunStopWithSubagents(
       stopRequestedAt: { isNull: true }
       conversation: {
         parentId: { eq: $conversationId }
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         launchAnchorPosition: { eq: $anchorPosition }
       }
@@ -1693,6 +1722,13 @@ mutation StopQueuedConversationRunWithSubagents(
   $preview: Any!
   $anchorPosition: Int!
 ) @auth(level: NO_ACCESS) @transaction {
+  # The membership's row first, as every write on a parent and its subagents takes it, whose response
+  # the subagents' runs read, so each step runs as a statement of its own: a launch committed while a
+  # lock was waited for is reached, which one statement would miss (CLAUDE.md § The database)
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can stop its conversations")
   conversationRun_updateMany(
     where: {
       id: { eq: $runId }
@@ -1753,7 +1789,7 @@ mutation StopQueuedConversationRunWithSubagents(
       stopRequestedAt: { isNull: true }
       conversation: {
         parentId: { eq: $conversationId }
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         launchAnchorPosition: { eq: $anchorPosition }
       }
@@ -1775,6 +1811,13 @@ mutation RequestConversationSubagentsStop(
   $anchorPosition: Int
   $subagentIds: [UUID!]
 ) @auth(level: NO_ACCESS) @transaction {
+  # The membership's row first, as every write on a parent and its subagents takes it, whose response
+  # the subagents' runs read, so each step runs as a statement of its own: a launch committed while a
+  # lock was waited for is reached, which one statement would miss (CLAUDE.md § The database)
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can stop its conversations")
   parent: conversation_updateMany(
     where: {
       id: { eq: $conversationId }
@@ -1792,7 +1835,7 @@ mutation RequestConversationSubagentsStop(
       conversation: {
         id: { in: $subagentIds }
         parentId: { eq: $conversationId }
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         launchAnchorPosition: { eq: $anchorPosition }
       }
@@ -1815,11 +1858,14 @@ mutation SuspendUserConversations($userId: String!) @auth(level: NO_ACCESS) @tra
   user_update(key: { id: $userId }, data: { conversationsSuspendedAt_expr: "request.time" })
     @check(expr: "this != null", message: "No such account")
   memberships: userOrganization_updateMany(where: { userId: { eq: $userId } }, data: { updatedAt_expr: "request.time" })
+  # Read through the locked row's response, so each step runs as a statement of its own: a run sent
+  # while the memberships were waited for is reached, which one statement would miss (CLAUDE.md §
+  # The database)
   runs: conversationRun_updateMany(
     where: {
       status: { in: [QUEUED, RUNNING] }
       stopRequestedAt: { isNull: true }
-      conversation: { userId: { eq: $userId }, parentId: { isNull: true } }
+      conversation: { userId: { eq_expr: "response.user_update.id" }, parentId: { isNull: true } }
     }
     data: { stopRequestedAt_expr: "request.time" }
   )
@@ -1827,7 +1873,7 @@ mutation SuspendUserConversations($userId: String!) @auth(level: NO_ACCESS) @tra
     where: {
       status: { in: [QUEUED, RUNNING, PENDING] }
       stopRequestedAt: { isNull: true }
-      conversation: { userId: { eq: $userId }, parentId: { isNull: false } }
+      conversation: { userId: { eq_expr: "response.user_update.id" }, parentId: { isNull: false } }
     }
     data: { stopRequestedAt_expr: "request.time" }
   )
@@ -1850,11 +1896,14 @@ mutation SuspendOrganizationConversations($organizationId: UUID!) @auth(level: N
     where: { organizationId: { eq: $organizationId } }
     data: { updatedAt_expr: "request.time" }
   )
+  # Read through the locked row's response, so each step runs as a statement of its own: a run sent
+  # while the memberships were waited for is reached, which one statement would miss (CLAUDE.md §
+  # The database)
   runs: conversationRun_updateMany(
     where: {
       status: { in: [QUEUED, RUNNING] }
       stopRequestedAt: { isNull: true }
-      conversation: { organizationId: { eq: $organizationId }, parentId: { isNull: true } }
+      conversation: { organizationId: { eq_expr: "response.organization_update.id" }, parentId: { isNull: true } }
     }
     data: { stopRequestedAt_expr: "request.time" }
   )
@@ -1862,7 +1911,7 @@ mutation SuspendOrganizationConversations($organizationId: UUID!) @auth(level: N
     where: {
       status: { in: [QUEUED, RUNNING, PENDING] }
       stopRequestedAt: { isNull: true }
-      conversation: { organizationId: { eq: $organizationId }, parentId: { isNull: false } }
+      conversation: { organizationId: { eq_expr: "response.organization_update.id" }, parentId: { isNull: false } }
     }
     data: { stopRequestedAt_expr: "request.time" }
   )
@@ -1922,9 +1971,11 @@ mutation ResumeConversationRun(
       message: "A run resumes the run right before it, from the newest message"
     )
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -2089,9 +2140,11 @@ mutation RetryConversationRun(
     @check(expr: "this != null", message: "Only a member of an organization can keep conversations in it")
     @check(expr: "vars.runNumber == vars.retriedRunNumber + 1", message: "A run retries the run right before it")
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -3819,9 +3872,11 @@ mutation LaunchSubagent(
     data: { subagentCount_update: { inc: 1 } }
   ) @check(expr: "this == 1", message: "The parent launches no more subagents: it is gone, a subagent, or holds 100")
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -3991,9 +4046,11 @@ mutation LaunchPendingSubagent(
     data: { subagentCount_update: { inc: 1 } }
   ) @check(expr: "this == 1", message: "The parent launches no more subagents: it is gone, a subagent, or holds 100")
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -4496,9 +4553,11 @@ mutation PromoteSubagentRun(
     data: { updatedAt_expr: "request.time" }
   ) @redact @check(expr: "this != null", message: "Only a member of an organization has subagents in it")
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -4879,9 +4938,11 @@ mutation StartSubagentReaction(
     data: { activeRunId: $runId, nextRunNumber_update: { inc: 1 }, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "The conversation could not take the reaction")
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -5027,9 +5088,17 @@ mutation MarkSubagentReportsDelivered(
   )
     @check(expr: "this == 1", message: "No such conversation of the caller's")
     @check(expr: "size(vars.subagentIds) <= 100", message: "A conversation holds at most 100 subagents")
+  # The parent read back after its lock, whose response the count reads, so every step runs as a
+  # statement of its own, and the count sees a run a retry committed while the lock was waited for,
+  # which one statement would miss (CLAUDE.md § The database)
+  locked: query @redact {
+    conversation(id: $conversationId) {
+      id
+    }
+  }
   query @redact {
     later: conversationRuns(
-      where: { conversationId: { eq: $conversationId }, number: { gt: $parentRunNumber } }
+      where: { conversationId: { eq_expr: "response.locked.conversation.id" }, number: { gt: $parentRunNumber } }
       limit: 1
     ) @check(expr: "size(this) == 0", message: "The conversation started a run since it was full") {
       id
@@ -5135,9 +5204,11 @@ mutation RecordConversationSearch($organizationId: UUID!, $userId: String!) @aut
     data: { updatedAt_expr: "request.time" }
   ) @redact @check(expr: "this != null", message: "Only a member of an organization can search its conversations")
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     conversationSearches(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { gt_time: { now: true, sub: { minutes: 10 } } }
       }
@@ -5219,9 +5290,11 @@ mutation ReserveConversationAttachment(
     ) @check(expr: "size(this) == 0", message: "The conversation is somebody else's, deleted or a subagent") {
       id
     }
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     pending: conversationAttachments(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         messageId: { isNull: true }
         createdAt: { gt_time: { now: true, sub: { days: 2 } } }
@@ -6795,9 +6868,11 @@ mutation LaunchSubagentForAgent(
     data: { subagentCount_update: { inc: 1 } }
   ) @check(expr: "this == 1", message: "The parent launches no more subagents: it is gone, a subagent, or holds 100")
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }
@@ -7004,9 +7079,11 @@ mutation LaunchPendingSubagentForAgent(
     data: { subagentCount_update: { inc: 1 } }
   ) @check(expr: "this == 1", message: "The parent launches no more subagents: it is gone, a subagent, or holds 100")
   query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
     membership: userOrganizations(
       where: {
-        userId: { eq: $userId }
+        userId: { eq_expr: "response.userOrganization_update.userId" }
         organizationId: { eq: $organizationId }
         createdAt: { eq: $membershipCreatedAt }
       }

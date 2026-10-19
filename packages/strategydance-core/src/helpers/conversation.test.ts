@@ -334,6 +334,17 @@ describe('buildConversationPreview', () => {
     }
   })
 
+  it('keeps the daily spend ceiling a failed note names, and leaves it out of any other', () => {
+    const freesAt = '2026-10-20T09:30:00.000Z'
+
+    expect(
+      buildConversationPreview({ kind: 'NOTE', noteKind: 'FAILED', ceilingScope: 'ACCOUNT', ceilingFreesAt: freesAt }),
+    ).toEqual({ kind: 'NOTE', noteKind: 'FAILED', ceiling: { scope: 'ACCOUNT', freesAt } })
+    expect(
+      buildConversationPreview({ kind: 'NOTE', noteKind: 'FAILED', ceilingScope: null, ceilingFreesAt: null }),
+    ).toEqual({ kind: 'NOTE', noteKind: 'FAILED' })
+  })
+
   it('never makes an aspects note the preview', () => {
     expect(buildConversationPreview({ kind: 'ASPECTS' })).toBeNull()
   })

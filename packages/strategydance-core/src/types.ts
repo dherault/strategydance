@@ -111,6 +111,9 @@ export type ConversationPreviewSource = {
   answerOther?: string | null
   isAnswerSkipped?: boolean | null
   noteKind?: 'STOPPED' | 'FAILED' | 'REFUSED' | 'INTERRUPTED' | 'FULL' | null
+  // A failed note's daily spend ceiling, when one stopped the run: whose, and when it has room again
+  ceilingScope?: ConversationSpendCeilingScope | null
+  ceilingFreesAt?: string | null
   // The files a member's message sends, in the order it sends them, as the reverse relation reads them
   conversationAttachments_on_message?: { name: string }[] | null
 }
@@ -152,7 +155,20 @@ export type ConversationPreview =
   | {
       kind: 'NOTE'
       noteKind: NonNullable<ConversationPreviewSource['noteKind']>
+      // The daily spend ceiling that stopped the run, on a failed note; absent from any other, and
+      // from a preview written before M39, which a page draws as the failed note
+      ceiling?: ConversationSpendCeiling
     }
+
+// Whose daily spend ceiling stopped a run: the member's in the organization, the account's across
+// its organizations, or the organization's
+export type ConversationSpendCeilingScope = 'MEMBER' | 'ACCOUNT' | 'ORGANIZATION'
+
+// The ceiling a failed note names, and when it has room again, in RFC 3339
+export type ConversationSpendCeiling = {
+  scope: ConversationSpendCeilingScope
+  freesAt: string
+}
 
 /*
   What `ConversationMessage.citations` holds on a reply that cites the web: each cited span, by its

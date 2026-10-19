@@ -19,13 +19,16 @@ import buildSubagentTools from '~domain/agent/buildSubagentTools'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import {
   CLAUDE_FALLBACK_MODELS,
+  CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND,
   CLAUDE_MODEL_PRICES,
   CONVERSATION_MODEL,
+  WEB_SEARCH_PRICE_MICRODOLLARS,
 } from '~domain/agent/conversationRequestSettings'
 import readConversationTagging from '~domain/agent/readConversationTagging'
 import readSubagentRequestSettings from '~domain/agent/subagentRequestSettings'
 import SUBAGENT_SYSTEM_PROMPT from '~domain/agent/subagentSystemPrompt'
 import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
+import { priceAttemptWorstCase } from '~domain/conversations/priceConversationUsage'
 
 /*
   Checks, against Claude's API itself, the facts the conversations agent is built on, which no test
@@ -50,8 +53,13 @@ import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
   a refusal may fall back to, which the cost limit's price table has to list. For the cost limit
   besides: sends the replay again without `fallbacks`, which has to read the cache all the same, and
   has Claude search the web a few times over, to measure what a search brings back past a reading
-  of the request's input, which `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE` has to hold. It prints what passed, what failed and what it found, and exits
-  non-zero naming every check that did not pass.
+  of the request's input, which `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE` has to hold, and once five times,
+  step by step through its iterations, each result's first reading held to the allowance and all
+  it billed as input to what the worst case reserves for five searches, earlier results and outputs
+  read again included. Every stream it sends is timed, and each model's fastest writing, output
+  tokens a second from its start to its end, held to half its `CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND`,
+  which bounds what a stream cut partway counts at. It prints what passed, what failed and what it
+  found, and exits non-zero naming every check that did not pass.
 
   It calls the real model, so it costs money, a dollar or two a run: run it after an Anthropic SDK
   bump or a change of model, never in CI. It reads the API key from Secret Manager with Application
@@ -126,6 +134,33 @@ const startedAt = Date.now()
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || (await retrieveSecret(SECRET_ANTHROPIC_API_KEY)),
 })
+
+// The fastest each model wrote, in output tokens a second, over every stream sent
+const outputRates = new Map<string, number>()
+
+/*
+  Times every stream the probe sends, from its message's start to its final message, and keeps each
+  model's fastest: what a stream cut partway is bounded by in the cost limit and the ceilings
+*/
+const sendStream = client.beta.messages.stream.bind(client.beta.messages)
+
+client.beta.messages.stream = ((...args: Parameters<typeof sendStream>) => {
+  const stream = sendStream(...args)
+  let startedAt: number | null = null
+
+  stream.on('streamEvent', event => {
+    if (event.type === 'message_start') startedAt ??= Date.now()
+  })
+  stream.on('finalMessage', message => {
+    if (startedAt === null || message.usage.output_tokens < 100) return
+
+    const rate = message.usage.output_tokens / Math.max(0.001, (Date.now() - startedAt) / 1000)
+
+    outputRates.set(message.model, Math.max(outputRates.get(message.model) ?? 0, rate))
+  })
+
+  return stream
+}) as typeof client.beta.messages.stream
 
 /*
   The agent's request. Only the agent's own model falls back on a refusal: a request sent straight
@@ -1021,6 +1056,100 @@ for (const [index, prompt] of SEARCH_PROMPTS.entries()) {
 }
 
 if (retrieved.length) finding('The most a search brought back, past its readings of the input', Math.max(...retrieved))
+
+const FIVE_SEARCHES_PROMPT =
+  'Search the web for the population of Lyon, Marseille, Toulouse, Nice and Nantes in the latest census, one separate search for each city, then list the five.'
+
+/*
+  A request of five searches, the most one makes, read step by step through `usage.iterations`: what
+  each step read past the one before is a search's result read the first time, with what the model
+  wrote between, which the allowance has to hold, and everything billed as input, every step reading
+  the input and every result and output before it again, has to fit what the worst case reserves of
+  input for five searches (`priceAttemptWorstCase`, its searches' own price left out)
+*/
+await check('A request of five searches bills its input within what its worst case reserves for them', async () => {
+  const messages: BetaMessageParam[] = [{ role: 'user', content: FIVE_SEARCHES_PROMPT }]
+  const counted = await client.beta.messages.countTokens({
+    model: MODEL,
+    system: SEARCH_SYSTEM_PROMPT,
+    tools: SEARCH_TOOLS,
+    messages,
+  })
+  const message = await client.beta.messages
+    .stream({
+      model: MODEL,
+      max_tokens: 16000,
+      thinking: { type: 'adaptive' },
+      output_config: { effort: 'medium' },
+      cache_control: { type: 'ephemeral' },
+      system: SEARCH_SYSTEM_PROMPT,
+      tools: SEARCH_TOOLS,
+      messages,
+    })
+    .finalMessage()
+  const { usage } = message
+  const price = CLAUDE_MODEL_PRICES[MODEL]
+
+  assert(price, `${MODEL} has no price`)
+
+  const searches = usage.server_tool_use?.web_search_requests ?? 0
+  const billed =
+    usage.input_tokens * price.input
+    + (usage.cache_read_input_tokens ?? 0) * price.cacheRead
+    + (usage.cache_creation_input_tokens ?? 0) * price.cacheWrite
+  const reserved =
+    priceAttemptWorstCase(MODEL, { inputTokens: counted.input_tokens, maxTokens: 0, maxSearches: searches })
+    - searches * WEB_SEARCH_PRICE_MICRODOLLARS
+  const steps = (usage.iterations ?? []).flatMap(iteration =>
+    iteration.type === 'message'
+      ? [
+          iteration.input_tokens
+            + (iteration.cache_read_input_tokens ?? 0)
+            + (iteration.cache_creation_input_tokens ?? 0),
+        ]
+      : [],
+  )
+  const firstReadings = steps.slice(1).map((step, index) => step - (steps[index] ?? 0))
+
+  finding('A request of five searches', {
+    counted: counted.input_tokens,
+    searches,
+    billedMicrodollars: Math.round(billed),
+    reservedMicrodollars: Math.round(reserved),
+    steps,
+    firstReadings,
+  })
+
+  assert(searches >= 4, `it made ${searches} searches`)
+  assert(
+    billed <= reserved,
+    `its input billed ${Math.round(billed)} microdollars, past the ${Math.round(reserved)} reserved`,
+  )
+
+  for (const reading of firstReadings) {
+    assert(
+      reading <= WEB_SEARCH_RESULT_TOKEN_ALLOWANCE,
+      `a step read ${reading} tokens past the one before, past the ${WEB_SEARCH_RESULT_TOKEN_ALLOWANCE} allowed a result`,
+    )
+  }
+
+  return `${searches} searches, ${Math.round(billed)} of ${Math.round(reserved)} microdollars of input, the most a step read anew ${Math.max(0, ...firstReadings)} tokens`
+})
+
+await check('Every model writes within half the top rate a cut stream is bounded by', () => {
+  finding('The fastest each model wrote, in output tokens a second', Object.fromEntries(outputRates))
+
+  assert(outputRates.size, 'no stream wrote 100 tokens to measure')
+
+  for (const [model, rate] of outputRates) {
+    const top = CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND[model]
+
+    assert(top, `${model} has no top rate`)
+    assert(rate * 2 <= top, `${model} wrote ${Math.round(rate)} tokens a second, past half its ${top}`)
+  }
+
+  return [...outputRates].map(([model, rate]) => `${model} ${Math.round(rate)}/s`).join(', ')
+})
 
 /* ---
   SUMMARY

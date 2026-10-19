@@ -428,6 +428,9 @@ async function takeStep({
   const [run] = context.conversationRuns
   const [entry] = context.conversationTranscriptEntries
   const position = conversation?.nextMessagePosition ?? 0
+  // A subagent's fourth run, whose results entry may ask for its report, and whose entries alone are
+  // trusted to
+  const lastSubagentRunId = isSubagent && run?.number === MAX_SUBAGENT_RUNS - 1 ? fence.runId : null
   // A request a worker reserved and never settled was sent, and is charged as such, unless the
   // worker holds what it came to
   const usage = readOutcomeUsage(outcome) ?? chargeUnsettledRequests(parseConversationRunUsage(run?.usage))
@@ -487,7 +490,7 @@ async function takeStep({
     // The reply the transcript ends on is its parts after the last results, or after the anchor, and
     // a subagent's last when those results asked for its report
     const lastResults = sinceAnchor.findLast(({ role }) => role === ConversationTranscriptRole.USER)
-    const isReportReply = carriesSubagentReportRequest(lastResults)
+    const isReportReply = carriesSubagentReportRequest(lastResults, lastSubagentRunId)
     const plans = planCalls(parts, runners, isSubagent, readMaxCalls(context, isSubagent), {
       reportRequestPosition: isReportReply ? (lastResults?.position ?? null) : null,
     })
@@ -578,11 +581,12 @@ async function takeStep({
       }
       if (ran.outcome === 'stopped') return stop('Its member stopped it before its next call')
 
-      const isLastSubagentRun = isSubagent && run?.number === MAX_SUBAGENT_RUNS - 1
       // A subagent's last run its ten minutes stopped between calls answers those it kept from
       // starting, and asks for its report, while that request has the time to go
       const isReportedAtTimeLimit =
-        ran.outcome === 'expired' && isLastSubagentRun && Date.now() < readSubagentReportDeadline(startedAt, limits)
+        ran.outcome === 'expired'
+        && lastSubagentRunId !== null
+        && Date.now() < readSubagentReportDeadline(startedAt, limits)
 
       if (ran.outcome === 'expired' && !isReportedAtTimeLimit) {
         return end(
@@ -620,7 +624,7 @@ async function takeStep({
       // A subagent's fourth run asks for its report once one of its budgets nears its end, so its
       // next request, its last, is answered with the report, calling nothing
       const isReportDue =
-        isLastSubagentRun
+        lastSubagentRunId !== null
         && (isReportedAtTimeLimit
           || isSubagentReportDue({
             usage,
@@ -671,6 +675,7 @@ async function takeStep({
       pausedRequest,
       storedPauses: countStoredPauses(turn, ledgers),
       startedAt,
+      isLastSubagentRun: lastSubagentRunId !== null,
       limits,
       stopCheckIntervalMs,
       apiRetryDelayMs,
@@ -680,7 +685,12 @@ async function takeStep({
   if (run?.stopRequestedAt) return stop()
 
   // A subagent's request for its report, which the entry asked for, goes past the run's entries
-  if (!carriesSubagentReportRequest(entry) && context.conversationMessages.length >= MAX_CONVERSATION_RUN_ENTRIES) {
+  const isReportRequestNext = carriesSubagentReportRequest(
+    entry && { role: entry.role, content: entry.content, runId: entry.run?.id ?? '' },
+    lastSubagentRunId,
+  )
+
+  if (!isReportRequestNext && context.conversationMessages.length >= MAX_CONVERSATION_RUN_ENTRIES) {
     return end({
       kind: 'noted',
       status: ConversationRunStatus.FAILED,
@@ -712,6 +722,7 @@ async function takeStep({
     pausedRequest: null,
     storedPauses: 0,
     startedAt: run?.startedAt ?? new Date().toISOString(),
+    isLastSubagentRun: lastSubagentRunId !== null,
     limits,
     stopCheckIntervalMs,
     apiRetryDelayMs,

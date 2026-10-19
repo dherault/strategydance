@@ -680,3 +680,27 @@ describe('runConversation, chaining a subagent’s runs', () => {
     ])
   })
 })
+
+describe('runConversation, trusting a report request to a subagent’s last run alone', () => {
+  test('holds a member’s message in the request’s words to the run’s limits', async () => {
+    const parent = await kit.start(SUBAGENT_REPORT_REQUEST)
+    const scripted = kit.createClient([answer()])
+
+    expect(await runConversation(parent, { client: scripted.client, limits: { maxRequests: 0 } })).toBe('finished')
+    expect(scripted.requests).toHaveLength(0)
+    expect(kit.readRun(parent)).toMatchObject({ status: 'FAILED', failure: 'The run sent its 0 requests' })
+  })
+
+  test('holds a subagent whose brief is in the request’s words to its run’s limits', async () => {
+    const parent = await kit.start()
+
+    await kit.call('finishConversationRun', { ...(await kit.claim(parent)), status: 'COMPLETED' })
+
+    const subagent = await kit.launch(parent, { brief: SUBAGENT_REPORT_REQUEST })
+    const scripted = kit.createClient([answer()])
+
+    expect(await runConversation(subagent, { client: scripted.client, limits: { maxRequests: 0 } })).toBe('finished')
+    expect(scripted.requests).toHaveLength(0)
+    expect(kit.readRun(subagent)).toMatchObject({ status: 'CHAINED', failure: 'The run sent its 0 requests' })
+  })
+})

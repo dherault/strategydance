@@ -69,6 +69,8 @@ type RequestConversationTurnInput = {
   storedPauses: number
   // When the run was first claimed, which its time limits count from
   startedAt: string
+  // Whether the run is a subagent's fourth, the one whose results entry may ask for its report
+  isLastSubagentRun: boolean
   limits: ConversationRunLimits
   // How often a streaming request reads whether the run's member asked to stop it
   stopCheckIntervalMs: number
@@ -162,6 +164,7 @@ async function requestConversationTurn({
   pausedRequest,
   storedPauses,
   startedAt,
+  isLastSubagentRun,
   limits,
   stopCheckIntervalMs,
   apiRetryDelayMs,
@@ -208,6 +211,7 @@ async function requestConversationTurn({
   // it goes past the run's requests and its ten minutes, while its stream has the time to write it
   const isReportRequest = carriesSubagentReportRequest(
     entries.findLast(({ role }) => role === ConversationTranscriptRole.USER),
+    isLastSubagentRun ? fence.runId : null,
   )
   const sendDeadline = isReportRequest
     ? readSubagentReportDeadline(startedAt, limits)

@@ -3189,6 +3189,7 @@ transaction at a time (see Risks). As the review of M1 to M38 proposed on 2026-1
   - **Left for a pull request of its own**, the mutations outside conversations that count or check
     after a lock in one statement: in the backend connector `CreateOrganizationInvitation`,
     `DeleteOrganization`, `CreateDocumentForAgent`, `FoldDocumentForAgent`,
+    `FoldDocumentWithRevisionForAgent` and `RestoreDocumentRevision`, which M40 added,
     `RenameDocumentForAgent`, `RestoreDocumentForAgent`, `CreateTaskForAgent`,
     `AddTaskDependencyForAgent`, `RestoreTaskForAgent`, `ApproveOAuthAuthorizationRequest`,
     `CreateOrganizationIntegration`, `RenameOrganizationIntegration`,

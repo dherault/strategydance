@@ -5166,6 +5166,13 @@ mutation DeleteExpiredCappedStarts @auth(level: NO_ACCESS) {
   cappedStart_deleteMany(where: { createdAt: { lt_time: { now: true, sub: { days: 1 } } } })
 }
 
+# The daily sweep's: deletes what runs may have cost that last spent over a day ago, whoever ran them
+# and whatever became of their organization, which no sum reads any more. Deleting them twice deletes
+# nothing, so a sweep that failed is finished by the next
+mutation DeleteExpiredRunSpends @auth(level: NO_ACCESS) {
+  runSpend_deleteMany(where: { spentAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}
+
 # Reserves the place of a file the caller uploads to a conversation, before any of its bytes is
 # accepted: its row, `UPLOADING`, under the id the browser made for it, so an upload retried finds
 # it. The conversation may not exist yet, a draft's, but one that does has to be the caller's and not

@@ -14,6 +14,13 @@ import findReachedUsageCap from '~domain/conversations/findReachedUsageCap'
 import { priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
 import readSpendCeilingFreedAt from '~domain/conversations/readSpendCeilingFreedAt'
 
+/*
+  The input every request of a run sends at least, its system prompt and its tools, which the least
+  a request reserves counts: the subagents' prefix, the smaller, measured 14226 tokens on 2026-10-17
+  (M33). Without it a start would fit a ceiling only to stop at its first request
+*/
+const LEAST_REQUEST_INPUT_TOKENS = 14_000
+
 type Member = {
   organizationId: string
   userId: string
@@ -37,9 +44,9 @@ type Options = {
   start took the place. Null wherever the caps are lifted, on the development backend.
 
   `spend` reads the daily spend ceilings beside them: a start is at one once its scope's runs may
-  have cost so much that the least a request reserves, its output whole and its five searches, at
-  its model, no longer fits, so nothing starts only to stop at its first request but over a large
-  context. Of several caps and ceilings reached, the one that has room last
+  have cost so much that the least a request reserves, its system prompt and tools, its output whole
+  and its five searches, at its model, no longer fits, so nothing starts only to stop at its first
+  request but over a large context. Of several caps and ceilings reached, the one that has room last
 */
 async function readReachedUsageCap(
   { organizationId, userId }: Member,
@@ -81,14 +88,14 @@ async function readReachedUsageCap(
   return cap && cap.retryAfterMs > ceiling.retryAfterMs ? cap : ceiling
 }
 
-// The least a request reserves at the model its runs ask, whatever its input: one attempt, its whole
-// output and its five searches
+// The least a request reserves at the model its runs ask: one attempt, the input every request
+// sends, its whole output and its five searches
 function readLeastRequestCost(isSubagent: boolean) {
   const { model } = isSubagent ? readSubagentRequestSettings() : CONVERSATION_REQUEST_SETTINGS
 
   return priceRequestWorstCase({
     model,
-    inputTokens: 0,
+    inputTokens: LEAST_REQUEST_INPUT_TOKENS,
     maxTokens: CONVERSATION_MAX_TOKENS,
     maxSearches: WEB_SEARCH_MAX_USES,
   }).single

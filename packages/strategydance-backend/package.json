@@ -20,6 +20,7 @@
     "check:subagent-runs": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkSubagentRuns.ts",
     "check:subagents-module": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkSubagentsModule.ts",
     "check:tasks-module": "DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/checkTasksModule.ts",
+    "emulators:postgres": "bun scripts/withPostgresEmulators.ts",
     "launch:subagent": "NODE_ENV=development FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/launchSubagent.ts",
     "measure:subagents": "NODE_ENV=development FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/measureSubagents.ts",
     "load:conversation-attachments": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/loadTestConversationAttachments.ts",

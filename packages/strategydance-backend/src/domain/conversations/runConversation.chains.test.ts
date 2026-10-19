@@ -99,6 +99,61 @@ function scriptToReport() {
   return kit.createClient([...Array.from({ length: 7 }, (_, index) => calling(call(`toolu_${index}`))), answer()])
 }
 
+// A ledger as a worker left it, which the next claim takes over: here, so many dollars of Opus 5.5
+// output, $1 being 50000 tokens, before the run's own requests
+async function spend(reference: ConversationRunReference, dollars: number) {
+  const fence = await kit.claim(reference)
+  const request = {
+    model: 'claude-opus-5-5',
+    stopReason: 'end_turn',
+    inputTokens: 0,
+    cacheReadInputTokens: 0,
+    cacheCreationInputTokens: 0,
+    outputTokens: dollars * 50_000,
+    webSearchRequests: 0,
+    configTokens: 1000,
+    inputEndPosition: 0,
+    turnPosition: null,
+    estimatedInputTokens: 0,
+    isEstimated: false,
+    isSettled: true,
+  }
+
+  await kit.call('renewConversationRunLease', { ...fence, usage: { requests: [request], byModel: {} } })
+  kit.expireLease(reference)
+}
+
+// The subagent's first three runs each chain at their one request, and its fourth calls the read
+// once, its results asking for its report, which the next request's reply writes
+async function expectReportAsked(
+  subagent: ConversationRunReference,
+  {
+    runner = READ_LOG,
+    beforeFourth = async () => {},
+  }: { runner?: ConversationToolRunner; beforeFourth?: (fourth: ConversationRunReference) => Promise<void> },
+) {
+  const scripted = kit.createClient([
+    ...Array.from({ length: 4 }, (_, index) => calling(call(`toolu_${index}`))),
+    answer(),
+  ])
+  const options = { client: scripted.client, connectModules: connectTestModules([runner]) }
+  const fourth = await chainToFourthRun(subagent, { ...options, limits: { maxRequests: 1 } })
+
+  await beforeFourth(fourth)
+
+  expect(await runConversation(fourth, options)).toBe('finished')
+  expect(scripted.requests).toHaveLength(5)
+  expect(readRequest(scripted.requests, 4).messages.at(-1)?.content).toEqual([
+    expect.objectContaining({ type: 'tool_result', tool_use_id: 'toolu_3' }),
+    { type: 'text', text: SUBAGENT_REPORT_REQUEST },
+  ])
+
+  for (let index = 0; index < 4; index++) expect(scripted.requests[index]).not.toContain('You have one request left')
+
+  expect(kit.readRun(fourth)?.status).toBe('COMPLETED')
+  expect(kit.readConversation(subagent)).toMatchObject({ activeRunId: null, report: REPLY })
+}
+
 // A subagent's runs, first to last
 function readRuns(subagent: ConversationRunReference) {
   return [...fake.runs.values()]
@@ -303,6 +358,73 @@ describe('runConversation, chaining a subagent’s runs', () => {
 
     expect(await runConversation(fourth, options)).toBe('finished')
     expect(scripted.requests).toHaveLength(8)
+    expect(kit.readRun(fourth)?.status).toBe('COMPLETED')
+    expect(kit.readConversation(subagent)?.report).toBe(REPLY)
+  })
+
+  test('asks for its report under two minutes before its ten, and the reply is the report', async () => {
+    const { subagent } = await launch()
+
+    await expectReportAsked(subagent, {
+      runner: readLogThen(4, () => setSystemTime(new Date(Date.now() + 8.5 * 60 * 1000))),
+    })
+  })
+
+  test('asks for its report once its next request would leave no room for another, and the reply is the report', async () => {
+    const { subagent } = await launch()
+
+    // $5 spent: the next request, reserved with its fallback at some $3.90, leaves less than the $1.74
+    // one more would take
+    await expectReportAsked(subagent, { beforeFourth: fourth => spend(fourth, 5) })
+  })
+
+  test('asks for its report within five of its 100 entries, and the reply is the report', async () => {
+    const { subagent } = await launch()
+
+    // 94 entries drawn before its turn, whose call is the 95th
+    await expectReportAsked(subagent, {
+      beforeFourth: async fourth => {
+        for (let index = 0; index < MAX_CONVERSATION_RUN_ENTRIES - 6; index++) {
+          const id = createId()
+
+          fake.messages.set(id, {
+            id,
+            conversationId: subagent.conversationId,
+            runId: fourth.runId,
+            kind: 'AGENT_TEXT',
+            text: 'Read one more page.',
+            noteKind: null,
+            toolStatus: null,
+            position: 1000 + index,
+          })
+        }
+      },
+    })
+  })
+
+  test('asks for its report after a turn paused past its 24th request, and sends it as its 26th', async () => {
+    const { subagent } = await launch()
+    const scripted = kit.createClient([
+      ...Array.from({ length: 6 }, (_, index) => calling(call(`toolu_${index}`))),
+      answer([{ type: 'text', text: 'Still looking.', citations: null }], { stopReason: 'pause_turn' }),
+      calling(call('toolu_6')),
+      answer(),
+    ])
+    const options = {
+      client: scripted.client,
+      limits: { maxRequests: 2 },
+      connectModules: connectTestModules([READ_LOG]),
+    }
+    const fourth = await chainToFourthRun(subagent, options)
+
+    expect(await runConversation(fourth, options)).toBe('finished')
+    // Its two requests made one turn, past which the third asks for its report
+    expect(scripted.requests).toHaveLength(9)
+    expect(readRequest(scripted.requests, 8).messages.at(-1)?.content).toContainEqual({
+      type: 'text',
+      text: SUBAGENT_REPORT_REQUEST,
+    })
+    expect(kit.readUsage(fourth).requests).toHaveLength(3)
     expect(kit.readRun(fourth)?.status).toBe('COMPLETED')
     expect(kit.readConversation(subagent)?.report).toBe(REPLY)
   })

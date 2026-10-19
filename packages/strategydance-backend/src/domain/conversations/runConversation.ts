@@ -59,6 +59,7 @@ import carriesSubagentReportRequest from '~domain/agent/carriesSubagentReportReq
 import checkTranscript from '~domain/agent/checkTranscript'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
+import { CONVERSATION_REQUEST_SETTINGS } from '~domain/agent/conversationRequestSettings'
 import createConversationIntegrationRunners from '~domain/agent/createConversationIntegrationRunners'
 import planConversationToolCalls, { type ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
@@ -81,6 +82,7 @@ import endConversationRun, {
   type SubagentChain,
 } from '~domain/conversations/endConversationRun'
 import enqueueRun from '~domain/conversations/enqueueRun'
+import isSubagentReportDue from '~domain/conversations/isSubagentReportDue'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import requestConversationTagging from '~domain/conversations/requestConversationTagging'
@@ -166,9 +168,10 @@ type ConversationRunContext = GetConversationRunContextData
   subagent's own endings, which write its report, however it ends. At one of its limits before its
   fourth run it chains instead, to a run that carries it on, which is queued once this one has let
   go of its lease, the run answering `held` while it cannot be, so the delivery comes back to queue
-  it, as a delivery finding the run chained does. Its calls count 50 for each run of the chain, and
-  its fourth run's last request, after a turn's results, asks for its report, and nothing the reply
-  to it calls runs.
+  it, as a delivery finding the run chained does. Its calls count 50 for each run of the chain. Its
+  fourth run asks for its report in the entry with a turn's results once one of its budgets nears its
+  end (`isSubagentReportDue`), and that request, its last, goes past its limits while its time and its
+  cost allow it, and nothing the reply to it calls runs.
 
   What a request came to, the turn to store or the run's end, is kept until it is written, so a
   write refused once is tried again, never paid for again. Every write is fenced on the run's
@@ -601,10 +604,20 @@ async function takeStep({
         run?.trigger === ConversationRunTrigger.ANSWER
         && toCanonicalUuid(entry.run?.id ?? '') !== toCanonicalUuid(fence.runId)
       const reports = isReanchored ? await readWaitingReports(fence) : { ids: [], blocks: [] }
-      // A subagent's last request, when it follows the results, asks for its report, calling nothing
-      const isLastRequestNext =
-        isSubagent && run?.number === MAX_SUBAGENT_RUNS - 1 && usage.requests.length === limits.maxRequests - 1
-      const content = isLastRequestNext
+      // A subagent's fourth run asks for its report once one of its budgets nears its end, so its
+      // next request, its last, is answered with the report, calling nothing
+      const isReportDue =
+        isSubagent
+        && run?.number === MAX_SUBAGENT_RUNS - 1
+        && isSubagentReportDue({
+          usage,
+          limits,
+          startedAt,
+          entryCount: context.conversationMessages.length,
+          resultsLength: serializeTranscriptContent(results).length,
+          model: (config.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
+        })
+      const content = isReportDue
         ? [...results, { type: 'text' as const, text: SUBAGENT_REPORT_REQUEST }]
         : [...results, ...reports.blocks]
 

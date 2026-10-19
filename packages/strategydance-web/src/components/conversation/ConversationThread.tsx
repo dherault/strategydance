@@ -36,9 +36,7 @@ import useOrganizationIntegrations from '~hooks/integration/useOrganizationInteg
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import canRestoreConversationItem from '~utils/conversation/canRestoreConversationItem'
-import countConversationDocumentEdits, {
-  UPDATE_DOCUMENT_TOOL_NAME,
-} from '~utils/conversation/countConversationDocumentEdits'
+import countConversationDocumentEdits from '~utils/conversation/countConversationDocumentEdits'
 import countRetriedSubagents from '~utils/conversation/countRetriedSubagents'
 import findConversationSubagent from '~utils/conversation/findConversationSubagent'
 import getConversationIntegrationIssue from '~utils/conversation/getConversationIntegrationIssue'
@@ -48,6 +46,7 @@ import groupConversationReplies from '~utils/conversation/groupConversationRepli
 import hasConversationMessageBody, {
   CALL_INTEGRATION_TOOL_NAME,
   LAUNCH_SUBAGENT_TOOL_NAME,
+  UPDATE_DOCUMENT_TOOL_NAME,
 } from '~utils/conversation/hasConversationMessageBody'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'

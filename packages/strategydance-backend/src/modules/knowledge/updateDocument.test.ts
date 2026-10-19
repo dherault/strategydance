@@ -58,6 +58,16 @@ function beforeFirstFold(happen: () => void) {
 afterEach(() => fake.reset())
 
 describe('update_document', () => {
+  it('says it can destroy, since an edit can rewrite the whole text, for a client to ask its member first', async () => {
+    const kit = await connect()
+    const { tools } = await kit.client.listTools()
+
+    expect(tools.find(tool => tool.name === 'update_document')?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: true,
+    })
+  })
+
   it('replaces the whole text with the version a read gave', async () => {
     const kit = await connect()
     const document = documents.store('Old plan\n\nOld detail')

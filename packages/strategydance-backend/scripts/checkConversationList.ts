@@ -234,6 +234,10 @@ async function runChecks() {
     restores.filter(Boolean).length === 1 && (await countLive()) === MAX_CONVERSATIONS,
   )
 
+  // Whichever restore went through, which Postgres decides as two writers meet, and PGlite always
+  // the first way
+  const restored = restores[0] ? second : deletedSecond
+
   // Under the cap from here, so only the check under test can refuse
   await runAs(authorId, 'DeleteConversation', variables(authorId, third.id))
 
@@ -278,9 +282,9 @@ async function runChecks() {
       running: conversationRun_insert(data: { id: $running, conversationId: $conversationId, number: 1, trigger: MESSAGE, status: RUNNING, membershipCreatedAt: $membershipCreatedAt, anchorPosition: 0 })
       ended: conversationRun_insert(data: { id: $ended, conversationId: $conversationId, number: 0, trigger: MESSAGE, status: COMPLETED, membershipCreatedAt: $membershipCreatedAt, anchorPosition: 0 })
     }`,
-    { conversationId: second.id, ...runs, membershipCreatedAt: deletedAt },
+    { conversationId: restored.id, ...runs, membershipCreatedAt: deletedAt },
   )
-  await runAs(authorId, 'DeleteConversation', variables(authorId, second.id))
+  await runAs(authorId, 'DeleteConversation', variables(authorId, restored.id))
 
   const { data } = await dataConnect.executeGraphql<
     { running: { stopRequestedAt: string | null }; ended: { stopRequestedAt: string | null } },

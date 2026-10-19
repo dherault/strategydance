@@ -1187,7 +1187,7 @@ query GetDocumentPresences($organizationId: UUID!, $id: UUID!)
 
 # The text a document held before each of the agents' edits to it, and before each restore of one,
 # the newest first, for its history: who made each, from where and when, never the text, which
-# `GetDocumentRevisionMarkdown` reads for the one revision opened. Live, refreshed by every write
+# `GetDocumentRevisionContent` reads for the one revision opened. Live, refreshed by every write
 # that keeps one, so the history shows an edit as it is made, and emptied for a member removed from
 # the organization. Up to 100, a month's at most, which the daily sweep prunes. The team's, so any
 # member reads them, whatever the team lets agents do with the document
@@ -1240,8 +1240,8 @@ query GetDocumentRevisions($organizationId: UUID!, $documentId: UUID!)
   }
 }
 
-# One revision's text, in Markdown, read once when a member opens it in the document's history
-query GetDocumentRevisionMarkdown($organizationId: UUID!, $id: UUID!) @auth(level: USER) {
+# One revision's text, as BlockNote's blocks, read once when a member opens it in the document's history
+query GetDocumentRevisionContent($organizationId: UUID!, $id: UUID!) @auth(level: USER) {
   documentRevisions(
     where: {
       id: { eq: $id }
@@ -1250,7 +1250,7 @@ query GetDocumentRevisionMarkdown($organizationId: UUID!, $id: UUID!) @auth(leve
     }
     limit: 1
   ) {
-    markdown
+    content
   }
 }
 

@@ -293,7 +293,7 @@ describe('POST /internal/sweep', () => {
       scope: 'conversation:checked',
       callKey: id,
       compressedState: '',
-      markdown: '',
+      content: '',
       afterVersion: '',
       restoredVersionAt: null,
       createdAt: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),

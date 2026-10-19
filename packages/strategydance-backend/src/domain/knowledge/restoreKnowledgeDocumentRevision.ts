@@ -2,7 +2,7 @@ import { getDocumentRevisionForMember, restoreDocumentRevision } from 'strategyd
 import { updateRichTextYDoc } from 'strategydance-design-system/lib/updateRichTextYDoc'
 import * as Y from 'yjs'
 
-import { KNOWLEDGE_FOLD_ATTEMPTS, MAX_DOCUMENT_REVISION_MARKDOWN_LENGTH } from '~constants'
+import { KNOWLEDGE_FOLD_ATTEMPTS } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -15,8 +15,8 @@ import { EDITED_REFUSAL, EMPTY_REFUSAL, RESTORE_FOLDED_REFUSAL } from '~domain/k
 import measureKnowledgeDocumentText from '~domain/knowledge/measureKnowledgeDocumentText'
 import openKnowledgeDocumentRevision from '~domain/knowledge/openKnowledgeDocumentRevision'
 import readKnowledgeDocumentBlocks from '~domain/knowledge/readKnowledgeDocumentBlocks'
+import readKnowledgeDocumentContent from '~domain/knowledge/readKnowledgeDocumentContent'
 import readKnowledgeDocumentVersion from '~domain/knowledge/readKnowledgeDocumentVersion'
-import toKnowledgeDocumentMarkdown from '~domain/knowledge/toKnowledgeDocumentMarkdown'
 import isOperationRefusal from '~domain/modules/isOperationRefusal'
 import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 
@@ -86,6 +86,8 @@ async function restoreKnowledgeDocumentRevision({
 
     if (!source) return { outcome: 'unrestorable' }
 
+    // Read before the snapshot is encoded, as `measureKnowledgeDocumentText` reads its text
+    const previousContent = readKnowledgeDocumentContent(current.doc)
     const previousState = Buffer.from(Y.encodeStateAsUpdate(current.doc)).toString('base64')
 
     if (updateRichTextYDoc(current.doc, { type: 'restore', source }).outcome !== 'updated') {
@@ -114,7 +116,7 @@ async function restoreKnowledgeDocumentRevision({
       isUndo,
       revisionId: restoreId,
       revisionCompressedState: compressKnowledgeDocumentRevisionState(previousState),
-      revisionMarkdown: toKnowledgeDocumentMarkdown(current.blocks).slice(0, MAX_DOCUMENT_REVISION_MARKDOWN_LENGTH),
+      revisionContent: previousContent,
       revisionAfterVersion: afterVersion,
       restoredVersionAt: row.createdAt,
     }

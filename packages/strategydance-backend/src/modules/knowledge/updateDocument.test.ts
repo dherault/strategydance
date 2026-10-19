@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test'
 import { gunzipSync } from 'node:zlib'
 
+import { richTextToMarkdown } from 'strategydance-design-system/lib/richTextToMarkdown'
+
 import type { ModuleCaller } from '~types'
 
 import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
@@ -432,6 +434,11 @@ describe('update_document keeps the text it replaced as a revision', () => {
     return gunzipSync(Buffer.from(compressedState, 'base64')).toString('base64')
   }
 
+  // The text a revision keeps for a member to look at, in Markdown, as an agent would read it
+  function readRevisionContent(content: string) {
+    return content ? richTextToMarkdown(JSON.parse(content)) : ''
+  }
+
   function readRevisionText(compressedState: string) {
     const read = readKnowledgeDocumentText({ state: readRevisionState(compressedState), updates: [] })
 
@@ -455,9 +462,9 @@ describe('update_document keeps the text it replaced as a revision', () => {
       userId: 'member',
       scope: SCOPE,
       callKey: 'toolu_append',
-      markdown: 'Intro typed\n\nOutro',
       restoredVersionAt: null,
     })
+    expect(readRevisionContent(revision.content)).toBe('Intro typed\n\nOutro')
     expect(readRevisionText(revision.compressedState)).toEqual(['Intro typed', 'Outro'])
     expect(revision.afterVersion).toBe((await kit.answer<Reading>('read_document', { id: document.id })).version)
   })
@@ -483,7 +490,7 @@ describe('update_document keeps the text it replaced as a revision', () => {
       replaceBlocks: { fromId: first.id, toId: first.id, content: 'Replaced' },
     })
 
-    expect(fake.revisions.map(revision => revision.markdown)).toEqual([
+    expect(fake.revisions.map(revision => readRevisionContent(revision.content))).toEqual([
       blocks.map(block => block.markdown).join('\n\n'),
       'All new',
       'All new\n\nAdded',
@@ -513,7 +520,8 @@ describe('update_document keeps the text it replaced as a revision', () => {
 
     await kit.answer('update_document', { id: document.id, append: 'Added' })
 
-    expect(fake.revisions).toMatchObject([{ scope: 'connection:checked', callKey: null, markdown: 'Intro' }])
+    expect(fake.revisions).toMatchObject([{ scope: 'connection:checked', callKey: null }])
+    expect(readRevisionContent(fake.revisions[0].content)).toBe('Intro')
   })
 
   it('for none an edit refused, and once for a call sent again under its key', async () => {

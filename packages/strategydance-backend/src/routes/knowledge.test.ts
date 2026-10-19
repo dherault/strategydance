@@ -9,6 +9,7 @@ import {
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_UNAUTHORIZED_AUTHENTICATION,
 } from 'strategydance-core'
+import { richTextToMarkdown } from 'strategydance-design-system/lib/richTextToMarkdown'
 
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
@@ -128,9 +129,9 @@ describe('POST /:documentId/revisions/:revisionId/restore', () => {
       userId: MEMBER,
       scope: null,
       callKey: null,
-      markdown: 'Intro\n\nOutro\n\nAdded',
       restoredVersionAt: revisionOf('toolu_append').createdAt,
     })
+    expect(richTextToMarkdown(JSON.parse(kept?.content ?? '[]'))).toBe('Intro\n\nOutro\n\nAdded')
 
     const redone = await restore(document.id, undone.body.data.revisionId, true)
 
@@ -160,7 +161,7 @@ describe('POST /:documentId/revisions/:revisionId/restore', () => {
     expect(restored.status).toBe(200)
     expect(markdownOf(document.id)).toEqual(['Intro', 'Outro'])
     expect(fake.pendingUpdates(document.id)).toEqual([])
-    expect(fake.revisions.at(-1)?.markdown).toBe('Intro typed\n\nEnding')
+    expect(richTextToMarkdown(JSON.parse(fake.revisions.at(-1)?.content ?? '[]'))).toBe('Intro typed\n\nEnding')
   })
 
   test('refuses an Undo when a push lands between its read and its write', async () => {

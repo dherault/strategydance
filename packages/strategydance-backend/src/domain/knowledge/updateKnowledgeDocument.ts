@@ -165,8 +165,7 @@ async function updateKnowledgeDocument(
       ...(title !== undefined && { title }),
       isWholeReplacement: edit.type === 'content',
       ...toModuleCallVariables(caller, call, result),
-      ...toKnowledgeDocumentRevisionVariables(folded.previous.blocks, {
-        state: folded.previous.state,
+      ...toKnowledgeDocumentRevisionVariables(folded.previous, {
         afterVersion,
         scope: caller.idempotencyScope,
         callKey: call?.key ?? null,

@@ -44,7 +44,7 @@ export type FakeDocumentRevision = {
   scope: string | null
   callKey: string | null
   compressedState: string
-  markdown: string
+  content: string
   afterVersion: string
   restoredVersionAt: string | null
   createdAt: string
@@ -118,8 +118,8 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
 
   // A revision kept by a write, with what the write holds it to
   function keepRevision(fields: Omit<FakeDocumentRevision, 'id' | 'createdAt'> & { id?: string }) {
-    if (fields.compressedState.length > 2000000 || fields.markdown.length > 400000 || fields.afterVersion.length > 64) {
-      refuse('A revision holds at most 2000000 characters of state and 400000 of Markdown')
+    if (fields.compressedState.length > 2000000 || fields.content.length > 200000 || fields.afterVersion.length > 64) {
+      refuse('A revision holds at most 2000000 characters of state and 200000 of content')
     }
 
     const revision = { ...fields, id: id(fields.id ?? crypto.randomUUID()), createdAt: stamp() }
@@ -243,7 +243,7 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
           scope: variables.revisionScope ?? null,
           callKey: variables.revisionCallKey ?? null,
           compressedState: variables.revisionCompressedState,
-          markdown: variables.revisionMarkdown,
+          content: variables.revisionContent,
           afterVersion: variables.revisionAfterVersion,
           restoredVersionAt: null,
         })
@@ -496,7 +496,7 @@ function createKnowledgeDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: 
         scope: null,
         callKey: null,
         compressedState: String(variables.revisionCompressedState),
-        markdown: String(variables.revisionMarkdown),
+        content: String(variables.revisionContent),
         afterVersion: String(variables.revisionAfterVersion),
         restoredVersionAt: String(variables.restoredVersionAt),
       })

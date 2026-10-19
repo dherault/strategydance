@@ -11,6 +11,7 @@ import type { KnowledgeDocumentBlock, KnowledgeDocumentEdit, StoredKnowledgeDocu
 import measureKnowledgeDocumentText from '~domain/knowledge/measureKnowledgeDocumentText'
 import openKnowledgeDocumentText from '~domain/knowledge/openKnowledgeDocumentText'
 import readKnowledgeDocumentBlocks from '~domain/knowledge/readKnowledgeDocumentBlocks'
+import readKnowledgeDocumentContent from '~domain/knowledge/readKnowledgeDocumentContent'
 import seedKnowledgeDocumentText from '~domain/knowledge/seedKnowledgeDocumentText'
 
 type FoldKnowledgeDocumentEditResult =
@@ -23,8 +24,9 @@ type FoldKnowledgeDocumentEditResult =
       updateIds: string[]
       // Whether the document had no snapshot, which the fold seeds, under `SeedDocumentState`'s condition
       isSeed: boolean
-      // The text the edit replaced, its snapshot in base64 and its blocks, which a revision keeps
-      previous: { state: string; blocks: KnowledgeDocumentBlock[] }
+      // The text the edit replaced, which a revision keeps: its snapshot in base64, its blocks as an
+      // agent reads them, and its content, for a member to look at
+      previous: { state: string; blocks: KnowledgeDocumentBlock[]; content: string }
     }
   /** The snapshot cannot be merged */
   | { outcome: 'unreadableState' }
@@ -61,7 +63,13 @@ function foldKnowledgeDocumentEdit(
 
   if (!blocks) return { outcome: 'unknownContent' }
 
-  const previous = { state: Buffer.from(Y.encodeStateAsUpdate(opened.doc)).toString('base64'), blocks }
+  // Read before the snapshot is encoded, as `measureKnowledgeDocumentText` reads its text
+  const previousContent = readKnowledgeDocumentContent(opened.doc)
+  const previous = {
+    state: Buffer.from(Y.encodeStateAsUpdate(opened.doc)).toString('base64'),
+    blocks,
+    content: previousContent,
+  }
   const change = toRichTextYDocEdit(blocks, edit)
 
   if ('outcome' in change) return change

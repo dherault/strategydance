@@ -5697,7 +5697,7 @@ mutation FoldDocumentWithRevisionForAgent(
   $revisionScope: String!
   $revisionCallKey: String
   $revisionCompressedState: String!
-  $revisionMarkdown: String!
+  $revisionContent: String!
   $revisionAfterVersion: String!
 ) @auth(level: NO_ACCESS) @transaction {
   moduleCallResult_insert(
@@ -5738,7 +5738,7 @@ mutation FoldDocumentWithRevisionForAgent(
       scope: $revisionScope
       callKey: $revisionCallKey
       compressedState: $revisionCompressedState
-      markdown: $revisionMarkdown
+      content: $revisionContent
       afterVersion: $revisionAfterVersion
     }
   ) @include(if: $isRevised)
@@ -5769,8 +5769,8 @@ mutation FoldDocumentWithRevisionForAgent(
         )
         @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
         @check(
-          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionMarkdown) <= 400000 && size(vars.revisionAfterVersion) <= 64 && size(vars.revisionScope) <= 200"
-          message: "A revision holds at most 2000000 characters of state and 400000 of Markdown"
+          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionContent) <= 200000 && size(vars.revisionAfterVersion) <= 64 && size(vars.revisionScope) <= 200"
+          message: "A revision holds at most 2000000 characters of state and 200000 of content"
         )
     }
     # The title as committed, which a title this fold writes replaces: a document keeps a title or
@@ -5817,7 +5817,7 @@ mutation RestoreDocumentRevision(
   $isUndo: Boolean!
   $revisionId: UUID!
   $revisionCompressedState: String!
-  $revisionMarkdown: String!
+  $revisionContent: String!
   $revisionAfterVersion: String!
   $restoredVersionAt: Timestamp!
 ) @auth(level: NO_ACCESS) @transaction {
@@ -5843,7 +5843,7 @@ mutation RestoreDocumentRevision(
       organizationId: $organizationId
       userId: $userId
       compressedState: $revisionCompressedState
-      markdown: $revisionMarkdown
+      content: $revisionContent
       afterVersion: $revisionAfterVersion
       restoredVersionAt: $restoredVersionAt
     }
@@ -5862,8 +5862,8 @@ mutation RestoreDocumentRevision(
         )
         @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
         @check(
-          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionMarkdown) <= 400000 && size(vars.revisionAfterVersion) <= 64"
-          message: "A revision holds at most 2000000 characters of state and 400000 of Markdown"
+          expr: "size(vars.revisionCompressedState) <= 2000000 && size(vars.revisionContent) <= 200000 && size(vars.revisionAfterVersion) <= 64"
+          message: "A revision holds at most 2000000 characters of state and 200000 of content"
         )
     }
     document(id: $id) {

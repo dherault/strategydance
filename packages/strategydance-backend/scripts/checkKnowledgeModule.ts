@@ -380,14 +380,14 @@ async function readRevisions(documentId: string) {
       scope: string | null
       callKey: string | null
       compressedState: string
-      markdown: string
+      content: string
       afterVersion: string
       restoredVersionAt: string | null
     }[]
   }>(
     `query ReadRevisions($documentId: UUID!) {
       documentRevisions(where: { documentId: { eq: $documentId } }, orderBy: [{ createdAt: ASC }]) {
-        id userId scope callKey compressedState markdown afterVersion restoredVersionAt
+        id userId scope callKey compressedState content afterVersion restoredVersionAt
       }
     }`,
     { documentId },
@@ -403,7 +403,7 @@ async function checkRevisions() {
     revisionScope: scope,
     revisionCallKey: 'toolu_revised',
     revisionCompressedState: 'BEFORE=',
-    revisionMarkdown: 'Before',
+    revisionContent: 'Before',
     revisionAfterVersion: 'after-version',
   }
   const fold = (fields: Variables) =>
@@ -445,7 +445,7 @@ async function checkRevisions() {
   )
   check(
     'a revision past its bounds refuses the fold',
-    (await refusal(fold({ revisionMarkdown: 'x'.repeat(400001) })))?.includes('A revision holds at most') ?? false,
+    (await refusal(fold({ revisionContent: 'x'.repeat(200001) })))?.includes('A revision holds at most') ?? false,
   )
 
   await fold({})
@@ -459,7 +459,7 @@ async function checkRevisions() {
       && kept.scope === scope
       && kept.callKey === 'toolu_revised'
       && kept.compressedState === 'BEFORE='
-      && kept.markdown === 'Before'
+      && kept.content === 'Before'
       && kept.afterVersion === 'after-version'
       && kept.restoredVersionAt === null,
   )
@@ -551,7 +551,7 @@ async function checkRevisions() {
       isUndo: false,
       revisionId: restoreId,
       revisionCompressedState: 'REPLACED=',
-      revisionMarkdown: 'Replaced',
+      revisionContent: 'Replaced',
       revisionAfterVersion: 'restored-version',
       restoredVersionAt: new Date().toISOString(),
       ...fields,
@@ -602,18 +602,18 @@ async function checkRevisions() {
     { documentRevisions: { id: string; scope: string | null; user: { id: string } | null }[] },
     Variables
   >('GetDocumentRevisions', { organizationId, documentId: id }, impersonate)
-  const { data: markdown } = await webConnector.executeQuery<{ documentRevisions: { markdown: string }[] }, Variables>(
-    'GetDocumentRevisionMarkdown',
+  const { data: opened } = await webConnector.executeQuery<{ documentRevisions: { content: string }[] }, Variables>(
+    'GetDocumentRevisionContent',
     { organizationId, id: revisionId },
     impersonate,
   )
 
   check(
-    "the history lists the document's revisions to a member, the newest first, and reads one's Markdown",
+    "the history lists the document's revisions to a member, the newest first, and reads one's text",
     history.documentRevisions.length === 3
       && history.documentRevisions[0]?.id === restoreId
       && history.documentRevisions[0]?.user?.id === userId
-      && markdown.documentRevisions[0]?.markdown === 'Before',
+      && opened.documentRevisions[0]?.content === 'Before',
   )
 
   /*
@@ -635,7 +635,7 @@ async function checkRevisions() {
     ...UNKEYED,
     ...revised,
     revisionCompressedState: '',
-    revisionMarkdown: 'm'.repeat(400000),
+    revisionContent: 'm'.repeat(200000),
   }
   const room = MAX_KNOWLEDGE_WRITE_REQUEST_BYTES - Buffer.byteLength(JSON.stringify(largeFold)) - 100
   const filler = gzipSync(Buffer.from(randomUUID().repeat(room))).toString('base64')

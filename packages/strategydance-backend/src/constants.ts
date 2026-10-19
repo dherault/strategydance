@@ -311,13 +311,6 @@ export const KNOWLEDGE_READ_PAGE_LENGTH = 40000
 export const KNOWLEDGE_FOLD_ATTEMPTS = 3
 
 /*
-  How much Markdown a document's revision keeps for a member to look at: twice a document's
-  content, which `FoldDocumentWithRevisionForAgent` and `RestoreDocumentRevision` hold it to, since
-  Markdown escapes what would read as Markdown and can run a little longer than the text it writes
-*/
-export const MAX_DOCUMENT_REVISION_MARKDOWN_LENGTH = 400000
-
-/*
   How large a write of a document's text may be, its variables as JSON in UTF-8: short of the 4 MiB
   Data Connect takes in a request, gRPC's own bound, which the emulator names when a fold carrying
   its revision beside the new snapshot passes it, with room for the rest of the request

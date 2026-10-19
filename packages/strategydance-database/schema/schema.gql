@@ -501,7 +501,7 @@ type DocumentPresence @table(key: ["document", "user", "sessionId"]) {
 # agent's and an external agent's alike. A member going back to one writes its text as a new
 # edit, through the backend's `RestoreDocumentRevision`, which keeps one of its own, so a restore
 # can be undone in turn. Only members read them, through the web connector: no agent does, so a
-# document the team keeps from AI keeps its revisions.
+# document the team keeps from AI keeps its revisions, and none keeps the agent's Markdown.
 #
 # Kept 30 days (`DOCUMENT_REVISION_LIFETIME_DAYS` in strategydance-core), which the daily sweep
 # prunes on `createdAt`, and deleted with the document
@@ -530,8 +530,10 @@ type DocumentRevision
   # and in base64, at most 2000000 characters: the fold sends it beside the new snapshot, and Data
   # Connect takes 4 MiB a request, which two whole snapshots can pass. Only the backend reads it
   compressedState: String!
-  # The same text in Markdown, as an agent reads it, for a member to look at before restoring it
-  markdown: String!
+  # The same text as BlockNote's blocks, serialized, as `Document.content` holds a document's,
+  # for a member to look at before restoring it, drawn as the document is. An empty string when the
+  # text was empty, or longer than a document's content may be, which only the snapshot then keeps
+  content: String!
   # The version of the text the edit left, as `read_document` hashes one: while the text is still
   # that version, nobody has written to the document since, and the edit can be undone
   afterVersion: String!

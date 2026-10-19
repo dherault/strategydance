@@ -724,6 +724,33 @@ describe('runConversation', () => {
     ])
   })
 
+  test('sends again a request whose stream sent an overload before its message started, never one past it', async () => {
+    // As the SDK throws an `error` event of the stream: a bare APIError, its type the API's
+    const overloaded = () =>
+      new Anthropic.APIError(
+        undefined,
+        { type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } },
+        undefined,
+        new Headers(),
+        'overloaded_error',
+      )
+    const beforeStart = await start()
+    const retried = createClient([overloaded(), answer()])
+
+    expect(await runConversation(beforeStart, { client: retried.client, apiRetryDelayMs: 1 })).toBe('finished')
+    expect(retried.requests).toHaveLength(2)
+    expect(readRun(beforeStart)?.status).toBe('COMPLETED')
+    expect(readUsage(beforeStart).requests[0]).toMatchObject({ inputTokens: 0, isEstimated: false })
+
+    const afterStart = await start()
+    const failed = createClient([{ started: answer([], { inputTokens: 5000, outputTokens: 1 }), error: overloaded() }])
+
+    expect(await runConversation(afterStart, { client: failed.client, apiRetryDelayMs: 1 })).toBe('finished')
+    expect(failed.requests).toHaveLength(1)
+    expect(readRun(afterStart)?.status).toBe('FAILED')
+    expect(readUsage(afterStart).requests[0]).toMatchObject({ inputTokens: 5000, isEstimated: true })
+  })
+
   test('waits what a refusal’s retry-after asks before sending the request again', async () => {
     const reference = await start()
     const scripted = createClient([

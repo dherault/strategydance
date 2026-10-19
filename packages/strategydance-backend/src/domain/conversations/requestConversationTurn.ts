@@ -495,6 +495,14 @@ function describeApiError(error: InstanceType<typeof Anthropic.APIError>, hasSta
   return hasStarted ? `Claude's API failed the stream partway: ${answer}` : `Claude's API ${answer} after its retries`
 }
 
+// The types of error Claude's API says to wait out, as an `error` event of a stream carries them
+const TRANSIENT_ERROR_TYPES: ReadonlySet<string> = new Set([
+  'overloaded_error',
+  'rate_limit_error',
+  'api_error',
+  'timeout_error',
+])
+
 /*
   How long to wait before sending again a request Claude's API refused before its stream started, or
   null when the refusal is not one to wait out: rate limited, overloaded or failing, the API's own
@@ -506,6 +514,9 @@ function readApiRetryDelay(error: InstanceType<typeof Anthropic.APIError>, retri
     error instanceof Anthropic.APIConnectionError
     || error instanceof Anthropic.RateLimitError
     || error instanceof Anthropic.InternalServerError
+    // An `error` event the stream sent before its message started, which the SDK throws as a bare
+    // `APIError` carrying the API's type and no status
+    || TRANSIENT_ERROR_TYPES.has(error.type ?? '')
 
   if (!isTransient) return null
 

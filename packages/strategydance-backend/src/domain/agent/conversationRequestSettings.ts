@@ -36,9 +36,11 @@ export const CLAUDE_MODEL_PRICES: Record<string, ClaudeModelPrice> = {
 /*
   How fast each model can write at most, in output tokens a second, which bounds what a stream cut
   partway was billed: nothing reports a request's output before its end, and its reasoning, billed
-  in full, is never streamed, so the time it streamed is what says how much it wrote. Provisional,
-  a few times what a model writes, until `probe:claude` measures each and holds them to it. A model
-  missing has a cut stream counted at its whole reservation
+  in full, is never streamed, so the time it streamed is what says how much it wrote. `probe:claude`
+  holds each to twice the fastest it measures from a stream's send, as the worker counts: 82 tokens
+  a second on Opus 5.5, 50 on Opus 5 and 44 on Opus 4.8 on 2026-10-19, so 400 holds some five times
+  the fastest. Sonnet's and Haiku's are set alike and not measured, no probe stream of theirs
+  writing 100 tokens. A model missing has a cut stream counted at its whole reservation
 */
 export const CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND: Record<string, number> = {
   'claude-opus-5-5': 400,

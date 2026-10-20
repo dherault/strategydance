@@ -2875,8 +2875,9 @@ them stops every customer at once.
   could write in the time it streamed, as David chose on 2026-10-19: its reasoning is billed but
   never streamed under `display: "updates"`, and nothing reports a request's output before its end.
   Its input as the stream's start billed it, each search its content shows as the worst case prices
-  one, and its output at the model's top rate (`CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND`, provisional
-  until `probe:claude` measures it) for as long as it streamed and five seconds after, never past
+  one, and its output at the model's top rate (`CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND`, 400 tokens a
+  second, some five times the fastest `probe:claude` measured from a stream's send, 82 on Opus 5.5 on
+  2026-10-19) for as long as it streamed and five seconds after, never past
   `max_tokens` nor its reservation (`priceCutRequestBound`). One that showed a fallback counts at its
   reservation. A stop after ten seconds so counts a few cents rather than the some $1.77 to $4.01 a
   request over a small context reserves, the results of its five searches each counted as read again

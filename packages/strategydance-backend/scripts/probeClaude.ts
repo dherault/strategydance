@@ -57,7 +57,7 @@ import { priceAttemptWorstCase } from '~domain/conversations/priceConversationUs
   step by step through its iterations, each result's first reading held to the allowance and all
   it billed as input to what the worst case reserves for five searches, earlier results and outputs
   read again included. Every stream it sends is timed, and each model's fastest writing, output
-  tokens a second from its start to its end, held to half its `CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND`,
+  tokens a second from its send to its end, held to half its `CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND`,
   which bounds what a stream cut partway counts at. It prints what passed, what failed and what it
   found, and exits non-zero naming every check that did not pass.
 
@@ -139,22 +139,22 @@ const client = new Anthropic({
 const outputRates = new Map<string, number>()
 
 /*
-  Times every stream the probe sends, from its message's start to its final message, and keeps each
-  model's fastest: what a stream cut partway is bounded by in the cost limit and the ceilings
+  Times every stream the probe sends, from when it was sent to its final message, and keeps each
+  model's fastest: what a stream cut partway is bounded by in the cost limit and the ceilings, on
+  the same clock, the worker's from its own send. Timed from its message's start instead, a stream
+  whose server tools held its events back until the end arrived in one burst, some 313000 tokens a
+  second on 2026-10-19
 */
 const sendStream = client.beta.messages.stream.bind(client.beta.messages)
 
 client.beta.messages.stream = ((...args: Parameters<typeof sendStream>) => {
+  const sentAt = Date.now()
   const stream = sendStream(...args)
-  let startedAt: number | null = null
 
-  stream.on('streamEvent', event => {
-    if (event.type === 'message_start') startedAt ??= Date.now()
-  })
   stream.on('finalMessage', message => {
-    if (startedAt === null || message.usage.output_tokens < 100) return
+    if (message.usage.output_tokens < 100) return
 
-    const rate = message.usage.output_tokens / Math.max(0.001, (Date.now() - startedAt) / 1000)
+    const rate = message.usage.output_tokens / Math.max(0.001, (Date.now() - sentAt) / 1000)
 
     outputRates.set(message.model, Math.max(outputRates.get(message.model) ?? 0, rate))
   })
@@ -1109,6 +1109,8 @@ await check('A request of five searches bills its input within what its worst ca
         ]
       : [],
   )
+  // None when the API reports no iterations for the search loop, as on 2026-10-19: then the whole
+  // request alone is held to what is reserved
   const firstReadings = steps.slice(1).map((step, index) => step - (steps[index] ?? 0))
 
   finding('A request of five searches', {

@@ -15,6 +15,7 @@ import pruneCappedStarts from '~domain/conversations/pruneCappedStarts'
 import pruneConversationAttachments from '~domain/conversations/pruneConversationAttachments'
 import pruneConversationSearches from '~domain/conversations/pruneConversationSearches'
 import pruneDeletedConversations from '~domain/conversations/pruneDeletedConversations'
+import pruneRunSpends from '~domain/conversations/pruneRunSpends'
 import runConversation from '~domain/conversations/runConversation'
 import sweepDeadConversationRuns from '~domain/conversations/sweepDeadConversationRuns'
 import publishDirectoryCheck from '~domain/directories/publishDirectoryCheck'
@@ -23,6 +24,7 @@ import createGitHubClient from '~domain/github/createGitHubClient'
 import pruneDeletedIntegrations from '~domain/integrations/pruneDeletedIntegrations'
 import pruneIntegrationAuthorizations from '~domain/integrations/pruneIntegrationAuthorizations'
 import pruneDeletedDocuments from '~domain/knowledge/pruneDeletedDocuments'
+import pruneDocumentRevisions from '~domain/knowledge/pruneDocumentRevisions'
 import pruneModuleCallResults from '~domain/modules/pruneModuleCallResults'
 import pruneAgentConnectionTokens from '~domain/oauth/pruneAgentConnectionTokens'
 import pruneOAuthAuthorizationRequests from '~domain/oauth/pruneOAuthAuthorizationRequests'
@@ -127,10 +129,11 @@ function createInternalRouter() {
     the board's tasks, the documents and the organizations' MCP servers, with their keys and
     members' connections, deleted over a day ago, and the files uploaded to conversations and never
     sent. A milestone that keeps something else deleted for a while adds its prune here. So does one
-    that keeps a count or a record for a while, as the conversation searches and the starts the daily
-    caps counted over a day old go, the module call results past their expiry, members' Connects to
-    MCP servers expired over an hour ago, and the authorization server's requests expired over a day
-    ago, its tokens past their expiry and the registrations nobody uses.
+    that keeps a count or a record for a while, as the conversation searches, the starts the daily
+    caps counted and what runs may have cost, over a day old, go, documents' revisions over 30 days
+    old, the module call results past their expiry, members' Connects to MCP servers expired over an
+    hour ago, and the authorization server's requests expired over a day ago, its tokens past their
+    expiry and the registrations nobody uses.
 
     Each step runs whatever the steps before it met (`runSweepSteps`), so a prune that fails, or one
     that takes long, never keeps the keys and tokens after it from going. Every step is idempotent,
@@ -145,8 +148,10 @@ function createInternalRouter() {
       pruneConversationAttachments,
       pruneConversationSearches,
       pruneCappedStarts,
+      pruneRunSpends,
       pruneDeletedTasks,
       pruneDeletedDocuments,
+      pruneDocumentRevisions,
       pruneDeletedIntegrations,
       pruneIntegrationAuthorizations,
       pruneModuleCallResults,

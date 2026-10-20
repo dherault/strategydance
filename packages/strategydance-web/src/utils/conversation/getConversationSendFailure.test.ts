@@ -3,6 +3,7 @@ import { describe, expect, mock, test } from 'bun:test'
 import {
   ERROR_CODE_ACCOUNT_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED,
+  ERROR_CODE_ACCOUNT_DAILY_SPEND_REACHED,
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
   ERROR_CODE_CONVERSATION_ATTACHMENTS_OVER_BUDGET,
@@ -12,9 +13,11 @@ import {
   ERROR_CODE_EMAIL_NOT_VERIFIED,
   ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_MEMBER_DAILY_RUNS_REACHED,
+  ERROR_CODE_MEMBER_DAILY_SPEND_REACHED,
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_ORGANIZATION_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED,
+  ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED,
   ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_TOO_MANY_CONVERSATIONS,
   ERROR_CODE_UNKNOWN_ERROR,
@@ -39,7 +42,7 @@ describe('getConversationSendFailure', () => {
     )
   })
 
-  test('reads which daily cap a start reached, and when it has room again', () => {
+  test('reads which daily cap or spend ceiling a start reached, and when it has room again', () => {
     const now = Date.parse('2026-10-18T12:00:00Z')
     const caps = [
       [ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED, 'memberConversationsCapped'],
@@ -48,6 +51,9 @@ describe('getConversationSendFailure', () => {
       [ERROR_CODE_MEMBER_DAILY_RUNS_REACHED, 'memberRunsCapped'],
       [ERROR_CODE_ACCOUNT_DAILY_RUNS_REACHED, 'accountRunsCapped'],
       [ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED, 'organizationRunsCapped'],
+      [ERROR_CODE_MEMBER_DAILY_SPEND_REACHED, 'memberSpendCapped'],
+      [ERROR_CODE_ACCOUNT_DAILY_SPEND_REACHED, 'accountSpendCapped'],
+      [ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED, 'organizationSpendCapped'],
     ] as const
 
     for (const [code, failure] of caps) {

@@ -12,12 +12,12 @@ import {
 } from 'strategydance-core'
 import type { GetCappedStartsData } from 'strategydance-database/backend'
 
-import type { ReachedUsageCap, UsageCapKind, UsageCapScope } from '~types'
+import type { ReachedUsageCap, UsageCapScope, UsageCountKind } from '~types'
 
 const WINDOW_MS = DAILY_CAP_WINDOW_HOURS * 60 * 60 * 1000
 
 // Each cap by what it counts and whose: subagents have no organization's
-const USAGE_CAPS: Record<UsageCapKind, Partial<Record<UsageCapScope, number>>> = {
+const USAGE_CAPS: Record<UsageCountKind, Partial<Record<UsageCapScope, number>>> = {
   conversations: {
     member: MAX_DAILY_CONVERSATIONS_PER_MEMBER,
     account: MAX_DAILY_CONVERSATIONS_PER_ACCOUNT,
@@ -35,7 +35,7 @@ const USAGE_CAPS: Record<UsageCapKind, Partial<Record<UsageCapScope, number>>> =
 }
 
 // Where `GetCappedStarts` answers each, newest first
-const STARTS_READ: Record<UsageCapKind, Partial<Record<UsageCapScope, keyof GetCappedStartsData>>> = {
+const STARTS_READ: Record<UsageCountKind, Partial<Record<UsageCapScope, keyof GetCappedStartsData>>> = {
   conversations: {
     member: 'memberConversations',
     account: 'accountConversations',
@@ -63,7 +63,7 @@ type Options = {
 */
 function findReachedUsageCap(
   starts: GetCappedStartsData,
-  kinds: UsageCapKind[],
+  kinds: UsageCountKind[],
   { isFinishing = false, now = Date.now() }: Options = {},
 ): ReachedUsageCap | null {
   let reached: ReachedUsageCap | null = null

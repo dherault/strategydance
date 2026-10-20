@@ -7,6 +7,7 @@ import {
   INTERRUPTED_CALL_RESULT,
   SKIPPED_QUESTION_RESULT,
   STOPPED_CALL_RESULT,
+  UNRUN_AT_TIME_LIMIT_CALL_RESULT,
   toFailedOutput,
   toFailedResult,
   toSucceededResult,
@@ -38,6 +39,24 @@ function question(toolUseId: string, fields: Partial<ConversationCallMessage> = 
 }
 
 describe('buildConversationToolResults', () => {
+  test('answers a call never started as a limit says, when a limit rather than a stop kept it from running', () => {
+    const calls = [call('a'), call('b')]
+    const messages = [message('a', { toolStartedAt: '2026-10-19T10:00:00Z' }), message('b', {})]
+
+    expect(
+      buildConversationToolResults({
+        calls,
+        messages,
+        pending: new Map(),
+        skipsQuestions: false,
+        unrunResult: UNRUN_AT_TIME_LIMIT_CALL_RESULT,
+      }),
+    ).toEqual([toFailedResult('a', INTERRUPTED_CALL_RESULT), toFailedResult('b', UNRUN_AT_TIME_LIMIT_CALL_RESULT)])
+    expect(buildConversationToolResults({ calls, messages, pending: new Map(), skipsQuestions: false })[1]).toEqual(
+      toFailedResult('b', STOPPED_CALL_RESULT),
+    )
+  })
+
   test('answers every call in the turn’s order, whatever order they finished in', () => {
     const results = buildConversationToolResults({
       calls: [call('a'), call('b', 'ask_user', QUESTION_INPUT), call('c')],

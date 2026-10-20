@@ -492,6 +492,57 @@ type DocumentPresence @table(key: ["document", "user", "sessionId"]) {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
+# A document's text as it stood before an agent changed it, kept so a member can go back to it:
+# an agent's edit can rewrite the whole text, a subagent's with nobody watching, and a document
+# keeps one snapshot and no history. Not its `revision`, the counter its folds move.
+#
+# Inserted by the mutation that stores the edit, `FoldDocumentForAgent`, so an edit and the text
+# it replaced commit together or not at all, under the edit's idempotency key, Strategy Dance's
+# agent's and an external agent's alike. A member going back to one writes its text as a new
+# edit, through the backend's `RestoreDocumentRevision`, which keeps one of its own, so a restore
+# can be undone in turn. Only members read them, through the web connector: no agent does, so a
+# document the team keeps from AI keeps its revisions, and none keeps the agent's Markdown.
+#
+# Kept 30 days (`DOCUMENT_REVISION_LIFETIME_DAYS` in strategydance-core), which the daily sweep
+# prunes on `createdAt`, and deleted with the document
+type DocumentRevision
+  @table
+  @index(fields: ["documentId", "createdAt"])
+  @index(fields: ["scope", "callKey"])
+  @index(fields: ["createdAt"]) {
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies a `documentId: UUID!` column, cascade deleting
+  document: Document!
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # The member the agent acted for, or the member who restored. Optional, set to null when the
+  # account goes, since the revision is the team's
+  user: User
+  # Where the agent acted from, the scope of its module call: `conversation:<id>` for Strategy
+  # Dance's agent, a subagent's included, and `connection:<id>` for an external one. Null for a
+  # member's restore
+  scope: String
+  # The call's idempotency key, which is Claude's `tool_use` id for Strategy Dance's agent, so the
+  # thread finds the revision of a tool call's row. Null when the call carried none, and for a
+  # member's restore
+  callKey: String
+  # The text before the edit, its snapshot with every pending update merged, compressed with gzip
+  # and in base64, at most 2000000 characters: the fold sends it beside the new snapshot, and Data
+  # Connect takes 4 MiB a request, which two whole snapshots can pass. Only the backend reads it
+  compressedState: String!
+  # The same text as BlockNote's blocks, serialized, as `Document.content` holds a document's,
+  # for a member to look at before restoring it, drawn as the document is. An empty string when the
+  # text was empty, or longer than a document's content may be, which only the snapshot then keeps
+  content: String!
+  # A fingerprint of the text the edit left, a hash of every node, attribute and character the
+  # editor keeps, block ids included, never the agent's Markdown, which misses some: while the text
+  # still has it, nobody has written to the document since, and the edit can be undone
+  afterFingerprint: String!
+  # For a member's restore, when the revision it brought back was made
+  restoredVersionAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
 # Who set something on a conversation: the member, or the agent on their behalf
 enum ConversationActor {
   MEMBER
@@ -551,6 +602,17 @@ enum ConversationNoteKind {
   INTERRUPTED
   # The conversation holds as much as it can, and takes no more messages
   FULL
+}
+
+# Whose daily spend ceiling stopped a run (`MAX_DAILY_SPEND_MICRODOLLARS_…` in strategydance-core).
+# Append a value; never reorder
+enum SpendCeilingScope {
+  # The member's in the organization
+  MEMBER
+  # The account's, across every organization it is in
+  ACCOUNT
+  # The organization's, whoever ran it
+  ORGANIZATION
 }
 
 # What started a run. Append a value; never reorder
@@ -836,6 +898,11 @@ type ConversationMessage @table @unique(fields: ["conversation", "position"]) {
   aspects: [CompanyAspect!]
   aspectsSetBy: ConversationActor
   noteKind: ConversationNoteKind
+  # A failed note's, when a daily spend ceiling stopped the run: whose ceiling, and when the backend
+  # read it would have room again, which a page draws as a note of its own. A page from before M39
+  # reads neither, and draws the failed note
+  ceilingScope: SpendCeilingScope
+  ceilingFreesAt: Timestamp
   # A call to an integration's, a tool call or an approval: the server it went to, which the
   # thread's warning strip matches the live list by, never by name. Implies an `integrationId: UUID`
   # column, set to null when the server is pruned
@@ -1002,6 +1069,34 @@ type CappedStart
   organizationId: UUID!
   kind: CappedStartKind!
   createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# What one run may have cost at most, in microdollars, kept so the backend can hold a member, an
+# account and an organization to what conversations may cost in 24 hours
+# (`MAX_DAILY_SPEND_MICRODOLLARS_…` in strategydance-core): the run's ledger as
+# `priceConversationUsageBound` prices it, what Claude's answers settled and the worst case each
+# request no answer settled reserved, a request in flight included.
+#
+# Upserted beside the ledger by every write of a run's `usage`, in the same transaction, so the
+# reservation that renews the lease counts the request about to go before it is sent, and `spentAt`
+# moves with each reservation and settlement: a run counts whole until 24 hours after its last, so
+# each of its requests counts a full day at least. Keyed by the run's id, which is a plain column
+# rather than a reference, as are its organization's: deleting the run, its conversation or its
+# organization erases nothing of a day's spend, which the daily sweep deletes once `spentAt` is over
+# a day old, by the index on `spentAt` alone. Read only by the backend
+type RunSpend
+  @table(key: ["runId"])
+  @index(fields: ["userId", "organizationId", "spentAt"])
+  @index(fields: ["userId", "spentAt"])
+  @index(fields: ["organizationId", "spentAt"])
+  @index(fields: ["spentAt"]) {
+  runId: UUID!
+  # Implies a `userId: String!` column, cascade deleting
+  user: User!
+  organizationId: UUID!
+  # Left out of an upsert by a backend from before M39, which inserts nothing but the row
+  costBound: Int64! @default(value: 0)
+  spentAt: Timestamp! @default(expr: "request.time")
 }
 
 # What one write of a module answered, kept under the idempotency key its caller sent, so a write

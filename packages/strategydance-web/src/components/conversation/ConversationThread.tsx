@@ -27,6 +27,7 @@ import useConversationSubagents from '~hooks/conversation/useConversationSubagen
 import useConversationTasks from '~hooks/conversation/useConversationTasks'
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
+import useConversationUndoableRevisions from '~hooks/conversation/useConversationUndoableRevisions'
 import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead'
 import useReconcileConversationRun from '~hooks/conversation/useReconcileConversationRun'
 import useReconcileConversationSubagents from '~hooks/conversation/useReconcileConversationSubagents'
@@ -35,6 +36,7 @@ import useOrganizationIntegrations from '~hooks/integration/useOrganizationInteg
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import canRestoreConversationItem from '~utils/conversation/canRestoreConversationItem'
+import countConversationDocumentEdits from '~utils/conversation/countConversationDocumentEdits'
 import countRetriedSubagents from '~utils/conversation/countRetriedSubagents'
 import findConversationSubagent from '~utils/conversation/findConversationSubagent'
 import getConversationIntegrationIssue from '~utils/conversation/getConversationIntegrationIssue'
@@ -44,6 +46,7 @@ import groupConversationReplies from '~utils/conversation/groupConversationRepli
 import hasConversationMessageBody, {
   CALL_INTEGRATION_TOOL_NAME,
   LAUNCH_SUBAGENT_TOOL_NAME,
+  UPDATE_DOCUMENT_TOOL_NAME,
 } from '~utils/conversation/hasConversationMessageBody'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
@@ -60,6 +63,7 @@ import ConversationAspectsNote from '~components/conversation/ConversationAspect
 import ConversationBrief from '~components/conversation/ConversationBrief'
 import ConversationDecidedApproval from '~components/conversation/ConversationDecidedApproval'
 import ConversationDocumentRestore from '~components/conversation/ConversationDocumentRestore'
+import ConversationDocumentUndo from '~components/conversation/ConversationDocumentUndo'
 import ConversationIntegrationIssue from '~components/conversation/ConversationIntegrationIssue'
 import ConversationMemberMessage from '~components/conversation/ConversationMemberMessage'
 import ConversationMessagePlaceholder from '~components/conversation/ConversationMessagePlaceholder'
@@ -144,6 +148,8 @@ function ConversationThread({
   )
   const tasks = useConversationTasks(needsConversationTasks(entries, bodies))
   const deletedItems = useConversationDeletedItems(conversation.id, readConversationDeletedCallIds(entries))
+  // A subagent's edits too, which its viewer draws: what Undo takes back is the document's text
+  const undoableRevisions = useConversationUndoableRevisions(conversation.id, countConversationDocumentEdits(entries))
   // Read only once the conversation launched one, which every launch's row and the page then share
   const subagents = useConversationSubagents(conversation.id, {
     isEnabled: !isReadOnly && conversation.subagentCount > 0,
@@ -334,10 +340,23 @@ function ConversationThread({
 
   /*
     Restore, on a row where Strategy Dance deleted a document or a task, while the organization's
-    live list does not hold it and a day has not passed since the call. A row offers nothing else,
-    so a phone keeps its badge while Restore is not shown
+    live list does not hold it and a day has not passed since the call, and Undo, on a row where it
+    edited a document, while nobody has written in the document since. A row offers nothing else,
+    so a phone keeps its badge while neither is shown
   */
-  function renderRestore(entry: ConversationThreadEntry) {
+  function renderAction(entry: ConversationThreadEntry) {
+    if (entry.toolName === UPDATE_DOCUMENT_TOOL_NAME && entry.toolStatus === ConversationToolStatus.SUCCEEDED) {
+      const toolUseId = bodies.get(entry.id)?.toolUseId
+      const revision = toolUseId ? undoableRevisions.get(toolUseId) : undefined
+
+      return revision ? (
+        <ConversationDocumentUndo
+          documentId={revision.documentId}
+          revisionId={revision.id}
+        />
+      ) : null
+    }
+
     const deleted = entry.toolStatus === ConversationToolStatus.SUCCEEDED ? deletedItems.get(entry.id) : undefined
 
     if (!deleted) return null
@@ -419,7 +438,7 @@ function ConversationThread({
             toolName={entry.toolName ?? ''}
             status={entry.toolStatus ?? ConversationToolStatus.RUNNING}
             onOpen={() => setOpenToolCall(entry)}
-            action={renderRestore(entry)}
+            action={renderAction(entry)}
             integration={readIntegration(body)}
             issue={renderIssue(body)}
           />
@@ -499,6 +518,11 @@ function ConversationThread({
             noteKind={entry.noteKind}
             actions={renderNoteActions(entry)}
             subject={isReadOnly ? 'subagent' : 'conversation'}
+            ceiling={
+              entry.ceilingScope && entry.ceilingFreesAt
+                ? { scope: entry.ceilingScope, freesAt: entry.ceilingFreesAt }
+                : null
+            }
           />
         ) : null
       default:

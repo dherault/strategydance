@@ -96,7 +96,10 @@ function registerUpdateDocument(server: McpServer, context: KnowledgeToolContext
         "Changes a document of the organization's knowledge: its `title`, and at most one edit of its text, in Markdown, where a [title](doc:<id>) or [name](task:<id>) link mentions a document or a task. `append` adds to the end. `replaceBlocks` replaces the top-level blocks from `fromId` to `toId`, ids read_document gave, and leaves the rest alone. `replaceText` replaces a piece of text that occurs exactly once, for a small change inside a block, and never finds a mention: replace its block to change one. `content` replaces the whole text, only for a document you read whole, with the `version` read_document gave. Members may be typing in the document meanwhile: every edit but `content` merges with what they write, so prefer them. Call it to write what the member agreed into the team's knowledge, then say what changed.",
       inputSchema,
       outputSchema,
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      // Destructive, as an edit can rewrite the whole text: a client may ask its member before
+      // calling it, by its own policy. Advisory, so the revision each edit keeps is what guards the
+      // text, and Claude's tool list never carries an annotation, so it changes no request's bytes
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(knowledgeModule),
     },
     async (args, serverContext) => {

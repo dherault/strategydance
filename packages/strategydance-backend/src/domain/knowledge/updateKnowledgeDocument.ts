@@ -1,4 +1,8 @@
-import { foldDocumentForAgent, getDocumentForAgent, renameDocumentForAgent } from 'strategydance-database/backend'
+import {
+  foldDocumentWithRevisionForAgent,
+  getDocumentForAgent,
+  renameDocumentForAgent,
+} from 'strategydance-database/backend'
 
 import type { KnowledgeDocumentEdit, KnowledgeWriteResult, ModuleCall, ModuleCaller } from '~types'
 
@@ -9,8 +13,10 @@ import { dataConnect } from '~firebase'
 import explainKnowledgeDocumentRefusal from '~domain/knowledge/explainKnowledgeDocumentRefusal'
 import foldKnowledgeDocumentEdit from '~domain/knowledge/foldKnowledgeDocumentEdit'
 import hashKnowledgeDocumentText from '~domain/knowledge/hashKnowledgeDocumentText'
+import isKnowledgeWriteTooLarge from '~domain/knowledge/isKnowledgeWriteTooLarge'
 import { EDITED_REFUSAL, EMPTY_REFUSAL, FOLDED_REFUSAL } from '~domain/knowledge/knowledgeRefusalMessages'
 import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
+import toKnowledgeDocumentRevisionVariables from '~domain/knowledge/toKnowledgeDocumentRevisionVariables'
 import toKnowledgeFoldRefusal from '~domain/knowledge/toKnowledgeFoldRefusal'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
@@ -49,7 +55,11 @@ export type UpdatedKnowledgeDocument = {
 
   A document keeps a title or some text, as it starts with one: a change that would leave it with
   neither is refused, as the page deletes one somebody empties rather than keep it. The operations
-  check it once they hold the row, so a rename and an edit at the same moment cannot pass it together
+  check it once they hold the row, so a rename and an edit at the same moment cannot pass it together.
+
+  An edit that changes the text keeps the text it replaced as a revision, stored by the fold, so a
+  member can go back to it: an Undo on the call's row while nobody has written since, or the
+  document's history
 */
 async function updateKnowledgeDocument(
   caller: ModuleCaller,
@@ -143,19 +153,29 @@ async function updateKnowledgeDocument(
       ...(edit.type === 'content' && { version: hashKnowledgeDocumentText(read.blocks) }),
     }
 
+    const variables = {
+      ...reference,
+      revision: row.revision,
+      state: folded.state,
+      content: folded.content,
+      contentText: folded.contentText,
+      updateIds: folded.updateIds,
+      // Left out when the call keeps the title, which leaves it alone and pushes no card
+      ...(title !== undefined && { title }),
+      isWholeReplacement: edit.type === 'content',
+      ...toModuleCallVariables(caller, call, result),
+      ...toKnowledgeDocumentRevisionVariables(folded.previous, {
+        afterFingerprint: folded.fingerprint,
+        scope: caller.idempotencyScope,
+        callKey: call?.key ?? null,
+      }),
+    }
+
+    // A document so large that the edit and the text it replaces pass what one write takes
+    if (isKnowledgeWriteTooLarge(variables)) return { outcome: 'stateTooLong' }
+
     try {
-      await foldDocumentForAgent(dataConnect, {
-        ...reference,
-        revision: row.revision,
-        state: folded.state,
-        content: folded.content,
-        contentText: folded.contentText,
-        updateIds: folded.updateIds,
-        // Left out when the call keeps the title, which leaves it alone and pushes no card
-        ...(title !== undefined && { title }),
-        isWholeReplacement: edit.type === 'content',
-        ...toModuleCallVariables(caller, call, result),
-      })
+      await foldDocumentWithRevisionForAgent(dataConnect, variables)
 
       return { outcome: 'written', result }
     } catch (error) {

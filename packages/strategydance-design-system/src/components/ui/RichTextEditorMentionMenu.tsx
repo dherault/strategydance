@@ -1,8 +1,14 @@
 import type { BlockNoteEditor } from '@blocknote/core'
 import { SuggestionMenu } from '@blocknote/core/extensions'
-import { type DefaultReactSuggestionItem, SuggestionMenuController, useBlockNoteEditor } from '@blocknote/react'
+import {
+  type DefaultReactSuggestionItem,
+  SuggestionMenuController,
+  type SuggestionMenuProps,
+  useBlockNoteEditor,
+  useEditorDOMElement,
+} from '@blocknote/react'
 import { FileTextIcon, SquareKanbanIcon } from 'lucide-react'
-import type { ComponentProps } from 'react'
+import { type ComponentProps, useEffect } from 'react'
 import {
   RICH_TEXT_EDITOR_MENU_FLOATING_OPTIONS,
   RichTextEditorSlashMenu,
@@ -23,8 +29,9 @@ type MentionsStore = NonNullable<ReturnType<typeof readStore>>
   mention of it in place of the "@" and what was typed, and a space after it.
 
   It opens where a word starts, at the start of a block or after a space, so an "@" inside a word,
-  an email address's, types as itself, and never in code. What is typed starting with a space is
-  no mention, so the menu closes, as Enter would otherwise pick or do nothing while it is open.
+  an email address's, types as itself, and never in code. Tab picks the chosen row, as Enter does.
+  What is typed starting with a space is no mention, so the menu closes, as Enter would otherwise
+  pick or do nothing while it is open.
   Opening it asks for both lists, and while one is not read it waits, showing its loader, rather
   than closing on what it cannot suggest yet; a list that could not be read is waited for no longer
   than a few seconds. It reads the page's source from the editor's store, as its mentions do, so
@@ -73,10 +80,41 @@ function RichTextEditorMentionMenuController() {
       triggerCharacter="@"
       shouldOpen={isAtWordStart}
       getItems={getItems}
-      suggestionMenuComponent={RichTextEditorSlashMenu}
+      suggestionMenuComponent={RichTextEditorMentionMenu}
       floatingUIOptions={RICH_TEXT_EDITOR_MENU_FLOATING_OPTIONS}
     />
   )
+}
+
+/*
+  The slash menu's look, where Tab picks the chosen row as Enter does, or does nothing while there
+  is none, rather than nesting the block the "@" is typed in. BlockNote hears Enter on the editor's
+  element, before the text does, from the menu while it is open, and leaves Tab to the text: the
+  menu hears it the same way, so the text never does
+*/
+function RichTextEditorMentionMenu(props: SuggestionMenuProps<DefaultReactSuggestionItem>) {
+  const { items, selectedIndex, onItemClick } = props
+  const element = useEditorDOMElement()
+
+  useEffect(() => {
+    function pickOnTab(event: KeyboardEvent) {
+      if (event.key !== 'Tab' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing)
+        return
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      const item = selectedIndex === undefined ? undefined : items[selectedIndex]
+
+      if (item) onItemClick?.(item)
+    }
+
+    element?.addEventListener('keydown', pickOnTab, true)
+
+    return () => element?.removeEventListener('keydown', pickOnTab, true)
+  }, [element, items, selectedIndex, onItemClick])
+
+  return <RichTextEditorSlashMenu {...props} />
 }
 
 function readStore(editor: BlockNoteEditor<any, any, any>) {

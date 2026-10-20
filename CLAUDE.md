@@ -141,12 +141,12 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
 | `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
 | `bun run send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. Each `--file`, an image, a PDF or a text file, a relative path read from the repository's root, is uploaded first and sent with it, the text then optional. `--organization <id or slug>` names the organization when the account is in several |
-| `bun run measure:subagents [--configurations <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]` | Runs three short briefs as subagents on each model and effort weighed for subagents, from a throwaway account of the emulators, each priced from its ledger, a dollar a subagent and fifteen in all at most, and prints the table David chooses `SUBAGENT_REQUEST_SETTINGS` from. It asks Claude, which costs money, unless run under `CONVERSATION_AGENT=placeholder` |
+| `bun run measure:subagents [--configurations <name,…>] [--briefs <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]` | Runs three short briefs as subagents on each model and effort weighed for subagents, from a throwaway account of the emulators, each priced from its ledger, a dollar a subagent and fifteen in all at most, and prints the table David chooses `SUBAGENT_REQUEST_SETTINGS` from. `--briefs long` runs instead a brief made to run long, its runs held to two and a half minutes (`SUBAGENT_RUN_LIMITS`), so its fourth run asks for its report: `--configurations opus-medium --max-subagent 3 --max-total 3`. It asks Claude, which costs money, unless run under `CONVERSATION_AGENT=placeholder` |
 | `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches a subagent of one of that account's conversations, or `--count` of them at once, up to 10, as Strategy Dance's agent does through the Subagents module, handing each file named, one the conversation sent, runs them in its own process, past the account's five slots waiting for one, and prints each transcript and report once all have reported. A promotion runs the subagent it promotes in the process that freed the slot, so launch an account's subagents from one script, never from two side by side. It answers with the stand-in reply under `CONVERSATION_AGENT=placeholder`, and asks Claude otherwise, which costs money. It refuses to run anywhere but against the emulators |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
 | `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's and `check:subagents-module` the Subagents module's |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
-| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model or price, or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
+| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model, price or top output rate, or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
@@ -403,9 +403,19 @@ only way the app talks to them.
   `SearchConversationsBySubstring` puts them
 - An operation takes no `@check` of its own. A check that reads only variables sits on a field
   of the first, redacted step, where `@check` is repeatable
-- A `query` step of a mutation does not see what the same mutation wrote, though it sees what
-  another transaction committed before it once a lock is taken. Count around the rows the mutation
-  writes, by their ids, as `AnswerConversationQuestion` leaves out the question it answers
+- A mutation runs as one SQL statement, each step a part of it, unless a step reads an earlier
+  step's `response`: then every step runs as a statement of its own, in order. Every part of one
+  Postgres statement reads the snapshot it started with, so a step after a lock never sees what the
+  writer holding the lock committed while it waited, and only a condition in an update's `where` is
+  checked again, on the row as it stands. A step that counts, or writes rows it finds by a filter,
+  after a lock another writer takes reads the lock's response, as the starts' membership reads
+  `response.userOrganization_update.userId`, or a query step's after it, as
+  `AnswerConversationQuestion`'s count of the questions left reads the waiting run's conversation
+  (M41). The mutations outside conversations still count in one statement, which a later pull
+  request takes on
+- A step that runs as a statement of its own sees what its own mutation wrote before it, and one
+  statement does not: either way, count around the rows the mutation writes, by their ids, as
+  `AnswerConversationQuestion` leaves out the question it answers
 - A mutation takes one `query` step: a second is refused ("selecting `query` again is not yet
   supported"). A check that has to follow a write, once its row is locked, goes in that one step,
   after the write, with the membership's and the variables' checks beside it, as
@@ -423,10 +433,11 @@ only way the app talks to them.
   lock's check can: the backend reads both messages as one refusal (`isMembershipRefusal`), as it
   reads a token's reference to a connection gone meanwhile as a revoked grant
   (`isConnectionGoneRefusal`)
-- A mutation writes each row once. Data Connect runs the first write to a row and silently skips
-  any later one in the same mutation, aliased or not: an `organization_update` row lock followed
-  by another `organization_update`, or by `organization_delete`, changes nothing. When the row a
-  mutation locks is the row it writes, the write itself is the lock, and the checks follow it
+- A mutation writes each row once. In one statement Data Connect runs the first write to a row and
+  silently skips any later one, aliased or not: an `organization_update` row lock followed by
+  another `organization_update`, or by `organization_delete`, changes nothing, while steps that run
+  apart apply both. When the row a mutation locks is the row it writes, the write itself is the
+  lock, and the checks follow it
 - Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
   shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
   lookup, and its comment says what that costs. The other exception is the authorization server's:
@@ -453,7 +464,9 @@ only way the app talks to them.
   under a lock on the member's own row, which their consents in every organization take in turn,
   and the list reads that many, so it is never cut short and Disconnect reaches every agent acting
   as them. The emulator's PGlite runs one transaction at a time, so no race shows there: a lock's
-  reasoning is Postgres', and `check:oauth` guards the outcome
+  reasoning is Postgres', and `check:oauth` guards the outcome. That count reads its one
+  statement's snapshot, which misses a consent committed while it waited on the lock, until the
+  pull request after M41 has it read the lock's response
 - An operation that finds its row by `auth.token.email` rather than `auth.uid`, as the
   invitation ones do, is `USER_EMAIL_VERIFIED`. A password sign-up can name any address nobody
   has claimed yet, so the address proves nothing until it is verified. The claim lives in the ID
@@ -573,6 +586,25 @@ faces.
   stored one and merges as a second copy. It keeps the nodes y-prosemirror's read produced, with
   the read's metadata: blocks matched by equality alone can pair an untouched block with a new one
   and delete it, with whatever somebody typed in it
+- An agent's edit of the text keeps the text it replaced as a `DocumentRevision`, in the mutation
+  that stores the edit, `FoldDocumentWithRevisionForAgent`, so the two commit together or not at
+  all, under the edit's key: its snapshot compressed with gzip, its `content` for a member to look
+  at, where the agent acted from (the module call's scope) and the call's key, and a fingerprint of
+  the text the edit left (`fingerprintKnowledgeDocumentText`). A new `…ForAgent` write of a
+  document's text keeps one the same way.
+  `FoldDocumentForAgent` stays only for the backend from before the release, which deploys after
+  Data Connect. Members alone read revisions, whatever the team lets agents do with the document,
+  and go back to one through the backend (`routes/knowledge.ts`), which writes its text back as a
+  difference, `updateRichTextYDoc`'s `restore`, keeping every block the two share, and keeps one of
+  its own for the restore. An Undo goes back only while the text still has that fingerprint. It
+  hashes every node, attribute and character y-prosemirror reads, ids included, never the agent's
+  Markdown, which says nothing of a line break in a table's cell nor of a cell's alignment, so a
+  member's change Markdown cannot say would otherwise be overwritten. They are kept 30 days
+  (`DOCUMENT_REVISION_LIFETIME_DAYS`), which the daily sweep prunes
+- Data Connect takes 4 MiB a request, gRPC's bound, which the emulator names when one passes it,
+  and a write carrying a document's text twice, the new snapshot beside a revision, can pass it: a
+  knowledge write is measured first (`isKnowledgeWriteTooLarge`) and refused rather than sent, never
+  written without its revision
 - The text reaches the editor without `parseRichText`, so the editor's schema is what keeps it to
   the blocks it knows, and a tab on an older bundle deletes a block its schema lacks from the shared
   text. A new block type reaches every tab before anybody can write one, and so does a new inline
@@ -806,6 +838,11 @@ in `utils/`, one concern per file.
 - So are the pictures of documents' text, which any member may put in, under
   `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
   at it by its URL alone, and an undo or another tab can bring a deleted picture back
+- So are the revisions of documents' text, which any member reads and goes back to, through
+  `routes/knowledge.ts`, mounted at `/organizations/:organizationId/knowledge`: which of a
+  conversation's edits an Undo can still take back, read from each document's text as it stands,
+  and a restore, written back as a difference. Both merge a whole document's text in the instance,
+  so a member makes 60 in ten minutes at most (`knowledgeRevisionRateLimitMiddleware`)
 - So are the files sent in conversations, which the backend serves itself (`GET
   …/attachments/:attachmentId`), checking the reader is still a member, so none has a download
   token. An upload streams its body into Storage under `pending/{organizationId}/{userId}/{id}`,
@@ -894,10 +931,12 @@ in `utils/`, one concern per file.
   and in production the files the Files API holds that no row names, a day old
   (`pruneConversationAttachments`). Then the
   board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
-  organization's documents and MCP servers deleted over a day ago, the servers with their keys and
+  organization's documents and MCP servers deleted over a day ago, documents' revisions over 30
+  days old (`DeleteExpiredDocumentRevisions`), the servers with their keys and
   members' connections (`PruneDeletedIntegrations`), members' Connects to them expired over an hour
   ago (`PruneIntegrationAuthorizations`), the conversation searches over a day old, which
-  no count reads any more, the module call results past their expiry, and the authorization
+  no count reads any more, what runs that last spent over a day ago may have cost
+  (`pruneRunSpends`), the module call results past their expiry, and the authorization
   server's requests expired over a day ago, its tokens past their expiry and the registrations
   nobody uses (`domain/oauth/prune…`). Before all of them, it reconciles the runs no page
   reconciled, as the reconcile below does. Each step runs whatever the steps before it met
@@ -990,7 +1029,8 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
 - A run's limits are the backend's: 25 requests (`CONVERSATION_RUN_MAX_REQUESTS`) and 10 minutes
   from its first claim (`CONVERSATION_RUN_MAX_DURATION_MS`), a stream still going 14 minutes after
   the claim cut (`CONVERSATION_RUN_STREAM_DEADLINE_MS`), inside the task's 15, 60 seconds a call
-  (`CONVERSATION_TOOL_CALL_TIMEOUT_MS`), and its $10. A conversation holds 2000 entries
+  (`CONVERSATION_TOOL_CALL_TIMEOUT_MS`), its $10, and the daily spend ceilings its member's runs
+  share (below). A conversation holds 2000 entries
   (`MAX_CONVERSATION_MESSAGES`) and a run draws 100 (`MAX_CONVERSATION_RUN_ENTRIES`). Each is
   checked before a request, never after one, so a turn paid for is always stored and drawn, and a
   run at a limit ends `FAILED` with its note, the full note for a conversation at its 2000 or a
@@ -1108,10 +1148,14 @@ A conversation is kept twice, once for Claude and once for the page, and
   Data Connect stores `Any` as Postgres `jsonb`, which keeps one of two duplicate keys and refuses
   U+0000 in a string
 - A run's `usage` is a ledger (`conversationRunUsage`): each request is reserved at its measured
-  input before it is sent, in the fenced write that renews the lease, and settled from its answer
-  with the model, why it stopped and where its part was stored. A worker taking a run over charges
-  an unsettled request at its estimate. What a request came to, the turn to store or the run's
-  end, is kept until it is written, so a refused write is tried again and never paid for twice
+  input before it is sent, in the fenced write that renews the lease (`RecordConversationRunUsage`),
+  and settled from its answer with the model, why it stopped and where its part was stored. A worker
+  taking a run over charges an unsettled request at its estimate. What a request came to, the turn
+  to store or the run's end, is kept until it is written, so a refused write is tried again and never
+  paid for twice. Every write of a run's `usage` sends what the ledger may have cost beside it
+  (`toConversationUsageVariables`), which the write upserts as the run's `RunSpend` in its
+  transaction: a new write of a run's ledger does the same, which the fake's `unpricedLedgerWrites`
+  holds the tests to, and `RenewConversationRunLease`, the timer's, carries none
 - A run's side request, today the one that tags a conversation's aspects
   (`requestConversationTagging`), goes through the same ledger, marked with its `purpose`: it stores
   no part, so its `turnPosition` stays null, which the readers of a turn's requests skip, and a
@@ -1123,9 +1167,13 @@ A conversation is kept twice, once for Claude and once for the page, and
   case its reservation recorded (`priceConversationUsageBound`), plus the most the request about to
   go can cost (`priceRequestWorstCase`), its input written to the cache, its whole `max_tokens` and
   five searches, each reading the input again from the cache and bringing back
-  `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`. A request whose fallback would pass the limit goes without
-  `fallbacks`, one that cannot fit fails the run with its limits' note, which chains a subagent's,
-  and tagging past it is recorded skipped. A model a request names, or one a refusal may fall back
+  `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`, every earlier result read again by each later step. A request
+  whose fallback would pass the limit or a daily spend ceiling goes without `fallbacks`, one that
+  cannot fit fails the run with its limits' note, which chains a subagent's at the $10 and never at a
+  ceiling, and tagging past either is recorded skipped. A stream cut partway counts at the most its
+  model could write in the time it streamed (`priceCutRequestBound`,
+  `CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND`), its reasoning being billed and never streamed, and at its
+  reservation when it showed a fallback. A model a request names, or one a refusal may fall back
   to, joins `CLAUDE_MODEL_PRICES` and `CLAUDE_FALLBACK_MODELS` before it ships, which a test holds
   every request's model to, with `bun run probe:claude` after, which holds the fallbacks to the
   API's list and the allowance to what a search brings back
@@ -1143,6 +1191,19 @@ A conversation is kept twice, once for Claude and once for the page, and
   lifts them (`IS_USAGE_CAPPED`, `USAGE_CAPPED=true` holding them there), through each mutation's
   optional `$isUsageCapped`, which left out holds them, as the tests and the check scripts do: a
   test or a check that builds past a cap lifts it in its fixtures
+- Daily spend ceilings bound what a member's conversations cost (`MAX_DAILY_SPEND_MICRODOLLARS_…` in
+  strategydance-core, $25, $50 and $150), over the caps' 24 hours and their three scopes, summed
+  from `RunSpend` rows, which hold each run's `costBound` and their organization as plain ids, so no
+  deletion gets round them. The worker holds every request to them where it holds the $10
+  (`readRunSpendRoom`), and every start is held to them beside the caps (`readReachedUsageCap` with
+  `spend`): a send, Resume and Retry answer 429 with the ceiling's code, a continuation and a
+  reaction wait, a launch is refused with its sentence, a promotion leaves its runs pending and a
+  chain ends its subagent with its report. A run a ceiling stops ends failed with its note naming
+  the ceiling and when it has room (`ConversationMessage.ceilingScope`, `ceilingFreesAt`), which a
+  page from before reads as the failed note. A new way to start, promote or chain a run reads them
+  too, and a read of the caps or the ceilings hands its operation `{ organizationId, userId }` alone,
+  as Data Connect refuses any variable it does not declare, which the fake refuses too there. They
+  are lifted with the caps (`IS_USAGE_CAPPED`), the rows written anyway
 - A member starts or continues a run only with a confirmed address and conversations not suspended:
   every route that starts or continues one, the send, an answer, an approval, Resume, Retry and a
   file's upload, mounts `verifiedEmailMiddleware`, which reads the ID token's `email_verified`, then
@@ -1279,9 +1340,12 @@ A conversation is kept twice, once for Claude and once for the page, and
   reaches a limit stops instead. The worker queues the next run once its lease has stopped, and a
   run whose next could not be queued answers `held`, so its delivery comes back to queue it, as a
   delivery finding the run `CHAINED` does. The calls count 50 for each run of the chain
-  (`planConversationToolCalls`' `maxCalls`), and the fourth run's last request, after a turn's
-  results, ends that entry asking for the report (`SUBAGENT_REPORT_REQUEST`). Only the last run
-  writes the report
+  (`planConversationToolCalls`' `maxCalls`). The fourth run's results entry ends asking for the
+  report (`SUBAGENT_REPORT_REQUEST`) once any of its budgets nears its end (`isSubagentReportDue`):
+  its 24th request, two minutes left of its ten, 95 entries, or a next request whose worst case leaves
+  no room for another, within the $10 or what the daily spend ceilings leave it. Once asked, that request, its last, goes past the requests, the entries and
+  the ten minutes until 12 minutes after the claim (`readSubagentReportDeadline`), its cost held as
+  any request's, and nothing its reply calls runs. Only the last run writes the report
 - A member has five subagent runs at once in an organization
   (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`), `QUEUED` or `RUNNING` across all their conversations,
   apart from their own three. A launch first finalizes their dead subagent runs, then takes a free
@@ -1336,8 +1400,11 @@ A conversation is kept twice, once for Claude and once for the page, and
   report that comes after is marked with no run (`MarkSubagentReportsDelivered`), from whatever reads
   the parent full, the subagent's end, the reconcile or the sweep
 - Every write on a parent and its subagents keeps one lock order: the membership, the parent's runs,
-  the parent's row, its subagents' runs, then their rows, so whichever of a launch and a cascade
-  commits second sees the first. The parent's Stop asks its anchor's live subagents to stop in the
+  the parent's row, its subagents' runs, then their rows, and each reads its lock's response, so its
+  steps run apart and whichever of a launch and a cascade commits second sees the first. The
+  subagents' stops take the membership's lock to read its response, the suspensions read the runs
+  through the locked account's or organization's, and the web's `DeleteConversation` reads its
+  subagents through its membership read. The parent's Stop asks its anchor's live subagents to stop in the
   same write (`RequestConversationRunStopWithSubagents`, `StopQueuedConversationRunWithSubagents`),
   Stop all and a row's Stop go through the parent's routes (`POST …/subagents/stop`, `POST
   …/subagents/:subagentId/stop`), Retry stops and deletes the cut runs' subagents at an instant of
@@ -1348,6 +1415,15 @@ A conversation is kept twice, once for Claude and once for the page, and
   only once idle, lowering a remaining parent's `subagentCount` (`PruneClaimedSubagents`).
   `check:conversation-runs` reads the order off the mutations themselves, since PGlite serializes
   every race: a new write on a parent keeps it
+- `bun run check:conversation-races`, in the backend's package, races the runs' bounds and cascades
+  against a real Postgres: one run per conversation, three in flight, five slots, promotions,
+  reactions, a stop beside a chain, a delete beside a launch and a suspension beside a send, each
+  the backend's own writers released at once, many rounds over, printing the interleaving of a
+  round that fails. It never runs in CI: run it before a release that changes a run's mutations, as
+  `probe:claude` runs before one that changes a request. It needs Docker, where it starts a
+  throwaway Postgres, with four emulators on it behind a proxy, since one emulator runs one
+  operation at a time on any database (`withPostgresEmulators.ts`), on ports beside the person's
+  stack. `bun run emulators:postgres` serves the same until Ctrl-C, for any check pointed at it
 - A domain function hands an operation only the variables it declares: Data Connect refuses one it
   does not, which the fakes let through, so pass a member as `{ organizationId, userId }`, never a
   run reference that carries more
@@ -1512,9 +1588,12 @@ Modules says what each does and why.
   module registers its tools in is the order the agent lists them in, frozen as the agent's tools are
 - A tool takes a zod input schema and an `outputSchema`, answers `structuredContent` with the same
   JSON as text (`toToolResult`), carries annotations, `readOnlyHint` on reads, `destructiveHint` on a
-  delete, `openWorldHint: false` on all, and refuses with a result, `isError` and a sentence the
+  delete and on a write that can rewrite what it changes whole, as `update_document` can,
+  `openWorldHint: false` on all, and refuses with a result, `isError` and a sentence the
   model can act on (`toToolRefusal`), never a protocol error. The SDK answers an input that fails its
-  schema the same way
+  schema the same way. Annotations reach external agents' clients alone: Claude's tool list keeps a
+  module's name, description and input schema (`toConversationModuleTool`), so changing one moves
+  no pinned bytes
 - Every write takes an idempotency key in the call's `_meta`, under
   `com.strategydance/idempotencyKey`, and its mutation inserts its `ModuleCallResult` first, under
   `@include(if: $isKeyed)`, in the transaction that writes: a key taken refuses the write, and the
@@ -1611,8 +1690,8 @@ Modules says what each does and why.
 - `bun run suspend:conversations --production <email | organization id or slug> [--lift]`, in the
   backend's package, is staff's suspension of an account's or an organization's conversations, and
   `bun run report:usage --production [--days <n>] [--workspace-usage <dollars>]` what conversations
-  cost from the runs' ledgers, by organization and by account, which the decisions left for the
-  recorded usage are taken with. The second reads through the Admin SDK's own GraphQL, so it reads
+  cost from the runs' ledgers, by organization and by account, with each daily spend ceiling's scope
+  over the last 24 hours against it, which the decisions left for the recorded usage are taken with. The second reads through the Admin SDK's own GraphQL, so it reads
   production whatever its release. `finalizeDeadConversationRun` logs a line beginning with
   `DEAD_RUN_LOG_PREFIX` for each run it ends, which a log-based metric counts and an alert watches
   (Setup 13 in conversations.md): its words change with the metric's filter

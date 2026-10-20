@@ -405,7 +405,14 @@ const knowledgeMessages = defineMessages({
   moreActions: {
     id: 'knowledge.moreActions',
     defaultMessage: 'More actions',
-    description: "Accessible name of the button that opens an item of knowledge's menu, which holds Delete.",
+    description:
+      "Accessible name of the button that opens an item of knowledge's menu, which holds History and Delete.",
+  },
+  history: {
+    id: 'knowledge.history',
+    defaultMessage: 'History',
+    description:
+      "Item of an item of knowledge's menu that opens the list of its earlier versions, the text as it stood before each change an AI agent made.",
   },
   delete: {
     id: 'knowledge.delete',
@@ -437,6 +444,157 @@ const knowledgeMessages = defineMessages({
     id: 'knowledge.restoreError',
     defaultMessage: 'The item could not be brought back.',
     description: 'Notification when taking back the delete of an item of knowledge failed.',
+  },
+  historyTitle: {
+    id: 'knowledge.historyTitle',
+    defaultMessage: 'History',
+    description:
+      "Title of the dialog listing an item of knowledge's earlier versions, the text as it stood before each change an AI agent made to it.",
+  },
+  historyDescription: {
+    id: 'knowledge.historyDescription',
+    defaultMessage:
+      'The text as it stood before each change an AI agent made, kept for {days} days. Restoring one writes it back as a new change, which this list can undo too.',
+    description:
+      'Line under the title of the dialog listing the earlier versions of an item of knowledge. {days} is a number of days, such as 30.',
+  },
+  historyClose: {
+    id: 'knowledge.historyClose',
+    defaultMessage: 'Close',
+    description:
+      "Accessible name of the button that closes the dialog listing an item of knowledge's earlier versions.",
+  },
+  historyEmpty: {
+    id: 'knowledge.historyEmpty',
+    defaultMessage: 'No AI agent changed this item in the last {days} days.',
+    description:
+      'What the history dialog of an item of knowledge says when no AI agent changed it lately. {days} is a number of days, such as 30.',
+  },
+  historyError: {
+    id: 'knowledge.historyError',
+    defaultMessage: 'The history could not be loaded.',
+    description: 'What the history dialog of an item of knowledge says when its earlier versions could not be read.',
+  },
+  revisionByStrategyDance: {
+    id: 'knowledge.revisionByStrategyDance',
+    defaultMessage: 'Strategy Dance changed it for {name}',
+    description:
+      "An entry of an item of knowledge's history: the product's own AI changed the item in a conversation with a member. {name} is the member's name. Strategy Dance is the product's name, kept as it is.",
+  },
+  revisionByAgent: {
+    id: 'knowledge.revisionByAgent',
+    defaultMessage: 'An AI agent {name} connected changed it',
+    description:
+      "An entry of an item of knowledge's history: an AI agent from another company, which a member connected to the product, changed the item. {name} is that member's name.",
+  },
+  revisionRestored: {
+    id: 'knowledge.revisionRestored',
+    defaultMessage: '{name} restored the version of {date}',
+    description:
+      "An entry of an item of knowledge's history: a member brought back an earlier version of its text. {name} is the member's name, {date} the date and time of the version brought back.",
+  },
+  revisionFormerMember: {
+    id: 'knowledge.revisionFormerMember',
+    defaultMessage: 'a former member',
+    description:
+      "Stands for the name of somebody whose account is gone, in an entry of an item of knowledge's history, such as 'Strategy Dance changed it for a former member'.",
+  },
+  revisionJustNow: {
+    id: 'knowledge.revisionJustNow',
+    defaultMessage: 'Just now',
+    description: "When an entry of an item of knowledge's history was made, less than a minute ago.",
+  },
+  revisionOpenConversation: {
+    id: 'knowledge.revisionOpenConversation',
+    defaultMessage: 'Open the conversation',
+    description:
+      "Link, on an entry of an item of knowledge's history, to the reader's own conversation with the product's AI in which it made the change.",
+  },
+  revisionView: {
+    id: 'knowledge.revisionView',
+    defaultMessage: 'View the text before',
+    description:
+      "Button on an entry of an item of knowledge's history that shows the text as it stood before that change.",
+  },
+  revisionHide: {
+    id: 'knowledge.revisionHide',
+    defaultMessage: 'Hide the text',
+    description: "Button on an entry of an item of knowledge's history that hides the text it shows.",
+  },
+  revisionTextError: {
+    id: 'knowledge.revisionTextError',
+    defaultMessage: 'The text could not be loaded.',
+    description: "What an entry of an item of knowledge's history says when the text it keeps could not be read.",
+  },
+  revisionTextEmpty: {
+    id: 'knowledge.revisionTextEmpty',
+    defaultMessage: 'The item held no text.',
+    description:
+      "What an entry of an item of knowledge's history shows when the item held no text before that change, only a title.",
+  },
+  restoreVersion: {
+    id: 'knowledge.restoreVersion',
+    defaultMessage: 'Restore this version',
+    description:
+      "Button on an entry of an item of knowledge's history that puts the text back as it stood before that change, after asking.",
+  },
+  restoreVersionWarning: {
+    id: 'knowledge.restoreVersionWarning',
+    defaultMessage:
+      'The text goes back to how it stood before this change. Everything written since goes too: {count, plural, =0 {whatever members typed} one {# later change listed here and whatever members typed} other {# later changes listed here and whatever members typed}}.',
+    description:
+      "What an entry of an item of knowledge's history says before its earlier text is restored. {count} is how many entries above it in the history, newer changes, are undone too.",
+  },
+  restoreVersionConfirm: {
+    id: 'knowledge.restoreVersionConfirm',
+    defaultMessage: 'Restore',
+    description:
+      "Button that confirms putting an item of knowledge's text back as it stood before a change, under the warning of what goes with it.",
+  },
+  restoreVersionCancel: {
+    id: 'knowledge.restoreVersionCancel',
+    defaultMessage: 'Cancel',
+    description: "Button that keeps an item of knowledge's text as it is, rather than restore an earlier version.",
+  },
+  restoreVersionWaiting: {
+    id: 'knowledge.restoreVersionWaiting',
+    defaultMessage: 'Your latest changes are still being saved. Restore once they are.',
+    description:
+      "Line under the restore button of an item of knowledge's history while the reader's own typing has not reached the server yet.",
+  },
+  versionRestored: {
+    id: 'knowledge.versionRestored',
+    defaultMessage: 'The text is back as it stood on {date}',
+    description:
+      "Notification once an earlier version of an item of knowledge's text is restored. {date} is the date and time of that version.",
+  },
+  undoRestore: {
+    id: 'knowledge.undoRestore',
+    defaultMessage: 'Undo',
+    description: "Button in a notification that takes back the restore of an earlier version of an item's text.",
+  },
+  versionRestoreError: {
+    id: 'knowledge.versionRestoreError',
+    defaultMessage: 'This version could not be restored. Try again.',
+    description: "Notification when restoring an earlier version of an item of knowledge's text failed.",
+  },
+  versionUnrestorable: {
+    id: 'knowledge.versionUnrestorable',
+    defaultMessage: 'This version cannot be restored as the item stands now.',
+    description:
+      "Notification when an earlier version of an item of knowledge's text cannot be written back, for instance because the item would grow too long.",
+  },
+  versionGone: {
+    id: 'knowledge.versionGone',
+    defaultMessage: 'This version is no longer kept.',
+    description:
+      "Notification when an earlier version of an item of knowledge's text is gone, past the days it is kept or with the item deleted.",
+  },
+  restoreUndoError: {
+    id: 'knowledge.restoreUndoError',
+    defaultMessage: 'The restore could not be undone. The history can still bring back the text from before it.',
+    description:
+      "Notification when taking back the restore of an earlier version of an item's text failed, for instance as somebody typed in it meanwhile. The history is the list of the item's earlier versions.",
   },
   aspectEmptyTitle: {
     id: 'knowledge.aspectEmptyTitle',

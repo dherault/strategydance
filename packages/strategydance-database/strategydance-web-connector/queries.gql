@@ -923,6 +923,12 @@ query GetOrganizationDocuments($organizationId: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "FoldDocumentWithRevisionForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && has(mutation.variables.title)"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
@@ -1061,6 +1067,12 @@ query GetLiveDocument($organizationId: UUID!, $id: UUID!)
 )
 @refresh(
   onMutationExecuted: {
+    operation: "FoldDocumentWithRevisionForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RenameDocumentForAgent"
     condition: "mutation.variables.id == request.variables.id"
   }
@@ -1080,6 +1092,12 @@ query GetLiveDocument($organizationId: UUID!, $id: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "RestoreDocumentForAgent"
+    condition: "mutation.variables.id == request.variables.id"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreDocumentRevision"
     condition: "mutation.variables.id == request.variables.id"
   }
 )
@@ -1164,6 +1182,75 @@ query GetDocumentPresences($organizationId: UUID!, $id: UUID!)
       displayName
       imageUrl
     }
+  }
+}
+
+# The text a document held before each of the agents' edits to it, and before each restore of one,
+# the newest first, for its history: who made each, from where and when, never the text, which
+# `GetDocumentRevisionContent` reads for the one revision opened. Live, refreshed by every write
+# that keeps one, so the history shows an edit as it is made, and emptied for a member removed from
+# the organization. Up to 100, a month's at most, which the daily sweep prunes. The team's, so any
+# member reads them, whatever the team lets agents do with the document
+query GetDocumentRevisions($organizationId: UUID!, $documentId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "FoldDocumentWithRevisionForAgent"
+    condition: "mutation.variables.id == request.variables.documentId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreDocumentRevision"
+    condition: "mutation.variables.id == request.variables.documentId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  documentRevisions(
+    where: {
+      documentId: { eq: $documentId }
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    orderBy: [{ createdAt: DESC }, { id: DESC }]
+    limit: 100
+  ) {
+    id
+    scope
+    restoredVersionAt
+    createdAt
+    user {
+      id
+      email
+      displayName
+      imageUrl
+      imageThumbnailUrl
+    }
+  }
+}
+
+# One revision's text, as BlockNote's blocks, read once when a member opens it in the document's history
+query GetDocumentRevisionContent($organizationId: UUID!, $id: UUID!) @auth(level: USER) {
+  documentRevisions(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    content
   }
 }
 
@@ -1957,6 +2044,8 @@ query GetConversation($organizationId: UUID!, $id: UUID!)
       aspects
       aspectsSetBy
       noteKind
+      ceilingScope
+      ceilingFreesAt
       approvalState
     }
   }
@@ -2068,6 +2157,8 @@ query GetConversationMessagesBefore($organizationId: UUID!, $id: UUID!, $beforeP
     aspects
     aspectsSetBy
     noteKind
+    ceilingScope
+    ceilingFreesAt
     approvalState
     text
     citations

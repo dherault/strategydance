@@ -289,10 +289,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aiheadshothub.com/",
     "submissionUrl": "https://aiheadshothub.com/listings/create/",
-    "description": "",
-    "categories": [],
+    "description": "Niche directory comparing AI headshot generators by features, pricing and styles, where makers of headshot tools can submit their product.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-20",
     "unreachableSince": null
   },
   {
@@ -591,10 +593,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://aitoolsmarketer.com/",
     "submissionUrl": "https://aitoolsmarketer.com/submit/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "description": "Directory of AI tools for marketers, filed by marketing job with sourced pricing and plan limits, where vendors can submit tools for editorial review.",
+    "categories": [
+      "AI_TOOLS",
+      "MARKETING"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-20",
     "unreachableSince": null
   },
   {
@@ -1449,11 +1454,13 @@
     "name": "BetaList",
     "type": "WEBSITE",
     "rootUrl": "https://betalist.com/",
-    "submissionUrl": "https://betalist.com/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://betalist.com/submit",
+    "description": "Directory of early-stage, pre-launch and recently launched startups for early adopters, where founders submit their startups for editorial review.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-20",
     "unreachableSince": null
   },
   {
@@ -1748,7 +1755,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-20",
     "unreachableSince": null
   },
   {
@@ -2699,10 +2706,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.hhlink.com/",
     "submissionUrl": "https://www.hhlink.com/%E6%8F%90%E4%BA%A4%E6%96%B0%E7%BD%91%E7%AB%99",
-    "description": "",
-    "categories": [],
+    "description": "Chinese-language web directory of websites for overseas Chinese, sorted by region and topic, where site owners submit their own sites for review.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-10-20",
     "unreachableSince": null
   },
   {
@@ -2845,10 +2854,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://indie-builds.com/",
     "submissionUrl": "https://indie-builds.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Community platform where indie makers submit and upvote their apps, websites, SaaS tools, AI tools, games and dev tools, with daily and all-time leaderboards.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-20",
     "unreachableSince": null
   },
   {
@@ -2929,10 +2940,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.indietool.io/",
     "submissionUrl": "https://www.indietool.io/",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
+    "description": "Launch platform and directory where indie founders list their startups, apps and tools, each listing getting a badge and a backlink.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": "2026-10-20",
     "unreachableSince": null
   },
   {
@@ -3248,7 +3261,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-20",
     "unreachableSince": null
   },
   {
@@ -3801,10 +3814,14 @@
     "type": "WEBSITE",
     "rootUrl": "https://registry.modelcontextprotocol.io/",
     "submissionUrl": "https://registry.modelcontextprotocol.io/",
-    "description": "",
-    "categories": [],
+    "description": "The official open registry of Model Context Protocol (MCP) servers, where developers publish their servers using a CLI after verifying their namespace.",
+    "categories": [
+      "MCP_SERVERS",
+      "DEVELOPER_TOOLS",
+      "OPEN_SOURCE"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-20",
     "unreachableSince": null
   },
   {
@@ -4636,11 +4653,13 @@
     "name": "SaasList",
     "type": "WEBSITE",
     "rootUrl": "https://saaslist.com/",
-    "submissionUrl": "https://saaslist.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "submissionUrl": "https://saaslist.com/advertise/",
+    "description": "Comparison and review site for business SaaS such as CRM, VoIP, helpdesk and call center software, aimed at business software buyers.",
+    "categories": [
+      "SAAS"
+    ],
+    "businessModel": "PAID",
+    "lastChecked": "2026-10-20",
     "unreachableSince": null
   },
   {

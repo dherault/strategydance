@@ -3,11 +3,16 @@ import {
   DEVELOPMENT_API_URL,
   DEVELOPMENT_APP_URL,
   INTEGRATION_CONNECTED_PATH,
+  MAX_DAILY_SPEND_MICRODOLLARS_PER_ACCOUNT,
+  MAX_DAILY_SPEND_MICRODOLLARS_PER_MEMBER,
+  MAX_DAILY_SPEND_MICRODOLLARS_PER_ORGANIZATION,
   PRODUCTION_API_URL,
   PRODUCTION_APP_URL,
   SERVED_MODULES,
 } from 'strategydance-core'
 import type { TaskStatus } from 'strategydance-database/backend'
+
+import type { UsageCapScope } from '~types'
 
 /* ---
   ENVIRONMENT
@@ -34,9 +39,17 @@ export const IS_WORKER = process.env.SERVICE === 'worker'
   mutation that starts a conversation, a run or a subagent is told through `isUsageCapped`: they
   guard spend, so everywhere, staff included, but on the development backend, where placeholder runs
   cost nothing and a developer starts dozens. `USAGE_CAPPED=true` holds them there too, to try them.
-  The tests and the check scripts keep them. Rows are counted either way
+  The tests and the check scripts keep them. Rows are counted either way, and so are the daily spend
+  ceilings, which every request a worker sends and every start is held to here alone
 */
 export const IS_USAGE_CAPPED = !IS_DEVELOPMENT || process.env.USAGE_CAPPED === 'true'
+
+// The daily spend ceilings, in microdollars, by whose spend each holds
+export const DAILY_SPEND_CEILINGS: Record<UsageCapScope, number> = {
+  member: MAX_DAILY_SPEND_MICRODOLLARS_PER_MEMBER,
+  account: MAX_DAILY_SPEND_MICRODOLLARS_PER_ACCOUNT,
+  organization: MAX_DAILY_SPEND_MICRODOLLARS_PER_ORGANIZATION,
+}
 
 /*
   Whether a member starts or continues a run only once their ID token says their address is
@@ -182,6 +195,16 @@ export const CONVERSATION_RUN_MAX_DURATION_MS = 10 * 60 * 1000
 export const CONVERSATION_RUN_STREAM_DEADLINE_MS = 14 * 60 * 1000
 
 /*
+  What a subagent's fourth run keeps for its report, as M42 settles it. It asks for the report once
+  less than two minutes are left of its ten, or it has drawn 95 of its 100 entries; and once it has
+  asked, the request goes past the run's requests, its entries and its ten minutes, but not once
+  less than two minutes are left before its stream would be cut, 12 minutes after the run was first
+  claimed
+*/
+export const SUBAGENT_REPORT_TIME_MS = 2 * 60 * 1000
+export const SUBAGENT_REPORT_ENTRY_MARGIN = 5
+
+/*
   A run's cost limit, $10 in microdollars, as David chose on 2026-10-16, since a cap on starts
   bounds nothing a single run spends: before each request, the run's ledger priced at list prices,
   each request it has no answer for at the worst case its reservation recorded, plus the most the
@@ -309,6 +332,23 @@ export const KNOWLEDGE_READ_PAGE_LENGTH = 40000
 // How many times an agent's edit is applied to a document whose snapshot somebody folded more into
 // meanwhile, read again each time, before the module gives up
 export const KNOWLEDGE_FOLD_ATTEMPTS = 3
+
+/*
+  How large a write of a document's text may be, its variables as JSON in UTF-8: short of the 4 MiB
+  Data Connect takes in a request, gRPC's own bound, which the emulator names when a fold carrying
+  its revision beside the new snapshot passes it, with room for the rest of the request
+*/
+export const MAX_KNOWLEDGE_WRITE_REQUEST_BYTES = 4000000
+
+/*
+  A member's reads of what a conversation's edits can undo and their restores of a document's
+  revisions, each of which merges a whole document's text in the instance: at most 20 documents a
+  read, the latest edited first, and 60 reads and restores in 10 minutes, counted in the instance's
+  memory as the pictures' uploads are
+*/
+export const MAX_UNDOABLE_REVISION_DOCUMENTS = 20
+export const KNOWLEDGE_REVISION_RATE_LIMIT = 60
+export const KNOWLEDGE_REVISION_RATE_WINDOW_MS = 10 * 60 * 1000
 
 /*
   The board's columns, left to right, as the web's `TASK_STATUSES` lists them: the order the Tasks

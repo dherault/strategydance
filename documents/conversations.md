@@ -86,7 +86,15 @@ kept as a revision a member can undo, in M40, since one edit can rewrite a docum
 nobody watching (see Risks); the locks the runs are reasoned about are exercised against a real
 Postgres, in M41; and a subagent asks for its report before any of its limits, not only its 25
 requests, in M42. What the review found beside them is fixed in pull requests of their own, and what
-it left is in Risks. When a decision changes, change it here first.
+it left is in Risks. Revised on 2026-10-19, in M40, with what building document revisions settled, in
+Rich text and Markdown: a revision keeps its text as BlockNote's blocks, never Markdown, which no
+agent reads and the page would draw worse, and its snapshot compressed, since a fold carrying two
+whole snapshots passes the 4 MiB Data Connect takes in a request. Revised on 2026-10-19, building
+M39, as David chose: the daily spend ceilings at $25 a member in each organization, $50 an account
+and $150 an organization; a stream cut partway counted at the most its model could write in the time
+it streamed, since its reasoning is billed and never streamed; and a run a ceiling stops given a note
+of its own, saying whose ceiling and when it has room (see Usage caps). When a decision changes,
+change it here first.
 
 ## The design
 
@@ -122,7 +130,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Replies | Whole messages, as designed. The thinking indicator shows live progress. No token streaming to the browser |
 | Modules (MCP) | Strategy Dance's own capabilities as MCP servers, one per module, which its agent uses and which a member can add to an external agent (claude.ai, ChatGPT, Claude Code, Cursor). Knowledge first, from M14, then the team's tasks, from M15, then Subagents, from M32, which only Strategy Dance's agents reach until a later plan serves it; budget, software solutions, directories and marketing tactics later. The agent reaches a module in process, over MCP; an external agent reaches it at `https://api.strategydance.com/mcp/<module>`, through Strategy Dance's own OAuth authorization server, acting as one member in the one organization they chose. The AI permissions hold for every agent. Members decide which agents they connect: no organization setting governs it |
 | Integrations (MCP) | Other companies' MCP servers, which the agent calls; the reverse of modules. The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it. A subagent calls only those, since nobody can approve a call for it (M36) |
-| Usage limits | Daily caps from M35, over a rolling 24 hours, as David chose on 2026-10-13: 20 conversations and 100 runs a member in each organization, 100 conversations and 500 runs an organization, and 30 subagents a member in each organization (see Usage caps), until a credit system replaces them. From the same milestone, as David chose on 2026-10-16: an account's ceilings across every organization it is in, 40 conversations, 200 runs and 60 subagents a day, since an account creates organizations at will; a run stops at $10 of estimated cost, priced from its ledger, since a cap on starts bounds nothing a single run spends; and what finishes work under way, an answer's continuation, an Allow's and a reaction, passes a cap only up to one and a half times it. Above them the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage. Subagents have bounds of their own (ten per member action, five at once per member, four runs each, twenty dispatches on their own queue), as David chose on 2026-10-12. From M39, as David chose on 2026-10-18 after the review of M1 to M38, daily ceilings in dollars beside the caps, per member in each organization, per account and per organization, summed from the runs' ledgers: the caps on starts let one account spend some $5400 a day, and the workspace's spend limit, shared by every customer, would stop them all at once |
+| Usage limits | Daily caps from M35, over a rolling 24 hours, as David chose on 2026-10-13: 20 conversations and 100 runs a member in each organization, 100 conversations and 500 runs an organization, and 30 subagents a member in each organization (see Usage caps), until a credit system replaces them. From the same milestone, as David chose on 2026-10-16: an account's ceilings across every organization it is in, 40 conversations, 200 runs and 60 subagents a day, since an account creates organizations at will; a run stops at $10 of estimated cost, priced from its ledger, since a cap on starts bounds nothing a single run spends; and what finishes work under way, an answer's continuation, an Allow's and a reaction, passes a cap only up to one and a half times it. Above them the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage. Subagents have bounds of their own (ten per member action, five at once per member, four runs each, twenty dispatches on their own queue), as David chose on 2026-10-12. From M39, as David chose on 2026-10-18 after the review of M1 to M38, daily ceilings in dollars beside the caps, $25 a member in each organization, $50 an account and $150 an organization, as he set them on 2026-10-19, summed from what each run may have cost and held before every request and at every start: the caps on starts let one account spend some $5400 a day, and the workspace's spend limit, shared by every customer, would stop them all at once |
 | Conversation size | One safety cap of 2000 entries, which refuses a send and stops a run, and the measured request, which marks a conversation full before its context window does. No room is reserved ahead |
 | Subagents | Strategy Dance's agent hands work off to subagents, runs of its own that carry out a brief it writes, in parallel, and report back, as David chose on 2026-10-12: through the Subagents module, an MCP server of Strategy Dance's that only its own agents reach, in process (M30 to M34). A subagent acts as the member, is one level deep, has every tool the agent has but `ask_user`, the Subagents module's own and, as David chose on 2026-10-16, the two deletes, and takes up to four chained runs. The parent reacts to their reports in a run of its own, the first run no member starts, and never launches from it (see Subagents) |
 | The orchestrator | Later, with no milestones yet: once a day in each organization that turns it on, a run acting as the organization, through an agent membership, reads its documents and tasks, launches subagents, reorganizes what it finds and keeps a log (see The orchestrator). Until then nothing starts without a member, except a parent's reaction to its subagents |
@@ -984,10 +992,12 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
     `checkConversationAnswer`, which the page uses too: options of that question, each once, one at
     most for a single choice, own words on one line of at most 500 characters without a control
     character, something chosen or written, and for a single choice exactly one of the two.
-  - What is left is counted as the other questions still waiting, read after the lock, the one
-    answered left out by its id: a step of a Data Connect mutation does not see what the same
-    mutation wrote, so it would still read as waiting. An answer another request recorded first is
-    seen, which the emulator check of two last answers at once confirms.
+  - What is left is counted as the other questions still waiting, read after the lock as a
+    statement of its own, since it reads the waiting run's conversation from the step before it: in
+    one statement, which reads the snapshot it started with, two last answers at once each counted
+    the other waiting and neither carried the conversation on (M41). The one answered is left out by
+    its id, whichever way the step runs. An answer another request recorded first is seen, which
+    `check:conversation-runs`' two last answers at once confirms on a real Postgres.
   - "Waiting" is the conversation's, never the question's run's: the lock matches
     `isAwaitingAnswer`, and only the turn the transcript ends on holds questions without an answer,
     so a question drawn by a run that died is answered once the resume that carries it on waits.
@@ -1465,7 +1475,7 @@ agents in M20:
 | `list_documents` | `{ aspects?, cursor? }`: the documents AI may read, 50 at a time, latest updated first and then by id, since two can share an instant, with id, title, aspects, `updatedAt` and `isAiWritable`, and a `cursor`, holding the last one's `updatedAt` and id, while more remain, for an agent that would rather look round than search | read |
 | `read_document` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, a mention written as `[title](doc:<id>)` or `[name](task:<id>)`, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text. Refused, before anything of the document is loaded, when the team keeps it from AI, `isAiReadable` off ("The team keeps this document from AI. Tell the member you cannot read it."), which a member's mention of it does not change | read |
 | `create_document` | `{ title, aspects, content }`: a new document, content in Markdown, mentions included, stored as its first Yjs snapshot with `content` and `contentText` beside it, under the knowledge cap, as `CreateDocument` holds it. It starts with `isAiReadable` and `isAiWritable` on, as a document made on the page does, so the agent that made it can read and edit it, and the team can turn either off | write |
-| `update_document` | `{ id, version?, title?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, never a mention, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. A call makes one edit: `title` alone, or with at most one of `content`, `append`, `replaceBlocks` and `replaceText`, the schema refusing two of them together, or none of the five, before anything is read, so no two implementations can disagree on which applies first. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the team keeps AI from changing the document, `isAiWritable` off, or from reading it ("The team keeps AI from changing this document. Tell the member instead."); for `content`, which rewrites everything the model read, when it comes without the `version` `read_document` gave or the text is no longer that version, before anything is written; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document | write |
+| `update_document` | `{ id, version?, title?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, never a mention, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. A call makes one edit: `title` alone, or with at most one of `content`, `append`, `replaceBlocks` and `replaceText`, the schema refusing two of them together, or none of the five, before anything is read, so no two implementations can disagree on which applies first. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the team keeps AI from changing the document, `isAiWritable` off, or from reading it ("The team keeps AI from changing this document. Tell the member instead."); for `content`, which rewrites everything the model read, when it comes without the `version` `read_document` gave or the text is no longer that version, before anything is written; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document. An edit that changes the text keeps the text it replaced as a revision a member can go back to for 30 days, in the fold that stores it (see Rich text and Markdown), and the tool says `destructiveHint: true`, which an external agent's client may read to ask its member first: the hint is advisory, and the revision is what guards the text | write |
 | `set_document_aspects` | `{ id, aspects }`: flags the document with its aspects, replacing them all, each at most once, as the aspects dialog does. Refused as `update_document` is | write |
 | `delete_document` | `{ id }`: deletes the document as its page's Delete does, setting `deletedAt`, so it can be restored for a day, which the result says. Refused unless AI may both read and change it | write |
 | `restore_document` | `{ id }`: restores a document deleted less than a day ago, under the knowledge cap, as `RestoreDocument` does. Refused unless AI may both read and change it | write |
@@ -2037,13 +2047,23 @@ way (see The orchestrator).
   then sends its context and the request. At the ten minutes, the calls running finish, no other
   starts, and the run chains. The fifty tool calls count from the anchor, as a resumed run's do, fifty
   for each run the chain has taken, which `planConversationToolCalls` reads from the run's number. The
-  fourth run's last request, its 25th, when it follows a turn's tool results, carries a text block
-  after them in that results entry, telling the subagent it has one request left and to write its
-  report now, calling no tool, as David chose on 2026-10-13, so work the limits cut off still ends
-  with a report, and ends `COMPLETED` when it does. Only the requests can be seen coming: a fourth
-  run ended by its ten minutes or its 100 entries reports its last text as before. A fourth run that
-  reaches a limit ends `FAILED`, as a conversation's run ends, and its report says it stopped at its
-  limits.
+  fourth run's last request, when it follows a turn's tool results, carries a text block after them
+  in that results entry (`SUBAGENT_REPORT_REQUEST`), telling the subagent it has one request left and
+  to write its report now, calling no tool, as David chose on 2026-10-13, so work the limits cut off
+  still ends with a report, and ends `COMPLETED` when it does. From M42 the entry asks once any of
+  the run's budgets nears its end, not only before its 25th request (`isSubagentReportDue`): its 24th
+  request sent, under two minutes left of its ten, 95 of its 100 entries drawn, or a ledger whose next
+  request, reserved at its worst case, would leave no room within the $10, or from M39 within what the
+  daily spend ceilings leave it, for one more attempt as dear, the next request reckoned from the last one's input and output and the results it adds. Once
+  asked, the request goes past the run's requests, entries and ten minutes, while two minutes are
+  left before its stream would be cut, 12 minutes after the claim (`SUBAGENT_REPORT_TIME_MS`), and
+  its cost is held to the $10 as any request's is. A fourth run whose ten minutes come between two of
+  a turn's calls answers those they kept from starting as not run for lack of time
+  (`UNRUN_AT_TIME_LIMIT_CALL_RESULT`) and asks in the same entry. Nothing the reply to the request
+  calls runs: its calls are drawn failed, and the run ends at its limits, its report the reply's
+  text. A fourth run that reaches a limit without a report, one whose report request cannot fit its
+  time or its cost, ends `FAILED`, as a conversation's run ends, and its report says it stopped at its
+  limits, beside its last text.
 - **The report** is its last `AGENT_TEXT`, its pieces joined, cut to 8000 characters
   (`MAX_SUBAGENT_REPORT_LENGTH`), as David chose on 2026-10-13: a batch of ten then delivers some
   20000 tokens rather than 50000, which could mark its parent full, and a full conversation is never
@@ -2201,8 +2221,10 @@ way (see The orchestrator).
   parent's row too, before the step that reaches its subagents, and Stop sets the stopped run's
   `stopRequestedAt` in that transaction. Whichever commits second sees the first: a launch after a
   Stop or a delete finds its run asked to stop or its parent deleted and is refused, and a Stop or a
-  delete after a launch reaches the subagent it made, since a step after a lock sees what committed
-  before it. The rows go in one order everywhere: the membership, then the parent's runs, the
+  delete after a launch reaches the subagent it made, since each reads its lock's response, which
+  runs its steps as statements of their own, so a step after a lock sees what committed while it
+  waited. In one statement, which reads the snapshot it started with, a delete that waited on the
+  parent's row for a launch to commit left the launch's subagent live (M41). The rows go in one order everywhere: the membership, then the parent's runs, the
   parent's row, its subagents' runs, and their rows. A worker's fenced write takes its run before its
   conversation, so Stop and a delete write the parent's runs they stop before the parent's row,
   never after it, which `DeleteConversation` turns round from M33, since it writes the conversation
@@ -2217,9 +2239,9 @@ way (see The orchestrator).
   promoted by the promotion that follows the Stop, which takes the membership after the launch. No
   two of them wait on each other's lock, and a crash between a write and its promotion leaves a slot
   free only until the reconcile or the sweep promotes into it. The emulator's PGlite runs one
-  transaction at a time, so the race is Postgres' to reason about: the fake's tests and the emulator
-  check hold the outcome, a launch after a Stop or a delete refused and one before reached by it, and
-  a launch against a send, an answer, Resume and Retry, in both orders.
+  transaction at a time, so the fake's tests and the emulator check hold the outcome, a launch after
+  a Stop or a delete refused and one before reached by it, and a launch against a send, an answer,
+  Resume and Retry, in both orders, and `check:conversation-races` races them on a real Postgres.
 - **In the parent's thread** (M34), a `launch_subagent` call is drawn as the subagent's row: its title,
   its status, live (queued, waiting for a slot, working with its step, reported, stopped, failed or
   interrupted), Stop while it works, and "View work". That opens its thread in a dialog, live and
@@ -2484,6 +2506,33 @@ for Strategy Dance's agent and an external one alike (see `CLAUDE.md` § The dat
   nearly full document is refused with a result the model can explain, and nothing is written or
   deleted. A document with no `state` is seeded in the same write, under
   `SeedDocumentState`'s condition.
+- **Keeping what it replaced**, from M40: the fold that stores an edit changing the text,
+  `FoldDocumentWithRevisionForAgent`, inserts a `DocumentRevision` in the same transaction, under
+  the edit's key, so an edit and the text it replaced commit together or not at all. It holds the
+  text as the fold read it, every pending update merged: its snapshot, compressed with gzip, which
+  only the backend reads, and its `content`, BlockNote's blocks, which the document's history draws
+  as the page draws a document; who made it, the member, and where from, the module call's scope,
+  `conversation:<id>` or `connection:<id>`; the call's key, Claude's `tool_use` id for Strategy
+  Dance's agent; and a fingerprint of the text the edit left, a hash of every node, attribute and
+  character y-prosemirror reads from it, ids included, by which an Undo knows nobody has written
+  since and an edit knows it changed something. Never `read_document`'s version, a hash of the
+  agent's Markdown, which flattens a line break in a table's cell and says nothing of a cell's
+  alignment, so an Undo would write over a member's change to either. Kept 30 days, which the daily sweep prunes, and deleted with the document. Only members read
+  them, whatever the team lets agents do with the document. Data Connect takes 4 MiB a request,
+  gRPC's own bound, which a fold carrying two whole snapshots at their bounds passed (4800816 bytes
+  in the emulator): compressed, a revision fits beside the new snapshot as a rule, and a fold still
+  past 4000000 bytes is refused before it is sent, as a snapshot past its bound is, never written
+  without its revision.
+- **Going back** is a member's: the backend reads the document as it stands and writes the
+  revision's text back as a new edit, through `updateRichTextYDoc`'s `restore`, which keeps every
+  top-level block the two share exactly, its Yjs items and whatever is typed in it meanwhile,
+  deletes the others and writes the revision's own nodes back, ids, pictures and all, one run of
+  blocks at a time between two it keeps: written in one go, y-prosemirror's scan would turn a kept
+  block between two runs into a new one in place. The restore is stored as a fold is, under the
+  revision read, and keeps a revision of its own, so it can be undone in turn. Undo, on the tool
+  call's row, goes back only while the text still has the fingerprint the edit left, which the thread
+  asks the backend once it holds an edit and again on focus; a restore from the document's history
+  says first that everything written since goes too, every later entry and whatever members typed.
 
 The thread draws the agent's Markdown with the design system's `Markdown` component, built in M3 on
 `react-markdown`, `remark-gfm` and `remark-breaks`: HTML drawn as text, an element allowlist with
@@ -2735,12 +2784,14 @@ multiply with them.
 | Subagents launched (`MAX_DAILY_SUBAGENTS_PER_MEMBER`, `_PER_ACCOUNT`) | 30 | 60 | none |
 
 Beside them, a run stops at $10 of estimated cost, which is what bounds what each start can spend.
-From M39, as David chose on 2026-10-18 after the review of M1 to M38, daily ceilings in dollars bound
-what the starts spend together, over the same 24 hours and the same three scopes, each run counted at
-the most its ledger may have cost (`priceConversationUsageBound`), a run in flight included, on a row
-no deletion reaches, and held before every request a worker sends as well as at each start, since a
-promotion and a chain carry work on with no start: the caps on starts alone let an account spend
-some $5400 a day (see Cost), and the M39 milestone says how.
+Daily ceilings in dollars, built in M39 as David chose on 2026-10-18 after the review of M1 to M38,
+bound what the starts spend together, over the same 24 hours and the same three scopes: the caps on
+starts alone let an account spend some $5400 a day (see Cost), and the workspace's spend limit above
+them stops every customer at once.
+
+| Ceiling (`MAX_DAILY_SPEND_MICRODOLLARS_PER_MEMBER`, `_PER_ACCOUNT`, `_PER_ORGANIZATION`) | Per member in each organization | Per account, across its organizations | Per organization |
+| --- | --- | --- | --- |
+| What runs may have cost in 24 hours, as David set them on 2026-10-19 | $25 | $50 | $150 |
 
 - **Runs as well as conversations.** Spend follows runs: one conversation holds 2000 entries and its
   member three runs at once, so conversations alone would leave a member who never starts another
@@ -2788,6 +2839,49 @@ some $5400 a day (see Cost), and the M39 milestone says how.
   with it. The check is the worker's alone, on the ledger it already writes before each request, so
   no table and no lock join it; what one run ends, a Resume or a Retry starts again under the
   daily caps.
+- **What a run may have cost, kept where no deletion reaches it.** A `RunSpend` row per run, keyed by
+  its id, a plain column, holding its account and its organization as `CappedStart` holds them, so
+  deleting the run, its conversation or its organization erases nothing of a day's spend, and
+  `costBound`, the most its ledger may have cost (`priceConversationUsageBound`): what Claude's
+  answers settled, and the worst case each request no answer settled reserved, one in flight
+  included. Every write of a run's `usage` upserts it in the same transaction, through an optional
+  `$costBound` the backend prices from the ledger it sends, so the reservation counts the request
+  about to go before it is sent; the reservation goes through a write of its own,
+  `RecordConversationRunUsage`, fenced and refused for a run no longer the worker's, as the lease's
+  renewal is not. `spentAt` moves with every such write, so a run counts whole until 24 hours after
+  its last reservation or settlement, each of its requests a full day at least. The sums filter on
+  `spentAt`, and the daily sweep prunes rows a day old by it. A run from before M39 counted nothing.
+- **Held before every request.** A start could be checked alone only if nothing it admitted went on
+  spending, and a promotion and a chain carry work on with no start, so the worker holds each
+  request to the ceilings where it holds the run's $10, a side request's included: it reads the
+  three scopes' sums with what its own row holds (`GetRunDailySpend`), and holds what the scope's
+  other runs may have cost, its own ledger as it stands and the request's worst case to each
+  ceiling. Fallbacks go only when both attempts fit every limit; past one with the single attempt the
+  request is not sent and the run ends failed at its limits, with a note of its own saying whose
+  ceiling and when it has room, a subagent's with its report saying so, and never chained. What
+  passes a ceiling is then only the requests in flight across its scope at once, each at most its
+  reservation, which the reads racing each other allow.
+- **Held at every start.** A send, a conversation's start, Resume and Retry are refused at a ceiling,
+  429 with its code (`ERROR_CODE_MEMBER_DAILY_SPEND_REACHED`, `_ACCOUNT_`, `_ORGANIZATION_`) and a
+  `Retry-After` read from when enough of the window's spend leaves it, oldest run first
+  (`GetDailySpendRows`). An answer's and an Allow's continuation are recorded and wait, a reaction
+  waits, a launch is refused with a sentence the agent acts on, a promotion leaves the runs pending
+  for the reconcile, and a chain ends its subagent with its report. A start is at a ceiling once
+  the least a request reserves no longer fits: its system prompt and tools, some 14000 tokens, its
+  whole output and its five searches, about $1.85 at Opus 5.5, so nothing starts only to stop at
+  its first request but over a large context. No overrun past a ceiling for what finishes work under
+  way, as there is past a cap. The development backend lifts them with the caps, rows written anyway.
+- **A stream cut partway**, by a stop, its deadline or a failure, is counted at the most its model
+  could write in the time it streamed, as David chose on 2026-10-19: its reasoning is billed but
+  never streamed under `display: "updates"`, and nothing reports a request's output before its end.
+  Its input as the stream's start billed it, each search its content shows as the worst case prices
+  one, and its output at the model's top rate (`CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND`, 400 tokens a
+  second, some five times the fastest `probe:claude` measured from a stream's send, 82 on Opus 5.5 on
+  2026-10-19) for as long as it streamed and five seconds after, never past
+  `max_tokens` nor its reservation (`priceCutRequestBound`). One that showed a fallback counts at its
+  reservation. A stop after ten seconds so counts a few cents rather than the some $1.77 to $4.01 a
+  request over a small context reserves, the results of its five searches each counted as read again
+  by every later step since M39.
 - **An account's ceilings** read the same `CappedStart` rows by the account, the kind and
   `createdAt`, indexed so, without a lock, as the organization's counts are. A row holds its
   organization as a plain UUID, `organizationId`, never a reference, unlike `ConversationSearch`'s,
@@ -2855,7 +2949,9 @@ some $5400 a day (see Cost), and the M39 milestone says how.
   `bun run report:usage --production --days 14`, production held staff's trials alone, 7 runs for
   $0.28, no subagent and no file, which says nothing yet of members' days: the caps and the $10
   limit stand, as David chose on 2026-10-18, until there is usage to read, and he sets the
-  workspace's spend limit and the budget alert himself before M38.
+  workspace's spend limit and the budget alert himself before M38. From M39 the daily spend ceilings
+  hold each to $25, $50 and $150, past which only the requests in flight at once go, and
+  `report:usage` prints each scope's last 24 hours against its ceiling.
 - The spend limit and the budget alert stay the guard above them, across organizations.
 
 ### Cost
@@ -2871,7 +2967,9 @@ typical, not bounds: a request may write 64000 tokens over up to 800000 of conte
 when cached. From M35 a run stops at $10 and a subagent at $40, and the daily caps bound a member's
 day in an organization at 150 runs and thirty subagents, an account's across its organizations at
 300 runs and sixty subagents (see Usage caps): typically some $15 a member, at worst some $2700 in
-an organization and $5400 for an account, which the spend limit stays above. A parent's reaction
+an organization and $5400 for an account, which the spend limit stays above. From M39 the daily
+spend ceilings hold a member's day in an organization to $25, an account's to $50 and an
+organization's to $150, past which only the requests in flight at once go. A parent's reaction
 comes once its subagents have reported, minutes after it last ran and past the cache's five
 minutes, so it writes the parent's whole context to the cache again: some $1 for 200000 tokens.
 
@@ -2902,7 +3000,11 @@ members' once they write.
   stops one that abuses its allowance (see Release gate). The caps count starts, so an account at
   its ceilings can still spend some $5400 a day, and the workspace's spend limit, the guard above
   it, is every customer's at once: M39 bounds a day in dollars, from the ledgers, as David chose on
-  2026-10-18 after the review of M1 to M38.
+  2026-10-18 after the review of M1 to M38. What still passes a ceiling is the requests in flight
+  across its scope at once, each at most its reservation: the reads of the sums race each other, an
+  account's across its organizations with no lock at all, which M41's races against a real Postgres
+  are for. A cut stream's count rests on a measure, each model's top output rate, which
+  `probe:claude` holds the rates to.
 - **Rate limits**: a new Anthropic organization starts on a low usage tier, which rises with what
   it has spent. The tier bounds how many runs go at once before the queue's own limits do, so it is
   checked before staff use and raised in M37. Subagents add up to five runs per member beside
@@ -2920,9 +3022,12 @@ members' once they write.
   with nobody watching as it happens. Its row, its thread, its report, the AI permissions and a
   restore for a day bound it as they bound the parent, and a reaction launches nothing, so injected
   text cannot start more subagents. An edit can still rewrite a document's whole text, which no
-  restore brings back, since a document keeps one snapshot and no history: the tool call row and
-  the report name it, and a document's history is what would close it, which M40 builds for an
-  agent's edits, as David chose on 2026-10-18 after the review of M1 to M38. If that proves too
+  restore brought back until M40, since a document kept one snapshot and no history: every edit an
+  agent makes now keeps the text it replaced for 30 days, which Undo on the tool call's row and the
+  document's history bring back, as David chose on 2026-10-18 after the review of M1 to M38. What a
+  subagent wrote over is still lost past those 30 days, and what members typed since goes with a
+  restore. A revision holds a whole compressed snapshot, so a month of an agent's edits to a long
+  document takes room in the database, which the daily sweep's prune bounds. If that proves too
   loose, a
   grant of tools per launch fits `launch_subagent`'s input, at the cost of the prefix the subagents
   share in the cache.
@@ -3005,10 +3110,19 @@ members' once they write.
   would write to every document mentioning it.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta) if it comes to that.
-- **The locks are reasoned, never raced.** The emulator's PGlite runs one transaction at a time, so
-  no check script has ever seen two writers meet: one run per conversation, three in flight, five
-  subagent slots, a report delivered once and the cascades' lock order rest on Postgres' semantics
-  as read. M41 runs the check scripts against a real Postgres with writers side by side.
+- **The locks are raced before a release, never in CI.** The emulator's PGlite runs one transaction
+  at a time, and so does one emulator on a real Postgres, so `bun run check:conversation-races`
+  races the runs' bounds on Postgres through four emulators: one run per conversation, three in
+  flight, five subagent slots, promotions, a batch's reaction, and the cascades beside a launch and
+  a send. It found, in M41, that Data Connect runs a mutation as one SQL statement, whose every part
+  reads the snapshot it started with, so a count or a cascade after a lock missed what the writer
+  holding it committed: four sends started four runs past the three, six launches six past the five
+  slots, two last answers left a conversation waiting for good, and a delete left a launch's
+  subagent live. The conversations' mutations read their lock's response since, which runs each step
+  as a statement of its own. The other mutations that count after a lock, the tasks', the
+  documents', the authorization server's, the integrations' and the organization's pages', still
+  read one statement's snapshot until a pull request of their own. Production's Data Connect is
+  taken to compile mutations as its emulator does, which Cloud SQL's Query Insights could confirm.
 - **What a request costs to prepare grows with the conversation**, as the review of M1 to M38 read
   it and left it: before each request the worker reads the whole transcript from Data Connect again,
   though nothing before the run's anchor changes while it runs, and a request following a turn's

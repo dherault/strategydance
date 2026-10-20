@@ -355,7 +355,7 @@ describe('runConversation, tagging', () => {
 
       const requests = (variables.usage as { requests?: { purpose?: string }[] } | undefined)?.requests ?? []
 
-      if (name === 'RenewConversationRunLease' && requests.some(({ purpose }) => purpose === 'tagging'))
+      if (name === 'RecordConversationRunUsage' && requests.some(({ purpose }) => purpose === 'tagging'))
         isCrashed = true
     }
 

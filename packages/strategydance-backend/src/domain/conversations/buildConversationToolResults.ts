@@ -44,6 +44,9 @@ type BuildConversationToolResultsInput = {
   // Whether a question still waiting is skipped, as a message sent instead of an answer skips it,
   // rather than refused
   skipsQuestions: boolean
+  // What a call drawn and never started is answered with, when a limit rather than a stop kept it
+  // from running
+  unrunResult?: string
 }
 
 /*
@@ -54,8 +57,8 @@ type BuildConversationToolResultsInput = {
   2. a question, by its answer, or as skipped, and a call waiting for the member's approval as not
      approved when they wrote instead, and one they allowed and wrote before it ran as not run
   3. a call that never finished, cancelled by a stop or left running by a crash, as stopped when it
-     never started, and as interrupted and maybe run when it did, since nothing says whether it
-     landed
+     never started, or as `unrunResult` says when a limit kept it from starting, and as interrupted
+     and maybe run when it did, since nothing says whether it landed
   4. a call the thread never drew: a question past its bounds by why it was not asked, from its
      input alone, and anything else, which a crash kept from being drawn, as stopped
 
@@ -67,6 +70,7 @@ function buildConversationToolResults({
   messages,
   pending,
   skipsQuestions,
+  unrunResult = STOPPED_CALL_RESULT,
 }: BuildConversationToolResultsInput): ConversationToolResult[] {
   const messagesById = new Map(messages.map(message => [message.toolUseId, message]))
 
@@ -111,7 +115,7 @@ function buildConversationToolResults({
       return toFailedResult(call.id, readFailedOutput(message.toolOutput ?? null) ?? 'The call failed.')
     }
 
-    return toFailedResult(call.id, message.toolStartedAt ? INTERRUPTED_CALL_RESULT : STOPPED_CALL_RESULT)
+    return toFailedResult(call.id, message.toolStartedAt ? INTERRUPTED_CALL_RESULT : unrunResult)
   })
 }
 

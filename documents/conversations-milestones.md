@@ -91,10 +91,10 @@ review of M1 to M38 added on 2026-10-18, each start once M38 has merged, in any 
 | M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
 | M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | #210 |
 | M38 | Launch | all | all | #211 |
-| M39 | Daily spend ceilings | core, database, backend, web, root | M38 | |
-| M40 | Document revisions for agents' edits | database, backend, web, root | M38 | |
-| M41 | Races against a real Postgres | database, backend, root | M38 | |
-| M42 | A subagent's report at any limit | backend | M38 | |
+| M39 | Daily spend ceilings | core, database, backend, web, root | M38 | #232 |
+| M40 | Document revisions for agents' edits | database, backend, web, root | M38 | #230 |
+| M41 | Races against a real Postgres | database, backend, root | M38 | #231 |
+| M42 | A subagent's report at any limit | backend | M38 | #229 |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 
@@ -3060,6 +3060,74 @@ caps).
   organization deleted and made again, its spend still counted; a run whose last request came nine
   minutes after its first, still counted a day after its first; and a reaction waiting at its
   ceiling. `check:conversation-runs` sums `costBound` against the emulators.
+- Built with these settled, on 2026-10-19:
+  - **The amounts**, David's on 2026-10-19: $25 a member in each organization, $50 an account and
+    $150 an organization, the milestone's own.
+  - **The row and its writes.** `RunSpend`, keyed by the run's id, `costBound` an `Int64` defaulting
+    to 0 and `spentAt`. The ten fenced writes of a run's `usage` take an optional `$costBound` and
+    upsert the row last, so a backend from before inserts 0 and leaves a bound as it was, which
+    `check:conversation-runs` shows the emulator does. The reservation and the other ledger writes
+    that went through `RenewConversationRunLease` go through `RecordConversationRunUsage`, fenced
+    with `@check(this == 1)`, since the lease's renewal, which the timer sends and a lost run answers
+    with 0, could not refuse without changing how a worker loses its lease; `RenewConversationRunLease`
+    keeps `$usage` and `$context` for backends mid-rollout.
+  - **The reads**: `GetDailySpend` for the starts, `GetRunDailySpend` with the run's own row for the
+    worker, in one snapshot, and `GetDailySpendRows`, the 500 oldest of each scope, read once a
+    ceiling is reached, to say when it has room. Of several caps and ceilings reached, the one that
+    has room last is named, a run's note included.
+  - **The worker** holds `spent + worstCase` to the $10 and to each ceiling less what the scope's
+    other runs hold, the $10's failure text kept when it binds first. A run a ceiling stops ends
+    failed at its limits, never chained, its subagent's report saying the member's daily spending
+    ceiling stopped it.
+  - **The note of its own**, as David chose on 2026-10-19 over the failed note: a failed note with
+    two columns, `ceilingScope` and `ceilingFreesAt`, and the same on the NOTE preview, so a page on
+    the bundle from before draws the failed note, where a new note kind would have broken its thread.
+    It says whose ceiling, its amount and when it has room, moving on as the reader waits, and that
+    it has room once it has; Resume and Retry stay offered.
+  - **A start** is at a ceiling once the least a request reserves no longer fits: one attempt, some
+    14000 tokens of system prompt and tools, the whole output and five searches, about $1.85. With
+    no input counted, a browser check found a Retry admitted that stopped at its first request, the
+    placeholder's request near $1.81 over a room of $1.80. Continuations and reactions take no
+    overrun past a ceiling. A promotion reads the ceilings once, its runs left pending for the
+    five-minute reconcile, and the chain point reads them before it chains.
+  - **A stream cut partway**, as David chose on 2026-10-19: the milestone's estimate from the text and
+    thinking streamed would miss the reasoning, billed but never streamed under `display: "updates"`,
+    so the bound is the time it streamed at the model's top rate, five seconds of grace after, its
+    input as the stream's start billed it and the searches it showed, never past its reservation.
+    `cutBoundMicrodollars` keeps it on the request, beside the output the stream reported, which the
+    credits decide on. The rates are 400 tokens a second on Opus and Sonnet and 1000 on Haiku, which
+    `probe:claude` measured after the merge (below).
+  - **Searches read again**: each search's results are read again by every later step, ten times for
+    five searches at the cache-read rate, which `priceRequestWorstCase` now counts. A request of some
+    1200 tokens reserves about $1.77 alone and $4.01 with its fallback.
+  - **`probe:claude`** gained a request of five searches read through `usage.iterations`, each step's
+    first reading held to the allowance and its input to what the worst case reserves, and a timing
+    of every stream, each model's fastest held to half its top rate. Neither ran before the merge,
+    gcloud asking David to sign in again; once he had, on 2026-10-19, every check passed, the
+    timing moved first from a stream's message start to its send, as one stream whose server
+    tools held its events back arrived in a single burst and read 313000 tokens a second. Measured:
+    five searches billed $0.06 of input against the $0.47 their worst case reserves, so the readings
+    again hold with room; the API reports no iterations for the search loop, so no step was read
+    apart; a search brought back 8236 tokens at most, against the 16000 allowed; and from their send
+    Opus 5.5 wrote 82 tokens a second at most, Opus 5 50 and Opus 4.8 44, some five times under the
+    400 assumed. No Sonnet or Haiku stream wrote the 100 tokens a rate is read from.
+  - **Found on the way**: `readReachedUsageCap` handed `GetCappedStarts` and `GetDailySpend` a send's
+    whole input, which the emulator refused and the fake let through; it hands them the member
+    alone, and the fake now refuses a variable those reads do not declare.
+  - Verified: the four checks; `check:conversation-runs`, `check:subagent-runs` and
+    `check:subagents-module` against an emulator of the branch's schema, every check passing, the
+    spend's own among them: the reservation recorded and summed by scope, a refused fence writing
+    nothing, a settlement lowering the row, a write without a bound keeping it as its time moves on,
+    a deleted conversation's and a deleted organization's spend kept, the rows oldest first, the
+    prune, and a chain recording the run it ends. The scratch emulator started only once a preload
+    raised firebase-tools' configure retries for its process alone, its compile taking longer than
+    the CLI waits under load. In a browser against it, a worktree backend with `USAGE_CAPPED=true`
+    and the placeholder agent, the spend seeded near the member's $25: a run stopped before its first
+    request with the ceiling's note, in a docked window, on the page and in the list's preview,
+    "has room again" once its time passed, Retry and the composer refused with the ceiling's words
+    and when it frees, and the account's $50 from an organization deleted since, at 1280 and 390
+    wide. Not looked at in a browser: the organization's ceiling and a subagent's note, which the
+    tests cover.
 
 ### M40: Document revisions for agents' edits
 
@@ -3090,6 +3158,51 @@ revision a member can go back to, Strategy Dance's agents' and external agents' 
 - **Verify**: the fold and its revision commit together or not at all, a revision restored merges with
   concurrent typing both ways as `updateRichTextYDoc`'s tests do, `check:knowledge-module` against the
   emulators, and the history and Undo looked at in a browser, desktop and phone.
+- Built with these settled, on 2026-10-19:
+  - **The hint costs no conversation its reasoning**, unlike this milestone said: Claude's tool list
+    keeps a module's name, description and input schema alone (`toConversationModuleTool`), so
+    `destructiveHint` reaches external agents' clients only, the conversation's and the subagent's
+    pinned hashes did not move, and `probe:claude` had nothing to check.
+  - **A fold of its own.** A required variable is a breaking connector change, which would stop the
+    release, and the emulator refused optional ones left out under an `@include` defaulting to false
+    ("$revisionState is missing"), as a skipped step's variables are required all the same, so the
+    revision goes through
+    `FoldDocumentWithRevisionForAgent`, `FoldDocumentForAgent` kept as it was for the backend from
+    before while the release deploys, and named in no refresh but its own.
+  - **The revision's text is its content, never Markdown.** No agent reads a revision, and the
+    thread's `Markdown` would draw an underline's tag as text and a code block as a paragraph, so a
+    revision keeps BlockNote's blocks, as `Document.content` holds them, and the history draws them
+    through `RichText`.
+  - **Its snapshot is compressed**: the emulator refused a fold at its bounds carrying a whole
+    snapshot beside the new one, 4800816 bytes past gRPC's 4194304. A revision keeps its snapshot
+    gzipped, and a knowledge write still past 4000000 bytes, which `check:knowledge-module` sends
+    through just short of, is refused before it is sent.
+  - **A restore is a difference in runs**: `updateRichTextYDoc`'s `restore` keeps the blocks the two
+    texts share, with their Yjs items, and writes the revision's own nodes back, ids included, one
+    `updateYFragment` a run of blocks between two it keeps. In one go, its scan turned a kept block
+    between two runs into a new one, which its tests show.
+  - **A fingerprint, never a version**: whether nobody has written since, and whether an edit or a
+    restore changed anything, compares a hash of everything y-prosemirror reads from the text, ids
+    included (`afterFingerprint`). The first round compared `read_document`'s version, which hashes
+    the agent's Markdown: Copilot found that a member's line break in a table's cell, or a cell's
+    alignment, left it unchanged, so Undo wrote over them, and an agent's line break in a cell kept
+    no revision.
+  - **Undo is offered from the backend's read**: whether nobody has written since takes the text as
+    it stands, which only the backend merges, so the thread asks it once it holds an edit and again
+    on focus (`GET …/knowledge/revisions/undoable/:conversationId`), and the restore checks again,
+    its write refusing an update pending beyond those it merged. An edit's row reads its body, as a
+    launch's does, for the call's id the revision is found by. A subagent's viewer offers Undo too:
+    what it takes back is the document's text, not the conversation.
+  - **The history** opens from the document's menu, and from `?history=true`, where the thread's
+    notification sends a reader whose Undo found the text written over. Restore asks inline, never in
+    a second dialog, saying how many later entries go with it, waits for the reader's own typing to
+    be stored, and its notification undoes it.
+  - Verified: the four checks; `check:knowledge-module` against an emulator of the branch's schema,
+    every check passing; and in a browser against it, at 1280 and 390 wide, a scripted agent's
+    `update_document` in a conversation, Undo on its row and Redo, the history with Strategy Dance's,
+    an external agent's and a member's entries, the text before drawn with its heading, underline and
+    code, Restore this version with its warning, the open editor showing the restore without a reload,
+    and Undo gone from the row once a member typed in the document.
 
 ### M41: Races against a real Postgres
 
@@ -3111,6 +3224,73 @@ transaction at a time (see Risks). As the review of M1 to M38 proposed on 2026-1
   send. A failure prints the interleaving it saw.
 - **Not in CI**, which runs no emulators: it runs before a release that changes a run's mutations,
   as `probe:claude` runs before one that changes a request, and CLAUDE.md says so.
+- Built with these settled, on 2026-10-19:
+  - **One emulator runs one operation at a time, on Postgres too.** firebase-tools 15.32.1 points its
+    emulator, 3.4.22, at a Postgres through `FIREBASE_DATACONNECT_POSTGRESQL_STRING`, but there a
+    write on a row nobody locked waited 1.9 s behind one blocked on a lock, and never more than one of
+    its connections worked at once. So `withPostgresEmulators.ts` (`bun run emulators:postgres`)
+    starts a throwaway Postgres 17 in Docker, PGlite's version, production's unread while gcloud
+    asks to sign in again, then four of firebase-tools' own emulator binaries on it, configured as the
+    CLI configures one, through `emulator/configure`, and a proxy handing each request to the next.
+    It starts the binaries itself because the CLI gives one some four seconds to compile the schema,
+    which a loaded machine outlasts.
+  - **The races found the bounds broken.** Data Connect runs a mutation as one SQL statement
+    (`BEGIN READ WRITE`, one `WITH … AS (UPDATE …) SELECT jsonb_build_object(…)`, `COMMIT`, as
+    `log_statement` shows it), and every part of one Postgres statement reads the snapshot it
+    started with, so a count or a cascade after a lock never saw what the writer holding the lock
+    committed: on `dev`'s connectors four sends past the three in flight started four runs in 20
+    rounds of 20, four first sends in 20, six launches past the five slots in 19, a delete beside a
+    launch left the subagent live in 2 of 50, and `check:conversation-runs` failed 6 of its 177 on
+    Postgres, two last answers each counting the other waiting among them. Only the bounds in an
+    update's `where` held, which Postgres checks again on the row as it stands.
+  - **The fix, the conversations' mutations alone**, as David chose over every mutation or the
+    check alone. A step reading an earlier step's `response` runs every step of its mutation as a
+    statement of its own, in order, so a step after the lock sees what committed while it waited: the
+    starts' query steps read `response.userOrganization_update.userId`, the answers' count reads the
+    waiting run's conversation, the subagents' stops take the membership's lock first, as every
+    write on a parent does, and read their subagents through it, the suspensions read the runs
+    through the locked account or organization, `DeleteConversation` through its membership read,
+    and `MarkSubagentReportsDelivered` through the parent read back after its lock, since the sweep
+    calls it for members who may have left. A statement of its own also sees its own mutation's
+    earlier writes, which no edited step reads, and applies a second write to a row, which none makes.
+    The fake refuses a stop of subagents by somebody who is no member, as the mutations now do.
+  - **Left for a pull request of its own**, the mutations outside conversations that count or check
+    after a lock in one statement: in the backend connector `CreateOrganizationInvitation`,
+    `DeleteOrganization`, `CreateDocumentForAgent`, `FoldDocumentForAgent`,
+    `FoldDocumentWithRevisionForAgent` and `RestoreDocumentRevision`, which M40 added,
+    `RenameDocumentForAgent`, `RestoreDocumentForAgent`, `CreateTaskForAgent`,
+    `AddTaskDependencyForAgent`, `RestoreTaskForAgent`, `ApproveOAuthAuthorizationRequest`,
+    `CreateOrganizationIntegration`, `RenameOrganizationIntegration`,
+    `ReconfigureOrganizationIntegration`, `UpdateOrganizationIntegrationKey`,
+    `RestoreOrganizationIntegration`, `StartIntegrationAuthorization` and `ConnectIntegration`; in
+    the web connector `UpdateOrganization`, `UpdateOrganizationMemberRole`,
+    `UpdateOrganizationMemberJobTitle`, `RemoveOrganizationMember`, `DeleteOrganizationInvitation`,
+    `CreateDefaultChecklistItems`, `CreateChecklistItem`, `RestoreChecklistItem`,
+    `CreateTaskWithText`, `CreateTask`, `RestoreTask`, `AddTaskDependency`,
+    `CreateDocumentWithText`, `CreateDocument` and `RestoreDocument`. Each takes the same reference
+    and a race of its own, and production's engine is taken to compile as its emulator does, which
+    Cloud SQL's Query Insights could confirm.
+  - **The race check** (`checkConversationRaces.ts`, its scenarios in `conversationRaces/`) runs the
+    backend's own domain functions as the writers, `enqueueRun` swapped by a Bun plugin for one that
+    queues nothing, since `mock.module` is `bun test`'s, and drives a worker's steps itself where a
+    scenario means to. A round has met when two writers' writes were in flight at once; Postgres
+    logs every lock wait past a millisecond and every deadlock, which the check reads. The writers
+    are released at once, each after up to 40 ms, or each operation after up to 15 ms, in turn.
+  - **The check checked**: `dev`'s connectors fail it as above; the launch's slots check made
+    harmless fails six launches in 20 rounds of 20, and its parent's `deletedAt` taken out fails the
+    delete beside a launch in 7. A send without `activeRunId: { isNull: true }`, or without its
+    position and number too, still started one run, the unique indexes on a run's number and a
+    message's position refusing the second, and a reaction without `reportDeliveredAt: { isNull:
+    true }` still delivered each report once, the parent's row allowing one reaction.
+  - **`check:conversation-list`'s delete** ran on whichever of two restores at once PGlite always
+    let through; on Postgres either may, so it deletes the one restored.
+  - Verified: the four checks; `check:conversation-races` at its 20 rounds and at 100, every
+    scenario passing and none deadlocked; and on Postgres through the four emulators
+    `check:conversation-runs` (177), `check:subagent-runs` (123), `check:subagents-module`,
+    `check:conversation-attachments`, `check:conversation-search`, `check:conversation-list` six
+    times running, `check:conversation-page`, `check:integrations`, `check:knowledge-module` and
+    `check:tasks-module`, every check passing. `check:oauth`, which needs a backend and the Auth
+    emulator, was not run: no mutation it covers changed. The person's emulators were left alone.
 
 ### M42: A subagent's report at any limit
 
@@ -3125,3 +3305,29 @@ a sentence about what it was about to do, which is all its parent reads of it (s
   when its time and its cost allow it.
 - **Verify**: `runConversation.chains.test.ts` at each limit, the report being the reply to the
   request, and `measure:subagents` on one brief made to run long, its cost capped as M33's was.
+- Built with these settled, on 2026-10-19:
+  - **Nothing the reply to the request calls runs.** The request says no call after it can run, yet
+    a 25th request's calls ran. A run that asks early would otherwise go on, and ask again: the
+    reply's calls are planned refused and drawn failed, from the transcript alone, and a reply that
+    calls any ends the run `FAILED` at its limits, its report the reply's text.
+  - **The cost rule is the worst case's**: the ledger's bound, plus the next request reserved as
+    `requestConversationTurn` reserves it, with its fallback when that fits, plus one more attempt
+    without, past the $10. Small requests of Opus 5.5 ask from some $4.40 spent, against the $8.26 a
+    run can spend before it sends nothing more, so a report fits after any next request within its
+    worst case.
+    The next request is reckoned before it is measured, from the last one's input and output and the
+    results at three characters a token.
+  - **The time a report is given** is two minutes, `SUBAGENT_REPORT_TIME_MS`: asked once less is
+    left of the ten minutes, and sent past them until two minutes before the stream's cut at 14,
+    `readSubagentReportDeadline`, API retries included.
+  - **The ten minutes between two calls**, the commonest way they cut a fourth run, ask too: the
+    calls they kept from starting are answered `UNRUN_AT_TIME_LIMIT_CALL_RESULT` beside the request.
+  - **A brief made to run long** is `measure:subagents --briefs long`, its runs held to two and a
+    half minutes through `SUBAGENT_RUN_LIMITS`, which only the script sets outside production, as
+    `SUBAGENT_REQUEST_SETTINGS` is set, so it chains three times and its fourth asks within minutes.
+  - Verified: the four checks; `runConversation.chains.test.ts` at each limit, the report the reply to
+    the request: its 24th request, its 26th after a turn paused past its 24th, eight and a half
+    minutes, $5 spent, 95 entries, the ten minutes between two writes, past the ten minutes and past
+    the 100 entries once asked, nothing sent past 12 minutes, and a reply that calls a tool;
+    `isSubagentReportDue.test.ts` at each rule's edge. `measure:subagents --briefs long` against
+    emulators of the branch with the placeholder agent.

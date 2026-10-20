@@ -10,10 +10,10 @@ import {
   ConversationTranscriptRole,
   getConversationRequestContext,
   getConversationRunStop,
-  renewConversationRunLease,
+  recordConversationRunUsage,
 } from 'strategydance-database/backend'
 
-import type { ClaudeClient, ConversationRunFence } from '~types'
+import type { ClaudeClient, ConversationRunFence, UsageCapScope } from '~types'
 
 import { CONVERSATION_API_MAX_RETRY_DELAY_MS, MAX_CONVERSATION_API_RETRIES } from '~constants'
 
@@ -26,6 +26,7 @@ import buildConversationRequest, {
   type ConversationRequestConfig,
   buildConversationMessages,
 } from '~domain/agent/buildConversationRequest'
+import carriesSubagentReportRequest from '~domain/agent/carriesSubagentReportRequest'
 import checkTranscript from '~domain/agent/checkTranscript'
 import {
   CONVERSATION_MAX_TOKENS,
@@ -47,9 +48,18 @@ import {
 } from '~domain/conversations/conversationRunUsage'
 import createConversationRequestSignal from '~domain/conversations/createConversationRequestSignal'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
-import type { ConversationRunEnding } from '~domain/conversations/endConversationRun'
-import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
+import type { ConversationRunEnding, ConversationSpendCeilingEnding } from '~domain/conversations/endConversationRun'
+import findPassedSpendCeilings from '~domain/conversations/findPassedSpendCeilings'
+import {
+  priceConversationUsageBound,
+  priceCutRequestBound,
+  priceRequestWorstCase,
+} from '~domain/conversations/priceConversationUsage'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import readRunSpendRoom from '~domain/conversations/readRunSpendRoom'
+import readSpendCeilingFreedAt from '~domain/conversations/readSpendCeilingFreedAt'
+import readSubagentReportDeadline from '~domain/conversations/readSubagentReportDeadline'
+import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 
 type RequestConversationTurnInput = {
   fence: ConversationRunFence
@@ -67,6 +77,8 @@ type RequestConversationTurnInput = {
   storedPauses: number
   // When the run was first claimed, which its time limits count from
   startedAt: string
+  // Whether the run is a subagent's fourth, the one whose results entry may ask for its report
+  isLastSubagentRun: boolean
   limits: ConversationRunLimits
   // How often a streaming request reads whether the run's member asked to stop it
   stopCheckIntervalMs: number
@@ -76,12 +88,14 @@ type RequestConversationTurnInput = {
 }
 
 // How many requests a run sends at most, how long after it was first claimed it starts none, when
-// the stream of the one going then is cut, and what it may cost, in microdollars
+// the stream of the one going then is cut, what it may cost, in microdollars, and the daily spend
+// ceilings its member's runs are held to together, or null where they are lifted
 export type ConversationRunLimits = {
   maxRequests: number
   maxDurationMs: number
   streamDeadlineMs: number
   maxCostMicrodollars: number
+  dailySpendCeilings: Record<UsageCapScope, number> | null
 }
 
 // A part of the turn, as Claude answered it, with its request in the ledger and the entry it is
@@ -133,15 +147,20 @@ export type ConversationTurnOutcome =
     row while the run's time allows it, a stop its member asked for meanwhile ending it stopped
   - any other error of Claude's API, those past the retries, `max_tokens`, a sixth pause and any
     other stop: the run fails with its note, the request sent once, and charged what the stream
-    reported it used when it failed partway. An error of the worker's own before the request reached
-    the API settles it at nothing before the step fails
+    reported it used when it failed partway, the cost limit and the daily spend ceilings counting it
+    at the most it may have written in the time it streamed (`priceCutRequestBound`). An error of the
+    worker's own before the request reached the API settles it at nothing before the step fails
   - a run at one of its limits: 25 requests sent, or 10 minutes gone since it was first claimed,
     sends no further request, and a stream still going 14 minutes after the claim is cut, charged as
-    one that failed partway. The run fails with its note
+    one that failed partway. The run fails with its note. A subagent's request for its report, which
+    the entry it answers asked for, goes past both, but not within two minutes of that cut
   - a request whose worst case, with what the run's ledger may have cost, would pass the run's $10
-    (`priceRequestWorstCase`): never sent, and the run fails with its limits' note. One whose single
-    attempt fits and whose fallback does not is sent without the fallback, and its worst case is
-    recorded with its reservation, which the limit counts it at until its answer settles it
+    (`priceRequestWorstCase`), or a daily spend ceiling with what the member's other runs may have
+    cost, the member's in the organization, the account's or the organization's
+    (`readRunSpendRoom`): never sent, and the run fails with its limits' note, a ceiling's naming it
+    and when it has room. One whose single attempt fits and whose fallback does not is sent without
+    the fallback, and its worst case is recorded with its reservation, which both count it at until
+    its answer settles it
   - a stream its member asked to stop, which the worker reads every two seconds: cut, charged as
     one that failed partway, and the run ends stopped, with its note
 
@@ -159,6 +178,7 @@ async function requestConversationTurn({
   pausedRequest,
   storedPauses,
   startedAt,
+  isLastSubagentRun,
   limits,
   stopCheckIntervalMs,
   apiRetryDelayMs,
@@ -201,8 +221,17 @@ async function requestConversationTurn({
     .filter(({ id }) => id !== fence.runId)
     .map(run => ({ id: run.id, usage: parseConversationRunUsage(run.usage) }))
   const parts: Omit<ConversationTurnPart, 'entryId'>[] = []
-  const durationFailure = `The run passed ${limits.maxDurationMs / 1000} seconds since it was first claimed`
-  const isPastDuration = () => Date.now() - Date.parse(startedAt) >= limits.maxDurationMs
+  // A subagent's request for its report, which the entry it answers asked for, is its run's last:
+  // it goes past the run's requests and its ten minutes, while its stream has the time to write it
+  const isReportRequest = carriesSubagentReportRequest(
+    entries.findLast(({ role }) => role === ConversationTranscriptRole.USER),
+    isLastSubagentRun ? fence.runId : null,
+  )
+  const sendDeadline = isReportRequest
+    ? readSubagentReportDeadline(startedAt, limits)
+    : Date.parse(startedAt) + limits.maxDurationMs
+  const durationFailure = `The run passed ${(sendDeadline - Date.parse(startedAt)) / 1000} seconds since it was first claimed`
+  const isPastDuration = () => Date.now() >= sendDeadline
   // Whether a fallback's boundary came in the turn, which strips its parts
   let isStripped = false
   // The parts of the turn, but those its stripping left bare, which are no part of it
@@ -215,7 +244,7 @@ async function requestConversationTurn({
 
   for (;;) {
     // A run at a limit sends no further request, which drops the parts of a turn held in memory
-    if (usage.requests.length >= limits.maxRequests) {
+    if (!isReportRequest && usage.requests.length >= limits.maxRequests) {
       return { kind: 'ending', ending: fail(`The run sent its ${limits.maxRequests} requests`, usage, true) }
     }
 
@@ -268,7 +297,12 @@ async function requestConversationTurn({
       maxTokens: CONVERSATION_MAX_TOKENS,
       maxSearches: WEB_SEARCH_MAX_USES,
     })
-    const hasFallbacks = spent + worstCase.withFallback <= limits.maxCostMicrodollars
+    // What the member's other runs leave the run today, read right before the reservation, so what
+    // passes a ceiling is only the requests in flight across its scope at once
+    const ceiling = limits.dailySpendCeilings ? await readRunSpendRoom(fence, limits.dailySpendCeilings) : null
+    const fits = (cost: number) =>
+      spent + cost <= limits.maxCostMicrodollars && (!ceiling || spent + cost <= ceiling.room)
+    const hasFallbacks = fits(worstCase.withFallback)
 
     if (!hasFallbacks && spent + worstCase.single > limits.maxCostMicrodollars) {
       const failure = `Its next request could cost up to ${toDollars(worstCase.single)}, past the ${toDollars(limits.maxCostMicrodollars)} it may cost with ${toDollars(spent)} spent`
@@ -276,6 +310,28 @@ async function requestConversationTurn({
       logger.warn(`Conversation run ${fence.runId}: ${failure}`)
 
       return { kind: 'ending', ending: fail(failure, usage, true) }
+    }
+
+    const [passed, ...alsoPassed] =
+      ceiling && limits.dailySpendCeilings && !hasFallbacks
+        ? findPassedSpendCeilings(ceiling.others, limits.dailySpendCeilings, spent + worstCase.single, ceiling.sums)
+        : []
+
+    if (passed) {
+      // Of the ceilings it would pass, the one that has room last, which the note names. Runs that
+      // held it may have left the window since the room was read: then it is read again
+      const reached = await readSpendCeilingFreedAt(fence, [passed, ...alsoPassed])
+
+      if (!reached) continue
+
+      const failure = `Its next request could cost up to ${toDollars(worstCase.single)}, past the ${toDollars(reached.max)} the ${reached.scope}'s runs may cost in 24 hours, ${toDollars(ceiling?.others[reached.scope] ?? 0)} spent by its other runs and ${toDollars(spent)} by this one`
+
+      logger.warn(`Conversation run ${fence.runId}: ${failure}`)
+
+      return {
+        kind: 'ending',
+        ending: fail(failure, usage, true, { scope: reached.scope, freesAt: new Date(reached.freesAt).toISOString() }),
+      }
     }
 
     const reserved = reserveConversationRequest(usage, {
@@ -290,19 +346,16 @@ async function requestConversationTurn({
 
     const reservedUsage = usage
 
-    const { data: reservation } = await lease.write(() =>
-      renewConversationRunLease(dataConnect, {
+    // A run claimed again, or whose author left, is no longer this worker's, and the write that
+    // reserves its request, with what the run may have cost, is refused: nothing is sent, and the
+    // step's next read finds out which
+    await lease.write(() =>
+      recordConversationRunUsage(dataConnect, {
         ...fence,
-        usage: reservedUsage,
+        ...toConversationUsageVariables(reservedUsage),
         ...(context ? { context: JSON.stringify(context) } : {}),
       }),
     )
-
-    // A run claimed again, or whose author left, is no longer this worker's, and its request is not
-    // reserved: nothing is sent, and the step's next read finds out which
-    if (reservation.conversationRun_updateMany !== 1) {
-      throw new Error(`Conversation run ${fence.runId}: its reservation renewed nothing, the run is not this worker's`)
-    }
 
     let message: BetaMessage
     // The message so far, once the stream has reported its usage
@@ -315,6 +368,9 @@ async function requestConversationTurn({
       stopCheckIntervalMs,
     })
 
+    // When it went, which bounds what a stream cut partway wrote
+    const sentAt = Date.now()
+
     try {
       message = await client.stream(buildConversationRequest(messages, config, { hasFallbacks }), {
         signal: request.signal,
@@ -325,9 +381,15 @@ async function requestConversationTurn({
       })
     } catch (error) {
       // What the stream used is charged as an estimate, its output counted only by the final delta,
-      // or nothing when the API refused it before it started
+      // bounded by how long it streamed, or nothing when the API refused it before it started
       const settled = streamed.message
-        ? settleInterruptedConversationRequest(usage, reserved.index, streamed.message)
+        ? settleInterruptedConversationRequest(usage, reserved.index, streamed.message, {
+            cutBoundMicrodollars: priceCutRequestBound({
+              message: streamed.message,
+              streamedMs: Date.now() - sentAt,
+              maxTokens: CONVERSATION_MAX_TOKENS,
+            }),
+          })
         : settleFailedConversationRequest(usage, reserved.index)
 
       // Its member asked to stop it: the turn being written is dropped, the parts held with it
@@ -366,11 +428,7 @@ async function requestConversationTurn({
 
       const retryDelay = streamed.message ? null : readApiRetryDelay(error, apiRetries, apiRetryDelayMs)
 
-      if (
-        retryDelay !== null
-        && apiRetries < MAX_CONVERSATION_API_RETRIES
-        && Date.now() + retryDelay < Date.parse(startedAt) + limits.maxDurationMs
-      ) {
+      if (retryDelay !== null && apiRetries < MAX_CONVERSATION_API_RETRIES && Date.now() + retryDelay < sendDeadline) {
         apiRetries++
         usage = settled
 
@@ -471,8 +529,14 @@ async function requestConversationTurn({
   }
 }
 
-// A run that failed, at one of its limits or not, which a subagent's report says
-function fail(failure: string, usage: ConversationRunUsage, isAtLimit = false): ConversationRunEnding {
+// A run that failed, at one of its limits or not, which a subagent's report says, and when that
+// limit is a daily spend ceiling, whose and when it has room again, which its note says
+function fail(
+  failure: string,
+  usage: ConversationRunUsage,
+  isAtLimit = false,
+  ceiling?: ConversationSpendCeilingEnding,
+): ConversationRunEnding {
   return {
     kind: 'noted',
     status: ConversationRunStatus.FAILED,
@@ -480,6 +544,7 @@ function fail(failure: string, usage: ConversationRunUsage, isAtLimit = false): 
     failure,
     usage,
     ...(isAtLimit ? { isAtLimit } : {}),
+    ...(ceiling ? { ceiling } : {}),
   }
 }
 
@@ -575,7 +640,9 @@ async function isStopRequested(fence: ConversationRunFence) {
 // the worker that reads the run next charges the request at its estimate when this did not land
 async function writeSettled(fence: ConversationRunFence, lease: ConversationRunLease, usage: ConversationRunUsage) {
   try {
-    await lease.write(() => renewConversationRunLease(dataConnect, { ...fence, usage }))
+    await lease.write(() =>
+      recordConversationRunUsage(dataConnect, { ...fence, ...toConversationUsageVariables(usage) }),
+    )
   } catch (error) {
     logger.warn(`Conversation run ${fence.runId}: a request that never reached the API could not be settled`, error)
   }

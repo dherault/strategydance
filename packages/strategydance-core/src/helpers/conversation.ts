@@ -49,7 +49,13 @@ export function buildConversationPreview(source: ConversationPreviewSource): Con
     case 'NOTE':
       if (!source.noteKind) throw new Error('A note needs its kind')
 
-      return { kind: source.kind, noteKind: source.noteKind }
+      return {
+        kind: source.kind,
+        noteKind: source.noteKind,
+        ...(source.ceilingScope && source.ceilingFreesAt
+          ? { ceiling: { scope: source.ceilingScope, freesAt: source.ceilingFreesAt } }
+          : {}),
+      }
     case 'ASPECTS':
     case 'BRIEF':
       return null

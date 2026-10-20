@@ -210,6 +210,30 @@ describe('promoteSubagentRuns', () => {
     expect(readStatuses(pending)).toEqual(['PENDING', 'PENDING', 'PENDING', 'QUEUED'])
   })
 
+  test('leaves a backlog waiting at a daily spend ceiling, the running ones ending with their reports, and promotes once it has room', async () => {
+    const { running, pending } = await fillSlots(3)
+
+    kit.seedSpend(24)
+
+    // Each running run stops before its first request, and its end promotes nothing past the ceiling
+    for (const reference of running) {
+      expect(await runConversation(reference, { client: kit.createClient([]).client })).toBe('finished')
+    }
+
+    expect(readStatuses(running)).toEqual(running.map(() => 'FAILED'))
+    expect(readStatuses(pending)).toEqual(['PENDING', 'PENDING', 'PENDING'])
+
+    for (const reference of running) {
+      expect(kit.readConversation(reference)?.report).toContain("the member's daily spending ceiling was reached")
+    }
+
+    // A day on, what was spent has left the window, and the reconcile's promotion queues them
+    setSystemTime(new Date(Date.now() + 25 * 60 * 60 * 1000))
+
+    expect(await promoteSubagentRuns(MEMBER)).toHaveLength(3)
+    expect(readStatuses(pending)).toEqual(['QUEUED', 'QUEUED', 'QUEUED'])
+  })
+
   test('promotes nothing while every slot is taken, nor once the member is gone', async () => {
     const { running, pending } = await fillSlots()
 

@@ -329,6 +329,60 @@ const conversationMessages = defineMessages({
     description:
       'Note in the work of a subagent, a helper the AI handed one piece of work to, where it held as much as it can, so it went no further.',
   },
+  noteCeilingMember: {
+    id: 'conversation.note.ceilingMember',
+    defaultMessage:
+      'This response stopped: your conversations in this organization cost as much as the {max} they may in 24 hours. It can go on {time}.',
+    description:
+      "Note in a conversation where the AI stopped answering because the reader's conversations in this organization reached their daily spending limit. {max} is an amount of money in US dollars, such as $25. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  noteCeilingAccount: {
+    id: 'conversation.note.ceilingAccount',
+    defaultMessage:
+      'This response stopped: your conversations across your organizations cost as much as the {max} they may in 24 hours. It can go on {time}.',
+    description:
+      "Note in a conversation where the AI stopped answering because the reader's conversations across every organization they are in reached their daily spending limit. {max} is an amount of money in US dollars, such as $25. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  noteCeilingOrganization: {
+    id: 'conversation.note.ceilingOrganization',
+    defaultMessage:
+      "This response stopped: your team's conversations in this organization cost as much as the {max} they may in 24 hours. It can go on {time}.",
+    description:
+      "Note in a conversation where the AI stopped answering because the whole organization's conversations reached their daily spending limit. {max} is an amount of money in US dollars, such as $25. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  noteCeilingFreed: {
+    id: 'conversation.note.ceilingFreed',
+    defaultMessage: 'This response stopped at a daily spending limit, which has room again.',
+    description:
+      'Note in a conversation where the AI stopped answering at a daily spending limit, shown once the limit has room again, so the reader can resume or retry it.',
+  },
+  subagentNoteCeilingMember: {
+    id: 'conversation.note.subagentCeilingMember',
+    defaultMessage:
+      'This subagent stopped: your conversations in this organization cost as much as the {max} they may in 24 hours. Subagents can work again {time}.',
+    description:
+      "Note in the work of a subagent, a helper the AI handed one piece of work to, where it stopped because the reader's conversations in this organization reached their daily spending limit. {max} is an amount of money in US dollars, such as $25. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  subagentNoteCeilingAccount: {
+    id: 'conversation.note.subagentCeilingAccount',
+    defaultMessage:
+      'This subagent stopped: your conversations across your organizations cost as much as the {max} they may in 24 hours. Subagents can work again {time}.',
+    description:
+      "Note in the work of a subagent, a helper the AI handed one piece of work to, where it stopped because the reader's conversations across every organization they are in reached their daily spending limit. {max} is an amount of money in US dollars, such as $25. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  subagentNoteCeilingOrganization: {
+    id: 'conversation.note.subagentCeilingOrganization',
+    defaultMessage:
+      "This subagent stopped: your team's conversations in this organization cost as much as the {max} they may in 24 hours. Subagents can work again {time}.",
+    description:
+      "Note in the work of a subagent, a helper the AI handed one piece of work to, where it stopped because the whole organization's conversations reached their daily spending limit. {max} is an amount of money in US dollars, such as $25. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  subagentNoteCeilingFreed: {
+    id: 'conversation.note.subagentCeilingFreed',
+    defaultMessage: 'This subagent stopped at a daily spending limit, which has room again.',
+    description:
+      'Note in the work of a subagent, a helper the AI handed one piece of work to, where it stopped at a daily spending limit, shown once the limit has room again.',
+  },
   noteResume: {
     id: 'conversation.note.resume',
     defaultMessage: 'Resume',
@@ -950,6 +1004,48 @@ const conversationMessages = defineMessages({
     description:
       "Notification when bringing back a task on the team's board that the AI deleted failed, for instance once a day has passed since the delete.",
   },
+  undoDocumentEdit: {
+    id: 'conversation.undoDocumentEdit',
+    defaultMessage: 'Undo',
+    description:
+      "Button on the line saying the AI changed an item of the team's knowledge, such as a note or a plan, which puts its text back as it was before. Offered while nobody has written in the item since.",
+  },
+  documentEditUndone: {
+    id: 'conversation.documentEditUndone',
+    defaultMessage: 'The knowledge is back as it was before this change',
+    description:
+      "Notification once the text of an item of the team's knowledge, such as a note or a plan, is put back as it was before the AI changed it.",
+  },
+  redoDocumentEdit: {
+    id: 'conversation.redoDocumentEdit',
+    defaultMessage: 'Redo',
+    description:
+      "Button in the notification saying an AI change to an item of the team's knowledge was undone, which makes the change again.",
+  },
+  documentEditChangedSince: {
+    id: 'conversation.documentEditChangedSince',
+    defaultMessage: 'Somebody wrote in it since. Its history can still bring back the text from before this change.',
+    description:
+      "Notification when the AI change to an item of the team's knowledge could not be undone because somebody wrote in the item since. Its history is the list of earlier versions on the item's page.",
+  },
+  openDocumentHistory: {
+    id: 'conversation.openDocumentHistory',
+    defaultMessage: 'Open history',
+    description:
+      "Button in a notification that opens the list of earlier versions of an item of the team's knowledge, on the item's page.",
+  },
+  redoDocumentEditError: {
+    id: 'conversation.redoDocumentEditError',
+    defaultMessage: 'This change could not be made again.',
+    description:
+      "Notification when making an undone AI change to an item of the team's knowledge again failed, for instance once somebody wrote in the item since.",
+  },
+  undoDocumentEditError: {
+    id: 'conversation.undoDocumentEditError',
+    defaultMessage: 'This change could not be undone.',
+    description:
+      "Notification when putting back the text of an item of the team's knowledge, as it was before an AI change, failed, for instance once the item is deleted.",
+  },
   toolCall: {
     id: 'conversation.toolCall',
     defaultMessage: 'Tool call · {name}',
@@ -1464,6 +1560,27 @@ const conversationMessages = defineMessages({
       'Strategy Dance answered your team {max, number} times in this organization in the last 24 hours, as many as it can for now. It can answer again {time}.',
     description:
       "Shown when the reader sends a message, resumes or retries a response past the daily limit on the responses the whole organization may ask for. When it was a message, what they wrote stays in the field. {max} is a number such as 500. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capMemberSpend: {
+    id: 'conversation.cap.memberSpend',
+    defaultMessage:
+      'Your conversations in this organization cost as much as the {max} they may in 24 hours. Strategy Dance can answer again {time}.',
+    description:
+      "Shown when the reader sends a message, resumes or retries a response once their conversations in this organization reached their daily spending limit. When it was a message, what they wrote stays in the field. {max} is an amount of money in US dollars, such as $25. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capAccountSpend: {
+    id: 'conversation.cap.accountSpend',
+    defaultMessage:
+      'Your conversations across your organizations cost as much as the {max} they may in 24 hours. Strategy Dance can answer again {time}.',
+    description:
+      "Shown when the reader sends a message, resumes or retries a response once their conversations across every organization they are in reached their daily spending limit. When it was a message, what they wrote stays in the field. {max} is an amount of money in US dollars, such as $25. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
+  },
+  capOrganizationSpend: {
+    id: 'conversation.cap.organizationSpend',
+    defaultMessage:
+      "Your team's conversations in this organization cost as much as the {max} they may in 24 hours. Strategy Dance can answer again {time}.",
+    description:
+      "Shown when the reader sends a message, resumes or retries a response once the whole organization's conversations reached their daily spending limit. When it was a message, what they wrote stays in the field. {max} is an amount of money in US dollars, such as $25. {time} is a relative time such as 'in 3 hours' or 'in 20 minutes', from the browser's own words for it.",
   },
   accessUnverified: {
     id: 'conversation.access.unverified',

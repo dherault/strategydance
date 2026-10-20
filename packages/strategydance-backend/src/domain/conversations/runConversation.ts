@@ -22,7 +22,7 @@ import {
   getConversationRunContext,
   getConversationRunLedgers,
   reclaimConversationRun,
-  renewConversationRunLease,
+  recordConversationRunUsage,
   storeConversationToolResults,
   tagConversationAspects,
   getSubagentReactionContext,
@@ -45,6 +45,8 @@ import {
   CONVERSATION_RUN_STOP_CHECK_INTERVAL_MS,
   CONVERSATION_RUN_STREAM_DEADLINE_MS,
   CONVERSATION_TOOL_CALL_TIMEOUT_MS,
+  DAILY_SPEND_CEILINGS,
+  IS_USAGE_CAPPED,
 } from '~constants'
 
 import { dataConnect } from '~firebase'
@@ -55,9 +57,11 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 import type { ConversationRequestConfig } from '~domain/agent/buildConversationRequest'
 import buildConversationTools from '~domain/agent/buildConversationTools'
 import buildSubagentTools, { isSubagentTool } from '~domain/agent/buildSubagentTools'
+import carriesSubagentReportRequest from '~domain/agent/carriesSubagentReportRequest'
 import checkTranscript from '~domain/agent/checkTranscript'
 import connectConversationModules from '~domain/agent/connectConversationModules'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
+import { CONVERSATION_REQUEST_SETTINGS } from '~domain/agent/conversationRequestSettings'
 import createConversationIntegrationRunners from '~domain/agent/createConversationIntegrationRunners'
 import planConversationToolCalls, { type ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import readConversationToolCalls from '~domain/agent/readConversationToolCalls'
@@ -71,7 +75,10 @@ import {
   chargeUnsettledRequests,
   parseConversationRunUsage,
 } from '~domain/conversations/conversationRunUsage'
-import { serializePendingToolResults } from '~domain/conversations/conversationToolResults'
+import {
+  UNRUN_AT_TIME_LIMIT_CALL_RESULT,
+  serializePendingToolResults,
+} from '~domain/conversations/conversationToolResults'
 import createConversationRunLease, { type ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import drawConversationTurn from '~domain/conversations/drawConversationTurn'
@@ -80,8 +87,12 @@ import endConversationRun, {
   type SubagentChain,
 } from '~domain/conversations/endConversationRun'
 import enqueueRun from '~domain/conversations/enqueueRun'
+import isSubagentReportDue from '~domain/conversations/isSubagentReportDue'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
+import readRunSpendRoom from '~domain/conversations/readRunSpendRoom'
+import readSubagentReportDeadline from '~domain/conversations/readSubagentReportDeadline'
+import readSubagentRunLimits from '~domain/conversations/readSubagentRunLimits'
 import requestConversationTagging from '~domain/conversations/requestConversationTagging'
 import requestConversationTurn, {
   type ConversationRunLimits,
@@ -90,6 +101,7 @@ import requestConversationTurn, {
 import runConversationToolCalls from '~domain/conversations/runConversationToolCalls'
 import serializeTranscriptContent from '~domain/conversations/serializeTranscriptContent'
 import storeConversationParts from '~domain/conversations/storeConversationParts'
+import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
 import deriveChainedRunId from '~domain/subagents/deriveChainedRunId'
 import { isWaitingReport } from '~domain/subagents/findDueSubagentReports'
 import readSubagentReportBlocks from '~domain/subagents/readSubagentReportBlocks'
@@ -126,6 +138,7 @@ const LIMITS: ConversationRunLimits = {
   maxDurationMs: CONVERSATION_RUN_MAX_DURATION_MS,
   streamDeadlineMs: CONVERSATION_RUN_STREAM_DEADLINE_MS,
   maxCostMicrodollars: CONVERSATION_RUN_MAX_COST_MICRODOLLARS,
+  dailySpendCeilings: IS_USAGE_CAPPED ? DAILY_SPEND_CEILINGS : null,
 }
 
 type ConversationRunContext = GetConversationRunContextData
@@ -165,8 +178,10 @@ type ConversationRunContext = GetConversationRunContextData
   subagent's own endings, which write its report, however it ends. At one of its limits before its
   fourth run it chains instead, to a run that carries it on, which is queued once this one has let
   go of its lease, the run answering `held` while it cannot be, so the delivery comes back to queue
-  it, as a delivery finding the run chained does. Its calls count 50 for each run of the chain, and
-  its fourth run's last request, after a turn's results, asks for its report.
+  it, as a delivery finding the run chained does. Its calls count 50 for each run of the chain. Its
+  fourth run asks for its report in the entry with a turn's results once one of its budgets nears its
+  end (`isSubagentReportDue`), and that request, its last, goes past its limits while its time and its
+  cost allow it, and nothing the reply to it calls runs.
 
   What a request came to, the turn to store or the run's end, is kept until it is written, so a
   write refused once is tried again, never paid for again. Every write is fenced on the run's
@@ -256,7 +271,7 @@ async function runConversation(
       signal: controller.signal,
       client,
       retryDelayMs,
-      limits: { ...LIMITS, ...limits },
+      limits: { ...LIMITS, ...(isSubagent ? readSubagentRunLimits() : {}), ...limits },
       stopCheckIntervalMs,
       apiRetryDelayMs,
       config: isSubagent
@@ -418,6 +433,9 @@ async function takeStep({
   const [run] = context.conversationRuns
   const [entry] = context.conversationTranscriptEntries
   const position = conversation?.nextMessagePosition ?? 0
+  // A subagent's fourth run, whose results entry may ask for its report, and whose entries alone are
+  // trusted to
+  const lastSubagentRunId = isSubagent && run?.number === MAX_SUBAGENT_RUNS - 1 ? fence.runId : null
   // A request a worker reserved and never settled was sent, and is charged as such, unless the
   // worker holds what it came to
   const usage = readOutcomeUsage(outcome) ?? chargeUnsettledRequests(parseConversationRunUsage(run?.usage))
@@ -474,20 +492,38 @@ async function takeStep({
     const parts = sinceAnchor
       .filter(({ role }) => role === ConversationTranscriptRole.ASSISTANT)
       .map(part => ({ ...part, blocks: parseTranscriptContent(part.content) }))
-    const plans = planCalls(parts, runners, isSubagent, readMaxCalls(context, isSubagent))
+    // The reply the transcript ends on is its parts after the last results, or after the anchor, and
+    // a subagent's last when those results asked for its report
+    const lastResults = sinceAnchor.findLast(({ role }) => role === ConversationTranscriptRole.USER)
+    const isReportReply = carriesSubagentReportRequest(lastResults, lastSubagentRunId)
+    const plans = planCalls(parts, runners, isSubagent, readMaxCalls(context, isSubagent), {
+      reportRequestPosition: isReportReply ? (lastResults?.position ?? null) : null,
+    })
     const drawn = await drawConversationTurn({ fence, lease, entries: parts, plans, position, isSubagent })
 
     if (drawn === 'drawn') return 'next'
 
-    // The reply the transcript ends on, its parts after the last results, or after the anchor
-    const lastResultsPosition = sinceAnchor.findLast(({ role }) => role === ConversationTranscriptRole.USER)?.position
-    const turn = parts.filter(({ position: partPosition }) => partPosition > (lastResultsPosition ?? -1))
+    const turn = parts.filter(({ position: partPosition }) => partPosition > (lastResults?.position ?? -1))
     const ledgers = await readTurnLedgers(fence, turn, usage)
     const pausedRequest = findPausedRequest(entry, ledgers)
     const startedAt = run?.startedAt ?? new Date().toISOString()
 
     if (!pausedRequest) {
       const calls = readConversationToolCalls(parts.at(-1)?.blocks ?? [])
+
+      // The reply to a subagent's report request is its run's last, and nothing it calls runs: the
+      // run ends at its limits, its report its text
+      if (isReportReply && calls.length) {
+        return end({
+          kind: 'noted',
+          status: ConversationRunStatus.FAILED,
+          noteKind: ConversationNoteKind.FAILED,
+          failure: `The reply to its report request called ${calls.length} tools, which never ran`,
+          usage,
+          isAtLimit: true,
+        })
+      }
+
       const turnPlans = calls.flatMap(call => plans.get(call.id) ?? [])
       // Read from what the thread drew, since an approval is drawn only once the server is read
       const isWaiting = calls.length ? await isWaitingForMember(fence, calls) : false
@@ -507,6 +543,7 @@ async function takeStep({
           streamDeadline: Date.parse(startedAt) + limits.streamDeadlineMs,
           stopCheckIntervalMs,
           maxCostMicrodollars: limits.maxCostMicrodollars,
+          dailySpendCeilings: limits.dailySpendCeilings,
         })
       }
 
@@ -549,7 +586,15 @@ async function takeStep({
         })
       }
       if (ran.outcome === 'stopped') return stop('Its member stopped it before its next call')
-      if (ran.outcome === 'expired') {
+
+      // A subagent's last run its ten minutes stopped between calls answers those it kept from
+      // starting, and asks for its report, while that request has the time to go
+      const isReportedAtTimeLimit =
+        ran.outcome === 'expired'
+        && lastSubagentRunId !== null
+        && Date.now() < readSubagentReportDeadline(startedAt, limits)
+
+      if (ran.outcome === 'expired' && !isReportedAtTimeLimit) {
         return end(
           {
             kind: 'noted',
@@ -568,6 +613,7 @@ async function takeStep({
         messages: ran.messages,
         pending: ran.pending,
         skipsQuestions: false,
+        ...(isReportedAtTimeLimit ? { unrunResult: UNRUN_AT_TIME_LIMIT_CALL_RESULT } : {}),
       })
       /*
         A run an answer started that stores the results of a turn another run drew carried a waiting
@@ -581,10 +627,24 @@ async function takeStep({
         run?.trigger === ConversationRunTrigger.ANSWER
         && toCanonicalUuid(entry.run?.id ?? '') !== toCanonicalUuid(fence.runId)
       const reports = isReanchored ? await readWaitingReports(fence) : { ids: [], blocks: [] }
-      // A subagent's last request, when it follows the results, asks for its report, calling nothing
-      const isLastRequestNext =
-        isSubagent && run?.number === MAX_SUBAGENT_RUNS - 1 && usage.requests.length === limits.maxRequests - 1
-      const content = isLastRequestNext
+      // A subagent's fourth run asks for its report once one of its budgets nears its end, so its
+      // next request, its last, is answered with the report, calling nothing: the daily spend
+      // ceilings among them, whose room is read only for that run
+      const isReportDue =
+        lastSubagentRunId !== null
+        && (isReportedAtTimeLimit
+          || isSubagentReportDue({
+            usage,
+            limits,
+            startedAt,
+            entryCount: context.conversationMessages.length,
+            resultsLength: serializeTranscriptContent(results).length,
+            model: (config.settings ?? CONVERSATION_REQUEST_SETTINGS).model,
+            spendRoom: limits.dailySpendCeilings
+              ? (await readRunSpendRoom(fence, limits.dailySpendCeilings)).room
+              : null,
+          }))
+      const content = isReportDue
         ? [...results, { type: 'text' as const, text: SUBAGENT_REPORT_REQUEST }]
         : [...results, ...reports.blocks]
 
@@ -625,6 +685,7 @@ async function takeStep({
       pausedRequest,
       storedPauses: countStoredPauses(turn, ledgers),
       startedAt,
+      isLastSubagentRun: lastSubagentRunId !== null,
       limits,
       stopCheckIntervalMs,
       apiRetryDelayMs,
@@ -633,7 +694,13 @@ async function takeStep({
 
   if (run?.stopRequestedAt) return stop()
 
-  if (context.conversationMessages.length >= MAX_CONVERSATION_RUN_ENTRIES) {
+  // A subagent's request for its report, which the entry asked for, goes past the run's entries
+  const isReportRequestNext = carriesSubagentReportRequest(
+    entry && { role: entry.role, content: entry.content, runId: entry.run?.id ?? '' },
+    lastSubagentRunId,
+  )
+
+  if (!isReportRequestNext && context.conversationMessages.length >= MAX_CONVERSATION_RUN_ENTRIES) {
     return end({
       kind: 'noted',
       status: ConversationRunStatus.FAILED,
@@ -665,6 +732,7 @@ async function takeStep({
     pausedRequest: null,
     storedPauses: 0,
     startedAt: run?.startedAt ?? new Date().toISOString(),
+    isLastSubagentRun: lastSubagentRunId !== null,
     limits,
     stopCheckIntervalMs,
     apiRetryDelayMs,
@@ -747,7 +815,7 @@ async function writeTagging({
     await lease.write(() =>
       tagConversationAspects(dataConnect, {
         ...fence,
-        usage,
+        ...toConversationUsageVariables(usage),
         aspects,
         noteId: deriveConversationMessageId(fence.runId, 'aspects'),
         position: conversation.nextMessagePosition,
@@ -757,13 +825,8 @@ async function writeTagging({
     return
   }
 
-  const { data } = await lease.write(() => renewConversationRunLease(dataConnect, { ...fence, usage }))
-
-  if (data.conversationRun_updateMany !== 1) {
-    throw new Error(
-      `Conversation run ${fence.runId}: its tagging's ledger renewed nothing, the run is not this worker's`,
-    )
-  }
+  // Refused once the run is no longer this worker's, which the step's next read finds out
+  await lease.write(() => recordConversationRunUsage(dataConnect, { ...fence, ...toConversationUsageVariables(usage) }))
 }
 
 /*
@@ -828,19 +891,20 @@ async function isWaitingForMember(fence: ConversationRunFence, calls: { id: stri
   What becomes of each call the run's replies made to Strategy Dance's own tools, by its id, as
   `planConversationToolCalls` plans it, counting each reply's calls after those of the replies
   before it, within the run's budget (`readMaxCalls`). A subagent's questions are refused, since
-  nobody answers them
+  nobody answers them, and so is every call of the reply after the entry asking for its report
 */
 function planCalls(
-  parts: { blocks: ConversationContentBlock[] }[],
+  parts: { position: number; blocks: ConversationContentBlock[] }[],
   runners: ConversationToolRunner[],
   isSubagent: boolean,
   maxCalls: number,
+  { reportRequestPosition }: { reportRequestPosition: number | null },
 ) {
   const plans = new Map<string, ConversationToolCallPlan>()
   const runnerNames = runners.map(({ name }) => name)
   let callsBefore = 0
 
-  for (const { blocks } of parts) {
+  for (const { position, blocks } of parts) {
     const calls = readConversationToolCalls(blocks)
 
     for (const plan of planConversationToolCalls(calls, {
@@ -848,6 +912,7 @@ function planCalls(
       runnerNames,
       asksQuestions: !isSubagent,
       maxCalls,
+      isReportReply: reportRequestPosition !== null && position > reportRequestPosition,
     })) {
       plans.set(plan.call.id, plan)
     }

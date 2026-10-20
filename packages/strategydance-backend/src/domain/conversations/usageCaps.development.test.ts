@@ -43,10 +43,11 @@ process.env.NODE_ENV = environment
 const kit = createConversationTestKit(fake)
 
 describe('the daily caps on the development backend', () => {
-  test('let every start through, the mutation told so, and still count it', async () => {
+  test('let every start through, the mutation told so, and still count it, the spend ceilings lifted too', async () => {
     fake.addMember('author', ORGANIZATION_ID)
     kit.seedStarts('CONVERSATION', 40)
     kit.seedStarts('RUN', 300)
+    kit.seedSpend(200)
 
     const result = await sendConversationMessage({
       organizationId: ORGANIZATION_ID,

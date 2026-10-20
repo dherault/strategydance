@@ -16,6 +16,7 @@ import createConversationsRouter from '~routes/conversations'
 import createIntegrationOAuthRouter from '~routes/integrationOAuth'
 import createIntegrationsRouter from '~routes/integrations'
 import createInternalRouter from '~routes/internal'
+import createKnowledgeRouter from '~routes/knowledge'
 import createLinkPreviewsRouter from '~routes/linkPreviews'
 import createModuleMetadataRouter from '~routes/moduleMetadata'
 import createModulesRouter from '~routes/modules'
@@ -90,6 +91,7 @@ function createApp({ isWorker }: Options) {
     // Ahead of the organizations' router, so their paths are matched first
     app.use('/organizations/:organizationId/conversations', createConversationsRouter())
     app.use('/organizations/:organizationId/integrations', createIntegrationsRouter())
+    app.use('/organizations/:organizationId/knowledge', createKnowledgeRouter())
     app.use('/organizations', createOrganizationsRouter())
     app.use('/users', createUsersRouter())
   }

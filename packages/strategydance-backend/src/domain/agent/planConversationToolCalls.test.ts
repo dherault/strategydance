@@ -38,6 +38,20 @@ describe('planConversationToolCalls', () => {
     })
   })
 
+  test('refuses every call of a reply to a subagent’s report request, drawn as failed', () => {
+    const plans = planConversationToolCalls([call('read_log', 0), call('call_integration_tool', 1)], {
+      callsBefore: 0,
+      runnerNames: ['read_log', 'call_integration_tool'],
+      asksQuestions: false,
+      isReportReply: true,
+    })
+
+    expect(plans).toEqual([
+      expect.objectContaining({ kind: 'refused', isDrawn: true, reason: expect.stringContaining('your report') }),
+      expect.objectContaining({ kind: 'refused', isDrawn: true, reason: expect.stringContaining('your report') }),
+    ])
+  })
+
   test('draws nothing of a question past its bounds', () => {
     const [plan] = planConversationToolCalls([call('ask_user', 0, { ...QUESTION, options: ['X'] })], {
       callsBefore: 0,

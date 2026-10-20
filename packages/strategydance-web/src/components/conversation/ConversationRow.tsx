@@ -44,7 +44,7 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
   const { isMobile } = useSidebar()
   const { windows, openWindow } = useConversationDock()
 
-  const preview = formatConversationPreview(intl, conversation)
+  const preview = formatConversationPreview(intl, conversation, now)
   const isDocked = windows.some(({ conversationId }) => conversationId === conversation.id)
 
   function handleClick(event: MouseEvent<HTMLTableRowElement>) {

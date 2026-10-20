@@ -312,6 +312,8 @@ query GetConversationRunControlContext($organizationId: UUID!, $userId: String!,
     position
     text
     noteKind
+    ceilingScope
+    ceilingFreesAt
     toolName
     toolStatus
     questionPrompt
@@ -418,6 +420,8 @@ query GetConversationRetryContext(
     kind
     text
     noteKind
+    ceilingScope
+    ceilingFreesAt
     toolName
     toolStatus
     questionPrompt
@@ -1274,6 +1278,95 @@ query GetConversationSearchQuota($organizationId: UUID!, $userId: String!) @auth
   }
 }
 
+# What conversations may have cost in the last 24 hours, in microdollars: the member's runs in the
+# organization, the account's across every organization, and the organization's, each run at the
+# most its ledger may have cost, as its last write recorded it (`RunSpend`). Read by the backend
+# before a start stores anything, to hold it to the daily spend ceilings. A sum over no rows is null.
+# `$userId` is the uid the backend verified
+query GetDailySpend($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  member: runSpends(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      spentAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+  ) {
+    costBound_sum
+  }
+  account: runSpends(where: { userId: { eq: $userId }, spentAt: { gt_time: { now: true, sub: { hours: 24 } } } }) {
+    costBound_sum
+  }
+  organization: runSpends(
+    where: { organizationId: { eq: $organizationId }, spentAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+  ) {
+    costBound_sum
+  }
+}
+
+# The same three sums, and what the run's own row holds of them, read in one snapshot, so the worker
+# about to send one of its requests counts what the scope's other runs may have cost, and adds its
+# own ledger as it stands
+query GetRunDailySpend($organizationId: UUID!, $userId: String!, $runId: UUID!) @auth(level: NO_ACCESS) {
+  member: runSpends(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      spentAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+  ) {
+    costBound_sum
+  }
+  account: runSpends(where: { userId: { eq: $userId }, spentAt: { gt_time: { now: true, sub: { hours: 24 } } } }) {
+    costBound_sum
+  }
+  organization: runSpends(
+    where: { organizationId: { eq: $organizationId }, spentAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+  ) {
+    costBound_sum
+  }
+  own: runSpends(
+    where: { runId: { eq: $runId }, userId: { eq: $userId }, spentAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+    limit: 1
+  ) {
+    costBound
+  }
+}
+
+# The runs the three sums count, oldest first, each with what it may have cost and when it last
+# spent, which leaves the window 24 hours after: read once a ceiling is reached, to say when enough
+# of the window's spend leaves it for a request to fit. The 500 oldest, which say it for all but a
+# scope past some five hundred runs in a day, whose next try is told again
+query GetDailySpendRows($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
+  member: runSpends(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      spentAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ spentAt: ASC }]
+    limit: 500
+  ) {
+    costBound
+    spentAt
+  }
+  account: runSpends(
+    where: { userId: { eq: $userId }, spentAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+    orderBy: [{ spentAt: ASC }]
+    limit: 500
+  ) {
+    costBound
+    spentAt
+  }
+  organization: runSpends(
+    where: { organizationId: { eq: $organizationId }, spentAt: { gt_time: { now: true, sub: { hours: 24 } } } }
+    orderBy: [{ spentAt: ASC }]
+    limit: 500
+  ) {
+    costBound
+    spentAt
+  }
+}
+
 # What the daily caps counted of a member's starts in the last 24 hours, newest first: the member's
 # in the organization, the account's across every organization, and the organization's, as each
 # mutation that starts a conversation, a run or a subagent counts them. Read by the backend before
@@ -2019,6 +2112,81 @@ query GetDocumentForAgent($organizationId: UUID!, $userId: String!, $membershipC
     state
     content
     updatedAt
+    documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 100) {
+      id
+      payload
+    }
+  }
+}
+
+# A revision of a document the member's organization keeps, with the document's text as it stands,
+# for a member going back to it: the snapshot, the updates pending since and `content`, which seeds
+# a document that has none. Nothing once the document is deleted or the revision pruned. A member is
+# never held to what the team lets agents do, so neither AI permission is read
+query GetDocumentRevisionForMember($organizationId: UUID!, $userId: String!, $documentId: UUID!, $revisionId: UUID!)
+@auth(level: NO_ACCESS) {
+  documentRevisions(
+    where: {
+      id: { eq: $revisionId }
+      documentId: { eq: $documentId }
+      organizationId: { eq: $organizationId }
+      document: { deletedAt: { isNull: true } }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+    }
+    limit: 1
+  ) {
+    compressedState
+    afterFingerprint
+    createdAt
+    document {
+      title
+      revision
+      state
+      content
+      documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 100) {
+        id
+        payload
+      }
+    }
+  }
+}
+
+# The revisions an agent's edits kept from one scope, a conversation's, as its member made them, the
+# newest first, for the thread to offer Undo on the rows of the edits nobody has written over since
+query GetConversationDocumentRevisions($organizationId: UUID!, $userId: String!, $scope: String!)
+@auth(level: NO_ACCESS) {
+  documentRevisions(
+    where: {
+      scope: { eq: $scope }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+    }
+    orderBy: [{ createdAt: DESC }, { id: DESC }]
+    limit: 100
+  ) {
+    id
+    callKey
+    documentId
+    afterFingerprint
+  }
+}
+
+# One document's text as it stands, for a member, whatever the team lets agents do: the snapshot
+# and the updates pending since, as `GetDocument` reads them, and `content`, which seeds a
+# document that has no snapshot yet. Nothing once it is deleted
+query GetDocumentTextForMember($organizationId: UUID!, $userId: String!, $id: UUID!) @auth(level: NO_ACCESS) {
+  documents(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq: $userId } } } }
+    }
+    limit: 1
+  ) {
+    state
+    content
     documentUpdates_on_document(orderBy: [{ createdAt: ASC }, { id: ASC }], limit: 100) {
       id
       payload

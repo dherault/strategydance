@@ -53,10 +53,11 @@ The converter wants a built package: an entry it bundles, and a `package.json` w
 a `.d.ts` tree, which it reads the props from. The design system ships TypeScript source and no root
 export, since its consumers import each component by its path. `bun .design-sync/buildPackage.ts`
 builds that package under `packages/strategydance-design-system/node_modules/.cache/design-sync/`,
-which git ignores: an entry re-exporting every component module, the editor's own parts aside, and
-the declarations `tsc` emits for them. The converter finds a package by walking up from its entry to
-the first `package.json` with a name, so the built one names itself as the design system does. It is
-the config's `buildCmd`, run before every build.
+which git ignores: an entry re-exporting every component module, the editor's own parts aside, the
+declarations `tsc` emits for them, and `index.css` built by Vite and Tailwind as Storybook builds
+it, with the fonts, since no component imports it. The converter finds a package by walking up from
+its entry to the first `package.json` with a name, so the built one names itself as the design
+system does. It is the config's `buildCmd`, run before every build.
 
 The converter runs with `--node-modules packages/strategydance-design-system/node_modules`: Bun
 installs each package's dependencies into its own `node_modules`, so the root one holds no React.
@@ -101,6 +102,9 @@ Done when every storied component's stories all grade `match`, or `close` with t
 - `.design-sync/conventions.md`, the header of the README the design agent reads first: the wrap, the
   styling idiom with its real token names, where the stylesheets are, one example. Every name it
   gives is checked against the build
+- David's word on the font check, which names four families no text renders in: BlockNote's
+  default editor font, which the editor's stylesheet replaces, and Oswald's fallback (`NOTES.md`,
+  Open)
 - The closing check, the skill's driver run over the whole roster, with nothing left to grade
 - `NOTES.md`'s Re-sync risks: what can go stale, what was only partly checked, what the build
   assumes

@@ -1589,10 +1589,14 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.businesstoolvault.com/",
     "submissionUrl": "https://www.businesstoolvault.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE",
-    "lastChecked": null,
+    "description": "Curated directory of B2B business software, such as SEO, marketing, AI and startup tools, where makers can submit their tools for review.",
+    "categories": [
+      "AI_TOOLS",
+      "SAAS",
+      "MARKETING"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-21",
     "unreachableSince": null
   },
   {
@@ -2502,10 +2506,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://futuretools.io/",
     "submissionUrl": "https://futuretools.io/submit-a-tool",
-    "description": "",
-    "categories": [],
+    "description": "Curated directory of AI tools sorted by category, with AI news and commentary, where makers can submit tools for editorial review.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-21",
     "unreachableSince": null
   },
   {
@@ -2880,10 +2886,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.indiehacker.tools/",
     "submissionUrl": "https://www.indiehacker.tools/list-indie-tool",
-    "description": "",
-    "categories": [],
+    "description": "Directory of tools built by indie hackers, where makers list their own products and add a status such as launched or generating revenue.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-21",
     "unreachableSince": null
   },
   {
@@ -3076,10 +3084,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://land-book.com/",
     "submissionUrl": "https://land-book.com/websites/new",
-    "description": "",
-    "categories": [],
+    "description": "Curated gallery of website designs, such as landing pages, portfolios and templates, for creatives. Signed-in members can submit sites for review.",
+    "categories": [
+      "DESIGN"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-21",
     "unreachableSince": null
   },
   {
@@ -3594,10 +3604,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://mergeek.com/",
     "submissionUrl": "https://mergeek.com/zh/publish_project",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "description": "Chinese tech product community where developers submit apps, AI tools, software, websites and hardware for launch pages, user reviews and giveaway campaigns.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE",
+    "lastChecked": "2026-10-21",
     "unreachableSince": null
   },
   {
@@ -4515,10 +4527,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://right-ai.com/",
     "submissionUrl": "https://right-ai.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, where makers can submit their own AI products for review and listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-21",
     "unreachableSince": null
   },
   {
@@ -4705,11 +4719,13 @@
     "name": "ScrollLaunch",
     "type": "WEBSITE",
     "rootUrl": "https://www.scrolllaunch.com/",
-    "submissionUrl": "https://www.scrolllaunch.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "submissionUrl": "https://www.scrolllaunch.com/dashboard/products/new",
+    "description": "Weekly product launch platform with an upvote leaderboard, where indie makers and SaaS founders submit their products for permanent product pages.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-10-21",
     "unreachableSince": null
   },
   {
@@ -5099,10 +5115,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://starterbest.com/",
     "submissionUrl": "https://starterbest.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Daily launch directory of new products, apps, websites and tech tools, where makers sign in to submit their own products.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-21",
     "unreachableSince": null
   },
   {
@@ -5134,11 +5152,13 @@
     "name": "Startup AIdeas",
     "type": "WEBSITE",
     "rootUrl": "https://startupaideas.com/",
-    "submissionUrl": "https://startupaideas.com/submit",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://startupaideas.com/get-started",
+    "description": "Directory of AI tools for founders, sorted by category and pricing, where makers submit their own AI products for review.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-21",
     "unreachableSince": null
   },
   {
@@ -5615,11 +5635,14 @@
     "name": "Techboard",
     "type": "WEBSITE",
     "rootUrl": "https://techboard.com.au/",
-    "submissionUrl": "https://techboard.com.au/get-listed/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://techboard.com.au/get-listed/add-a-company/",
+    "description": "Directory and funding-data platform for Australian startups and young technology companies, where founders sign up to add or claim a company profile.",
+    "categories": [
+      "ANY_STARTUP",
+      "REGIONAL"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-21",
     "unreachableSince": null
   },
   {

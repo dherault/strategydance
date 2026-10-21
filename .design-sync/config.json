@@ -1,0 +1,70 @@
+{
+  "projectId": "61b2a9b3-1ee3-4661-a21d-a0b400b517f7",
+  "pkg": "strategydance-design-system",
+  "globalName": "StrategyDanceDesignSystem",
+  "shape": "storybook",
+  "storybookConfigDir": "packages/strategydance-design-system/.storybook",
+  "storybookStatic": ".design-sync/sb-reference",
+  "entry": "packages/strategydance-design-system/node_modules/.cache/design-sync/entry.ts",
+  "buildCmd": "bun .design-sync/buildPackage.ts",
+  "tsconfig": "../../../tsconfig.app.json",
+  "cssEntry": "styles/styles.css",
+  "overrides": {
+    "Avatar": {
+      "cardMode": "column"
+    },
+    "Calendar": {
+      "cardMode": "single",
+      "primaryStory": "Default"
+    },
+    "ColorPicker": {
+      "cardMode": "single",
+      "primaryStory": "Open"
+    },
+    "Combobox": {
+      "cardMode": "single",
+      "primaryStory": "Open"
+    },
+    "CompanyLogo": {
+      "cardMode": "column"
+    },
+    "Dialog": {
+      "cardMode": "single",
+      "primaryStory": "Open"
+    },
+    "DropdownMenu": {
+      "cardMode": "single",
+      "primaryStory": "Default"
+    },
+    "Markdown": {
+      "cardMode": "column"
+    },
+    "MultiSelect": {
+      "cardMode": "single",
+      "primaryStory": "Open"
+    },
+    "Popover": {
+      "cardMode": "single",
+      "primaryStory": "Default"
+    },
+    "Select": {
+      "cardMode": "single",
+      "primaryStory": "Open"
+    },
+    "Sheet": {
+      "cardMode": "single",
+      "primaryStory": "Open"
+    },
+    "Sidebar": {
+      "cardMode": "single",
+      "primaryStory": "Default"
+    },
+    "SuggestionList": {
+      "cardMode": "column"
+    },
+    "Tooltip": {
+      "cardMode": "single",
+      "primaryStory": "Open"
+    }
+  }
+}

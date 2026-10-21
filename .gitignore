@@ -169,3 +169,12 @@ firebase-export-*/
 
 
 .DS_Store
+
+# The design sync's working state: the reference Storybook, the grades and generated previews, the
+# skill's scripts and their dependencies, and the built upload (documents/design-sync.md)
+.design-sync/sb-reference/
+.design-sync/learnings/
+.design-sync/.cache/
+.design-sync/node_modules
+.ds-sync/
+ds-bundle/

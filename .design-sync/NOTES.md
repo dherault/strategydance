@@ -1,0 +1,104 @@
+# Design sync notes
+
+What a sync of this repository needs to know, read before anything else. The plan and the
+milestones are in [documents/design-sync.md](../documents/design-sync.md).
+
+## Running it
+
+- Run everything from the repository root of the campaign worktree, `.claude/worktrees/design-sync`
+- `bun .design-sync/buildPackage.ts` first, always (the config's `buildCmd`), then the converter:
+
+  ```sh
+  node .ds-sync/package-build.mjs --config .design-sync/config.json \
+    --node-modules packages/strategydance-design-system/node_modules --out ./ds-bundle
+  node .ds-sync/package-validate.mjs ./ds-bundle
+  ```
+
+- The reference Storybook is built from the package's directory:
+  `bunx storybook build -c .storybook -o <worktree>/.design-sync/sb-reference`, about four minutes.
+  Rebuild it whenever a story or a component changes, together with the converter's build
+- A full converter build takes 15 to 25 minutes, nearly all of it compiling the 43 previews one at
+  a time. Use `preview-rebuild.mjs --components <Name>` to iterate on one, a few seconds
+
+## Fixes
+
+- [GENERAL] No `dist/`, no root export, no `.d.ts`: the converter found no components (`exported
+  PascalCase symbols: 0`, `[TITLE_UNMAPPED]` for all 43) -> it reads a package's exports from the
+  `.d.ts` tree its `package.json` `types` leads to, and the design system ships TypeScript source
+  -> `buildPackage.ts` builds a stand-in package under
+  `packages/strategydance-design-system/node_modules/.cache/design-sync/`, named
+  `strategydance-design-system`: `entry.ts` re-exporting every component module but the editor's
+  own parts, `types/` emitted by `tsc`, and `styles/`. The config's `entry` points at it, and the
+  converter takes the stand-in for the package, since it walks up from the entry to the first
+  `package.json` with a name. Package-relative config paths (`tsconfig`, `cssEntry`) are relative
+  to the stand-in
+- [GENERAL] `react not found under --node-modules` with the root `node_modules` -> Bun installs
+  each workspace package's dependencies into its own `node_modules`, linked into
+  `node_modules/.bun/` -> `--node-modules packages/strategydance-design-system/node_modules`
+- [GENERAL] tsc reports TS2883, a type it cannot name portably through Bun's store, for four
+  modules of `src/lib/` and writes their declarations anyway -> `buildPackage.ts` tolerates TS2883
+  outside `src/components/` and fails on anything else
+- [GENERAL] `styles.css` carried only `_ds_bundle.css`, the CSS the components import (BlockNote's
+  and the editor's), and none of Tailwind's: the Storybook fallback only fires when the bundle's
+  CSS is missing or a stub -> `buildPackage.ts` builds `src/index.css` with Vite and the design
+  system's own Tailwind plugin, from the design system's root, into `styles/styles.css` with the
+  fonts beside it under their own names, and the config's `cssEntry` appends it. It matches
+  Storybook's compiled CSS byte for byte but the fonts' addresses (118.8 KB against 119.0 KB)
+- Story imports: `strategydance-design-system/components/<path>/<Name>` resolves to the shipped
+  global when `<Name>` is an exported component, by the converter's own rule. An import of
+  `strategydance-design-system/lib/*` or `hooks/*` is bundled into the preview instead
+- [GENERAL] Overlays graded against nothing: the harness photographs Storybook's `#storybook-root`
+  alone, and an open overlay portals to the body, outside it, so the reference of Dialog's Open
+  story is the trigger under a backdrop, while the preview's shot is the whole viewport. The same
+  holds for any story taller than the viewport (Markdown's Page, Dock and Past Bound): the
+  reference is the whole element, the preview the viewport -> `bun .design-sync/captureStorybook.ts
+  <Name>…` writes Storybook's viewport, at the harness's size and stabilization, beside the raw
+  shots as `…__sb-viewport.png`. Grade such a story against it. `cmp` tells a byte-identical pair at
+  once
+- Sidebar: the footer cut off below the viewport, then the panel 24px off the edge -> its stories are
+  `layout: 'fullscreen'`, which the card ignores: it pads its body by 24px, and its `.ds-single`
+  wrapper's transform contains the sidebar's fixed panel -> owned `previews/Sidebar.tsx` takes the
+  body's padding back with a `<style>`, as Storybook's fullscreen layout does. Byte-identical to
+  Storybook. The only stories with `layout: 'fullscreen'` are Sidebar's
+- [GENERAL] An owned preview is linted and formatted as the repository is: the generated `compose`
+  trips `unicorn/no-useless-fallback-in-spread` -> after copying a generated wrapper, `bunx oxlint
+  --fix <file>` and `bunx oxfmt <file>`, then rebuild and recapture, since the edit moves its grade
+  key
+- Framing, not a difference: Storybook's canvas is the design system's body background, neutral,
+  the card's is white; Storybook's padded layout insets the story by 16px, the card by 24px
+- `[ASSETS_BLOCKED]` naming `example.invalid` alone is the Broken Image stories (Avatar,
+  CompanyLogo) loading a reserved address on purpose. randomuser.me loads, so the shell reaches the
+  network
+- Card modes: `overrides` take validate's `[GRID_OVERFLOW]` remedies for 15 components, `single`
+  with an open story as primary for the overlays, `column` for the wide ones
+- Stories past the harness's cap of six: Button 7 (`--max-stories 7` when capturing it),
+  RichTextEditor 11, MultiSelect 9, Tooltip 9, ImageDropzone 8, Combobox 7
+
+## Open
+
+- `[FONT_MISSING]` "Inter", "SF Pro Display", "Open Sans", "Arial Narrow": the check reads every
+  family of every font stack. The first three are BlockNote's default `--bn-font-family`, which
+  `RichTextEditor.css` replaces with `var(--font-sans)` on the editor's root; the last is the
+  fallback after "Oswald Variable". Inter Variable and Oswald Variable ship, 19 faces, and no text
+  renders in the four. Accepting it is David's call, before M3's closing check
+- `[TOKENS_MISSING]` `--shiki-*`, `--user-color-*`, `--available-height`, `--anchor-width`,
+  `--transform-origin`, `--tw`: set at runtime by Shiki, the collaboration carets, Radix and Base
+  UI's positioning and Tailwind. Nothing to ship
+- RichTextEditor `[RENDER_ERRORS] text9.toDelta is not a function`: its story builds its Yjs update
+  with `strategydance-design-system/lib/createRichTextYUpdate`, which the preview bundles, Yjs with
+  it, while the component runs from the global bundle's Yjs, and Yjs checks its types with
+  `instanceof`. RichText's story imports `lib/richText` the same way. Likely fix, a config change
+  for the orchestrator before the wave that holds them: re-export the `lib/` modules those stories
+  import from the entry, and send `/src/lib/` to the global with `cfg.storyImports.shim`
+- Spinner `[RENDER_THIN]`, paints nothing; Toaster `[RENDER_THIN]`, its variants identical, a toast
+  needing its trigger
+
+## M2 starts from
+
+- Graded `match` on every story, in the campaign worktree's `.design-sync/.cache/compare/`:
+  Button, Dialog, Avatar, Sidebar, Markdown
+- To grade: the 38 other storied components. Overlays and tall stories against
+  `captureStorybook.ts`'s shots. RichText, RichTextEditor and the heavy ones in the last wave, after
+  the `lib/` fix above
+- Subagents may not edit the config: an overlay's `cardMode`, a skip or the `lib/` shim is the
+  orchestrator's

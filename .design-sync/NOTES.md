@@ -215,6 +215,11 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
 - The global carries Yjs's exports beside the components (`Doc`, `Map`, `Text`, `Array`…), for the
   editor's collaborative story. The conventions say they are no components; removing them is
   `extraEntries`, which re-grades everything
+- Tabs' Full Width story drew its triggers at their natural width, in Storybook as in the preview,
+  the rule alone spanning `max-w-lg`: `tabVariants` is a cva, which merges no classes, so a trigger
+  carried both the base's `flex-none` and the variant's `flex-1` -> fixed in the design system
+  (#241), on `dev` before M3 merged, and M3 rebuilt the reference and graded Tabs again by hand,
+  its grade cleared first, since it carries otherwise: `srcSha` hashes the story file alone
 - The product's single card is full-bleed, its body unpadded, so an open story's trigger is flush
   with its left edge and a popup with collision padding sits right of it: Select's list by 10px,
   Combobox's and MultiSelect's by 5px -> accepted in M3: a few pixels of a popup's offset from a
@@ -226,13 +231,6 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
 - `[TOKENS_MISSING]` `--shiki-*`, `--user-color-*`, `--available-height`, `--anchor-width`,
   `--transform-origin`, `--tw`: set at runtime by Shiki, the collaboration carets, Radix and Base
   UI's positioning and Tailwind. Nothing to ship
-- Tabs' Full Width story: its triggers keep their natural width, in Storybook as in the preview,
-  and only the rule spans `max-w-lg`. `tabVariants` is a cva, which merges no classes, so a trigger
-  carries both the base's `flex-none` and the variant's `flex-1`, and `.flex-none` comes later in
-  the compiled CSS. A bug of the design system's, outside the sync, being fixed on its own branch
-  (`tabs-full-width`): once it is in `dev`, rebuild the reference and grade Tabs again, by hand,
-  since its grade carries otherwise, `srcSha` hashing its story file alone. Its note's `fullWidth`
-  already says what the fix makes true
 - Design system bugs the usage notes met, outside the sync, for David. Each note describes the
   component as it is, so a fix changes its note too:
   - Pill names its `<span>` with `aria-label`, which ARIA ignores on an element with no role, so a
@@ -251,6 +249,10 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
     source changes, and run the check
   - `conventions.md`'s prose: the vocabulary in words follows `layoutClasses.ts`, and the tokens'
     colours `index.css`. Change them together
+  - a component's render: a grade follows its story file, never its component's source, so a fix
+    that changes how a component draws and leaves its story alone carries the old grade, as Tabs'
+    would have in M3. Grade it again by hand, its grade cleared, or spot-check it
+    (`--spot-check-components`)
   - the owned previews: Sidebar's, Tooltip's and Calendar's wrappers follow their stories'
     `parameters.layout`, and Toaster's sonner's list drawn in place. Each composes its story module
     whole, so a story's edit reaches it, but not a change of layout
@@ -262,7 +264,6 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   - by hand: the two manual captures, whose preview side the harness never shoots, and the
     viewport shots of overlays, centred and tall stories, which `captureStorybook.ts` takes
   - accepted: Select's Open `close`, a frame of the converter's own
-  - Tabs' Full Width, as the bug above draws it
   - the notes' examples: `runExamples.ts` proves each of the 88 runs and draws, and a few of its
     screenshots were looked at (M3: the conventions' screen, Sidebar's frame, Sheet, the editor,
     Table and Tabs), but none is graded against anything
@@ -282,7 +283,6 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   188 `match`, Select's Open `close`. The closing driver run's verdict `ok`, nothing pending, every
   component carried forward; validate exiting 0, 44 of 44 previews rendering cleanly, no
   `[FONT_MISSING]`; `checkNames.ts` exiting 0, and `runExamples.ts`, 88 examples
-- Tabs graded again first, if its fix has reached `dev` (Open)
 - Then M4's steps in `documents/design-sync.md`, the closing build a driver run, and
   `DesignSync(report_validate)` with its `.render-check.json`'s counts
 - Subagents may not edit the config: an overlay's `cardMode`, a skip or an import setting is the

@@ -25,15 +25,26 @@ was ported from, as `packages/strategydance-design-system/src/index.css` says.
 - **The upload is atomic.** The project is in use and not empty, so nothing is uploaded until every
   component has been checked. Then one pass writes everything and deletes the rest.
 - **The work goes in milestones**, each a pull request, below.
+- **The display face falls back to the system's sans** (M3). `'Arial Narrow'` left
+  `--font-display`: no text renders in it once Oswald loads, and the font check named it. BlockNote's
+  default editor fonts, which `RichTextEditor.css` replaces, are accepted as they are.
+- **A design gets a stated layout vocabulary** (M3): the classes `layoutClasses.ts` lists, compiled
+  into the upload's stylesheet alone, so the agent lays out a screen with classes that exist rather
+  than ones that fail silently.
+- **Every Lucide icon rides the global** (M3), as `Icons`, so a design passes the same icons the
+  product does to a Button, an Alert or a sidebar item.
 
 ## Where the work happens
 
 The skill's state is in three places:
 
 - **Committed**, under `.design-sync/` at the root: `config.json`, the converter's settings and the
-  project's id; `NOTES.md`, every quirk met and how it was fixed; `buildPackage.ts`, below; later
-  `conventions.md`, the header the design agent reads first, and `previews/`, any preview written
-  by hand. A later sync replays all of it.
+  project's id, with each component's props, written by hand; `NOTES.md`, every quirk met and how
+  it was fixed; `buildPackage.ts`, below, with `layoutClasses.ts`, the layout vocabulary;
+  `conventions.md`, the header the design agent reads first; `docs/`, each component's usage note;
+  `checkNames.ts`, which checks every name those files give against the build; `runExamples.ts`,
+  which runs every example they give; and `previews/`, any preview written by hand. A later sync
+  replays all of it.
 - **Ignored, and local to one checkout**: `.design-sync/sb-reference/`, the reference Storybook;
   `.design-sync/.cache/`, the generated previews and the grades the checks earned; `.ds-sync/`, the
   skill's scripts and their dependencies (esbuild, ts-morph, Playwright and its Chromium), installed
@@ -92,19 +103,27 @@ Done when every storied component's stories all grade `match`, or `close` with t
 
 ### M3. The API and the conventions
 
-- Which components without a story are public: Choice and Field, kept or dropped
-- The `.d.ts` and the usage note of each component, read as the design agent will read them
-- The providers a design needs around the components, TooltipProvider, SidebarProvider and the
-  Toaster, written into the config, so the usage notes say when to wrap
-- The Tailwind classes the design agent may write. The upload carries the CSS the design system's
-  own classes compile to and nothing more, so a class it never uses has no rule there. Settle what
-  the agent gets for its own layout
+- The components without a story: Field, which the web app imports itself, kept, with a story of
+  its own; Choice, the row Checkbox, Radio and Switch lay out in, taken off the global
+- Each component's props, written by hand in the config's `dtsPropsFor`, and its usage note,
+  `.design-sync/docs/<Name>.md`, read as the design agent will read them. The generated ones dropped
+  every native and Radix prop, cut every comment at 120 characters, typed none of the compound
+  components' parts and showed Storybook's source for examples
+- No provider wraps a design, so the config names none: Tooltip brings its own, `SidebarProvider` is
+  the frame of an app with a sidebar, and the Toaster is mounted once beside the page. The
+  conventions and the usage notes say when each applies
+- The layout vocabulary, David's choice: `layoutClasses.ts` compiled into the upload's stylesheet,
+  since the stylesheet holds only what something compiled and a class with no rule fails silently
+- Lucide's icons on the global as `Icons`, David's choice, through the package's entry, which
+  carries every grade
 - `.design-sync/conventions.md`, the header of the README the design agent reads first: the wrap, the
-  styling idiom with its real token names, where the stylesheets are, one example. Every name it
-  gives is checked against the build
-- David's word on the font check, which names four families no text renders in: BlockNote's
-  default editor font, which the editor's stylesheet replaces, and Oswald's fallback (`NOTES.md`,
-  Open)
+  styling idiom with its real token names, where the stylesheets are, one example
+- `checkNames.ts`, which checks every name the props, the notes and the conventions give against the
+  build: each prop against the component's real type, each component, part, icon, class and token
+  against what ships; and `runExamples.ts`, which runs every example the notes and the conventions
+  give, as written, against the built upload
+- The font check settled, David's choice: Oswald's fallback dropped, BlockNote's default editor
+  fonts accepted
 - The closing check, the skill's driver run over the whole roster, with nothing left to grade
 - `NOTES.md`'s Re-sync risks: what can go stale, what was only partly checked, what the build
   assumes
@@ -130,9 +149,10 @@ Done when the driver's verdict is clean and the validation exits 0.
 
 From M1 on, `.design-sync/config.json` holds the project's id and the package's name, which the
 skill reads as a sync that has run before. It has not, until M4 uploads `_ds_sync.json`. A session
-that picks up M2 or M3 says so when it starts `/design-sync`, works in the campaign worktree, reads
-`NOTES.md` first, and follows the milestone here rather than the skill's re-sync section. Its
-closing check runs the driver without `--remote`, since the project has no record yet.
+that picks up a milestone before the upload says so when it starts `/design-sync`, works in the
+campaign worktree, reads `NOTES.md` first, and follows the milestone here rather than the skill's
+re-sync section. Its closing check runs the driver without `--remote`, since the project has no
+record yet.
 
 ## After M4
 

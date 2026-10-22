@@ -63,6 +63,10 @@
     "SuggestionList": {
       "cardMode": "column"
     },
+    "Toaster": {
+      "cardMode": "single",
+      "primaryStory": "Default"
+    },
     "Tooltip": {
       "cardMode": "single",
       "primaryStory": "Open"

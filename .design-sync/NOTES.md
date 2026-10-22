@@ -68,6 +68,37 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   wrapper's transform contains the sidebar's fixed panel -> owned `previews/Sidebar.tsx` takes the
   body's padding back with a `<style>`, as Storybook's fullscreen layout does. Byte-identical to
   Storybook. The only stories with `layout: 'fullscreen'` are Sidebar's
+- [GENERAL] Tooltip's open stories drew their tooltip below the trigger, pushed against the left
+  edge, and Sides' triggers stretched to full width -> the card ignores `parameters.layout`, and
+  `centered` is Storybook's `.sb-main-centered`: a flex body as tall as the viewport, the root
+  shrunk to its content and centred by `margin: auto` with 1rem of padding. Drawn at the card's
+  top-left instead, 24px from the top, a tooltip above its trigger has no room and Radix flips it
+  -> an owned preview lays every centred story out as Storybook does, `body { padding: 0 }` and
+  the two boxes, as Sidebar's does for `fullscreen`. `centered` is on Tooltip's meta, Calendar's
+  meta (but its `padded` story) and Popover's Top. Top keeps its generated preview: its own `pt-48`
+  leaves the popover room, so only the framing differs
+- [GENERAL] Select's Open drew its trigger in the viewport's corner and its list 10px right of it
+  -> an open overlay that locks the page's scroll (Radix's Select, Dialog and Sheet, through
+  react-remove-scroll-bar) writes `body[data-scroll-locked] { padding: <the body's margins>;
+  margin: 0 }`, which outranks the card's `body { padding: 24px }`, while Storybook's padded class
+  outranks the lock; flush against the edge, Select's list keeps its 10px of collision padding ->
+  framing, of the card's shell, which the converter owns: Select's Open graded `close` with the
+  reason. Dialog's and Sheet's trigger is hidden under their backdrop, so it shows nowhere else.
+  DropdownMenu is not modal and keeps its gutter
+- [GENERAL] Toaster: a clicked toast landed above the viewport, or four times over in the grid card
+  -> sonner draws its fixed list in place rather than through a portal to the body, so the card's
+  transformed wrapper, a cell or `.ds-single`, holds it instead of the viewport, and the wrapper is
+  as tall as the row of triggers, 40px; and its toasts are global, so every mounted `<Toaster>`
+  draws one -> `cardMode: "single"`, and owned `previews/Toaster.tsx` gives each story a box as tall
+  as the viewport, the card's 24px gutter inside it: a toast lands where Storybook's does, and
+  nothing changes at rest. Any fixed layer drawn in place needs the same
+- Toaster `[RENDER_THIN]` (`variantsIdentical`): its four stories differ only in props that shape a
+  toast, and none fires one, so all four draw the same seven triggers, in Storybook as in the card
+- Stories closed until clicked, with no `defaultOpen` and no `play`, draw their trigger alone on
+  both sides: Combobox's and MultiSelect's In Dialog, MultiSelect's Opened On Demand, every
+  Toaster story. They grade `match`, and verify nothing of what opens
+- Grading a centred story whose overlay has room either way: crop each side to its content's box
+  (`magick <png> -fuzz 2% -format "%@" info:`), then diff the crops at 4% fuzz and stack them
 - [GENERAL] An owned preview is linted and formatted as the repository is: the generated `compose`
   trips `unicorn/no-useless-fallback-in-spread` -> after copying a generated wrapper, `bunx oxlint
   --fix <file>` and `bunx oxfmt <file>`, then rebuild and recapture, since the edit moves its grade
@@ -108,7 +139,10 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   UI's positioning and Tailwind. Nothing to ship
 - The global carries Yjs's exports beside the components (`Doc`, `Map`, `Text`, `applyUpdate`…),
   for the editor's stories: M3's read of the API says whether the design agent is told of them
-- Toaster `[RENDER_THIN]`, its variants identical, a toast needing its trigger
+- The product's single card is full-bleed, its body unpadded, so an open story's trigger is flush
+  with its left edge and a popup with collision padding sits right of it: Select's list by 10px,
+  Combobox's and MultiSelect's by 5px. Presentation only, outside the graded captures, which keep
+  the 24px gutter; M3 says whether it matters to a designer
 - Tabs' Full Width story: its triggers keep their natural width, in Storybook as in the preview,
   and only the rule spans `max-w-lg`. `tabVariants` is a cva, which merges no classes, so a trigger
   carries both the base's `flex-none` and the variant's `flex-1`, and `.flex-none` comes later in

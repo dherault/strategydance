@@ -55,6 +55,15 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   <Name>…` writes Storybook's viewport, at the harness's size and stabilization, beside the raw
   shots as `…__sb-viewport.png`. Grade such a story against it. `cmp` tells a byte-identical pair at
   once
+- [GENERAL] Calendar's In Dialog and RichText's Unreadable came out `sb-error`, "no storybook root
+  content", though Storybook renders both -> the harness waits for content in `#storybook-root`,
+  and In Dialog opens its dialog from the start, with no trigger, so everything portals to the
+  body, while RichText draws nothing for a value it cannot read, by design. The harness then takes
+  no preview shot either -> `captureStorybook.ts` waits for `body.sb-show-main`, which Storybook
+  sets once a story has rendered, empty or not, and shoots them; the preview's side is its card's
+  `?story=<Export>` page shot at 900x700 with the harness's stabilization. Both graded `match`
+  with `"basis": "manual-capture"`, which compare carries forward. The new wait left the 26 shots
+  it had taken before byte-identical
 - [GENERAL] CitationLink's reference cut the top off its raised bubble -> anything drawn outside
   `#storybook-root`'s box is outside the harness's shot, upward as much as outward: a superscript,
   a negative margin, a shadow or a ring -> grade such a story against `captureStorybook.ts`'s

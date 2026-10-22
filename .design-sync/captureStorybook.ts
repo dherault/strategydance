@@ -57,7 +57,10 @@ try {
     await page.goto(`http://127.0.0.1:${port}/iframe.html?id=${encodeURIComponent(story.id)}&viewMode=story`, {
       waitUntil: 'networkidle',
     })
-    await page.waitForSelector('#storybook-root > :not(style,script,link,meta,template)', { timeout: 8000 })
+    // Storybook marks the body once the story has rendered. Its root can stay empty: a dialog open
+    // from the start portals everything to the body, and RichText draws nothing for a value it
+    // cannot read, and the harness, which waits for the root's content, refuses both
+    await page.waitForSelector('body.sb-show-main, body.sb-show-errordisplay', { timeout: 8000 })
     await page.evaluate(() =>
       Promise.all([document.fonts.ready, ...[...document.images].map(image => image.decode().catch(() => {}))]),
     )

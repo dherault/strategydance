@@ -20,9 +20,10 @@ const COMPONENTS_PATH = join(DESIGN_SYSTEM_PATH, 'src/components')
 const PACKAGE_PATH = join(DESIGN_SYSTEM_PATH, 'node_modules/.cache/design-sync')
 const TYPES_PATH = join(PACKAGE_PATH, 'types')
 
-// Parts of the editor and of its mentions, which only `RichTextEditor` and `RichText` draw
+// Modules only other components draw: the parts of the editor and of its mentions, which only
+// `RichTextEditor` and `RichText` draw, and `Choice`, the row Checkbox, Radio and Switch lay out in
 const INTERNAL_MODULE_PATTERN =
-  /^ui\/RichText(EditorFilePanel|EditorMentionMenu|EditorSideMenu|EditorSlashMenu|EditorToolbar|Mention)\.tsx$/
+  /^ui\/(Choice|RichText(EditorFilePanel|EditorMentionMenu|EditorSideMenu|EditorSlashMenu|EditorToolbar|Mention))\.tsx$/
 
 const modules = readdirSync(COMPONENTS_PATH, { recursive: true, encoding: 'utf8' })
   .filter(path => path.endsWith('.tsx') && !path.endsWith('.stories.tsx') && !path.endsWith('.test.tsx'))

@@ -83,9 +83,18 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   shrunk to its content and centred by `margin: auto` with 1rem of padding. Drawn at the card's
   top-left instead, 24px from the top, a tooltip above its trigger has no room and Radix flips it
   -> an owned preview lays every centred story out as Storybook does, `body { padding: 0 }` and
-  the two boxes, as Sidebar's does for `fullscreen`. `centered` is on Tooltip's meta, Calendar's
-  meta (but its `padded` story) and Popover's Top. Top keeps its generated preview: its own `pt-48`
-  leaves the popover room, so only the framing differs
+  the two boxes, as Sidebar's does for `fullscreen`: `previews/Tooltip.tsx`, all nine stories, and
+  `previews/Calendar.tsx`, all but In Popover, which sets `padded` back. Popover's Top is centred
+  too and keeps its generated preview: its own `pt-48` leaves the popover room, so only the framing
+  differs. A story given `centered` later needs the same
+- [GENERAL] A story taller than the viewport is verified to 700px alone by the viewport pair, and
+  the harness's `__sb.png`, the whole element, faces a `__ds.png` cut at the viewport -> shoot both
+  sides full page (`fullPage: true`) with the harness's stabilization, crop the preview's at
+  +24+24, or +0+24 for a story centred by `mx-auto`, to the `__sb.png`'s size, and diff them:
+  RichText's Document, RichTextEditor's Document, Document Round Trip and Collaborative
+- RichTextEditor's Collaborative: each column 8px narrower in the card, its 16:9 video 4.5px
+  shorter -> the grid spans the full width, and the card's 852px against Storybook's 868px share
+  16px less between the two columns -> framing, the text wrapping alike
 - [GENERAL] Select's Open drew its trigger in the viewport's corner and its list 10px right of it
   -> an open overlay that locks the page's scroll (Radix's Select, Dialog and Sheet, through
   react-remove-scroll-bar) writes `body[data-scroll-locked] { padding: <the body's margins>;

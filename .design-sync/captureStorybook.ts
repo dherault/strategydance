@@ -48,6 +48,8 @@ const page = await browser.newPage({ viewport: { width: 900, height: 700 } })
 await page.emulateMedia({ reducedMotion: 'reduce' })
 await page.clock.setFixedTime(new Date('2030-01-15T12:00:00Z'))
 
+const failedStoryIds: string[] = []
+
 try {
   for (const story of stories) {
     const [group, ...rest] = story.title.split('/')
@@ -57,7 +59,17 @@ try {
     await page.goto(`http://127.0.0.1:${port}/iframe.html?id=${encodeURIComponent(story.id)}&viewMode=story`, {
       waitUntil: 'networkidle',
     })
-    await page.waitForSelector('#storybook-root > :not(style,script,link,meta,template)', { timeout: 8000 })
+    // Storybook marks the body once the story has rendered. Its root can stay empty: a dialog open
+    // from the start portals everything to the body, and RichText draws nothing for a value it
+    // cannot read, and the harness, which waits for the root's content, refuses both
+    await page.waitForSelector('body.sb-show-main, body.sb-show-errordisplay', { timeout: 8000 })
+
+    // Storybook's error panel is no reference: nothing is written over the story's earlier shot
+    if (await page.locator('body.sb-show-errordisplay').count()) {
+      failedStoryIds.push(story.id)
+      continue
+    }
+
     await page.evaluate(() =>
       Promise.all([document.fonts.ready, ...[...document.images].map(image => image.decode().catch(() => {}))]),
     )
@@ -68,4 +80,9 @@ try {
 } finally {
   await browser.close()
   srv.close()
+}
+
+if (failedStoryIds.length) {
+  console.error(`Storybook failed to render, so nothing was shot: ${failedStoryIds.join(', ')}`)
+  process.exit(1)
 }

@@ -11,7 +11,7 @@
 */
 const RESPONSIVE = '{,sm:,md:,lg:}'
 const SPACES = '{0,0.5,1,1.5,2,2.5,3,4,5,6,8,10,12,16,20,24}'
-const SIZES = '{4,5,6,8,10,12,16,20,24,32,40,48,56,64,72,80,96}'
+const SIZES = '{px,0.5,1,1.5,2,2.5,3,3.5,4,5,6,8,10,12,16,20,24,32,40,48,56,64,72,80,96}'
 const SHADES = '{50,100,200,300,400,500,600,700,800,900,950}'
 
 // The design system's own colour tokens, `index.css`'s `@theme inline`, and Tailwind's plainest
@@ -44,7 +44,7 @@ const LAYOUT_CLASSES = [
   `w-${SIZES}`,
   'h-{0,full,auto,fit,screen,svh}',
   `h-${SIZES}`,
-  'size-{4,5,6,8,10,12,16,20,24,32}',
+  'size-{1,1.5,2,2.5,3,3.5,4,5,6,8,10,12,16,20,24,32}',
   'min-w-0',
   'min-h-{0,full,screen,svh}',
   `${RESPONSIVE}max-w-{xs,sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,full,prose,none}`,

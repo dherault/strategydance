@@ -69,6 +69,15 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
 - `[ASSETS_BLOCKED]` naming `example.invalid` alone is the Broken Image stories (Avatar,
   CompanyLogo) loading a reserved address on purpose. randomuser.me loads, so the shell reaches the
   network
+- [GENERAL] RichTextEditor `[RENDER_ERRORS] text9.toDelta is not a function` -> its Collaborative
+  story makes its `Y.Doc`s with `import * as Y from 'yjs'`, which the preview bundled as a second
+  Yjs, while the editor runs y-prosemirror from the global's, and Yjs tells its types apart with
+  `instanceof` -> `extraEntries: ["yjs"]` merges Yjs onto the global, and every bare `yjs` import
+  in a preview, `y-protocols`' and the bundled `lib/createRichTextYUpdate`'s included, shims to
+  it. `createRichTextYUpdate` stays bundled in the preview, a second BlockNote with it (1.3 MB): it
+  only writes an update's bytes, which need no shared instance. `extraEntries` is in every
+  component's grade key, so it went in before M2's first wave, and only M1's five were graded
+  again
 - Card modes: `overrides` take validate's `[GRID_OVERFLOW]` remedies for 15 components, `single`
   with an open story as primary for the overlays, `column` for the wide ones
 - Stories past the harness's cap of six: Button 7 (`--max-stories 7` when capturing it),
@@ -84,12 +93,8 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
 - `[TOKENS_MISSING]` `--shiki-*`, `--user-color-*`, `--available-height`, `--anchor-width`,
   `--transform-origin`, `--tw`: set at runtime by Shiki, the collaboration carets, Radix and Base
   UI's positioning and Tailwind. Nothing to ship
-- RichTextEditor `[RENDER_ERRORS] text9.toDelta is not a function`: its story builds its Yjs update
-  with `strategydance-design-system/lib/createRichTextYUpdate`, which the preview bundles, Yjs with
-  it, while the component runs from the global bundle's Yjs, and Yjs checks its types with
-  `instanceof`. RichText's story imports `lib/richText` the same way. Likely fix, a config change
-  for the orchestrator before the wave that holds them: re-export the `lib/` modules those stories
-  import from the entry, and send `/src/lib/` to the global with `cfg.storyImports.shim`
+- The global carries Yjs's exports beside the components (`Doc`, `Map`, `Text`, `applyUpdate`…),
+  for the editor's stories: M3's read of the API says whether the design agent is told of them
 - Spinner `[RENDER_THIN]`, paints nothing; Toaster `[RENDER_THIN]`, its variants identical, a toast
   needing its trigger
 
@@ -98,7 +103,6 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
 - Graded `match` on every story, in the campaign worktree's `.design-sync/.cache/compare/`:
   Button, Dialog, Avatar, Sidebar, Markdown
 - To grade: the 38 other storied components. Overlays and tall stories against
-  `captureStorybook.ts`'s shots. RichText, RichTextEditor and the heavy ones in the last wave, after
-  the `lib/` fix above
+  `captureStorybook.ts`'s shots. RichText, RichTextEditor and the heavy ones in the last wave
 - Subagents may not edit the config: an overlay's `cardMode`, a skip or the `lib/` shim is the
   orchestrator's

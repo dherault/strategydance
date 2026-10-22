@@ -9,6 +9,7 @@
   "buildCmd": "bun .design-sync/buildPackage.ts",
   "tsconfig": "../../../tsconfig.app.json",
   "cssEntry": "styles/styles.css",
+  "extraEntries": ["yjs"],
   "overrides": {
     "Avatar": {
       "cardMode": "column"

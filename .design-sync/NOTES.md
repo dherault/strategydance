@@ -55,6 +55,14 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   <Name>…` writes Storybook's viewport, at the harness's size and stabilization, beside the raw
   shots as `…__sb-viewport.png`. Grade such a story against it. `cmp` tells a byte-identical pair at
   once
+- [GENERAL] CitationLink's reference cut the top off its raised bubble -> anything drawn outside
+  `#storybook-root`'s box is outside the harness's shot, upward as much as outward: a superscript,
+  a negative margin, a shadow or a ring -> grade such a story against `captureStorybook.ts`'s
+  viewport too
+- Grading a small story: the harness's `__sb.png` is the root alone, 868px wide and as tall as the
+  story, the `__ds.png` the 900x700 viewport -> crop the `__ds.png` at +24+24 to the `__sb.png`'s
+  size, stack the two and enlarge them 3 to 5 times (`magick … -scale`), and a 1px border or a
+  colour shows
 - Sidebar: the footer cut off below the viewport, then the panel 24px off the edge -> its stories are
   `layout: 'fullscreen'`, which the card ignores: it pads its body by 24px, and its `.ds-single`
   wrapper's transform contains the sidebar's fixed panel -> owned `previews/Sidebar.tsx` takes the
@@ -65,7 +73,12 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   --fix <file>` and `bunx oxfmt <file>`, then rebuild and recapture, since the edit moves its grade
   key
 - Framing, not a difference: Storybook's canvas is the design system's body background, neutral,
-  the card's is white; Storybook's padded layout insets the story by 16px, the card by 24px
+  the card's is white; Storybook's padded layout insets the story by 16px, the card by 24px. So a
+  full-width story is 868px wide in Storybook and 852px in the card (OrnamentDivider, Table), its
+  centred content on the same x, and a root with nothing to measure is shot as the whole canvas
+  (Progress' Indeterminate)
+- Spinner `[RENDER_THIN]` (`allHollow`): a loader icon of 12 to 32px paints little. Both sides draw
+  it alike, at the same frozen angle: the warning is the component's size, nothing to fix
 - `[ASSETS_BLOCKED]` naming `example.invalid` alone is the Broken Image stories (Avatar,
   CompanyLogo) loading a reserved address on purpose. randomuser.me loads, so the shell reaches the
   network
@@ -95,8 +108,12 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   UI's positioning and Tailwind. Nothing to ship
 - The global carries Yjs's exports beside the components (`Doc`, `Map`, `Text`, `applyUpdate`…),
   for the editor's stories: M3's read of the API says whether the design agent is told of them
-- Spinner `[RENDER_THIN]`, paints nothing; Toaster `[RENDER_THIN]`, its variants identical, a toast
-  needing its trigger
+- Toaster `[RENDER_THIN]`, its variants identical, a toast needing its trigger
+- Tabs' Full Width story: its triggers keep their natural width, in Storybook as in the preview,
+  and only the rule spans `max-w-lg`. `tabVariants` is a cva, which merges no classes, so a trigger
+  carries both the base's `flex-none` and the variant's `flex-1`, and `.flex-none` comes later in
+  the compiled CSS. A bug of the design system's, outside the sync, for David: its fix moves Tabs'
+  render, so the reference is rebuilt and Tabs graded again
 
 ## M2 starts from
 

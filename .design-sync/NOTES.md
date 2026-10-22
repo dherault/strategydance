@@ -167,11 +167,29 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   the compiled CSS. A bug of the design system's, outside the sync, for David: its fix moves Tabs'
   render, so the reference is rebuilt and Tabs graded again
 
-## M2 starts from
+## M3 starts from
 
-- Graded `match` on every story, in the campaign worktree's `.design-sync/.cache/compare/`:
-  Button, Dialog, Avatar, Sidebar, Markdown
-- To grade: the 38 other storied components. Overlays and tall stories against
-  `captureStorybook.ts`'s shots. RichText, RichTextEditor and the heavy ones in the last wave
-- Subagents may not edit the config: an overlay's `cardMode`, a skip or the `lib/` shim is the
-  orchestrator's
+- Every storied component graded, in the campaign worktree's `.design-sync/.cache/compare/`: 43
+  components, 187 stories, every one captured (`--max-stories 11`). 186 grade `match`, Select's Open
+  `close` (the scroll lock, above), none skipped. Calendar's In Dialog and RichText's Unreadable
+  are `match` from manual captures. A compare over all 43 carries every one forward, nothing
+  captured and no grade cleared
+- The last full build and validate were M2's first step, validate exiting 0 with all 43 previews
+  rendering cleanly. The owned previews since were rebuilt one at a time, so M3's closing driver
+  run is the first full build over them
+- Owned previews: Sidebar (`fullscreen`), Tooltip and Calendar (`centered`), Toaster (a box as tall
+  as the viewport). Each composes its story module whole, so a story's edit reaches it, but its
+  wrapper follows the story's `parameters.layout` and Toaster's sonner: a change to either moves
+  what it has to do
+- For M3's Re-sync risks:
+  - verified partly: Toaster at rest alone, since no story fires a toast, and the stories closed
+    until clicked (Combobox's and MultiSelect's In Dialog, MultiSelect's Opened On Demand) their
+    trigger alone; the stories taller than the viewport were diffed full page once, by hand, and
+    the harness sees their first 700px
+  - by hand: the two manual captures, whose preview side the harness never shoots, and the
+    viewport shots of overlays, centred and tall stories, which `captureStorybook.ts` takes
+  - accepted: Select's Open `close`, a frame of the converter's own
+  - assumed: `extraEntries: ["yjs"]`, in every grade key, so removing it grades everything again
+- Subagents may not edit the config: an overlay's `cardMode`, a skip or an import setting is the
+  orchestrator's. A batch keeps its scratch files in a folder named after it, since batches share
+  the scratchpad

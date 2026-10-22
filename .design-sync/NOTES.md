@@ -14,10 +14,26 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   node .ds-sync/package-validate.mjs ./ds-bundle
   ```
 
+- Then the name check, which exits 1 on any name the props, the usage notes or the conventions give
+  that the build does not have: `bun .design-sync/checkNames.ts`. While writing a note,
+  `--only <Name,…> --props <dir>` checks those components' drafts, `<dir>/<Name>.txt` each, before
+  they reach the config
+- Then the examples, which nothing else runs: `bun .design-sync/runExamples.ts`, every ```jsx block
+  of the notes and the conventions as written, in a page loading the upload, failing on one that
+  does not compile, throws, logs an error or draws nothing. A minute and a half; its screenshots
+  land in `ds-bundle/_screenshots/examples/`
+- The closing check is the skill's driver, without `--remote` until M4 uploads the record:
+
+  ```sh
+  node .ds-sync/resync.mjs --config .design-sync/config.json \
+    --node-modules packages/strategydance-design-system/node_modules --out ./ds-bundle --max-stories 11
+  ```
+
+  It runs no `buildCmd`: run `buildPackage.ts` first
 - The reference Storybook is built from the package's directory:
   `bunx storybook build -c .storybook -o <worktree>/.design-sync/sb-reference`, about four minutes.
   Rebuild it whenever a story or a component changes, together with the converter's build
-- A full converter build takes 15 to 25 minutes, nearly all of it compiling the 43 previews one at
+- A full converter build takes 15 to 25 minutes, nearly all of it compiling the 44 previews one at
   a time. Use `preview-rebuild.mjs --components <Name>` to iterate on one, a few seconds
 
 ## Fixes
@@ -42,8 +58,9 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   and the editor's), and none of Tailwind's: the Storybook fallback only fires when the bundle's
   CSS is missing or a stub -> `buildPackage.ts` builds `src/index.css` with Vite and the design
   system's own Tailwind plugin, from the design system's root, into `styles/styles.css` with the
-  fonts beside it under their own names, and the config's `cssEntry` appends it. It matches
-  Storybook's compiled CSS byte for byte but the fonts' addresses (118.8 KB against 119.0 KB)
+  fonts beside it under their own names, and the config's `cssEntry` appends it. It matched
+  Storybook's compiled CSS byte for byte but the fonts' addresses (118.8 KB against 119.0 KB),
+  until M3 added the layout vocabulary to it (below)
 - Story imports: `strategydance-design-system/components/<path>/<Name>` resolves to the shipped
   global when `<Name>` is an exported component, by the converter's own rule. An import of
   `strategydance-design-system/lib/*` or `hooks/*` is bundled into the preview instead
@@ -144,52 +161,130 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   with an open story as primary for the overlays, `column` for the wide ones
 - Stories past the harness's cap of six: Button 7 (`--max-stories 7` when capturing it),
   RichTextEditor 11, MultiSelect 9, Tooltip 9, ImageDropzone 8, Combobox 7
+- [GENERAL] What the design agent reads misled it in every component: the props kept only those the
+  package declares (`dts.mjs`'s `isOwnProp`), so Button had no `onClick` and Input no `value`, cut
+  every comment at 120 characters and named `CSSProperties` unimported; the 72 parts of the compound
+  components were typed nowhere; the examples were Storybook's source, `compose(S, "X")` and
+  undefined fixtures -> each component's props are written by hand in the config's `dtsPropsFor`,
+  which both the `.d.ts` and the usage note's Props print verbatim, and its usage note is
+  `.design-sync/docs/<Name>.md`, found through `docsDir`, which replaces the generated variants,
+  examples and related list: what it is, real JSX taken from the global, its parts, and what the
+  API is not. Neither is in a grade key. A body is one prop or one-line comment a line, at two
+  spaces, as the converter parses it; a note has no `## Props`, or the converter appends none, and
+  stays under its 8000 characters
+- [GENERAL] Nothing checked what the notes, the bodies or the conventions name -> `checkNames.ts`
+  holds each body to the component's real type, both ways for the props the package declares, and
+  every component, part, icon, class and custom property a note or the conventions use to what
+  ships. It reads the declarations with the converter's own ts-morph, since the design system's
+  TypeScript 7 has no compiler API, and maps the design system's alias to itself
+  (`strategydance-design-system/*`), without which a props type built from another component reads
+  as `any`. It cannot see a default or a behaviour a note describes that changed
+- [GENERAL] Nothing ran the notes' examples: no capture renders them, and the name check reads their
+  names alone -> `runExamples.ts` runs each as written against the built upload, React from
+  `_vendor/react.js` as a card loads it. A block ends with the JSX it draws, or with the component
+  it declares last, which it then draws; an overlay open from the start draws in the body, beside
+  the root
+- [GENERAL] No icon was on the global, so a design could pass none to a Button's `icon` ->
+  `buildPackage.ts` adds `export * as Icons from 'lucide-react'` to the entry, a namespace since
+  Lucide also exports `Calendar`, `Table` and `Badge`, which a flat `export *` would drop beside
+  ours. Through the entry, not `extraEntries`, which is in every grade key and would shim the
+  previews' own Lucide imports: no grade moved. The bundle grew 1.5 MB to 10.64 MiB of the
+  upload's 12; Shiki's precompiled grammars are 3.64 MB of it, the lever should the cap near
+- [GENERAL] A class nothing in the design system used had no rule, and failed silently ->
+  `layoutClasses.ts`, the layout vocabulary, which `buildPackage.ts` compiles beside `index.css`
+  through `@source inline()` in the sync's build alone. The stylesheet is Storybook's plus the
+  vocabulary, every earlier rule kept, 118.8 KB to 193 KB. Tailwind drops a candidate it does not
+  know without a word: `checkNames.ts` proves each one compiled
+- `Choice` is internal, drawn by Checkbox, Radio and Switch alone -> off the global, through
+  `INTERNAL_MODULE_PATTERN`. `Field` is public, the web app imports it -> a story of its own, both
+  stories graded `match`
+- [GENERAL] `[FONT_MISSING]` named "Inter", "SF Pro Display", "Open Sans" and "Arial Narrow", in
+  which no text renders -> David dropped "Arial Narrow" from `--font-display`, and accepted
+  BlockNote's default editor stack, which `RichTextEditor.css` replaces, through
+  `runtimeFontPrefixes`, the check's only knob. Its `inter` prefix also matches "Inter Variable",
+  so `checkNames.ts` asserts both shipped faces' `@font-face` instead
+- [GENERAL] No provider wraps a design, so `provider` stays unset: Tooltip brings its own,
+  `SidebarProvider` is the frame of an app with a sidebar, and the Toaster a sibling mounted once.
+  Set, `provider` would wrap every card, and re-grade every component, since it is in every grade
+  key. The conventions and the notes say when each applies
+- The README's head is `conventions.md`, through `readmeHeader`: what the global holds, the wrap,
+  the styling idiom with the design system's real tokens, the vocabulary in words, one example. The
+  generated Tokens section below it lists every custom property, led by BlockNote's and
+  Tailwind's, and only `tokensPkg` could change that, which the README would then name by its path
+  under `node_modules`: the header says which are the design system's
+- The global carries Yjs's exports beside the components (`Doc`, `Map`, `Text`, `Array`…), for the
+  editor's collaborative story. The conventions say they are no components; removing them is
+  `extraEntries`, which re-grades everything
+- The product's single card is full-bleed, its body unpadded, so an open story's trigger is flush
+  with its left edge and a popup with collision padding sits right of it: Select's list by 10px,
+  Combobox's and MultiSelect's by 5px -> accepted in M3: a few pixels of a popup's offset from a
+  trigger at the card's very edge, outside the graded captures, which no design inherits, since a
+  design lays out its own page
 
 ## Open
 
-- `[FONT_MISSING]` "Inter", "SF Pro Display", "Open Sans", "Arial Narrow": the check reads every
-  family of every font stack. The first three are BlockNote's default `--bn-font-family`, which
-  `RichTextEditor.css` replaces with `var(--font-sans)` on the editor's root; the last is the
-  fallback after "Oswald Variable". Inter Variable and Oswald Variable ship, 19 faces, and no text
-  renders in the four. Accepting it is David's call, before M3's closing check
 - `[TOKENS_MISSING]` `--shiki-*`, `--user-color-*`, `--available-height`, `--anchor-width`,
   `--transform-origin`, `--tw`: set at runtime by Shiki, the collaboration carets, Radix and Base
   UI's positioning and Tailwind. Nothing to ship
-- The global carries Yjs's exports beside the components (`Doc`, `Map`, `Text`, `applyUpdate`…),
-  for the editor's stories: M3's read of the API says whether the design agent is told of them
-- The product's single card is full-bleed, its body unpadded, so an open story's trigger is flush
-  with its left edge and a popup with collision padding sits right of it: Select's list by 10px,
-  Combobox's and MultiSelect's by 5px. Presentation only, outside the graded captures, which keep
-  the 24px gutter; M3 says whether it matters to a designer
 - Tabs' Full Width story: its triggers keep their natural width, in Storybook as in the preview,
   and only the rule spans `max-w-lg`. `tabVariants` is a cva, which merges no classes, so a trigger
   carries both the base's `flex-none` and the variant's `flex-1`, and `.flex-none` comes later in
-  the compiled CSS. A bug of the design system's, outside the sync, for David: its fix moves Tabs'
-  render, so the reference is rebuilt and Tabs graded again
+  the compiled CSS. A bug of the design system's, outside the sync, being fixed on its own branch
+  (`tabs-full-width`): once it is in `dev`, rebuild the reference and grade Tabs again, by hand,
+  since its grade carries otherwise, `srcSha` hashing its story file alone. Its note's `fullWidth`
+  already says what the fix makes true
+- Design system bugs the usage notes met, outside the sync, for David. Each note describes the
+  component as it is, so a fix changes its note too:
+  - Pill names its `<span>` with `aria-label`, which ARIA ignores on an element with no role, so a
+    screen reader may read "99+" alone
+  - SuggestionList spreads its props after its own `onMouseDown`, which keeps the field's focus, so
+    a caller's `onMouseDown` replaces it
+  - Calendar styles no `range`: every day of one fills as a picked day, since no react-day-picker
+    stylesheet ships. The app picks single days alone
 
-## M3 starts from
+## Re-sync risks
 
-- Every storied component graded, in the campaign worktree's `.design-sync/.cache/compare/`: 43
-  components, 187 stories, every one captured (`--max-stories 11`). 186 grade `match`, Select's Open
-  `close` (the scroll lock, above), none skipped. Calendar's In Dialog and RichText's Unreadable
-  are `match` from manual captures. A compare over all 43 carries every one forward, nothing
-  captured and no grade cleared
-- The last full build and validate were M2's first step, validate exiting 0 with all 43 previews
-  rendering cleanly. The owned previews since were rebuilt one at a time, so M3's closing driver
-  run is the first full build over them
-- Owned previews: Sidebar (`fullscreen`), Tooltip and Calendar (`centered`), Toaster (a box as tall
-  as the viewport). Each composes its story module whole, so a story's edit reaches it, but its
-  wrapper follows the story's `parameters.layout` and Toaster's sonner: a change to either moves
-  what it has to do
-- For M3's Re-sync risks:
-  - verified partly: Toaster at rest alone, since no story fires a toast, and the stories closed
-    until clicked (Combobox's and MultiSelect's In Dialog, MultiSelect's Opened On Demand) their
-    trigger alone; the stories taller than the viewport were diffed full page once, by hand, and
-    the harness sees their first 700px
+- What goes stale silently:
+  - the 44 props bodies in `dtsPropsFor` and the notes in `docs/`, written by hand. `checkNames.ts`
+    catches a prop renamed, removed or added, and a component, part, icon, class or token gone,
+    never a default or a behaviour that changed: read a component's note and body whenever its
+    source changes, and run the check
+  - `conventions.md`'s prose: the vocabulary in words follows `layoutClasses.ts`, and the tokens'
+    colours `index.css`. Change them together
+  - the owned previews: Sidebar's, Tooltip's and Calendar's wrappers follow their stories'
+    `parameters.layout`, and Toaster's sonner's list drawn in place. Each composes its story module
+    whole, so a story's edit reaches it, but not a change of layout
+- What was verified only partly:
+  - Toaster at rest alone, since no story fires a toast, and the stories closed until clicked
+    (Combobox's and MultiSelect's In Dialog, MultiSelect's Opened On Demand), their trigger alone
+  - the stories taller than the viewport, diffed full page once by hand, of which the harness sees
+    the first 700px
   - by hand: the two manual captures, whose preview side the harness never shoots, and the
     viewport shots of overlays, centred and tall stories, which `captureStorybook.ts` takes
   - accepted: Select's Open `close`, a frame of the converter's own
-  - assumed: `extraEntries: ["yjs"]`, in every grade key, so removing it grades everything again
+  - Tabs' Full Width, as the bug above draws it
+  - the notes' examples: `runExamples.ts` proves each of the 88 runs and draws, and a few of its
+    screenshots were looked at (M3: the conventions' screen, Sidebar's frame, Sheet, the editor,
+    Table and Tabs), but none is graded against anything
+- What the build assumes:
+  - `extraEntries: ["yjs"]`, in every grade key, so removing it grades everything again
+  - Lucide through the entry, and the bundle at 10.64 MiB of the upload's 12
+  - the vocabulary through Tailwind 4's `@source inline()`
+  - `runtimeFontPrefixes`' `inter`, which would hide a lost "Inter Variable" from validate, as
+    `checkNames.ts` does not
+  - `checkNames.ts` reading declarations with `.ds-sync/`'s ts-morph, so a fresh clone stages the
+    skill's scripts before it runs
+  - `--max-stories 11` for every capture, which RichTextEditor's 11 stories need
+
+## M4 starts from
+
+- 44 components, 189 stories, all graded in the campaign worktree's `.design-sync/.cache/compare/`:
+  188 `match`, Select's Open `close`. The closing driver run's verdict `ok`, nothing pending, every
+  component carried forward; validate exiting 0, 44 of 44 previews rendering cleanly, no
+  `[FONT_MISSING]`; `checkNames.ts` exiting 0, and `runExamples.ts`, 88 examples
+- Tabs graded again first, if its fix has reached `dev` (Open)
+- Then M4's steps in `documents/design-sync.md`, the closing build a driver run, and
+  `DesignSync(report_validate)` with its `.render-check.json`'s counts
 - Subagents may not edit the config: an overlay's `cardMode`, a skip or an import setting is the
   orchestrator's. A batch keeps its scratch files in a folder named after it, since batches share
   the scratchpad

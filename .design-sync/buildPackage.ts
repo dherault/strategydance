@@ -1,8 +1,8 @@
 /*
-  Builds the package the design sync's converter reads: the design system's component modules
-  re-exported from one entry, which it bundles into `window.StrategyDanceDesignSystem`, their
-  declarations, which it reads the components' props from, and the stylesheet, Tailwind's output
-  with the fonts it loads, which no component imports.
+  Builds the package the design sync's converter reads: the design system's component modules and
+  Lucide's icons re-exported from one entry, which it bundles into
+  `window.StrategyDanceDesignSystem`, their declarations, which it reads the components' props
+  from, and the stylesheet, Tailwind's output with the fonts it loads, which no component imports.
 
   The design system ships TypeScript source and no root export, since its consumers import each
   component by its path, and the converter wants a built package: an entry, and a `package.json`
@@ -131,6 +131,13 @@ function writeJson(name: string, value: unknown) {
   writeFileSync(join(PACKAGE_PATH, name), `${JSON.stringify(value, null, 2)}\n`)
 }
 
+/*
+  Every component module, and Lucide's icons under one name, which the components draw but a design
+  could not pass to a Button's `icon` otherwise. A namespace, since Lucide also exports `Calendar`,
+  `Table` and `Badge`, and two `export *` naming one export would leave both out
+*/
 function toExportLines(toSpecifier: (path: string) => string) {
-  return `${modules.map(path => `export * from '${toSpecifier(path)}'`).join('\n')}\n`
+  const lines = modules.map(path => `export * from '${toSpecifier(path)}'`)
+
+  return `${[...lines, "export * as Icons from 'lucide-react'"].join('\n')}\n`
 }

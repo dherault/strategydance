@@ -632,10 +632,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://submitaitools.org/",
     "submissionUrl": "https://submitaitools.org/submit-your-ai-tool/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools organized by category and profession, where makers can submit their own AI products for listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-22",
     "unreachableSince": null
   },
   {
@@ -1393,10 +1395,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://bestofai.io/",
     "submissionUrl": "https://bestofai.io/submit/",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
+    "description": "Open-source directory of hand-reviewed AI tools organized by category and profession, where makers submit their AI products for listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-22",
     "unreachableSince": null
   },
   {
@@ -2433,11 +2437,13 @@
     "name": "Foundrlist",
     "type": "WEBSITE",
     "rootUrl": "https://www.foundrlist.com/",
-    "submissionUrl": "https://www.foundrlist.com/submit",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://www.foundrlist.com/agent",
+    "description": "Weekly launch board and social network for founders, where makers list their startups, SaaS and AI products for upvotes and comments, with permanent product pages.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-22",
     "unreachableSince": null
   },
   {
@@ -2494,10 +2500,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://tools.futureaiguide.com/",
     "submissionUrl": "https://tools.futureaiguide.com/tools/create/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, pricing model and skill level, where makers can submit their own tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-22",
     "unreachableSince": null
   },
   {
@@ -3220,10 +3228,14 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.launchory.app/",
     "submissionUrl": "https://www.launchory.app/submit",
-    "description": "",
-    "categories": [],
+    "description": "Startup directory listing SaaS, AI tools, developer tools, apps and other software products, where founders submit their own product profiles.",
+    "categories": [
+      "AI_TOOLS",
+      "SAAS",
+      "DEVELOPER_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-22",
     "unreachableSince": null
   },
   {
@@ -4491,10 +4503,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://rankyourai.com/",
     "submissionUrl": "https://rankyourai.com/p/submit/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted into categories such as writing, SEO, marketing and productivity, where makers submit their own AI products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-22",
     "unreachableSince": null
   },
   {
@@ -4971,10 +4985,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://biz.smartcustomer.com/",
     "submissionUrl": "https://biz.smartcustomer.com/register",
-    "description": "",
-    "categories": [],
+    "description": "Customer review site where businesses register free accounts to collect, respond to and share reviews from their customers.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-22",
     "unreachableSince": null
   },
   {
@@ -5313,10 +5329,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.startupspotlight.co/",
     "submissionUrl": "https://www.startupspotlight.co/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of micro-startups and indie products across categories such as AI, SaaS, devtools and fintech, where founders submit their own startups.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-22",
     "unreachableSince": null
   },
   {
@@ -5421,10 +5439,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://startups.gallery/",
     "submissionUrl": "https://startups.gallery/",
-    "description": "",
-    "categories": [],
+    "description": "Curated gallery of early-stage, investor-backed startups with their jobs and funding news, where founders can suggest their company through a submit form.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-22",
     "unreachableSince": null
   },
   {
@@ -5687,10 +5707,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://thatsmy.ai/",
     "submissionUrl": "https://thatsmy.ai/submit-tool",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "description": "Curated directory of AI tools organized by category, subcategory and use case, where AI tool makers can submit their products for listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-22",
     "unreachableSince": null
   },
   {

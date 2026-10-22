@@ -12,6 +12,7 @@
   "extraEntries": ["yjs"],
   "runtimeFontPrefixes": ["inter", "sf pro display", "open sans"],
   "docsDir": "../../../../../.design-sync/docs",
+  "readmeHeader": ".design-sync/conventions.md",
   "overrides": {
     "Avatar": {
       "cardMode": "column"

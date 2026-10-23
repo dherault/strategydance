@@ -1443,6 +1443,19 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "productburst",
+    "name": "ProductBurst",
+    "type": "WEBSITE",
+    "rootUrl": "https://productburst.com/",
+    "submissionUrl": "https://productburst.com/",
+    "description": "",
+    "categories": [],
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": "2026-10-23",
+    "unreachableSince": null,
+    "inactiveReason": "PARKED"
+  },
+  {
     "id": "r-coupons",
     "name": "r/Coupons",
     "type": "REDDIT_COMMUNITY",
@@ -1802,7 +1815,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-23",
     "unreachableSince": null,
     "inactiveReason": "PARKED"
   },

@@ -33,6 +33,12 @@ was ported from, as `packages/strategydance-design-system/src/index.css` says.
   than ones that fail silently.
 - **Every Lucide icon rides the global** (M3), as `Icons`, so a design passes the same icons the
   product does to a Button, an Alert or a sidebar item.
+- **The hand-made original is kept on David's machine** (M4): every file the upload deleted or
+  replaced, saved under the main checkout's `.design-sync/.cache/remote-backup/`, which git ignores,
+  with a `MANIFEST.json` naming each. The skill's scripts went beside it, in `.ds-sync/`, so a sync
+  from the main checkout finds them even before the skill stages them again.
+- **`.thumbnail` stays** (M4): the picture of the project the app renders and signs, its own file
+  as `_ds_manifest.json` is.
 
 ## Where the work happens
 
@@ -49,14 +55,13 @@ The skill's state is in three places:
   `.design-sync/.cache/`, the generated previews and the grades the checks earned; `.ds-sync/`, the
   skill's scripts and their dependencies (esbuild, ts-morph, Playwright and its Chromium), installed
   with npm, outside Bun's lockfile; `ds-bundle/`, the built upload.
-- **In the project**, once uploaded: `_ds_sync.json`, the hashes that let a later sync check only
-  what changed.
+- **In the project**: `_ds_sync.json`, the hashes of what was checked and uploaded, which let a
+  later sync check only what changed.
 
-Grades exist only in `.design-sync/.cache/` until milestone 4 uploads them as `_ds_sync.json`, so
-the campaign keeps one worktree, `.claude/worktrees/design-sync`, from the first milestone to the
-last, each milestone on a branch of its own from a fresh `origin/dev`. Ignored files survive a
-branch switch. If the worktree is lost, its grades are earned again, which costs time and nothing
-else.
+From M1 to M3 the grades lived only in `.design-sync/.cache/`, so the campaign kept one worktree,
+`.claude/worktrees/design-sync`, from the first milestone to the last. Since M4 the record is in
+the project, and a sync runs from any checkout: what it needs locally it builds again, and what it
+checked before, the record vouches for. The worktree goes once M4 merges.
 
 ### Why the design system is built twice
 
@@ -143,18 +148,17 @@ Done when the driver's verdict is clean and the validation exits 0.
    project's files confirms it
 4. CLAUDE.md says where the sync lives and how to run it again, and `index.css`'s header says the
    project now follows the repository
-5. The campaign worktree is removed
+5. The campaign worktree is removed, once M4 merges, since its review is fixed there
 
-## Continuing in a later session
+Done when the project's file list is the build's files, `_ds_manifest.json` and `.thumbnail`, and
+nothing else, with `_ds_sync.json` written last.
 
-From M1 on, `.design-sync/config.json` holds the project's id and the package's name, which the
-skill reads as a sync that has run before. It has not, until M4 uploads `_ds_sync.json`. A session
-that picks up a milestone before the upload says so when it starts `/design-sync`, works in the
-campaign worktree, reads `NOTES.md` first, and follows the milestone here rather than the skill's
-re-sync section. Its closing check runs the driver without `--remote`, since the project has no
-record yet.
+## Running it again
 
-## After M4
-
-A sync after a change to the design system is `/design-sync` again. It fetches `_ds_sync.json` from
-the project, rebuilds, checks only the components whose sources changed, and uploads the difference.
+A sync after a change to the design system is `/design-sync` again, started by a person, from any
+checkout. It reads `NOTES.md` first, rebuilds the package and the reference Storybook together,
+fetches `_ds_sync.json` from the project, and runs the skill's driver against it, which checks only
+the components that changed since the record and carries every other grade. What changed is
+graded, then uploaded in the same fixed order as M4's, the deletes the driver lists included, after
+one approval. `NOTES.md` gives the commands, what a fresh checkout needs first, and its Re-sync
+risks what no check catches.

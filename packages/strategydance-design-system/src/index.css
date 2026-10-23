@@ -27,7 +27,7 @@
 
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
-  --font-display: 'Oswald Variable', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Oswald Variable', ui-sans-serif, system-ui, sans-serif;
 
   /* Primary, the action and brand colour, derived around #0051A3 at 700 */
   --color-primary-50: #eef5fc;

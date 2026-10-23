@@ -1,8 +1,8 @@
 /*
-  Builds the package the design sync's converter reads: the design system's component modules
-  re-exported from one entry, which it bundles into `window.StrategyDanceDesignSystem`, their
-  declarations, which it reads the components' props from, and the stylesheet, Tailwind's output
-  with the fonts it loads, which no component imports.
+  Builds the package the design sync's converter reads: the design system's component modules and
+  Lucide's icons re-exported from one entry, which it bundles into
+  `window.StrategyDanceDesignSystem`, their declarations, which it reads the components' props
+  from, and the stylesheet, Tailwind's output with the fonts it loads, which no component imports.
 
   The design system ships TypeScript source and no root export, since its consumers import each
   component by its path, and the converter wants a built package: an entry, and a `package.json`
@@ -15,14 +15,17 @@
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
+import { LAYOUT_CLASSES } from './layoutClasses'
+
 const DESIGN_SYSTEM_PATH = join(import.meta.dir, '../packages/strategydance-design-system')
 const COMPONENTS_PATH = join(DESIGN_SYSTEM_PATH, 'src/components')
 const PACKAGE_PATH = join(DESIGN_SYSTEM_PATH, 'node_modules/.cache/design-sync')
 const TYPES_PATH = join(PACKAGE_PATH, 'types')
 
-// Parts of the editor and of its mentions, which only `RichTextEditor` and `RichText` draw
+// Modules only other components draw: the parts of the editor and of its mentions, which only
+// `RichTextEditor` and `RichText` draw, and `Choice`, the row Checkbox, Radio and Switch lay out in
 const INTERNAL_MODULE_PATTERN =
-  /^ui\/RichText(EditorFilePanel|EditorMentionMenu|EditorSideMenu|EditorSlashMenu|EditorToolbar|Mention)\.tsx$/
+  /^ui\/(Choice|RichText(EditorFilePanel|EditorMentionMenu|EditorSideMenu|EditorSlashMenu|EditorToolbar|Mention))\.tsx$/
 
 const modules = readdirSync(COMPONENTS_PATH, { recursive: true, encoding: 'utf8' })
   .filter(path => path.endsWith('.tsx') && !path.endsWith('.stories.tsx') && !path.endsWith('.test.tsx'))
@@ -86,10 +89,20 @@ writeFileSync(
 
 /*
   The stylesheet is `index.css` built as Storybook builds it, through the design system's own
-  Tailwind plugin from the design system's root, so it holds the classes Storybook's does. The
-  converter appends it to the CSS the components import, and copies the fonts its `url()`s name,
-  which it reads beside the file: hence relative addresses and the fonts' own names
+  Tailwind plugin from the design system's root, so it holds the classes Storybook's does, and the
+  layout vocabulary besides (`layoutClasses.ts`), the classes a design may write for itself, which
+  `@source inline()` compiles in this build alone. The converter appends it to the CSS the
+  components import, and copies the fonts its `url()`s name, which it reads beside the file: hence
+  relative addresses and the fonts' own names
 */
+writeFileSync(
+  join(PACKAGE_PATH, 'stylesheet.css'),
+  `${[
+    `@import ${JSON.stringify(join(DESIGN_SYSTEM_PATH, 'src/index.css'))};`,
+    ...LAYOUT_CLASSES.map(pattern => `@source inline(${JSON.stringify(pattern)});`),
+  ].join('\n')}\n`,
+)
+
 writeFileSync(
   join(PACKAGE_PATH, 'vite.config.mjs'),
   `import tailwindcss from '@tailwindcss/vite'
@@ -104,7 +117,7 @@ export default {
     emptyOutDir: true,
     assetsInlineLimit: 0,
     rolldownOptions: {
-      input: { styles: ${JSON.stringify(join(DESIGN_SYSTEM_PATH, 'src/index.css'))} },
+      input: { styles: ${JSON.stringify(join(PACKAGE_PATH, 'stylesheet.css'))} },
       output: { assetFileNames: '[name][extname]' },
     },
   },
@@ -130,6 +143,13 @@ function writeJson(name: string, value: unknown) {
   writeFileSync(join(PACKAGE_PATH, name), `${JSON.stringify(value, null, 2)}\n`)
 }
 
+/*
+  Every component module, and Lucide's icons under one name, which the components draw but a design
+  could not pass to a Button's `icon` otherwise. A namespace, since Lucide also exports `Calendar`,
+  `Table` and `Badge`, and two `export *` naming one export would leave both out
+*/
 function toExportLines(toSpecifier: (path: string) => string) {
-  return `${modules.map(path => `export * from '${toSpecifier(path)}'`).join('\n')}\n`
+  const lines = modules.map(path => `export * from '${toSpecifier(path)}'`)
+
+  return `${[...lines, "export * as Icons from 'lucide-react'"].join('\n')}\n`
 }

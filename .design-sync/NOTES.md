@@ -5,7 +5,13 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
 
 ## Running it
 
-- Run everything from the repository root of the campaign worktree, `.claude/worktrees/design-sync`
+- Run everything from the root of the checkout that syncs, any of them since M4 put the record in
+  the project
+- A checkout that has never synced needs the skill's scripts in `.ds-sync/`, which `/design-sync`
+  stages and the main checkout on David's machine has kept since M4, with their dependencies:
+  `(cd .ds-sync && npm i esbuild ts-morph @types/react playwright && npx playwright install
+  chromium)`. Then the reference Storybook, below. `checkNames.ts` needs them too, since it reads
+  declarations with `.ds-sync/`'s ts-morph
 - `bun .design-sync/buildPackage.ts` first, always (the config's `buildCmd`), then the converter:
 
   ```sh
@@ -22,16 +28,19 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   of the notes and the conventions as written, in a page loading the upload, failing on one that
   does not compile, throws, logs an error or draws nothing. A minute and a half; its screenshots
   land in `ds-bundle/_screenshots/examples/`
-- The closing check is the skill's driver, without `--remote` until M4 uploads the record:
+- The closing check is the skill's driver, against the project's record: fetch `_ds_sync.json`
+  with `DesignSync(get_file)` into `.design-sync/.cache/remote-sync.json`, then
 
   ```sh
   node .ds-sync/resync.mjs --config .design-sync/config.json \
-    --node-modules packages/strategydance-design-system/node_modules --out ./ds-bundle --max-stories 11
+    --node-modules packages/strategydance-design-system/node_modules --out ./ds-bundle --max-stories 11 \
+    --remote .design-sync/.cache/remote-sync.json
   ```
 
-  It runs no `buildCmd`: run `buildPackage.ts` first
+  It runs no `buildCmd`: run `buildPackage.ts` first. Fetch the record again right before the
+  upload's `finalize_plan`: if it moved, another sync ran meanwhile, and the driver runs again
 - The reference Storybook is built from the package's directory:
-  `bunx storybook build -c .storybook -o <worktree>/.design-sync/sb-reference`, about four minutes.
+  `bunx storybook build -c .storybook -o <checkout>/.design-sync/sb-reference`, about four minutes.
   Rebuild it whenever a story or a component changes, together with the converter's build
 - A full converter build takes 15 to 25 minutes, nearly all of it compiling the 44 previews one at
   a time. Use `preview-rebuild.mjs --components <Name>` to iterate on one, a few seconds
@@ -225,6 +234,18 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
   Combobox's and MultiSelect's by 5px -> accepted in M3: a few pixels of a popup's offset from a
   trigger at the card's very edge, outside the graded captures, which no design inherits, since a
   design lays out its own page
+- [GENERAL] A copy of a remote file written with the Write tool is not the file: the repository's
+  PostToolUse hook formats whatever Write or Edit writes inside the checkout, `.design-sync/.cache/`
+  included, and Write turned a literal `\u2019` into the character -> M4 wrote its backup from the
+  `get_file` answers as the session's transcript holds them
+  (`~/.claude/projects/<project>/<session>.jsonl`), by a script, byte for byte. Do the same for a
+  restore's source or any copy of what the project holds
+- The project's store is case-sensitive: `readme.md`, the hand-made one, and the build's `README.md`
+  were listed side by side before the delete, so deleting the first left the second. Its folder
+  entries follow from the files' paths: deleting the 85 files took the 22 old folders with them
+- The upload went as the skill orders it, with no retry: the sentinel, six content calls
+  (`_ds_bundle.js`, 11.15 MB, alone; the two 1.2 MB scripts; the fonts; the 176 component files;
+  the other previews; the root's three), one delete call, the sentinel again, `_ds_sync.json`
 
 ## Open
 
@@ -277,14 +298,20 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
     skill's scripts before it runs
   - `--max-stories 11` for every capture, which RichTextEditor's 11 stories need
 
-## M4 starts from
+## A re-sync starts from
 
-- 44 components, 189 stories, all graded in the campaign worktree's `.design-sync/.cache/compare/`:
-  188 `match`, Select's Open `close`. The closing driver run's verdict `ok`, nothing pending, every
-  component carried forward; validate exiting 0, 44 of 44 previews rendering cleanly, no
-  `[FONT_MISSING]`; `checkNames.ts` exiting 0, and `runExamples.ts`, 88 examples
-- Then M4's steps in `documents/design-sync.md`, the closing build a driver run, and
-  `DesignSync(report_validate)` with its `.render-check.json`'s counts
+- The record M4 uploaded on 2026-10-23, `_ds_sync.json` (`keyRecipe` 7, `scriptsSha`
+  `77113bc9d026db83`, `bundleSha12` `7a3dfd2f9db7`): 44 components and 189 stories, 188 `match` and
+  Select's Open `close`. Its closing driver run carried every grade and cleared none, validate
+  exited 0 with 44 of 44 previews clean, and the upload was byte for byte the build M3 graded
+- The project holds 250 files: the build's 248, and the app's own `_ds_manifest.json` and
+  `.thumbnail`, which a sync never writes or deletes
+- The hand-made original is backed up, 89 files and a `MANIFEST.json`, in the main checkout's
+  ignored `.design-sync/.cache/remote-backup/` on David's machine. Restoring one is a plan naming
+  its path, written from there
+- The main checkout's ignored `.ds-sync/` holds the scripts that built the record, without their
+  `node_modules`. A newer skill stages newer ones, and the driver then reports the change as a
+  canary to spot-check rather than a regrade
 - Subagents may not edit the config: an overlay's `cardMode`, a skip or an import setting is the
   orchestrator's. A batch keeps its scratch files in a folder named after it, since batches share
   the scratchpad

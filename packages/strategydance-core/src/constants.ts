@@ -1,5 +1,5 @@
 import { type Currency, Locale } from './enums'
-import type { ModuleDefinition, ModuleName, OrganizationImageKind } from './types'
+import type { BudgetPeriod, ModuleDefinition, ModuleName, OrganizationImageKind } from './types'
 
 /*
   Bound through a local rather than exported straight off the call.
@@ -822,3 +822,21 @@ export const CURRENCIES = {
   below 2^53, and is still a quadrillion yen
 */
 export const MAX_MONEY_MINOR = 10 ** 15
+
+/*
+  How many live bills an organization keeps, and how long a bill's name, description and company
+  may be, as the prototype held them: the page and the module read every bill at once, to compute
+  the budget
+*/
+export const MAX_BILLS = 2000
+export const MAX_BILL_NAME_LENGTH = 80
+export const MAX_BILL_DESCRIPTION_LENGTH = 140
+export const MAX_BILL_COMPANY_LENGTH = 60
+
+// How many months each period of a budget spans, which is also how far apart a bill recurring on
+// that period is paid
+export const BUDGET_PERIOD_MONTHS = {
+  MONTHLY: 1,
+  QUARTERLY: 3,
+  YEARLY: 12,
+} as const satisfies Record<BudgetPeriod, number>

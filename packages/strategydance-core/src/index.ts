@@ -23,3 +23,5 @@ export * from './helpers/integration'
 export * from './helpers/money'
 
 export * from './helpers/calendarDay'
+
+export * from './helpers/bill'

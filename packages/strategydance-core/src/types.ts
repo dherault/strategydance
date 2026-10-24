@@ -1,4 +1,5 @@
 import type { MODULES } from './constants'
+import type { Currency } from './enums'
 
 /*
   The envelope every backend response is wrapped in, success and failure alike. Declared here
@@ -400,4 +401,38 @@ export type IntegrationConnectionMessage = {
   authorizationId: string | null
   outcome: 'connected' | 'denied' | 'failed'
   code: string | null
+}
+
+/* ---
+  BUDGET
+--- */
+
+// How long a budget's amount is meant to last: `schema.gql`'s `BudgetPeriod`, which core cannot
+// import. The SDK's enum passes for it, since each of its values is the same string
+export type BudgetPeriod = 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
+
+// How often a recurring bill is paid again: `schema.gql`'s `BillRecurrence`, as `BudgetPeriod` is
+export type BillRecurrence = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
+
+/*
+  When a bill is paid, its days `YYYY-MM-DD`: on `paidOn`, and, when it recurs, again each period
+  counted from that day, until `endsOn` when it has one
+*/
+export type BillSchedule = {
+  readonly paidOn: string
+  readonly recurrence: BillRecurrence | null
+  readonly endsOn: string | null
+}
+
+/*
+  What the budget's computations read of a bill, its amount in minor units of its own currency.
+  Plain rather than a row of the database's, so the page and the module compute the same numbers
+  from what each of them reads, the `Int64` turned into a number at the edge
+*/
+export type BudgetBill = BillSchedule & {
+  readonly id: string
+  readonly name: string
+  readonly company: string
+  readonly amountMinor: number
+  readonly currency: Currency
 }

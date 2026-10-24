@@ -37,98 +37,68 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   runtime dependencies, so it is importable from the browser bundle and from a Node script
   alike. Keep it that way
 - `packages/strategydance-directories` — the places a startup can be submitted to, websites and
-  Reddit communities, as `DIRECTORIES` from `src/directories.json`: each with its `id`, a slug
-  that never changes, even on a rename, its root and submission addresses, its description, the
-  kinds of product it lists, `DirectoryCategory`, which `DIRECTORY_CATEGORY_DESCRIPTIONS`
-  describes, and its business model, `DirectoryBusinessModel`, which
-  `DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS` and `DIRECTORY_BUSINESS_MODEL_PRECEDENCE` describe and
-  order. Those nothing can be submitted to today are `INACTIVE_DIRECTORIES`, from
-  `src/inactiveDirectories.json`, each with its `DirectoryInactiveReason`, and a directory is in one
-  list or the other, never both. Data and types with no runtime dependency, as the core is. Both
-  lists were read from the README of where-to-submit-your-startup, and a daily check, the
-  backend's, keeps them true through a pull request a human merges
-  ([directories.md](documents/directories.md)). Both files are written as `JSON.stringify(list,
-  null, 2)` writes them, sorted by name, which the tests hold them to, and oxfmt leaves them alone,
-  since it would put a short array on one line, which `JSON.stringify` never does
+  Reddit communities: `DIRECTORIES`, from `src/directories.json`, and `INACTIVE_DIRECTORIES`,
+  those nothing can be submitted to today, from `src/inactiveDirectories.json`, a directory in one
+  list or the other, never both. A directory's `id` is a slug that never changes, even on a rename.
+  Data and types with no runtime dependency, as the core is. The backend's daily check keeps both
+  lists true through a pull request a human merges ([directories.md](documents/directories.md)).
+  Both files are written as `JSON.stringify(list, null, 2)` writes them, sorted by name, which the
+  tests hold them to, and oxfmt leaves them alone
 - `packages/strategydance-external-mcp-servers` — the remote MCP servers an organization adds in a
-  click from its Integrations page, as `EXTERNAL_MCP_SERVERS` from `src/externalMcpServers.json`,
-  with `findExternalMcpServer` by slug and `findExternalMcpServerByUrl`: each with its address,
-  its authentication, a category, a description in English, which the web's `externalMcpServer`
-  catalogue translates, and whether the web has its mark. Data with no runtime dependency, as the
-  directories are. An entry is checked before it ships by `bun run probe:integrations`, in the
-  backend's package, and the package's README says how one is added
-- `packages/strategydance-database` — the Firebase Data Connect service: the Postgres schema,
-  one connector per caller, and the SDK generated from them. Import it as
-  `strategydance-database/web`, or `strategydance-database/web/react` for the TanStack Query
-  hooks, and the backend as `strategydance-database/backend`. See below
-- `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the
-  browser cannot do for itself because it needs a secret or the server's word. Today that is
-  inviting people, which emails them, storing the pictures of documents' text, reading what a
-  web page says of itself for a link preview, sending and searching conversations, serving the
-  modules to the agents members connect, through its own authorization server, and reaching the MCP
-  servers an organization adds, with their keys encrypted, as an OAuth client of those to which
-  members connect their own accounts. Its image runs a second time as the
-  private worker, which runs conversations' runs as Cloud Tasks delivers them, sweeps what was
-  deleted once a day, and checks the directories once a day. See below
-- `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base
-  UI where shadcn is, as its combobox is, Tailwind CSS v4, documented in Storybook. Its rich text
-  editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and what it writes is
-  drawn by `RichText` without it. A post's editor writes text and lists (`RICH_TEXT_POST_BLOCKS`),
-  a task's description's also mentions of documents and tasks (`RICH_TEXT_TASK_BLOCKS`), and a
-  knowledge document's also code, tables, pictures, YouTube, Vimeo and Loom videos, link preview
-  cards and mentions (`RICH_TEXT_EDITOR_BLOCKS`, the default). Each writes text in five styles,
-  inline code BlockNote's own, which text typed between backticks writes, and which goes alone and
-  out of links, as its mark excludes every other. `RichText` draws a post's blocks
-  unless told more, since a feed and a public page draw posts. The editor's own blocks, the video
-  and the card, are the core's `createBlockSpec`, and its mentions the core's
-  `createInlineContentSpec`, with plain DOM, never React's, so the headless editor the Yjs helpers
-  convert through loads no React. A mention's chip is a span whatever it draws, since BlockNote
-  reads a pasted outer link as a link before the mention. `RichTextEditor` and `RichText` draw
-  mentions from the page's `mentions`, a `RichTextMentionSource`, which the web builds with
-  `useRichTextMentionSource`: the organization's live documents and board, each read once a mention
-  or the `@` menu asks for it, and their addresses. BlockNote's menus are built from its own
-  Base UI copies of shadcn's components, which the design system's never reach, so
-  `RichTextEditor.css` dresses them in the tokens, found by their `bn-` classes and `data-slot`s. The agent's replies are Markdown,
-  drawn by `Markdown` on `react-markdown`, which keeps them to the thread's subset, draws HTML as
-  text, links only to web, mail, `doc:` and `task:` addresses, `renderLink` drawing the last two (the
-  thread draws a `doc:` link from the organization's live document list, `ConversationDocumentLink`,
-  and a `task:` link from its live board, `ConversationTaskLink`), and never loads an image: draw the agent's text through it, never through `react-markdown` directly.
-  It draws a text past `MARKDOWN_HAZARD_LIMITS` (`lib/countMarkdownHazards`) as plain text, its line
-  breaks and citations kept, rather than hand it to micromark: brackets, list markers, quote markers
-  opening a line and runs of asterisks, counted in one pass, at the counts measured on a piece's
-  20000 characters (M37). A shape found slow later joins the count, measured the same way.
-  A member's message is not Markdown: the thread draws it as typed, its knowledge mentions,
-  `[Title](doc:<id>)` as the composer sends them, alone drawn as links (`parseConversationMemberText`). An
-  agent reads and writes a document's text in Markdown through the pair in its `lib/`,
-  `richTextToMarkdown` and `markdownToRichText`: the stored model's subset, underline as `<u>…</u>`,
-  the one tag read as what it says, inline code as a code span, a line break in it a hard one
-  after a code span, a single newline breaking the line, as `Markdown` draws it, a
-  table without a header row under an empty one, and a mention as the agent's own link to what it
-  names, `[title](doc:<id>)` or `[name](task:<id>)`, which reads back as the mention. `markdownToRichText` parses with markdown-it,
-  never micromark, which `react-markdown` runs on: micromark takes minutes on lists or brackets by
-  the thousand, text an agent could be told to write, and its tests hold markdown-it to the
-  length of a document. The backend's `splitConversationText` reads a long reply's blocks with
-  markdown-it too, its block parsing alone, micromark kept to its tests' parity checks. It
-  imports itself by its package name, `strategydance-design-system/*` mapped to its `src/`, the
-  alias shadcn writes with, so a component resolves the same when another package reads it as
-  source. Its tokens and components
-  were ported from the Strategy Dance Design System project in Claude Design and keep that
-  project's props, and the project now follows it ([The design sync](#the-design-sync)), so what
-  a design uses maps onto code. Another package imports
-  `strategydance-design-system/components/ui/Button` and `strategydance-design-system/index.css`
-- `packages/strategydance-translations` — the Gemini-backed CLI that fills the locale
-  catalogues. Node-only: never import it from the frontend
-- `packages/strategydance-emails` — the transactional emails, as
-  [React Email](https://react.email) templates. Node-only: the backend renders them. See below
-- `documents/`, at the root — documents written for people rather than for the build, in
-  Markdown and nothing else. `.gitignore` hides any other file put there, so it never reaches a
-  commit. A commit there is scoped `[documents]`
-- [oxlint](https://oxc.rs) for linting and oxfmt, from the same project, for formatting, configured
-  in `.oxlintrc.json` and `.oxfmtrc.json`. See [Linting and formatting](#linting-and-formatting)
-- `tsc` for typechecking. In `packages/strategydance-web`, imports go through `~` aliases: `~components`,
-  `~contexts`, `~data`, `~hooks`, `~utils`, `~constants`, `~types`, declared in its
-  `tsconfig.json` and mirrored in `vite.config.ts`. The backend has its own, in its
-  `tsconfig.json`, which Bun reads at runtime. Cross-package imports use the package name
+  click from its Integrations page, `EXTERNAL_MCP_SERVERS` from `src/externalMcpServers.json`, data
+  with no runtime dependency. `bun run probe:integrations`, in the backend's package, checks an
+  entry before it ships, and the package's README says how one is added
+- `packages/strategydance-database` — the Firebase Data Connect service: the Postgres schema, one
+  connector per caller, and the SDK generated from them, imported as `strategydance-database/web`,
+  `strategydance-database/web/react` for the TanStack Query hooks, and
+  `strategydance-database/backend`. See [The database](#the-database)
+- `packages/strategydance-backend` — a Bun and Express server on Cloud Run, for what the browser
+  cannot do itself because it needs a secret or the server's word: invitations and their emails,
+  uploads, link previews, conversations, the modules served to members' own agents through its
+  OAuth authorization server, and the organizations' MCP servers. Its image runs a second time as
+  the private worker, which runs conversations as Cloud Tasks delivers them, and the daily sweep and
+  directories check. See [Backend conventions](#backend-conventions)
+- `packages/strategydance-design-system` — the component library: shadcn on Radix, and on Base UI
+  where shadcn is (its combobox), Tailwind CSS v4, documented in Storybook. Another package imports
+  `strategydance-design-system/components/ui/Button` and `strategydance-design-system/index.css`,
+  and the package imports itself by that name, mapped to its `src/`, so a component resolves the
+  same when another package reads it as source. Its tokens and components keep the props of the
+  Claude Design project they were ported from, which now follows them
+  ([The design sync](#the-design-sync)). Its rich text:
+  - The editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and
+    `RichText` draws what it writes without it. A post writes `RICH_TEXT_POST_BLOCKS`, a task's
+    description `RICH_TEXT_TASK_BLOCKS`, a knowledge document `RICH_TEXT_EDITOR_BLOCKS`, the
+    default, and `RichText` draws a post's blocks unless told more. Inline code goes alone and out
+    of links
+  - The editor's own blocks and mentions are the core's `createBlockSpec` and
+    `createInlineContentSpec` on plain DOM, never React, so the headless editor the Yjs helpers
+    convert through loads no React. A mention's chip is a span, since BlockNote reads a pasted
+    outer link as a link before the mention. Mentions are drawn from the page's `mentions`, which
+    the web builds with `useRichTextMentionSource`
+  - BlockNote's menus are its own Base UI copies of shadcn's components, so `RichTextEditor.css`
+    dresses them in the tokens, by their `bn-` classes and `data-slot`s
+  - The agent's replies are Markdown: draw them through `Markdown`, never `react-markdown`
+    directly. It keeps them to the thread's subset, draws HTML as text, links only to web, mail,
+    `doc:` and `task:` addresses (`renderLink` draws the last two), never loads an image, and draws
+    a text past `MARKDOWN_HAZARD_LIMITS` (`lib/countMarkdownHazards`) as plain text rather than
+    hand it to micromark (M37). A shape found slow later joins the count, measured the same way
+  - A member's message is not Markdown: the thread draws it as typed, its `[Title](doc:<id>)`
+    mentions alone as links (`parseConversationMemberText`)
+  - An agent reads and writes a document's text in Markdown through `richTextToMarkdown` and
+    `markdownToRichText`, a mention as `[title](doc:<id>)` or `[name](task:<id>)`.
+    `markdownToRichText` parses with markdown-it, never micromark, which takes minutes on lists or
+    brackets by the thousand, and so does the backend's `splitConversationText`
+- `packages/strategydance-translations` — the Gemini-backed CLI that fills the locale catalogues.
+  Node-only: never import it from the frontend
+- `packages/strategydance-emails` — the transactional emails, as [React Email](https://react.email)
+  templates. Node-only: the backend renders them. See [Email conventions](#email-conventions)
+- `documents/`, at the root — documents written for people, in Markdown alone: `.gitignore` hides
+  any other file there. A commit there is scoped `[documents]`
+- [oxlint](https://oxc.rs) lints and oxfmt formats. See [Linting and formatting](#linting-and-formatting)
+- `tsc` typechecks. `packages/strategydance-web` imports through `~` aliases (`~components`,
+  `~contexts`, `~data`, `~hooks`, `~utils`, `~constants`, `~types`), declared in its
+  `tsconfig.json` and mirrored in `vite.config.ts`. The backend has its own, which Bun reads at
+  runtime. Cross-package imports use the package name
 - `bunfig.toml` sets a 7-day install cooldown: a version must have been published for a week
   before it can be installed
 
@@ -139,15 +109,14 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev` | Web dev server on http://localhost:5173. Wants `dev:emulators` beside it, and `dev:backend` for anything that calls the backend |
 | `bun run dev:emulators` | Auth, Data Connect and Storage emulators, with a UI on http://localhost:4000 |
 | `bun run dev:backend` | The backend on http://localhost:3003, against the emulators. It answers conversations with Claude, which costs money, unless started with `CONVERSATION_AGENT=placeholder`, which answers with a stand-in reply |
-| `bun run dev:emails` | React Email's preview server on the email templates, on http://localhost:3000 |
-| `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
-| `bun run send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, signed in to the Auth emulator as that account, and prints the conversation's address. The page's composer does the same in the browser; this writes one from a script. Each `--file`, an image, a PDF or a text file, a relative path read from the repository's root, is uploaded first and sent with it, the text then optional. `--organization <id or slug>` names the organization when the account is in several |
-| `bun run measure:subagents [--configurations <name,…>] [--briefs <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]` | Runs three short briefs as subagents on each model and effort weighed for subagents, from a throwaway account of the emulators, each priced from its ledger, a dollar a subagent and fifteen in all at most, and prints the table David chooses `SUBAGENT_REQUEST_SETTINGS` from. `--briefs long` runs instead a brief made to run long, its runs held to two and a half minutes (`SUBAGENT_RUN_LIMITS`), so its fourth run asks for its report: `--configurations opus-medium --max-subagent 3 --max-total 3`. It asks Claude, which costs money, unless run under `CONVERSATION_AGENT=placeholder` |
-| `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches a subagent of one of that account's conversations, or `--count` of them at once, up to 10, as Strategy Dance's agent does through the Subagents module, handing each file named, one the conversation sent, runs them in its own process, past the account's five slots waiting for one, and prints each transcript and report once all have reported. A promotion runs the subagent it promotes in the process that freed the slot, so launch an account's subagents from one script, never from two side by side. It answers with the stand-in reply under `CONVERSATION_AGENT=placeholder`, and asks Claude otherwise, which costs money. It refuses to run anywhere but against the emulators |
-| `bun run mcp:knowledge <email> [--organization <id or slug>]` | Serves the Knowledge module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. It refuses to run anywhere but against the emulators. See [Module conventions](#module-conventions) |
-| `bun run mcp:tasks <email> [--organization <id or slug>]` | The same for the Tasks module: `claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>`. Its operations are checked against the emulators by `bun run check:tasks-module`, in the backend's package, as `check:knowledge-module` checks Knowledge's and `check:subagents-module` the Subagents module's |
-| `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' check, as the worker does each day: probes a day's pick of directories, has Claude review them, and writes what it proves into this checkout's two files, for a person to read and commit. `--publish` reads and commits on GitHub instead, to the rolling pull request, as the GitHub App. It costs money, about $0.10 a directory. See [directories.md](documents/directories.md) |
-| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model, price or top output rate, or a change of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
+| `bun run dev:emails` | React Email's preview server on the templates, on http://localhost:3000 |
+| `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only |
+| `bun run send:conversation <email> [--conversation <id>] [--file <path>]… [--organization <id or slug>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, as that account, uploading each file first, and prints the conversation's address |
+| `bun run measure:subagents [--configurations <name,…>] [--briefs <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]` | Prices short briefs run as subagents on each model and effort weighed, from a throwaway account of the emulators, a dollar a subagent and fifteen in all at most, and prints the table `SUBAGENT_REQUEST_SETTINGS` is chosen from. `--briefs long` runs one made to run long instead: `--configurations opus-medium --max-subagent 3 --max-total 3`. It costs money unless run under `CONVERSATION_AGENT=placeholder` |
+| `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches up to 10 subagents of that account's conversation, as the Subagents module does, in its own process, and prints each transcript and report. A promotion runs in the process that freed the slot, so launch an account's subagents from one script at a time. Emulators only, and it costs money unless run under `CONVERSATION_AGENT=placeholder` |
+| `bun run mcp:knowledge <email> [--organization <id or slug>]` / `mcp:tasks` | Serves the Knowledge or the Tasks module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. See [Module conventions](#module-conventions) |
+| `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' daily check into this checkout's two files, or with `--publish` into the rolling pull request on GitHub. About $0.10 a directory. See [directories.md](documents/directories.md) |
+| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm. It costs money: run it after an Anthropic SDK bump, a change of model, price or top output rate, or of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
@@ -159,61 +128,49 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open, and sets it to merge itself once CI passes |
 | `bun run review <command>` | The GitHub calls of the CodeRabbit review loop: `wait`, `body`, `threads`, `reply`, `resolve` and `open`. See [CodeRabbit review loop](#coderabbit-review-loop) |
-| `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`, then the same image as `strategydance-worker` (`scripts/deploy.sh` in the backend's package). Every push to `main` runs it too |
-| `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on. A browser connected to one of those ports is left alone |
+| `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`, then the same image as `strategydance-worker`. Every push to `main` runs it too |
+| `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on, leaving a browser connected to them alone |
 
 **CI's definition of green** is the pull request check: `bun run lint && bun run typecheck &&
-bun run test && bun run build` from the root. Run those four before every commit, since the
-husky `pre-commit` hook only lints.
+bun run test && bun run build` from the root. Run those four before every commit: the husky
+`pre-commit` hook only lints.
 
-**The `deploy:*` scripts and `bun run ship` are run by humans only.** `ship` sets the release
-pull request to merge itself once CI passes, a merge into `main` deploys the release by itself,
-and a migration that stops it waits for a human to read its SQL, as
-[What a merge into `main` deploys](#what-a-merge-into-main-deploys) says.
+**The `deploy:*` scripts and `bun run ship` are run by humans only**, since a release merges and
+deploys by itself ([What a merge into `main` deploys](#what-a-merge-into-main-deploys)).
 
-Two things are generated and never edited by hand.
-`packages/strategydance-web/src/routeTree.gen.ts` is written by the TanStack Router plugin on
-dev and build, and is committed because `tsc` needs it.
-`packages/strategydance-database/generated/` is written by the Firebase CLI on `postinstall`,
-and is **not** committed: generating it needs neither credentials nor a network, so a clone
-produces its own. That is why `firebase-tools` is a devDependency.
+Two things are generated and never edited by hand: `packages/strategydance-web/src/routeTree.gen.ts`,
+written by the TanStack Router plugin on dev and build and committed, since `tsc` needs it, and
+`packages/strategydance-database/generated/`, written by the Firebase CLI on `postinstall`, hence
+`firebase-tools` as a devDependency, and not committed, since a clone generates its own with no
+credentials or network.
 
 ### Linting and formatting
 
-oxlint lints and oxfmt formats, from one root `.oxlintrc.json` and one root `.oxfmtrc.json`, as
-in sunshine. `bun run lint` checks both, so an unformatted file fails CI and the husky
-`pre-commit` hook as a lint error does, and so do a warning and a disable directive that no
-longer suppresses anything. `bun run lint:fix` applies oxlint's safe fixes and then formats, but
-stops before formatting when an error it cannot fix remains; `bun run format` formats on its
-own. A PostToolUse hook does the same to every file Claude Code edits, `oxlint --fix` on a
-`.ts`/`.tsx` under `packages/` and then oxfmt on anything in the repo it formats. A Stop hook
-typechecks every package when a turn ends, and VS Code formats on save through the oxc
-extension.
+`bun run lint` checks oxlint and oxfmt, from the root's `.oxlintrc.json` and `.oxfmtrc.json`: an
+unformatted file, a warning and a disable directive that suppresses nothing all fail it, in CI and
+in the husky `pre-commit` hook. `bun run lint:fix` stops before formatting while an error it cannot
+fix remains. A PostToolUse hook runs `oxlint --fix` on each `.ts`/`.tsx` Claude Code edits under
+`packages/`, then oxfmt on anything it formats, and a Stop hook typechecks every package when a turn
+ends.
 
 - **Keep it to one config.** A nested `.oxlintrc.json` replaces the root one for its directory
-  rather than extending it, so it would silently drop every rule. A package-specific rule goes
-  in the root config's `overrides`
-- **The formatter owns layout**: two spaces, single quotes, no semicolons, one JSX prop per
-  line, 120 columns. The order of the classes in a `className` is still kept by hand: oxfmt's
-  Tailwind sorting would replace the semantic order this code follows with Tailwind's official
-  one
-- **So is import order.** Imports sort into the groups `.oxfmtrc.json` lists, one per alias; an
-  import no group matches sorts into `rest`, after all of them, so a new `~` alias needs a group
-  of its own there. A `/// <reference>` directive moves with the import below it, and
-  TypeScript ignores one that is not at the top of the file: keep it above the import that
-  sorts first
-- **Markdown and HTML are not formatted**, nor are the files a generator writes
-  (`routeTree.gen.ts`, the Data Connect SDK, the translated catalogues, the translation lock,
-  the directories' two lists),
-  whose next run would rewrite them anyway. The schema and the connectors are formatted, and
-  generate the same SDK
-- **An unused import is an error that `--fix` does not remove**: oxlint files that fix as
-  dangerous. An import written before the code that uses it survives the edit hook and is only
-  reported
-- A suppression is `// oxlint-disable-next-line <rule>` under oxlint's rule names
-  (`react/exhaustive-deps`, not `react-hooks/exhaustive-deps`), and it covers the line below it
-  as formatted, which is not always where it was written once the formatter wraps a long
-  statement
+  rather than extending it, silently dropping every rule: a package's rule goes in the root's
+  `overrides`
+- **The formatter owns layout**: two spaces, single quotes, no semicolons, one JSX prop per line,
+  120 columns. Only the order of a `className`'s classes is kept by hand, a semantic order oxfmt's
+  Tailwind sorting would replace
+- **So is import order.** Imports sort into the groups `.oxfmtrc.json` lists, one per alias, and an
+  import no group matches sorts into `rest`, last, so a new `~` alias needs a group of its own. A
+  `/// <reference>` directive moves with the import below it, and TypeScript ignores one that is not
+  at the top: keep it above the import that sorts first
+- **Markdown and HTML are not formatted**, nor is what a generator writes (`routeTree.gen.ts`, the
+  Data Connect SDK, the translated catalogues, the translation lock, the directories' two lists).
+  The schema and the connectors are
+- **An unused import is an error `--fix` does not remove**, so one written before the code that uses
+  it survives the edit hook and is only reported
+- A suppression is `// oxlint-disable-next-line <rule>` under oxlint's names
+  (`react/exhaustive-deps`, not `react-hooks/exhaustive-deps`), covering the line below it as
+  formatted, which is not always where it was written once a long statement wraps
 
 ## Frontend conventions
 

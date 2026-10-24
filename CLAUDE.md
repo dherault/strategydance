@@ -81,7 +81,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
     directly. It keeps them to the thread's subset, draws HTML as text, links only to web, mail,
     `doc:` and `task:` addresses (`renderLink` draws the last two), never loads an image, and draws
     a text past `MARKDOWN_HAZARD_LIMITS` (`lib/countMarkdownHazards`) as plain text rather than
-    hand it to micromark (M37). A shape found slow later joins the count, measured the same way
+    hand it to micromark, at the counts measured on a piece's 20000 characters (M37). A shape found
+    slow later joins the count, measured the same way
   - A member's message is not Markdown: the thread draws it as typed, its `[Title](doc:<id>)`
     mentions alone as links (`parseConversationMemberText`)
   - An agent reads and writes a document's text in Markdown through `richTextToMarkdown` and
@@ -94,7 +95,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   templates. Node-only: the backend renders them. See [Email conventions](#email-conventions)
 - `documents/`, at the root — documents written for people, in Markdown alone: `.gitignore` hides
   any other file there. A commit there is scoped `[documents]`
-- [oxlint](https://oxc.rs) lints and oxfmt formats. See [Linting and formatting](#linting-and-formatting)
+- [oxlint](https://oxc.rs) lints and oxfmt formats. See [Linting and
+  formatting](#linting-and-formatting)
 - `tsc` typechecks. `packages/strategydance-web` imports through `~` aliases (`~components`,
   `~contexts`, `~data`, `~hooks`, `~utils`, `~constants`, `~types`), declared in its
   `tsconfig.json` and mirrored in `vite.config.ts`. The backend has its own, which Bun reads at
@@ -110,13 +112,13 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run dev:emulators` | Auth, Data Connect and Storage emulators, with a UI on http://localhost:4000 |
 | `bun run dev:backend` | The backend on http://localhost:3003, against the emulators. It answers conversations with Claude, which costs money, unless started with `CONVERSATION_AGENT=placeholder`, which answers with a stand-in reply |
 | `bun run dev:emails` | React Email's preview server on the templates, on http://localhost:3000 |
-| `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only |
-| `bun run send:conversation <email> [--conversation <id>] [--file <path>]… [--organization <id or slug>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, as that account, uploading each file first, and prints the conversation's address |
-| `bun run measure:subagents [--configurations <name,…>] [--briefs <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]` | Prices short briefs run as subagents on each model and effort weighed, from a throwaway account of the emulators, a dollar a subagent and fifteen in all at most, and prints the table `SUBAGENT_REQUEST_SETTINGS` is chosen from. `--briefs long` runs one made to run long instead: `--configurations opus-medium --max-subagent 3 --max-total 3`. It costs money unless run under `CONVERSATION_AGENT=placeholder` |
+| `bun run grant:administrator <email>` | Makes an account that has signed in once an administrator of Strategy Dance, in the emulators only. Nothing grants it in production |
+| `bun run send:conversation <email> [--conversation <id>] [--file <path>]… [--organization <id or slug>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, as that account, uploading each file, a path from the repository's root, first, and prints the conversation's address |
+| `bun run measure:subagents [--configurations <name,…>] [--briefs <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]` | Prices short briefs run as subagents on each model and effort weighed, from a throwaway account of the emulators, a dollar a subagent and fifteen in all at most, and prints the table David chooses `SUBAGENT_REQUEST_SETTINGS` from. `--briefs long` runs one made to run long instead: `--configurations opus-medium --max-subagent 3 --max-total 3`. It costs money unless run under `CONVERSATION_AGENT=placeholder` |
 | `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches up to 10 subagents of that account's conversation, as the Subagents module does, in its own process, and prints each transcript and report. A promotion runs in the process that freed the slot, so launch an account's subagents from one script at a time. Emulators only, and it costs money unless run under `CONVERSATION_AGENT=placeholder` |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` / `mcp:tasks` | Serves the Knowledge or the Tasks module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. See [Module conventions](#module-conventions) |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' daily check into this checkout's two files, or with `--publish` into the rolling pull request on GitHub. About $0.10 a directory. See [directories.md](documents/directories.md) |
-| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm. It costs money: run it after an Anthropic SDK bump, a change of model, price or top output rate, or of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, or `ANTHROPIC_API_KEY` when set |
+| `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model, price or top output rate, or of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
 | `bun run preview` | Builds against the emulators, then serves `dist/client` through the Hosting emulator on http://localhost:5050 |
@@ -128,7 +130,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open, and sets it to merge itself once CI passes |
 | `bun run review <command>` | The GitHub calls of the CodeRabbit review loop: `wait`, `body`, `threads`, `reply`, `resolve` and `open`. See [CodeRabbit review loop](#coderabbit-review-loop) |
-| `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`, then the same image as `strategydance-worker`. Every push to `main` runs it too |
+| `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`, then the same image as `strategydance-worker` (`scripts/deploy.sh` in the backend's package). Every push to `main` runs it too |
 | `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on, leaving a browser connected to them alone |
 
 **CI's definition of green** is the pull request check: `bun run lint && bun run typecheck &&
@@ -151,7 +153,7 @@ unformatted file, a warning and a disable directive that suppresses nothing all 
 in the husky `pre-commit` hook. `bun run lint:fix` stops before formatting while an error it cannot
 fix remains. A PostToolUse hook runs `oxlint --fix` on each `.ts`/`.tsx` Claude Code edits under
 `packages/`, then oxfmt on anything it formats, and a Stop hook typechecks every package when a turn
-ends.
+ends. VS Code formats on save through the oxc extension.
 
 - **Keep it to one config.** A nested `.oxlintrc.json` replaces the root one for its directory
   rather than extending it, silently dropping every rule: a package's rule goes in the root's
@@ -287,8 +289,10 @@ nothing else calls `initializeApp`.
 - Development always talks to the emulators, `bun run preview` too, through
   `VITE_USE_FIREBASE_EMULATORS=true`, since its bundle is a production build
 - **A Hosting preview channel writes real data**: there is one Firebase project, so signing in on a
-  preview creates a real account. Look at what renders there, never exercise sign-up. Its App Check
-  debug token, printed on first run, has to be registered in the console first
+  preview creates a real account. Look at what renders there, never exercise sign-up. Isolating it
+  would take a second project with its own Cloud SQL instance, a decision nobody has taken yet. Its
+  App Check debug token, printed on first run, has to be registered in the console first; the
+  emulators enforce no App Check
 - **App Check enforcement is a console setting**, switched on per service. Until it is, nothing
   rejects a request without a token, and the sign-in screen's `PUBLIC` email lookup enumerates
   addresses to any caller: switch it on for Data Connect and Storage before the project is public
@@ -358,7 +362,8 @@ What Data Connect does, found the hard way:
   first, redacted step
 - A mutation runs as one SQL statement, unless a step reads an earlier step's `response`, when each
   step runs as a statement of its own. One statement reads one snapshot, so a step after a lock
-  misses what the lock's holder committed meanwhile: a step that counts, or writes rows it finds by
+  misses what the lock's holder committed meanwhile, and only a condition in an update's `where` is
+  checked again, on the row as it stands. So a step that counts, or writes rows it finds by
   a filter, after a lock another writer takes, reads the lock's response, as the starts' membership
   reads `response.userOrganization_update.userId` (M41). A step running apart sees what its mutation
   wrote before it, and one statement does not, so count around the rows a mutation writes by their
@@ -382,9 +387,11 @@ What Data Connect does, found the hard way:
   so counts its rows against the list (`this == size(vars.attachmentIds)`), which
   `check:conversation-attachments` checks
 - A nullable variable left out of a write leaves its column alone, and only null clears it, so a
-  write meant to clear a column passes null, which `createIntegrationDatabaseFake` holds the backend to
-- The emulator's PGlite runs one transaction at a time, so no race shows there: a lock's reasoning
-  is Postgres', which `bun run check:conversation-races` puts to the test for the runs
+  write meant to clear a column passes null, which `createIntegrationDatabaseFake` holds the backend
+  to
+- An emulator runs one operation at a time on any database, its PGlite or a real Postgres, so no
+  race shows through one: a lock's reasoning is Postgres', which `bun run check:conversation-races`
+  tests with four emulators on one Postgres behind a proxy (`withPostgresEmulators.ts`)
 
 A list a page keeps current is a live query: `@refresh(onMutationExecuted: ...)` names each mutation
 that changes it, with a condition on the variable they share, so every mutation it listens to takes
@@ -412,11 +419,15 @@ subscribes beside its first read and writes each pushed result into the TanStack
 - A member's account at an OAuth server is an `IntegrationConnection`, and a Connect under way an
   `IntegrationAuthorization`, both the backend's. Tokens, codes and verifiers are encrypted, bound
   to their purpose, server and member (`buildIntegrationSecretContext`), and no web operation selects
-  one: the page reads `GetIntegrationConnections`, live. A connection's `generation` is a fresh UUID
-  at each connect, kept by a refresh. A refresh leases the connection (`refreshingUntil`, on the
-  database's clock) only while it holds the refresh token its caller read, so a rotating token is
-  spent once. `ReconfigureOrganizationIntegration` and `ChangeOrganizationIntegrationIssuer` write
-  the server's row before deleting its connections and Connects, an order a change keeps
+  one: the page reads `GetIntegrationConnections`, live, which no refresh of the tokens wakes. A
+  connection, one per member and server, takes a fresh UUID as its `generation` at each connect,
+  kept by a refresh. A refresh leases the connection (`refreshingUntil`, on the database's clock)
+  only while it holds the refresh token its caller read, so a rotating token is spent once, and
+  writes and lets go by the lease's id alone. A member's write on the server's row, a Connect's start
+  or its connection, locks the row at the revision and issuer it started under, and
+  `ReconfigureOrganizationIntegration` and `ChangeOrganizationIntegrationIssuer` write the row
+  before deleting its connections and Connects, so under read committed none outlives them: an order
+  a change keeps
 
 A knowledge document's text is a Yjs document, so several members write it at once.
 `Document.state` holds its snapshot in base64, the source of truth, each `DocumentUpdate` row an edit
@@ -533,7 +544,8 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
 - **Never edit `src/data/intl/messages-translated/` by hand**: `bun run translate` alone writes it
 - **Run `bun run translate` whenever a message changes**, and commit the locale files with
   `translations.lock.json`, which records a hash per id, so only new or edited strings reach Gemini.
-  A branch that skips it ships six locales that silently render English
+  A branch that skips it ships six locales that silently render English. Deleting the lock, a locale
+  file or one entry forces a retranslation
 - **Never write an em dash in a `defaultMessage` or a `description`**: use a full stop, a comma or
   a colon. It reads as machine-written, and all six locales inherit it
 
@@ -559,10 +571,11 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   `strategydance-backend`, and the private worker, `strategydance-worker` (`SERVICE=worker`,
   `IS_WORKER`), which mounts `routes/internal.ts` at `/internal` and nothing else. A route Cloud
   Tasks or Cloud Scheduler calls goes there
-- The worker keeps Cloud Run's invoker check, `conversation-tasks@strategydance.iam.gserviceaccount.com`,
-  the account Cloud Tasks and Cloud Scheduler call it as, holding `roles/run.invoker` on it alone, so
-  no internal route verifies a token by hand. Its timeout is fifteen minutes and its concurrency
-  four, and its address is Cloud Run's deterministic one, `WORKER_URL`, also the token's audience
+- The worker keeps Cloud Run's invoker check,
+  `conversation-tasks@strategydance.iam.gserviceaccount.com`, the account Cloud Tasks and Cloud
+  Scheduler call it as, holding `roles/run.invoker` on it alone, so no internal route verifies a
+  token by hand. Its timeout is fifteen minutes and its concurrency four, and its address is Cloud
+  Run's deterministic one, `WORKER_URL`, also the token's audience
 - Credentials are Application Default Credentials. Both services run as the Compute Engine default
   service account, which also builds them and, since the organization withholds the Editor role,
   needs `roles/run.builder`, `roles/firebasedataconnect.dataAdmin`, `roles/storage.objectAdmin` on
@@ -578,7 +591,8 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   - An organization's logo or banner is stored under a fresh name with its own download token, the
     file before it deleted. A logo arrives with the thumbnail the page drew
     (`createImageThumbnail`), stored as `logoThumbnailUrl`, and a profile picture's thumbnail is the
-    page's to write, as `imageThumbnailUrl`. The small faces draw the thumbnail and fall back to
+    page's to write, as `imageThumbnailUrl`. The organization switcher, the user menu and the
+    board's faces draw the thumbnail, falling back to the picture; the other small faces still draw
     the picture
   - A picture of a document's text, under `organizations/<id>/rich-text/`, goes only with its
     organization: an undo or another tab can bring a deleted one back
@@ -596,7 +610,8 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   document in the instance, so a member makes 60 calls in ten minutes at most
   (`knowledgeRevisionRateLimitMiddleware`)
 - A request to an address somebody else gave goes through the outbound guard in `utils/`, never
-  `fetch`: `requestOutbound`, one request on its own port to public addresses alone
+  `fetch`: `requestOutbound`, one request, http or https on its own port, https alone where the
+  caller says, to a hostname that is no name of this server's own network and public addresses alone
   (`isGloballyRoutableAddress`), pinned to the address checked, a redirect answered rather than
   followed; `fetchOutbound`, following redirects through it within a deadline and a byte cap; and
   `createGuardedFetch`, the MCP SDK's `fetch`, https alone, following a same-origin redirect alone,
@@ -608,17 +623,20 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   secret read by version, as `oauth-token-secret` is, goes through `retrieveSecretVersion`. Only
   production sends: elsewhere the HTML lands in the OS temp directory and each invitation's link in
   the log, which is how an invitation is accepted locally
-- An organization's MCP servers are its administrators' to change, through
-  `routes/integrations.ts`, every route behind `organizationAdministratorMiddleware` and those that
-  reach a server behind `integrationRateLimitMiddleware`. `reachIntegration` (`domain/integrations/`)
-  lists a server's tools or discovers an OAuth server's issuer, and nothing is saved when a server
-  cannot be reached. A failure is an `IntegrationFailure` of one of the database's
-  `IntegrationError` kinds, answered with its code (`INTEGRATION_FAILURE_ERROR_CODES`). A key is
-  encrypted with Cloud KMS in production (`INTEGRATION_KMS_KEY_NAME`), under a fixed local key
-  elsewhere, bound to its organization and server. A log or a refusal names a server's origin alone,
-  never what it answered. The routes' tests run against `createIntegrationDatabaseFake`, `bun run
-  check:integrations` checks the operations, and `bun run probe:integrations` reaches every
-  catalogued server
+- An organization's MCP servers are its administrators' to change, through `routes/integrations.ts`,
+  every route behind `organizationAdministratorMiddleware` and those that reach a server behind
+  `integrationRateLimitMiddleware`. `reachIntegration` (`domain/integrations/`) lists a server's
+  tools, a 2025 handshake first, or discovers an OAuth server's issuer, which has to offer S256 and
+  a way to register, a server's origin taken as its authorization server only when every metadata
+  address answered 404. Nothing is saved when a server cannot be reached. A failure is an
+  `IntegrationFailure` of one of the database's `IntegrationError` kinds, answered with its code
+  (`INTEGRATION_FAILURE_ERROR_CODES`). A key is encrypted with Cloud KMS in production
+  (`INTEGRATION_KMS_KEY_NAME`, on which the runtime account holds
+  `roles/cloudkms.cryptoKeyEncrypterDecrypter`), under a fixed local key elsewhere, bound to its
+  organization and server, and read back only to reach the server again. A log or a refusal names a
+  server's origin alone, never what it answered. The routes' tests run against
+  `createIntegrationDatabaseFake`, `bun run check:integrations` checks the operations, and `bun run
+  probe:integrations` reaches every catalogued server
 - Any member connects their own account to an OAuth server through the same router's
   `…/:integrationId/connection` routes, behind `organizationMemberMiddleware`. Strategy Dance is the
   OAuth client, every request through `createIntegrationFetch`, with the MCP SDK's
@@ -628,17 +646,20 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   `GET /integrations/oauth/callback` (`routes/integrationOAuth.ts`), finds the Connect by its state's
   hash, keeps the code encrypted for two minutes and redirects to the app's page, which finishes it
   as the signed-in member, for the account that started it alone (OAuth CSRF). A token is read
-  through `readIntegrationAccessToken`, refreshed under the connection's lease. Nothing logs a code,
+  through `readIntegrationAccessToken`, refreshed under the connection's lease, and goes only to the
+  address of the revision it was given for. Nothing logs a code,
   state, token or server's answer, though Cloud Run's request log keeps the callback's query unless
   step 12 of conversations.md's setup excludes it. The tests run the real SDK against
   `createIntegrationOAuthServerFake`
 - The worker's `POST /internal/sweep`, daily, first reconciles the runs nobody did, then removes
   what stays deleted past its Undo window and prunes what expires: conversations deleted over a day
-  ago, claimed first and deleted with their files and module call results; files never sent; the
+  ago, claimed first, so a restore refuses them, and deleted with their files and module call
+  results, one whose files could not all go staying claimed for the next sweep; files never sent; the
   board's deleted tasks; deleted documents and MCP servers; revisions over 30 days old; and the
   expired Connects, searches, run spends, call results and the authorization server's requests and
   tokens. Each step runs whatever failed before it (`runSweepSteps`), and the route answers 500
-  naming the failures. Something kept deleted, or counted, for a while adds its idempotent prune
+  naming the failures. `RestoreConversation` refuses a conversation deleted over a day ago whether
+  or not the sweep has run. Something kept deleted, or counted, for a while adds its idempotent prune
   there
 - The worker's `POST /internal/runs-reconcile`, every five minutes, reconciles the runs no page
   watches: subagent runs past their lease or waiting for a slot (`sweepSubagentRuns`), members' runs
@@ -648,16 +669,20 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
 - The worker's `POST /internal/directories-check`, daily, commits a day's check to one rolling pull
   request into `dev`, from `directories-check`, which only it writes (`publishDirectoryCheck`). It
   reaches GitHub as a GitHub App (`github-app-id`, `github-app-private-key`, through
-  `domain/github/`), since a pull request opened with Actions' token runs no CI, and
-  `readDirectoryLists` refuses a field or value it does not know.
+  `domain/github/`), since a pull request opened with Actions' token runs no CI. It runs the last
+  release's code on `dev`'s lists, so `readDirectoryLists` refuses a field or value it does not know
+  rather than write the lists back without it.
   [directories.md](documents/directories.md) has the rest
 - Strategy Dance's OAuth authorization server, which external agents reach a module through, is the
   public backend's: `routes/oauth.ts` (`register`, `authorize`, `token`, `revoke`), the consent
   page's `routes/oauthRequests.ts`, `routes/wellKnown.ts`, and `domain/oauth/`. The protocol's
   endpoints answer OAuth's own JSON (`respondOAuthError`), carry no App Check, answer any origin
   without credentials (`OAUTH_PROTOCOL_PATHS`, matched exactly), never log a body, find tokens by
-  their hash, and are metered per address. A client ID metadata document is fetched only by the
-  consent page's routes, once a member has signed in. A module's endpoint checks its token with
+  their hash, and are metered per address, registration and authorization capped in all too, and
+  the token and revocation endpoints generously, since a hosted client calls them for every member
+  from a few addresses of its own. The consent page's routes keep the app's middleware, App Check and
+  the ID token, and are the only place a client ID metadata document is fetched, once a member has
+  signed in. A module's endpoint checks its token with
   `createAgentConnectionTokenVerifier`. The tests run against `createOAuthDatabaseFake`, and `bun
   run check:oauth` goes through the whole flow against the local backend: an operation changed is
   changed in both
@@ -665,12 +690,14 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   serve each of strategydance-core's `SERVED_MODULES`, `POST` alone, through the SDK's
   `toNodeHandler`, answering JSON-RPC (`respondJsonRpcError` before the handler) and carrying no App
   Check: the bearer token is the guard. In order: 405 on another method; 403 on an `Origin` other
-  than the app's (`originValidation`); `moduleAddressRateLimitMiddleware`, counting refusals alone;
-  `requireBearerAuth` with the endpoint's `expectedResource`; `moduleRateLimitMiddleware`; then the
-  body, 1 MiB at most, parsed only once the token is verified and handed over whole, `(request,
-  response) => nodeHandler(request, response, request.body)`, since the parser consumed the stream.
-  Each module's protected resource metadata is `routes/moduleMetadata.ts`, mounted at the app's root,
-  its path in `OAUTH_PROTOCOL_PATHS`. A 2025 client is served statelessly over SSE
+  than the app's (`originValidation`, against DNS rebinding), a request without one passing;
+  `moduleAddressRateLimitMiddleware`, counting refusals alone; `requireBearerAuth` with the
+  endpoint's `expectedResource`; `moduleRateLimitMiddleware`; then the body, 1 MiB at most, parsed
+  only once the token is verified and handed over whole, `(request, response) =>
+  nodeHandler(request, response, request.body)`, since the parser consumed the stream. They answer
+  the app's origins alone, no browser client being served yet. Each module's protected resource
+  metadata is `routes/moduleMetadata.ts`, mounted at the app's root, its path in
+  `OAUTH_PROTOCOL_PATHS`. A 2025 client is served statelessly over SSE
 
 ## Conversation conventions
 
@@ -692,9 +719,10 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
 - A run is triggered by a member's `MESSAGE`, `ANSWER`, `RESUME` or `RETRY`, a subagent's by its
   `LAUNCH` or its chain's `CONTINUE`, and a parent's reaction to its subagents' reports by
   `REPORTS`. `PENDING` and `CHAINED` are a subagent's alone
-- One run goes at a time in a conversation: every start takes the row with a
-  `conversation_updateMany` on `activeRunId: { isNull: true }` under `@check(this == 1)`, refused
-  with `ERROR_CODE_CONVERSATION_BUSY`. A member has three runs in flight in an organization
+- One run goes at a time in a conversation: the first send inserts the conversation with its
+  `activeRunId` set, and every later start takes the row with a `conversation_updateMany` on
+  `activeRunId: { isNull: true }` under `@check(this == 1)`, refused with
+  `ERROR_CODE_CONVERSATION_BUSY`. A member has three runs in flight in an organization
   (`MAX_ACTIVE_RUNS_PER_MEMBER`), counted under their membership's lock once their dead runs are
   finalized
 - The worker claims a run `QUEUED`, or `RUNNING` past its lease, adding one to `attempts`, which
@@ -709,8 +737,8 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
   writes each step as it happens. By `stop_reason`: `end_turn` completes; `tool_use` runs the calls,
   stores one `USER` entry with every result in the turn's order and goes round again, a turn holding
   `ask_user` ending `WAITING` with its other results kept in `pendingToolResults`; `pause_turn`
-  sends the turn back, five times at most; `max_tokens` fails; `refusal` runs again on the fallback
-  model, ending `REFUSED` if it survives
+  sends the turn back, five times at most; `max_tokens` runs nothing and fails; `refusal` runs again
+  on the fallback model, ending `REFUSED` if it survives
 - A request refused before its stream starts (rate limited, overloaded, failing, unreachable) costs
   nothing and is sent again, after its `retry-after` or a doubling delay, four times in a row at most
   (`MAX_CONVERSATION_API_RETRIES`). Any other error of the API fails the run with its note
@@ -789,7 +817,9 @@ A conversation is kept twice, the transcript for Claude and the thread for the p
   of `usage` upserts the run's `RunSpend` beside it (`toConversationUsageVariables`), which the
   fake's `unpricedLedgerWrites` holds the tests to; `RenewConversationRunLease` carries none. A side
   request, today the aspects' tagging (`requestConversationTagging`), goes through the ledger with
-  its `purpose` and no `turnPosition`, is tried once a run and never fails it
+  its `purpose` and no `turnPosition`, is tried once a run and never fails it. An aspects note,
+  the agent's or the member's, belongs to no run, so it counts toward no run's entries and a Retry
+  keeps it
 - A run stops at $10 (`CONVERSATION_RUN_MAX_COST_MICRODOLLARS`), held before each request: the ledger
   at list prices, each unsettled request at its worst case (`priceConversationUsageBound`), plus the
   worst the next request can cost (`priceRequestWorstCase`). A request whose fallback would pass a
@@ -799,22 +829,25 @@ A conversation is kept twice, the transcript for Claude and the thread for the p
   and `CLAUDE_FALLBACK_MODELS` before it ships, with `bun run probe:claude` after
 - Daily caps bound what a member starts (`MAX_DAILY_…` in strategydance-core): conversations, runs
   and subagents in 24 hours, per member in an organization, per account and per organization,
-  counted on `CappedStart` rows that hold their organization as a plain id. Every mutation that
-  starts one counts in its one query step, after the membership's lock, and inserts its row last.
-  Its domain function reads the counts first (`readReachedUsageCap`), and a route answers 429 with
-  the cap's code and `Retry-After` (`respondUsageCapped`). An answer's continuation, an Allow and a
-  reaction pass a cap up to one and a half times it, then wait. A new way to start a conversation, a
-  run or a subagent counts the same way. The development backend lifts them (`IS_USAGE_CAPPED`,
-  held by `USAGE_CAPPED=true`) through each mutation's optional `$isUsageCapped`, which the tests and
-  checks leave out
+  counted on `CappedStart` rows that hold their organization as a plain id. A conversation's start,
+  every run triggered `MESSAGE`, `ANSWER`, `RESUME`, `RETRY` or `REPORTS`, and a launch count, never
+  a subagent's own runs: each mutation counts in its one query step, after the membership's lock,
+  and inserts its row last. Its domain function reads the counts first (`readReachedUsageCap`),
+  after recognizing an action sent again, and a refusal of its mutation reads them again; a route
+  answers 429 with the cap's code and `Retry-After` (`respondUsageCapped`). An answer's
+  continuation, an Allow and a reaction pass a cap up to one and a half times it, then wait. A new
+  way to start a conversation, a run or a subagent counts the same way. The development backend
+  lifts them (`IS_USAGE_CAPPED`, held by `USAGE_CAPPED=true`) through each mutation's optional
+  `$isUsageCapped`, which left out holds them, as the tests and checks leave it: a test or a check
+  that builds past a cap lifts it in its fixtures
 - Daily spend ceilings, $25, $50 and $150 (`MAX_DAILY_SPEND_MICRODOLLARS_…`), over the caps' 24
   hours and scopes, are summed from `RunSpend` rows. The worker holds every request to them beside
   the $10 (`readRunSpendRoom`), and every start is held to them beside the caps: a send, Resume and
   Retry answer 429, a continuation and a reaction wait, a launch is refused, a promotion leaves its
   runs pending and a chain ends its subagent with its report. A run a ceiling stops fails with a
   note naming it and when it frees (`ceilingScope`, `ceilingFreesAt`). A new way to start, promote
-  or chain a run reads them too. A read of the caps or the ceilings hands its operation
-  `{ organizationId, userId }` alone
+  or chain a run reads them too. They are lifted with the caps (`IS_USAGE_CAPPED`), the rows written
+  anyway. A read of the caps or the ceilings hands its operation `{ organizationId, userId }` alone
 - Every route that starts or continues a run, the send, an answer, an approval, Resume, Retry and an
   upload, mounts `verifiedEmailMiddleware`, then `conversationsSuspensionMiddleware`, after
   `organizationMemberMiddleware`; the stops, the reconciles and the reads mount neither. The
@@ -853,28 +886,35 @@ A conversation is kept twice, the transcript for Claude and the thread for the p
   claimed run past it is dead, finalized as interrupted by the next route that counts or starts, or
   by the page's reconcile. A queued run past it is checked against Cloud Tasks
   (`finalizeDeadConversationRun`): pushed back while its task is there, queued again while under
-  twenty minutes old, finalized after. Development has no queue, so a queued run past its lease is
-  dead there
+  twenty minutes old, finalized after. A run whose task could not be queued has its lease brought
+  in to now, so its page reconciles it at once. Development has no queue, so a queued run past its
+  lease is dead there
 - Every write of a worker is fenced: its first step is the run's own update, matching `RUNNING`, its
   claimed attempt and its author's membership by the `createdAt` the run recorded, so a worker whose
-  run was claimed again, or whose author left, writes nothing more. A `Timestamp` read back keeps its
+  run was claimed again, or whose author left, writes nothing more. It is the run's only write in the
+  mutation, since a second write to the row would be skipped, so the run's end, step and lease ride
+  in its data, as `RenewConversationRunLease`'s do. A `Timestamp` read back keeps its
   microseconds and matches itself in a filter, which `check:conversation-runs` checks
 - A message the backend draws takes an id derived from what it is drawn from
   (`deriveConversationMessageId`), so a worker taking over draws the same ids from the entry's cursor
-  (`drawnBlocks`), and drawing twice conflicts rather than copies. The member's message keeps the
-  browser's id, so a retried send stores it once
+  (`drawnBlocks`), and drawing twice conflicts rather than copies. Drawing finds an entry by its id
+  and cursor, never by the run that stored it, so a resumed run draws what the run it carries on left
+  undrawn. The member's message keeps the browser's id, so a retried send stores it once, and names
+  the run it started, so a Retry deletes that run's messages but it
 - A stop sets `stopRequestedAt`, read before each request and every two seconds while one streams
   (`createConversationRequestSignal`); a turn already answered is still stored, and a queued run is
-  stopped at once. Resume deletes the stopped or interrupted note, the thread's newest message, and
-  refuses once anything follows it. Retry cuts the transcript after the run's anchor, deletes the
-  messages of every run on it and moves `historyRevision`. A route receiving either again answers
-  with the run numbered after the one it names. Every run that ends with a note says why in its
-  `failure`, and `FinishConversationRunWithNote` pairs each status with its note
+  stopped at once. Resume deletes the stopped or interrupted note, the thread's newest message,
+  moves no `historyRevision`, and refuses once anything follows it. Retry cuts the transcript after
+  the run's anchor, deletes the messages of every run on it and moves `historyRevision`. A route
+  receiving either again answers with the run numbered after the one it names. Every run that ends
+  with a note says why in its `failure`, and `FinishConversationRunWithNote` pairs each status with
+  its note
 - Conversations are searched by the backend alone, `POST …/conversations/search`, since a search
   finds messages, which no web query could group by conversation. `Conversation.title` and
   `ConversationMessage.text` are `@searchable(language: "simple")`, read with `queryFormat: PLAIN`,
   ordered by relevance alone. A query in Chinese or Japanese matches by substring
-  (`isSubstringSearchQuery`), over the messages of the 20000 most recently active conversations.
+  (`isSubstringSearchQuery`), over every title and the messages of the 20000 most recently active
+  conversations.
   Only member and agent messages are searched
 - A subagent is a conversation with a `parent`, launched with a brief (`launchSubagent` in
   `domain/subagents/`), run as its member's and hidden from them: every read or count of a member's
@@ -894,25 +934,30 @@ A conversation is kept twice, the transcript for Claude and the thread for the p
   reconciles them (`useReconcileConversationSubagents`)
 - A subagent's run at one of its limits before its fourth run (`MAX_SUBAGENT_RUNS`) chains:
   `ChainSubagentRun` ends it `CHAINED` and queues the next, `CONTINUE`, in one write, its id derived
-  (`deriveChainedRunId`), and the next is queued once the lease has stopped. The fourth run asks for
+  (`deriveChainedRunId`), and the next is queued once the lease has stopped; a run asked to stop as
+  it reaches a limit stops instead. The fourth run asks for
   the report (`SUBAGENT_REPORT_REQUEST`) once a budget nears its end (`isSubagentReportDue`), and that
-  last request may go on to 12 minutes after the claim (`readSubagentReportDeadline`). Only the last
-  run writes the report
-- A member has five subagent runs at once in an organization (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`),
-  apart from their own three: a launch takes a free slot (`LaunchSubagent`) or waits `PENDING`
-  (`LaunchPendingSubagent`). A promotion (`PromoteSubagentRun`, looped by `promoteSubagentRuns`) runs
-  after every end that freed a slot, never inside it, skipping runs asked to stop, deleted or under a
-  replaced membership, which `GetSubagentPendingRuns` leaves out in the query, never in code. A new
-  way to end a subagent's run that held a slot promotes after it. The parent's reconcile route and
-  the sweep reconcile a member's subagent runs (`reconcileSubagentRuns`)
+  last request may go on to 12 minutes after the claim (`readSubagentReportDeadline`), nothing its
+  reply calls running. Only the last run writes the report
+- A member has five subagent runs at once in an organization
+  (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`), apart from their own three: a launch first finalizes
+  their dead subagent runs, then takes a free slot (`LaunchSubagent`) or waits `PENDING`
+  (`LaunchPendingSubagent`). A promotion sets the run's `createdAt` again, so its twenty minutes to
+  be queued again count from there. A promotion (`PromoteSubagentRun`, looped by
+  `promoteSubagentRuns`) runs after every end that freed a slot, never inside it, skipping runs
+  asked to stop, deleted or under a replaced membership, which `GetSubagentPendingRuns` leaves out
+  in the query, never in code. A new way to end a subagent's run that held a slot promotes after it.
+  The parent's reconcile route and the sweep reconcile a member's subagent runs
+  (`reconcileSubagentRuns`)
 - A parent reacts to its subagents' reports in a run triggered `REPORTS` (`reactToSubagentReports`),
   once every live subagent its runs launched on one anchor has reported and the parent is idle.
   `StartSubagentReaction` marks exactly the reports its entry carries delivered, so two subagents
   ending at once start one reaction, and the thread draws its report blocks as nothing. A report
   names the first 20 module writes and integration calls with their totals, a call that may have run
-  marked unanswered (`isToolUnanswered`), since no restore undoes another company's server. Any end
-  of a member's run starts their oldest reaction due (`startDueSubagentReactions`), and a new way to
-  end one does too. A reaction launches and deletes nothing (`isReactionCaller`)
+  marked unanswered (`isToolUnanswered`), since no restore undoes another company's server. A
+  subagent's end starts its parent's reaction, and any other end of a member's run their oldest due
+  (`startDueSubagentReactions`), its own conversation's first: a new way to end one does too. A
+  reaction launches and deletes nothing (`isReactionCaller`)
 - A send carries every finished report not delivered yet, after the turn's results, and so do an
   answer's continuation and an Allow's run. Each names what it marks delivered,
   `$deliveredSubagentIds`, always passed, empty when nothing waits. Resume and Retry carry none. A
@@ -924,8 +969,10 @@ A conversation is kept twice, the transcript for Claude and the thread for the p
   Stops, deletes and Retry cascade to the anchor's live subagents, freeing their slots at once
   (`stopConversationSubagents`) and promoting after
 - `bun run check:conversation-races`, in the backend's package, races the runs' bounds and cascades
-  against a real Postgres in Docker. It never runs in CI: run it before a release that changes a
-  run's mutations. `bun run emulators:postgres` serves the same stack until Ctrl-C
+  against a real Postgres in Docker, with four emulators on it behind a proxy, since one emulator
+  runs one operation at a time on any database (`withPostgresEmulators.ts`), on ports beside the
+  person's stack. It never runs in CI: run it before a release that changes a run's mutations. `bun
+  run emulators:postgres` serves the same stack until Ctrl-C
 - A domain function hands an operation only the variables it declares: Data Connect refuses one it
   does not, which the fakes let through, so pass a member as `{ organizationId, userId }`
 
@@ -935,7 +982,8 @@ A conversation is kept twice, the transcript for Claude and the thread for the p
   Development and production share its workspace, so every file is named
   `CLAUDE_FILE_NAME_PREFIX` and its attachment's id, and only production's sweep deletes those no row
   names. The count endpoint takes no Files API source, so a file is counted once from its bytes into
-  `tokenCount` (`replaceConversationFiles`)
+  `tokenCount`, and every measurement takes file blocks out and adds those counts
+  (`replaceConversationFiles`)
 - Conversations' routes are `routes/conversations.ts`, at
   `/organizations/:organizationId/conversations` with `mergeParams`, behind
   `organizationMemberMiddleware`. A send queues a run and `enqueueRun` sends it on: in development
@@ -955,7 +1003,8 @@ A conversation is kept twice, the transcript for Claude and the thread for the p
   and its steps are read afresh (`runConversation`), so taking over follows the same path as carrying
   on
 - What a run asks Claude lives in `domain/agent/`, through a `ClaudeClient`: the real one, the
-  placeholder, and the tests' scripted one, which records each request's bytes. Every request is
+  placeholder, and the tests' scripted one, which records each request's bytes and refuses to count
+  a Files API source, as the endpoint does. Every request is
   built by `buildConversationRequest`, in one key order, so it starts with the last one's bytes, and
   passes `checkTranscript`. The system prompt and the tools are pinned by their hash: a change costs
   every conversation its earlier reasoning once, so it ships with a release that means to. Load the
@@ -971,14 +1020,16 @@ A conversation is kept twice, the transcript for Claude and the thread for the p
   `list_integrations`, `describe_integration_tool`, and `call_integration_tool`, not strict, its
   input checked by `checkConversationIntegrationCall`. Their runners
   (`createConversationIntegrationRunners`) close over the run's fence, and a call goes through
-  `callIntegrationTool`, 30 seconds in all, as the member
+  `callIntegrationTool`, 30 seconds in all, as the member, a 401 alone marking their connection
 - A call to an integration is decided once, when it is drawn (`decideConversationIntegrationCall`):
-  refused, run at once when an administrator lets its tool run without approval, or an `APPROVAL` the
-  member allows or denies. A subagent's that would wait is drawn failed, asking it to propose the call
-  in its report. The last two bind the server's `configRevision`, the tool's definition hash and the
-  credential's generation, which Allow and the call itself check again. An approval waits as a
-  question does (`kind in [QUESTION, APPROVAL]`), the turn's other calls running beside it, as David
-  chose. A call that started is never made again: one cut off is finished as interrupted
+  refused, run at once when an administrator lets its tool run without approval, or an `APPROVAL`
+  the member allows or denies. A subagent's that would wait is drawn failed, asking it to propose
+  the call in its report. The last two bind the server's `configRevision`, the tool's definition
+  hash and the credential's generation, which Allow and the call itself check again, the run
+  carrying a subagent on included: a mismatch denies the approval, its result saying the server
+  changed. An approval waits as a question does (`kind in [QUESTION, APPROVAL]`), the turn's other
+  calls running beside it, as David chose. A call that started is never made again: one cut off is
+  finished as interrupted
 - A continuation carrying an allowed call stores no entry: `ContinueConversationRunWithCalls` starts
   its run with its results, and the worker makes the calls, then stores the turn's results and
   anchors the run on them (`StoreConversationToolResults`' `$anchorPosition`), so a Retry keeps the
@@ -993,7 +1044,8 @@ A conversation is kept twice, the transcript for Claude and the thread for the p
 ### The page
 
 - The dock's windows are each member's in each organization, kept by `_ConversationDockProvider`
-  under one persisted key, by `${userId}:${organizationId}`. A minimized window reads only
+  under one persisted key, by `${userId}:${organizationId}`, since the key a persisted state reads
+  is read once. A minimized window reads only
   `GetDockConversations`, which refreshes on every mutation that changes a conversation's title,
   `activeRunId`, `unreadCount`, `isAwaitingAnswer` or existence: a new one joins its refreshes
 - A composer's message, mentions, files, send state and last run are kept per account, organization
@@ -1035,9 +1087,10 @@ each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served 
   removed and invited back, stops every agent acting as them. Its `launcher`, `{ conversationId,
   runId }`, is filled only by a worker that claimed a run, and every Subagents tool refuses a caller
   without one. `readModuleCaller`'s schema is strict: a field the caller gains joins it
-- A tool's name is snake_case, as Claude takes it, and unique across the modules and the agent's own
-  tools (`moduleServers.test.ts`). The order a module registers its tools in is frozen, since the
-  agent lists them so
+- A tool's name is snake_case, as Claude takes it (`^[a-zA-Z0-9_-]{1,128}$`, no dot, though MCP
+  allows one), and unique across the modules and the agent's own tools, which share one list:
+  `moduleServers.test.ts` fails on a clash between modules. The order a module registers its tools
+  in is frozen, since the agent lists them so
 - A tool takes a zod input schema and an `outputSchema`, answers `structuredContent` with the same
   JSON as text (`toToolResult`), carries annotations (`readOnlyHint` on reads, `destructiveHint` on
   a delete or a write that can rewrite what it changes whole, `openWorldHint: false` on all), and
@@ -1060,8 +1113,9 @@ each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served 
   `SUBAGENT_REQUEST_SETTINGS`
 - The agent keys each write with Claude's id for the call, so a worker taking over, or a Resume
   calling again, is answered from its key, and finalizing a dead run, or a send answering its calls,
-  settles each write it left started from its key (`settleConversationModuleWrites`,
-  `SettleConversationToolCall`)
+  settles each write it left started from its key (`settleConversationModuleWrites`): a stored result
+  is the call's, recorded through `SettleConversationToolCall`, which refuses while a run holds the
+  conversation, and anything else is answered as a call that may have run
 - What a module reads and writes goes through backend operations named `…ForAgent`, which take
   `$userId` and `$membershipCreatedAt` and hold to the AI permissions for every caller: a document
   whose `isAiReadable` is off is never loaded, one whose `isAiWritable` is off never changed. Tasks
@@ -1069,14 +1123,14 @@ each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served 
   changes, web queries included
 - The tests drive a module through the SDK's `Client`, pinned to 2026-07-28, on a transport handing
   each request to the module's handler with the caller as `authInfo` (`createModuleTestKit`), never
-  the SDK's in-memory transport, which speaks only 2025. They run against `createModuleDatabaseFake`,
-  to which each module's fake adds its own, since a handler loads every module's server: a new
-  module's fake joins it. The Subagents module's tools import `domain/subagents/` inside their
-  handler (`await import`), so no other module loads the conversation runtime, and its tests run
-  against `createConversationDatabaseFake`; a module whose domain needs the runtime does the same.
-  `bun run check:knowledge-module`, `check:tasks-module` and `check:subagents-module`, in the
-  backend's package, check the operations against the emulators: an operation changed is changed in
-  both
+  the SDK's in-memory transport, which speaks only 2025. They run against
+  `createModuleDatabaseFake`, to which each module's fake adds its own, since a handler loads every
+  module's server and Bun refuses an import the mock does not hold: a new module's fake joins it.
+  The Subagents module's tools import `domain/subagents/` inside their handler (`await import`), so
+  no other module loads the conversation runtime, and its tests run against
+  `createConversationDatabaseFake`; a module whose domain needs the runtime does the same. `bun run
+  check:knowledge-module`, `check:tasks-module` and `check:subagents-module`, in the backend's
+  package, check the operations against the emulators: an operation changed is changed in both
 - An external agent reaches a module at `https://api.strategydance.com/mcp/<name>`, each module its
   own OAuth resource, once a member allowed it on the consent page. Its caller comes from the access
   token, read by `createAgentConnectionTokenVerifier` at every call: `kind: 'external'`, the token's

@@ -1,5 +1,18 @@
 # Budget
 
+| # | Milestone | Packages | Depends on | Implementation PR |
+| --- | --- | --- | --- | --- |
+| M1 | Money, payments and the budget's computations | core | | |
+| M2 | Exchange rates | database, core, backend, root | M1 | |
+| M3 | The budget's tables and the receipts' routes | database, core, backend, root | M1 | |
+| M4 | The chart | design-system, root | | |
+| M5 | The page and its Expenses tab | web, backend | M2, M3, M4 | |
+| M6 | The Bills tab and the bill dialog | web | M5 | |
+| M7 | Reading receipts | backend, database, core, web | M6 | |
+| M8 | The Budget module | database, core, backend, root | M2, M3 | |
+| M9 | The Budget module for external agents | backend, web, root | M8 | |
+| M10 | Budget in conversations | backend, web, root | M8 | |
+
 What a company spends, against what it means to spend:
 - **bills**, recurring or not, each with its receipt;
 - **a budget**, which an administrator sets;
@@ -14,7 +27,7 @@ and not a dependency.
 
 The first part says how the Budget works and why. The second gives the ten milestones that build
 it, each one pull request into `dev` that a Claude Code session implements. When a milestone merges,
-write its pull request number in the table.
+write its pull request number in the table above.
 
 ## Decisions
 
@@ -442,24 +455,11 @@ Its tools, in their frozen order:
 
 ## Milestones
 
-A milestone starts once the ones it depends on have merged:
+A milestone starts once the ones it depends on have merged, as the table at the top says:
 - **M1 and M4** can start at once.
 - **M2 and M3** can start as soon as M1 has merged.
 - **M8** can run beside the page's milestones.
 - **M9 and M10** can start in either order once M8 has merged.
-
-| # | Milestone | Packages | Depends on | PR |
-| --- | --- | --- | --- | --- |
-| M1 | Money, payments and the budget's computations | core | | |
-| M2 | Exchange rates | database, core, backend, root | M1 | |
-| M3 | The budget's tables and the receipts' routes | database, core, backend, root | M1 | |
-| M4 | The chart | design-system, root | | |
-| M5 | The page and its Expenses tab | web, backend | M2, M3, M4 | |
-| M6 | The Bills tab and the bill dialog | web | M5 | |
-| M7 | Reading receipts | backend, database, core, web | M6 | |
-| M8 | The Budget module | database, core, backend, root | M2, M3 | |
-| M9 | The Budget module for external agents | backend, web, root | M8 | |
-| M10 | Budget in conversations | backend, web, root | M8 | |
 
 ### M1: Money, payments and the budget's computations
 

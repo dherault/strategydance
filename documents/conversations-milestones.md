@@ -54,7 +54,7 @@ merges, write its pull request number in the table above.
 ## Conventions for every milestone
 
 - Follow `CLAUDE.md`: a branch from `origin/dev`, granular commits each green on lint, typecheck,
-  test and build, a pull request into `dev`, the Copilot loop, then a human merges.
+  test and build, a pull request into `dev`, the review loop, then a human merges.
 - Read the Architecture of [conversations.md](conversations.md) first. Load the `claude-api` skill
   before writing any Claude SDK code, and never guess an SDK name.
 - Strings go in the `conversation` catalogue (`integration` for the MCP pages, `module` for the

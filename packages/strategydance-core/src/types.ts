@@ -436,3 +436,22 @@ export type BudgetBill = BillSchedule & {
   readonly amountMinor: number
   readonly currency: Currency
 }
+
+/*
+  A row of `ExchangeRateYear`: one currency's rates for one calendar year, the JSON text of an
+  object from each ECB day, `YYYY-MM-DD`, to the units of the currency one euro bought that day
+*/
+export type ExchangeRateYearRow = {
+  readonly currency: Currency
+  readonly year: number
+  readonly rates: string
+}
+
+// Each currency's ECB days, sorted, beside the rate of each, as `buildExchangeRateTable` reads them
+export type ExchangeRateTable = ReadonlyMap<
+  Currency,
+  {
+    readonly days: readonly string[]
+    readonly rates: readonly number[]
+  }
+>

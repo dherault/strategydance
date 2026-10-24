@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 
 import {
+  Currency,
   ORGANIZATION_SLUG_BASE_MAX_LENGTH,
   ORGANIZATION_SLUG_PATTERN,
   ORGANIZATION_SLUG_SUFFIX_LENGTH,
@@ -11,12 +12,13 @@ const schema = await Bun.file(new URL('./schema/schema.gql', import.meta.url)).t
 const webMutations = await Bun.file(new URL('./strategydance-web-connector/mutations.gql', import.meta.url)).text()
 
 /*
-  `Locale` is declared twice, once here and once in strategydance-core, because neither side can
-  read the other: Data Connect's schema is GraphQL SDL that a Go binary parses, and core is the
-  TypeScript the catalogues and the language picker are built from.
+  `Locale` and `Currency` are declared twice, once here and once in strategydance-core, because
+  neither side can read the other: Data Connect's schema is GraphQL SDL that a Go binary parses, and
+  core is the TypeScript the catalogues, the language picker and the Budget's computations are built
+  from.
 
   Two declarations of one set is a drift waiting to happen, so this is the thing that fails when
-  a locale is added to one and not the other. It reads the SDL as text rather than parsing it,
+  a value is added to one and not the other. It reads the SDL as text rather than parsing it,
   which is enough for an enum body and adds no dependency to a package that has none
 */
 function readEnumValues(name: string): string[] {
@@ -33,6 +35,11 @@ function readEnumValues(name: string): string[] {
 describe('schema.gql', () => {
   it('declares the same locales as strategydance-core', () => {
     expect(readEnumValues('Locale').sort()).toEqual([...SUPPORTED_LOCALES].sort())
+  })
+
+  // In order, since an enum's order is the Postgres enum's
+  it('declares the same currencies as strategydance-core, in the same order', () => {
+    expect(readEnumValues('Currency')).toEqual(Object.values(Currency))
   })
 })
 

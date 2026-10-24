@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 **Every change to a tracked file ships without asking.** It is made on its own branch, in a
 worktree or in the main checkout when the session holds it, committed granularly as each piece
-passes CI's checks, pushed, opened as a pull request into `dev` and taken through the Copilot
+passes CI's checks, pushed, opened as a pull request into `dev` and taken through the CodeRabbit
 review loop, until all that is left for a human is the merge. That is the person's standing
 request in every session, so never ask whether to commit, push, open the pull request or address
 the review. [Workflow](#workflow) says how.
@@ -158,7 +158,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run generate:database` | Regenerates the Data Connect SDK. `postinstall` already does this |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s. Run it when a message changes |
 | `bun run ship` | Opens the release pull request, from `dev` to `main`, unless one is already open, and sets it to merge itself once CI passes |
-| `bun run review <command>` | The GitHub calls of the Copilot review loop: `count`, `wait`, `body`, `threads`, `reply`, `resolve` and `open`. See [Copilot review loop](#copilot-review-loop) |
+| `bun run review <command>` | The GitHub calls of the CodeRabbit review loop: `wait`, `body`, `threads`, `reply`, `resolve` and `open`. See [CodeRabbit review loop](#coderabbit-review-loop) |
 | `bun run deploy:backend` | Builds the root `Dockerfile` on Cloud Run and deploys `strategydance-backend`, then the same image as `strategydance-worker` (`scripts/deploy.sh` in the backend's package). Every push to `main` runs it too |
 | `bun run kill` / `kill:backend` / `kill:emulators` | Kills the dev server, the backend, or the emulators, found by the ports they listen on. A browser connected to one of those ports is left alone |
 
@@ -1782,7 +1782,7 @@ Then do what it asks as any other task, [Workflow](#workflow) included.
 
 **This section is the person's own request, standing in every session.** Any task that changes a
 tracked file, however small, goes branch → granular commits → push → pull request into `dev` →
-Copilot review loop → handed to a human, in one go, without stopping to ask. "Should I commit?",
+CodeRabbit review loop → handed to a human, in one go, without stopping to ask. "Should I commit?",
 "Want me to open a pull request?" and "Shall I address the review?" all have the answer yes, and
 a turn that ends on one of them has failed: the person then has to come back and say what this
 section already says. Work is finished when its pull request is green, reviewed and waiting for
@@ -1799,7 +1799,9 @@ decision a review raised, or a check that fails for a reason outside the change.
 is a reason to keep going.
 
 This section reads the same in sunshine and strategydance, apart from each repository's
-commands, and `scripts/copilotReview.sh` and `scripts/ship.sh` are the same file in both. An
+commands and its reviewer: sunshine is private and keeps Copilot, strategydance is public and has
+CodeRabbit, free there. `scripts/ship.sh` is the same file in both, and `scripts/codeRabbitReview.sh`
+shares `threads`, `reply`, `resolve` and `open` with sunshine's `scripts/copilotReview.sh`. An
 improvement to one goes to the other.
 
 ### Where to work
@@ -1973,8 +1975,8 @@ EOF
 `--base dev` is not optional: the repository's default branch is `main`, and a pull request into
 `main` deploys to production the moment it merges.
 
-Never open a pull request as a draft. The `dev` ruleset has Copilot skip drafts, so no review
-would ever arrive and the wait in the loop below would never end.
+Never open a pull request as a draft. CodeRabbit skips drafts, so the wait in the loop below
+would come back with no review.
 
 GitHub deletes a branch once its pull request merges. `git fetch --prune` drops the
 remote-tracking ref it leaves behind.
@@ -1989,26 +1991,25 @@ open a new pull request from the same branch for what `git log origin/dev..HEAD`
 says `CLOSED`, somebody closed it on purpose, so stop and ask the person rather than pushing,
 reopening it or opening another.
 
-### Copilot review loop
+### CodeRabbit review loop
 
-1. **Never request a review.** The repository requests one automatically, on the pull request
-   and on every push to it. Requesting by hand races that: `gh pr edit <number> --add-reviewer
-   @copilot` exits 0 and requests nothing anyway, because resolving `@copilot` needs a
-   `read:project` scope this token lacks and gh swallows the partial GraphQL error, and the
-   `requestReviews` mutation that does work only adds a duplicate.
+CodeRabbit reviews every pull request into `dev` when it opens and at each push, as
+`.coderabbit.yaml` asks, and writes how far it has got into the head commit's `CodeRabbit` status.
 
-   Wait for the review to land instead. `bun run review` (`scripts/copilotReview.sh`) holds
-   every GitHub call of this loop: it has to be a script, because a session inside a worktree
-   refuses a `gh` call nested in `$(…)` or in a shell loop, which a wait is. What it counts is
-   reviews *by Copilot with a non-empty body*; the script says why each part of that matters.
+1. **Wait for the review of the head you pushed.** `bun run review` (`scripts/codeRabbitReview.sh`)
+   holds every GitHub call of this loop: it has to be a script, because a session inside a
+   worktree refuses a `gh` call nested in `$(…)` or in a shell loop, which a wait is.
 
    ```sh
-   bun run review count <number>             # the baseline, read before the push that asks for a review
-   bun run review wait <number> <baseline>   # returns once the count passes it
+   bun run review wait <number>   # returns once CodeRabbit has reviewed the head this checkout pushed
    ```
 
-   The baseline is 0 for a pull request just opened. Never read it after `gh pr create`: the
-   opening review may already be in it, and the wait then holds out for one that never comes.
+   The round is the head commit's, so the wait needs no baseline and never returns an earlier
+   round. When CodeRabbit's status says it waits to be asked, as its free plan can below ten
+   stars, the wait asks it with an `@coderabbitai review` comment, and does the same once a rate
+   limit runs out. The free plan allows ten reviews an hour, shared by every session, so never ask
+   by hand: an ask beside the wait's costs a review. A round with nothing to say ends `Review
+   completed` and leaves no review at all.
    **Wait in the foreground, inside the same turn**. Nothing else is waiting on you, and a turn
    that ends on "I will pick it up when it lands" leaves the person to come back and tell you it
    has. A review takes a few minutes. The wait gives up after nine minutes, inside the shell's
@@ -2016,8 +2017,10 @@ reopening it or opening another.
    as it takes.
 2. Wait for CI (`gh pr checks <number> --watch`) and fix whatever fails. Its job, `ci` in
    `.github/workflows/check-pull-request.yml`, is a required check on `main`.
-3. Answer every Copilot comment, either with an edit that addresses it or a reply explaining why
-   it does not apply. Never ignore one, and never resolve one without replying first.
+3. Answer every CodeRabbit comment, either with an edit that addresses it or a reply explaining
+   why it does not apply. Never ignore one, and never resolve one without replying first. Each
+   carries a *Prompt for AI Agents*, which restates the finding and is no more right than it: check
+   it against the code first.
 
    Reply on the thread, then resolve it, so the next round shows only what is still open. `gh`
    has no command for either, so the script does both over GraphQL, keyed by the thread id:
@@ -2033,23 +2036,25 @@ reopening it or opening another.
    Reply first, resolve second: resolving hides the thread, and a reviewer who cannot see the
    answer reads it as the comment having been waved away.
 
-   Read the review's body too (`bun run review body <number>`), not only its threads. Copilot
-   lists findings there under *Previously missed*, against lines the round's diff did not touch,
-   and those have no thread to reply on. Handle them the same way and answer them in one pull
-   request comment (`gh pr comment <number>`).
+   Read the review's body too (`bun run review body <number>`), not only its threads. CodeRabbit
+   lists findings there that have no thread to reply on: *Outside diff range comments*, against
+   lines the round's diff did not touch, *Duplicate comments*, which it still holds from an earlier
+   round, and *Nitpick comments*. Handle the first two the same way and answer them in one pull
+   request comment (`gh pr comment <number>`). Fix a nitpick that is right; one left alone needs no
+   answer.
 
-   All of this happens **before the push**, so the next automatic review reads the replies along
-   with the diff rather than re-raising what has already been answered. Citing a commit that
-   exists only locally is fine: it will be pushed before anybody follows it.
+   All of this happens **before the push**, so the next review reads the replies along with the
+   diff rather than re-raising what has already been answered. CodeRabbit may answer a reply in
+   its thread once it is resolved; what it still holds, it raises again in the next round. Citing a
+   commit that exists only locally is fine: it will be pushed before anybody follows it.
 4. Commit the fixes, granularly, without pushing yet.
-5. Read the count (`bun run review count <number>`), then push behind the open check (above),
-   which is what asks for the next round. That count is the baseline the next wait has to pass.
-   Do not push while a review is in flight: land the round you have, answer it, then push its
-   fixes as one batch. Pushing mid-round gets you overlapping reviews of different heads, and
-   findings against code you have already replaced.
-6. Repeat from step 1, with the count from before this push as the one to pass, until a round
-   comes back with nothing but nitpicks or praise. Step 1, not step 2: CI can finish before the
-   new review exists, and answering the threads at that point answers the old round again.
+5. Push behind the open check (above), which is what starts the next round. Do not push while a
+   review is in flight: land the round you have, answer it, then push its fixes as one batch.
+   Pushing mid-round spends a review on a head you are about to replace, and draws findings against
+   code that is gone.
+6. Repeat from step 1 until a round comes back with nothing but nitpicks or praise. Step 1, not
+   step 2: CI can finish before the new review exists, and answering the threads at that point
+   answers the old round again.
 
 ### Hand the pull request to a human
 

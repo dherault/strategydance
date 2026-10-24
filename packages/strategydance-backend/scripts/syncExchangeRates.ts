@@ -11,11 +11,13 @@ import { parseArgs } from 'node:util'
   the project when the release that added it deploys, or leave the next sweep to backfill.
 
   Without `--production` it points at the emulators itself, the Data Connect emulator on 9399 unless
-  `DATA_CONNECT_EMULATOR_HOST` names another, so it never touches the project unless told to
+  `DATA_CONNECT_EMULATOR_HOST` names another, so it never touches the project unless told to. With
+  it, it reaches the project even from a shell that exports the emulator's address
 */
 const { values } = parseArgs({ args: process.argv.slice(2), options: { production: { type: 'boolean' } } })
 
-if (!values.production) process.env.DATA_CONNECT_EMULATOR_HOST ??= 'localhost:9399'
+if (values.production) delete process.env.DATA_CONNECT_EMULATOR_HOST
+else process.env.DATA_CONNECT_EMULATOR_HOST ??= 'localhost:9399'
 
 // Imported once the emulator's address is set, which the Admin SDK reads as it starts
 const { default: syncExchangeRates } = await import('~domain/budget/syncExchangeRates')

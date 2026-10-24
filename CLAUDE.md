@@ -305,282 +305,176 @@ nothing else calls `initializeApp`.
 
 ### The database
 
-Schema and operations live in `packages/strategydance-database`, and the generated SDK is the
-only way the app talks to them.
+Schema and operations live in `packages/strategydance-database`, and the generated SDK is the only
+way the app talks to them.
 
-- One connector per caller. `strategydance-web-connector` is the browser's, and
-  `strategydance-backend-connector` the backend's, beside it rather than widening it, because
-  `@auth` levels differ by who is asking and the web bundle should not carry operations only a
-  server may call
-- The backend connector is generated as an Admin SDK, and every one of its operations is
-  `NO_ACCESS`, which only the Admin SDK gets past. The backend verifies the caller's ID token
-  and passes the uid it verified as a variable, never one a client sent, and each operation
-  still checks that uid against the rows it touches
-- The generated SDKs cannot pass a `_Data` list variable, so no connector can batch insert:
-  the backend calls a single-row mutation once per row instead
-- A level of a `where` holds plain fields or `_and`, `_or` and `_not`, never both: Data Connect
-  refuses the mix, so the plain fields go in an `_and` entry of their own, as
-  `SearchConversationsBySubstring` puts them
-- An operation takes no `@check` of its own. A check that reads only variables sits on a field
-  of the first, redacted step, where `@check` is repeatable
-- A mutation runs as one SQL statement, each step a part of it, unless a step reads an earlier
-  step's `response`: then every step runs as a statement of its own, in order. Every part of one
-  Postgres statement reads the snapshot it started with, so a step after a lock never sees what the
-  writer holding the lock committed while it waited, and only a condition in an update's `where` is
-  checked again, on the row as it stands. A step that counts, or writes rows it finds by a filter,
-  after a lock another writer takes reads the lock's response, as the starts' membership reads
-  `response.userOrganization_update.userId`, or a query step's after it, as
-  `AnswerConversationQuestion`'s count of the questions left reads the waiting run's conversation
-  (M41). The mutations outside conversations still count in one statement, which a later pull
-  request takes on
-- A step that runs as a statement of its own sees what its own mutation wrote before it, and one
-  statement does not: either way, count around the rows the mutation writes, by their ids, as
-  `AnswerConversationQuestion` leaves out the question it answers
-- A mutation takes one `query` step: a second is refused ("selecting `query` again is not yet
-  supported"). A check that has to follow a write, once its row is locked, goes in that one step,
-  after the write, with the membership's and the variables' checks beside it, as
-  `FoldDocumentForAgent` does: a refusal there rolls back the writes before it all the same
-- A `@check` on a field under a list a step reads is never invoked when the list is empty, and Data
-  Connect then refuses with that check's message rather than the list's own. A variable's check
-  nested under the membership a write reads takes `optional: true`, as the Tasks module's writes'
-  do, so a removed member is refused with the membership's message, which the module matches
-- A step runs or not on a variable through `@include(if: $flag)`, as a module's write inserts its
-  `ModuleCallResult` only when its call carries a key. The step's variables are still required,
-  so a call that skips it sends them empty, and a key it names is refused null even when it is
-  skipped: a step whose key a call may lack is an operation of its own, as `RecordOAuthClientUse` is
-- A foreign key a later step violates is reported before an earlier step's `@check`, as
-  `ApproveOAuthAuthorizationRequest`'s insert refuses a caller who is not the member before its
-  lock's check can: the backend reads both messages as one refusal (`isMembershipRefusal`), as it
-  reads a token's reference to a connection gone meanwhile as a revoked grant
-  (`isConnectionGoneRefusal`)
-- A mutation writes each row once. In one statement Data Connect runs the first write to a row and
-  silently skips any later one, aliased or not: an `organization_update` row lock followed by
-  another `organization_update`, or by `organization_delete`, changes nothing, while steps that run
-  apart apply both. When the row a mutation locks is the row it writes, the write itself is the
-  lock, and the checks follow it
-- Every operation carries an `@auth` level. `USER` keys off `auth.uid`, so a query cannot be
-  shaped to read somebody else's row. The one `PUBLIC` operation is the sign-in screen's email
-  lookup, and its comment says what that costs. The other exception is the authorization server's:
-  its backend operations find a registered client, an authorization request, a code or a token by
-  its id or its hash before any `$userId` is verified, since whoever holds a random UUID or a
-  256-bit token is whom the OAuth flow trusts, and only hashes are stored. So does the callback of
-  members' Connects to an organization's MCP servers, which finds a Connect by its state's hash
-  (`GetIntegrationAuthorizationByState`) and keeps the code it brought back, which only the member's
-  own signed-in page finishes
-- A table references the account and the organization apart, so removing a member, which deletes
-  the membership and nothing else, keeps what they wrote. A connection is the exception, the
-  membership's, and goes with it, its tokens with it: `AgentConnection`, an external agent acting as
-  the member, `IntegrationConnection`, the member's own account at one of the organization's MCP
-  servers, and `IntegrationAuthorization`, a Connect of theirs under way. Data
-  Connect cannot reference a key made of references, so `UserOrganization` names its columns,
-  `userId` and `organizationId`, and the reference names them with `@ref`, its constraint named
-  short of Postgres' 63 bytes
-- A member reads and disconnects their own connections through the web connector:
-  `GetAgentConnections`, live, and `DeleteAgentConnection`, keyed by `auth.uid`. The list is
-  refreshed by Allow (`ApproveOAuthAuthorizationRequest`) and Disconnect on the caller's `$userId`,
-  by `RemoveOrganizationMember` on the member removed, and by `DeleteOrganization` for every reader,
-  never by the `lastUsedAt` write. An operation added later that makes or deletes a connection, a
-  membership's included, names itself there. Allow holds a member to `MAX_AGENT_CONNECTIONS`, counted
-  under a lock on the member's own row, which their consents in every organization take in turn,
-  and the list reads that many, so it is never cut short and Disconnect reaches every agent acting
-  as them. The emulator's PGlite runs one transaction at a time, so no race shows there: a lock's
-  reasoning is Postgres', and `check:oauth` guards the outcome. That count reads its one
-  statement's snapshot, which misses a consent committed while it waited on the lock, until the
-  pull request after M41 has it read the lock's response
-- An operation that finds its row by `auth.token.email` rather than `auth.uid`, as the
-  invitation ones do, is `USER_EMAIL_VERIFIED`. A password sign-up can name any address nobody
-  has claimed yet, so the address proves nothing until it is verified. The claim lives in the ID
-  token, so a tab that just saw the address confirmed mints a new one, as `refetch` on
-  `AuthenticationContext` does. Locally the Auth emulator prints the confirmation link in its
-  log rather than sending it
+- One connector per caller, since `@auth` levels differ by who asks and the web bundle should carry
+  no server operation: `strategydance-web-connector` for the browser, and
+  `strategydance-backend-connector` for the backend, generated as an Admin SDK, every operation
+  `NO_ACCESS`. The backend passes the uid it verified as a variable, never one a client sent, and
+  each operation still checks it against the rows it touches
+- Every operation carries an `@auth` level, and `USER` keys off `auth.uid`. The one `PUBLIC`
+  operation is the sign-in screen's email lookup. The authorization server's backend operations
+  find a client, a request, a code or a token by its id or its hash before any `$userId` is
+  verified, since holding that random value is what OAuth trusts, and only hashes are stored; so
+  does a Connect's callback (`GetIntegrationAuthorizationByState`)
+- An operation that finds its row by `auth.token.email`, as the invitations do, is
+  `USER_EMAIL_VERIFIED`, since a password sign-up can name any unclaimed address. A tab that just
+  saw the address confirmed mints a new ID token, as `refetch` on `AuthenticationContext` does.
+  Locally the Auth emulator prints the confirmation link in its log
 - Server values over variables wherever the server knows better: `id_expr: "auth.uid"`,
-  `email_expr: "auth.token.email"`, `updatedAt_expr: "request.time"`. A client that fills these
-  in can write a row as somebody else
-- `Organization.slug` leads its pages' paths. The browser draws it at creation, from the name
-  and four random characters (strategydance-core's `createOrganizationSlug`), the column's unique
-  index refuses one another organization holds, and it never changes, so a link to an
-  organization outlives a rename. One a page from before slugs created has none, and is addressed
-  by its id. The UUID stays the key everywhere else: the database, the backend's routes and
-  Storage's paths
-- An operation gains a variable without a breaking connector change by making it optional, which
-  a page from before the release leaves out. A `@check` on it reads `!has(vars.state) ||
-  vars.state == null || …`: `vars.state == null` alone errors on an absent variable, and refuses
-  every call from that older page
-- A filter on an optional list variable left out is dropped, so `id: { in: $ids }` without `$ids`
-  matches every row the rest of the filter does. A write filtered so counts its rows against the
-  list, as the sends' `$attachmentIds` step checks `this == size(vars.attachmentIds)`, and this
-  without it, so a caller from before the variable is refused rather than writing rows it never
-  named. `check:conversation-attachments` checks it
-- A nullable variable left out of a write leaves its column as it was, and only null clears it: a
-  write meant to clear a column, as `ReconfigureOrganizationIntegration` clears the key given for
-  another server, is called with every such variable, null included, which
-  `createIntegrationDatabaseFake` holds the backend to
-- An organization's MCP servers are `OrganizationIntegration` rows, which the backend alone writes.
-  An edit carries the name, `configRevision` and `keyGeneration` its dialog showed, and an approval
-  the revision its tools were shown under, which the row has to hold still when the request arrives
-  and when it is written, so an administrator's change made meanwhile wins over a stale view.
-  Approvals are added and removed by hash (`autoApprovedTools_update`), never rewritten, so one given
-  meanwhile stays.
-  `GetOrganizationIntegrations`, live, never selects the key's ciphertext nor the tools, which
-  `GetOrganizationIntegrationTools` reads for one dialog: a write added later that changes what
-  either selects names itself in their refreshes, and the agent's `lastUsedAt` write (M29) never
-  does. `bun run check:integrations`, in the backend's package, checks the operations against the
-  emulators
-- A member's own account at an OAuth server is an `IntegrationConnection`, one per member and
-  server, and a Connect of theirs under way an `IntegrationAuthorization`, both the backend's alone to
-  write. Tokens, codes and PKCE verifiers are encrypted, each bound to its purpose, the server and the
-  member (`buildIntegrationSecretContext`), and no web operation selects one: the page reads its own
-  connections through `GetIntegrationConnections`, live, which no refresh of the tokens wakes. A
-  connection's `generation` is a UUID made at every connect and kept by a refresh, so no disconnect,
-  reconfiguration or removal ever repeats one, which M29's approvals bind to. A refresh claims a lease
-  on the connection, `refreshingUntil` from the database's clock, only while the connection holds the
-  refresh token its caller read, so a rotating refresh token is spent once, and writes and lets go by
-  the lease's id alone. A member's write on the server's row, a Connect's start or its connection,
-  locks the row at the revision and issuer it started under; `ReconfigureOrganizationIntegration` and
-  `ChangeOrganizationIntegrationIssuer` write the row first and delete the connections and Connects
-  after, so under read committed none outlives them, an order a change to either keeps
-- The ids a route hands an operation are canonical (`toCanonicalUuid`), whatever spelling its path
-  used: a live query's refresh condition compares the variables as text, and a page that names ids
-  hyphenated, as the page a sign-in ends on does, would otherwise refresh no other tab
-- `Locale` is declared in both `schema.gql` and strategydance-core, because neither side can
-  read the other. `packages/strategydance-database/schema.test.ts` is what fails when they
-  stop agreeing. Add a locale to both
-- Every other enum, `CompanyAspect` among them, lives in `schema.gql` alone. The generated SDK
-  exports each as values in the schema's order, and the frontend imports them from
-  `strategydance-database/web`
-- The generator declares an enum only when some operation of the connector selects a field of
-  that type at its top level. One selected only under a nested relation is named in the types and
-  never declared, which `tsc` does not catch past `skipLibCheck`: `GetConversationMessagesBefore`
-  reads its messages at the top level for that reason
-- That order is the Postgres enum's, and reordering an enum's values is a breaking migration.
-  Append a value; never reorder. The order the aspects are shown in is `COMPANY_ASPECTS` in the
-  web package's `constants.ts`, and `constants.test.ts` fails when it stops matching the enum
-- A schema change reaches production with its release: a push to `main` migrates the database
-  and deploys Data Connect before the backend and the frontend that query it. A migration that
-  drops anything stops the release for a human instead, as
-  [What a merge into `main` deploys](#what-a-merge-into-main-deploys) says
+  `email_expr: "auth.token.email"`, `updatedAt_expr: "request.time"`
+- A table references the account and the organization apart, so removing a member, which deletes
+  the membership alone, keeps what they wrote. A connection is the membership's and goes with it,
+  its tokens too: `AgentConnection`, `IntegrationConnection` and `IntegrationAuthorization`. Data
+  Connect cannot reference a key made of references, so `UserOrganization` names its `userId` and
+  `organizationId` columns, and a reference names them with `@ref`, its constraint named under
+  Postgres' 63 bytes
+- `Organization.slug` leads its pages' paths: drawn at creation from the name and four random
+  characters (`createOrganizationSlug`), unique, never changed, so a link outlives a rename. An
+  organization from before slugs has none and is addressed by its id. The UUID stays the key
+  everywhere else
+- An operation gains a variable without a breaking connector change by making it optional, which an
+  older page leaves out. A `@check` on it reads `!has(vars.state) || vars.state == null || …`, since
+  `vars.state == null` alone errors on an absent variable
+- The ids a route hands an operation are canonical (`toCanonicalUuid`): a live query's refresh
+  condition compares variables as text, so a hyphenated id refreshes no other tab
+- `Locale` is declared in both `schema.gql` and strategydance-core, which `schema.test.ts` keeps
+  agreeing: add a locale to both. Every other enum lives in `schema.gql` alone, imported by the
+  frontend from `strategydance-database/web`
+- An enum's order is the Postgres enum's: append a value, never reorder. The aspects' display order
+  is `COMPANY_ASPECTS` in the web's `constants.ts`, which `constants.test.ts` holds to the enum
+- A schema change reaches production with its release, Data Connect before what queries it, and a
+  migration that drops anything stops the release for a human
+  ([What a merge into `main` deploys](#what-a-merge-into-main-deploys))
 
-A list a page keeps current, like a team, is a live query. `@refresh(onMutationExecuted: ...)`
-on the query names each mutation that changes it, with a condition on the variable they share,
-so every mutation such a query listens to takes that variable, even one that could do without
-it. A mutation the backend runs through the Admin SDK fires the refresh too. The frontend
-subscribes beside its first read and writes each pushed result into the TanStack cache:
-`useOrganizationTeam` is the example to copy.
+What Data Connect does, found the hard way:
 
-Read a query that takes variables through `useQuery` and `executeQuery` rather than the
-generated hook. The generated wrapper keeps its query ref in state and updates it in an effect,
-so on the render where the variables change it reads the old ones' data into the new key.
+- The generated SDKs cannot pass a `_Data` list variable, so nothing batch inserts: the backend
+  calls a single-row mutation once per row
+- A level of a `where` holds plain fields or `_and`, `_or` and `_not`, never both: the plain fields
+  go in an `_and` entry of their own
+- An operation takes no `@check` of its own: a check on variables alone sits on a field of the
+  first, redacted step
+- A mutation runs as one SQL statement, unless a step reads an earlier step's `response`, when each
+  step runs as a statement of its own. One statement reads one snapshot, so a step after a lock
+  misses what the lock's holder committed meanwhile: a step that counts, or writes rows it finds by
+  a filter, after a lock another writer takes, reads the lock's response, as the starts' membership
+  reads `response.userOrganization_update.userId` (M41). A step running apart sees what its mutation
+  wrote before it, and one statement does not, so count around the rows a mutation writes by their
+  ids. The mutations outside conversations still count in one statement
+- A mutation takes one `query` step. A check that has to follow a write goes there, after it, as
+  `FoldDocumentForAgent`'s does, and a refusal there rolls back the writes before it
+- A `@check` under a list that comes back empty is never invoked, and Data Connect refuses with that
+  check's message rather than the list's: a variable's check nested under a write's membership takes
+  `optional: true`, so a removed member gets the membership's message
+- `@include(if: $flag)` skips a step, but its variables stay required and a key it names is refused
+  null: a step whose key a call may lack is an operation of its own, as `RecordOAuthClientUse` is
+- A foreign key a later step violates is reported before an earlier step's `@check`: the backend
+  reads both messages as one refusal (`isMembershipRefusal`, `isConnectionGoneRefusal`)
+- A mutation writes each row once: in one statement a later write to a row written earlier is
+  silently skipped, aliased or not. When the row a mutation locks is the row it writes, the write is
+  the lock, and the checks follow it
+- A request takes 4 MiB at most, which the emulator names when one passes it
+- The generator declares an enum only when an operation of the connector selects a field of that
+  type at its top level, and `tsc` misses one selected only nested, past `skipLibCheck`
+- A filter on an optional list variable left out is dropped and matches every row: a write filtered
+  so counts its rows against the list (`this == size(vars.attachmentIds)`), which
+  `check:conversation-attachments` checks
+- A nullable variable left out of a write leaves its column alone, and only null clears it, so a
+  write meant to clear a column passes null, which `createIntegrationDatabaseFake` holds the backend to
+- The emulator's PGlite runs one transaction at a time, so no race shows there: a lock's reasoning
+  is Postgres', which `bun run check:conversation-races` puts to the test for the runs
 
-A query that a waiter and the page under it both read sets `retryOnMount: false`, and tells a
-failed read apart from an empty one (`hasFailed` on `useOrganizationTeam`). With nothing cached,
-a retry resets the query to pending: the waiter unmounts the page, the page mounts again once
-the read fails, and its mount retries it, forever.
+A list a page keeps current is a live query: `@refresh(onMutationExecuted: ...)` names each mutation
+that changes it, with a condition on the variable they share, so every mutation it listens to takes
+that variable. A mutation the backend runs through the Admin SDK fires it too. The frontend
+subscribes beside its first read and writes each pushed result into the TanStack cache: copy
+`useOrganizationTeam`.
 
-A knowledge document's text is live in another way: it is a Yjs document, so several members
-write it at once and their edits merge as they type. `Document.state` holds it as a snapshot in
-base64, the source of truth for the text, and each `DocumentUpdate` row an edit pushed since;
-`content` is a copy of the text each compaction writes, for what reads it without an editor. The
-page's sync, `createKnowledgeDocumentSync`, pushes the reader's edits as updates, merges those
-`GetLiveDocument` pushes, and folds the pending ones into the snapshot through
-`CompactDocumentWithText`, guarded by `revision`, and a tab that sees `revision` move reads the
-snapshot again through `GetDocument`. `GetLiveDocument` leaves the snapshot out, so a keystroke
-pushes a few small rows rather than the whole text to every tab. `DocumentPresence` rows, one per
-open tab, say where each caret is, and `GetDocumentPresences` keeps them live for the carets and the
-faces.
+- Read a query that takes variables through `useQuery` and `executeQuery`, never the generated
+  hook, which reads the old variables' data into the new key on the render they change
+- A query a waiter and its page both read sets `retryOnMount: false` and tells a failed read from an
+  empty one (`hasFailed`), or a retry unmounts the page and its mount retries it, forever
+- Agent connections: a member reads and disconnects their own through `GetAgentConnections`, live,
+  and `DeleteAgentConnection`, and an operation that makes or deletes a connection, a membership's
+  included, names itself in its refreshes; the `lastUsedAt` write never does. Allow holds a member
+  to `MAX_AGENT_CONNECTIONS`, counted under a lock on the member's row, and the list reads that many.
+  That count still reads its statement's snapshot, until the pull request after M41 reads the lock's
+  response; `check:oauth` guards the outcome
+- Organizations' MCP servers, `OrganizationIntegration`, are the backend's to write. An edit carries
+  the name, `configRevision` and `keyGeneration` its dialog showed, and an approval the revision its
+  tools were shown under, so a change made meanwhile wins over a stale view; approvals are added and
+  removed by hash, never rewritten. `GetOrganizationIntegrations`, live, never selects the key's
+  ciphertext nor the tools, which `GetOrganizationIntegrationTools` reads for one dialog: a write
+  that changes what either selects names itself in their refreshes, and `lastUsedAt` never does.
+  `bun run check:integrations` checks the operations
+- A member's account at an OAuth server is an `IntegrationConnection`, and a Connect under way an
+  `IntegrationAuthorization`, both the backend's. Tokens, codes and verifiers are encrypted, bound
+  to their purpose, server and member (`buildIntegrationSecretContext`), and no web operation selects
+  one: the page reads `GetIntegrationConnections`, live. A connection's `generation` is a fresh UUID
+  at each connect, kept by a refresh. A refresh leases the connection (`refreshingUntil`, on the
+  database's clock) only while it holds the refresh token its caller read, so a rotating token is
+  spent once. `ReconfigureOrganizationIntegration` and `ChangeOrganizationIntegrationIssuer` write
+  the server's row before deleting its connections and Connects, an order a change keeps
+
+A knowledge document's text is a Yjs document, so several members write it at once.
+`Document.state` holds its snapshot in base64, the source of truth, each `DocumentUpdate` row an edit
+pushed since, and `content` a copy each compaction writes. `createKnowledgeDocumentSync` pushes the
+reader's edits, merges what `GetLiveDocument` pushes, which leaves the snapshot out, and compacts
+through `CompactDocumentWithText`, guarded by `revision`. `DocumentPresence` rows, one per open tab,
+place the carets (`GetDocumentPresences`).
 
 - Every write of `content` writes its plain text beside it, `contentText`, which the Knowledge
-  module's search reads through the full-text index on it and `title`: the page through
-  `CreateDocumentWithText` and `CompactDocumentWithText`, which take it as required, and the
-  backend's folds and creates. `CreateDocument`, `CompactDocument` and `UpdateDocumentContent`
-  stay for pages from before, and write null instead, which means not indexed yet, never stale: the
-  search indexes such a document from its `content` before it reads the index, under the revision
-  it read. A new way to write `content` writes `contentText` too, or nulls it
-- Anything that writes a document's text, an agent included, writes it through Yjs. Once a
-  document has a snapshot, a write to `content` alone is refused, and the next compaction would
-  write over it anyway. The backend reads and writes it through `domain/knowledge/` alone, on the
-  rows a caller read: the snapshot with every pending update merged, as top-level blocks with
-  their ids and Markdown, and an edit folded into it, which says the `state`, `content` and
-  `contentText` to store and the updates to delete
-- Outside an editor, the text is written as a difference, through the design system's
-  `updateRichTextYDoc`, never as a document rebuilt from blocks, which shares no history with the
-  stored one and merges as a second copy. It keeps the nodes y-prosemirror's read produced, with
-  the read's metadata: blocks matched by equality alone can pair an untouched block with a new one
-  and delete it, with whatever somebody typed in it
-- An agent's edit of the text keeps the text it replaced as a `DocumentRevision`, in the mutation
-  that stores the edit, `FoldDocumentWithRevisionForAgent`, so the two commit together or not at
-  all, under the edit's key: its snapshot compressed with gzip, its `content` for a member to look
-  at, where the agent acted from (the module call's scope) and the call's key, and a fingerprint of
-  the text the edit left (`fingerprintKnowledgeDocumentText`). A new `…ForAgent` write of a
-  document's text keeps one the same way.
-  `FoldDocumentForAgent` stays only for the backend from before the release, which deploys after
-  Data Connect. Members alone read revisions, whatever the team lets agents do with the document,
-  and go back to one through the backend (`routes/knowledge.ts`), which writes its text back as a
-  difference, `updateRichTextYDoc`'s `restore`, keeping every block the two share, and keeps one of
-  its own for the restore. An Undo goes back only while the text still has that fingerprint. It
-  hashes every node, attribute and character y-prosemirror reads, ids included, never the agent's
-  Markdown, which says nothing of a line break in a table's cell nor of a cell's alignment, so a
-  member's change Markdown cannot say would otherwise be overwritten. They are kept 30 days
-  (`DOCUMENT_REVISION_LIFETIME_DAYS`), which the daily sweep prunes
-- Data Connect takes 4 MiB a request, gRPC's bound, which the emulator names when one passes it,
-  and a write carrying a document's text twice, the new snapshot beside a revision, can pass it: a
-  knowledge write is measured first (`isKnowledgeWriteTooLarge`) and refused rather than sent, never
-  written without its revision
-- The text reaches the editor without `parseRichText`, so the editor's schema is what keeps it to
-  the blocks it knows, and a tab on an older bundle deletes a block its schema lacks from the shared
-  text. A new block type reaches every tab before anybody can write one, and so does a new inline
-  type, unless David chooses to ship it with the release that writes it, as mentions shipped. So
-  does a new style: y-prosemirror throws on a mark its schema lacks, and then deletes the whole text
-  of the block holding it. Inline code shipped with the release that writes it, by David's choice. A
-  node's props are append-only: y-prosemirror writes every attribute, and a shared text holding
-  one its schema does not declare can no longer be read by the backend. The Yjs helpers read with
-  a schema too, `RICH_TEXT_EDITOR_BLOCKS` unless told another, and their read deletes a block it
-  lacks as surely: a document's editor and its helpers keep to one list
-- A mutation cut off midway, as a closing tab cuts it off, can leave the Data Connect emulator's
-  database stuck in its transaction, refusing every mutation after until the emulator restarts.
-  A document's page folds nothing as it goes away, as `CompactDocument` is a transaction, and the
-  writes it does send then, `PushDocumentUpdate`, `UpdateDocumentPresence` and `LeaveDocument`,
-  are not
+  module's search reads. `CreateDocument`, `CompactDocument` and `UpdateDocumentContent` stay for
+  older pages and write null, which means not indexed yet: a new way to write `content` writes
+  `contentText` too, or nulls it
+- Anything that writes the text, an agent included, writes it through Yjs: once a document has a
+  snapshot, a write to `content` alone is refused. The backend reads and writes it through
+  `domain/knowledge/` alone
+- Outside an editor the text is written as a difference, through the design system's
+  `updateRichTextYDoc`, never as a document rebuilt from blocks, which merges as a second copy. It
+  keeps the nodes y-prosemirror's read produced: blocks matched by equality alone can pair an
+  untouched block with a new one and delete whatever somebody typed in it
+- An agent's edit keeps the text it replaced as a `DocumentRevision`, in the mutation that stores the
+  edit (`FoldDocumentWithRevisionForAgent`), with a fingerprint of the text it left
+  (`fingerprintKnowledgeDocumentText`), and a new `…ForAgent` text write keeps one the same way.
+  Members alone read revisions and restore one through the backend, as a difference. An Undo goes
+  back only while the text keeps that fingerprint, which hashes everything y-prosemirror reads, never
+  the Markdown. Revisions last 30 days (`DOCUMENT_REVISION_LIFETIME_DAYS`)
+- A knowledge write carries the text twice and can pass the 4 MiB: it is measured first
+  (`isKnowledgeWriteTooLarge`) and refused, never written without its revision
+- The editor's schema keeps the text to what it knows: a tab on an older bundle deletes a block
+  type, inline type or style its schema lacks from the shared text, a style taking its whole block.
+  So a new one reaches every tab before anybody can write it, unless David chooses to ship it with
+  the release that writes it, as he did mentions and inline code. A node's props are append-only.
+  The Yjs helpers read with a schema too, `RICH_TEXT_EDITOR_BLOCKS` unless told another: a
+  document's editor and its helpers keep to one list
+- A mutation cut off midway, as a closing tab cuts it, can wedge the Data Connect emulator in its
+  transaction until it restarts, so a document's page folds nothing as it goes away and sends only
+  writes that are no transaction (`PushDocumentUpdate`, `UpdateDocumentPresence`, `LeaveDocument`)
 
 What a conversation keeps, and how, is in [Conversation conventions](#conversation-conventions).
 
-The build in public page counts a member's streak from `ActivityDay` rows: one per member,
-organization and day on which they changed their own Today data, their top priority, their
-checklist or their log, or any task on the team's board. The day is the one the change was made
-on, never the day it was about, and `RecordActivity` holds it to the caller's today. The
-mutations that make those changes do not write the row themselves, since each would need a
-`$date` it has no other use for, a breaking connector change: the web app calls `recordActivity`
-once one goes through, from the `change` helpers of `useChecklist` and `useTaskChanges` and from
-the components that set a priority or write the log. A new way for a member to change Today data
-or the board calls it too, or the days it is used on go uncounted. An agent's change to the board
-never counts: no write of the Tasks module records an `ActivityDay`, for Strategy Dance's agent or a
-member's own, so a streak counts what members do themselves.
-
-The team's tasks are a board: `Task` rows in a column per `TaskStatus`, which any member of the
-organization changes, as its knowledge. Each field is written by a mutation of its own, so two
-members editing one task keep each other's changes, and a move writes the one task that moved,
-halfway between its new neighbours. A move into Done from another column goes through `FinishTask`,
-which stamps `doneAt` from the server's clock, since no write can stamp it only when its status
-variable is DONE and a move within Done sends that status too: a new way to finish a task stamps it,
-as the Tasks module's create and update do with `$doneAt`. Both moves name the column the page saw
-the task in, `$fromStatus`, and a task that has left it is refused rather than moved back, which
-keeps a teammate's move and never puts a task into Done unstamped. `TaskDependency` links a task to
-those it waits on: the server refuses a task waiting on itself or on one waiting on it, and the page
-offers no pick that would close a longer loop, nor an Undo that would bring one back. The board
-keeps `GetTasks` live, without the descriptions, and reads them once for its search through
-`GetTaskDescriptions`, again on focus; a task's dialog keeps its own live through
-`GetTaskDescription`, and opens it for writing only once that read lands, since the search's copy
-can be older than a teammate's save. A query that held every description live would push them all to
-every open board at each save, and a drag would too. Removing a member takes them off the tasks they
-were doing.
-
-Every write of a task's description writes its plain text beside it, `descriptionText`, which the
-Tasks module's `list_tasks` matches a query against, never the serialized blocks: the page through
-`CreateTaskWithText` and `UpdateTaskDescriptionWithText`, which take it as required, and the module's
-own writes. `CreateTask` and `UpdateTaskDescription` stay for pages from before, and write null
-instead, which means not indexed yet, never stale: a query indexes such a task from its description
-first, while its `updatedAt` is the one it read. A new way to write a description writes
-`descriptionText` too, or nulls it. `RestoreTask` refuses a task deleted over a day ago, whether or
-not a prune has run, so a day means a day wherever a restore starts.
+- The build in public page counts a streak from `ActivityDay` rows, one per member, organization and
+  day they changed their Today data or the team's board, held by `RecordActivity` to the caller's
+  today. The web app calls `recordActivity` once such a change goes through, from `useChecklist`'s
+  and `useTaskChanges`' `change` helpers and the priority and log components: a new way to change
+  either calls it too. No agent's change counts
+- The board's `Task` rows sit in a column per `TaskStatus`, any member changing any task. Each field
+  has its own mutation, so two members keep each other's changes, and a move writes the one task,
+  halfway between its new neighbours. A move into Done goes through `FinishTask`, which stamps
+  `doneAt`, and a new way to finish a task stamps it too. A move names the column it saw the task in
+  (`$fromStatus`) and is refused once the task has left it. `TaskDependency` links a task to those
+  it waits on: the server refuses a task waiting on itself or on one waiting on it, and the page
+  offers no pick, nor Undo, that would close a longer loop
+- The board keeps `GetTasks` live without the descriptions, which its search reads through
+  `GetTaskDescriptions`, and a task's dialog keeps its own live (`GetTaskDescription`), writable once
+  that read lands. Removing a member takes them off their tasks
+- Every write of a description writes `descriptionText` beside it, which `list_tasks` matches.
+  `CreateTask` and `UpdateTaskDescription` stay for older pages and write null: a new way to write a
+  description writes it too, or nulls it. `RestoreTask` refuses a task deleted over a day ago,
+  pruned or not
 
 ### Routing
 

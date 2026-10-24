@@ -32,12 +32,14 @@ EOF
 # The commit the round reviews. A checkout on the pull request's branch waits for what it last pushed,
 # `@{push}`, since GitHub can still name the previous head for a moment after a push, and a wait that
 # read it would return that round's review again. Its HEAD would not do: the loop commits fixes before
-# pushing them. Any other checkout takes the pull request's head as it is
+# pushing them. Any other checkout, or a fork's pull request whose branch shares this one's name,
+# takes the pull request's head as it is
 expected_head() {
   local branch
-  branch=$(gh pr view "$1" --repo "$REPOSITORY" --json headRefName --jq .headRefName)
+  branch=$(gh pr view "$1" --repo "$REPOSITORY" --json headRefName,isCrossRepository \
+    --jq 'if .isCrossRepository then "" else .headRefName end')
 
-  if [ "$(git branch --show-current)" = "$branch" ] && git rev-parse --verify --quiet '@{push}'; then
+  if [ -n "$branch" ] && [ "$(git branch --show-current)" = "$branch" ] && git rev-parse --verify --quiet '@{push}'; then
     return 0
   fi
 

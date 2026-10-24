@@ -54,7 +54,8 @@ expected_head() {
 #   failed <description> CodeRabbit could not review it
 #
 # An ask is a pull request comment opening with `@coderabbitai review`. One newer than the latest
-# status is still being answered, for ten minutes, after which CodeRabbit has ignored it
+# status is still being answered, however old: a second ask could cost a second review, so one that
+# CodeRabbit never answers keeps the wait waiting, and its timeout says so
 review_state() {
   local pull_request statuses comments
   pull_request=$(gh api "repos/$REPOSITORY/pulls/$1" --jq .head.sha)
@@ -76,7 +77,7 @@ review_state() {
       .sort((a, b) => at(b.created_at) - at(a.created_at))[0]
     const comments = JSON.parse(COMMENTS).flat()
     const ask = comments.filter(comment => !isCodeRabbit(comment.user.login) && /^@coderabbitai (full )?review\b/.test(comment.body.trim())).at(-1)
-    const isAnswering = status && ask && at(ask.created_at) > at(status.created_at) && Date.now() - at(ask.created_at) < 600000
+    const isAnswering = status && ask && at(ask.created_at) > at(status.created_at)
 
     if (!status) {
       console.log("waiting no CodeRabbit status yet: if none ever comes, CodeRabbit is not installed on the repository")
@@ -87,7 +88,7 @@ review_state() {
     } else if (/^Review (completed|approved)/.test(status.description)) {
       console.log(`done ${status.description}`)
     } else if (isAnswering) {
-      console.log("waiting asked for a review")
+      console.log(`waiting asked for a review at ${ask.created_at}, with no CodeRabbit status since`)
     } else if (/rate limited/i.test(status.description)) {
       // The rate limit notice says how long from when it was written, as "34 minutes" or "8 seconds"
       const notice = comments.filter(comment => isCodeRabbit(comment.user.login) && /Next included review available in/.test(comment.body)).at(-1)

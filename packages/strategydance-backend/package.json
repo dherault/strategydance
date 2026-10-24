@@ -32,6 +32,7 @@
     "backfill:task-done-at": "bun scripts/backfillTaskDoneAt.ts",
     "suspend:conversations": "bun scripts/suspendConversations.ts",
     "report:usage": "bun scripts/reportUsage.ts",
+    "sync:exchange-rates": "bun scripts/syncExchangeRates.ts",
     "check:directories": "bun scripts/checkDirectories.ts",
     "probe:claude": "bun scripts/probeClaude.ts",
     "probe:integrations": "bun scripts/probeIntegrations.ts",

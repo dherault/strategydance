@@ -1,6 +1,8 @@
 /*
-  The Strategy Dance design system, ported from its Claude Design project
-  (https://claude.ai/design/p/61b2a9b3-1ee3-4661-a21d-a0b400b517f7).
+  The Strategy Dance design system. It was ported from its Claude Design project
+  (https://claude.ai/design/p/61b2a9b3-1ee3-4661-a21d-a0b400b517f7), which now follows this
+  repository: the design sync uploads the components, their props and their previews there, and a
+  change made here reaches it with the next sync (documents/design-sync.md).
 
   The design adds two brand scales, three status colours and two typefaces. Everything else,
   spacing, type scale, radius, shadow and motion, is Tailwind's default theme, used as is
@@ -27,7 +29,7 @@
 
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
-  --font-display: 'Oswald Variable', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Oswald Variable', ui-sans-serif, system-ui, sans-serif;
 
   /* Primary, the action and brand colour, derived around #0051A3 at 700 */
   --color-primary-50: #eef5fc;

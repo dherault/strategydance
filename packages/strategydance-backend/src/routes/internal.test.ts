@@ -28,6 +28,11 @@ mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {},
 
 mock.module('strategydance-database/backend', () => fake.sdk)
 
+// The exchange rates' sync, which its own test covers, and which would otherwise reach Frankfurter
+const syncExchangeRates = mock(async () => ({ years: [2026], latestDay: '2026-10-23' }))
+
+mock.module('~domain/budget/syncExchangeRates', () => ({ default: syncExchangeRates }))
+
 // The board's prune, which its own test covers
 const pruneDeletedTasks = mock(async () => ({ deleted: 0 }))
 
@@ -225,6 +230,22 @@ describe('POST /internal/sweep', () => {
     expect(pruneDeletedIntegrations).toHaveBeenCalledTimes(1)
   })
 
+  test("runs every prune past the exchange rates' sync timing out, and answers 500 naming it", async () => {
+    pruneDeletedTasks.mockClear()
+    pruneIntegrationAuthorizations.mockClear()
+    syncExchangeRates.mockImplementationOnce(async () => {
+      throw new DOMException('The operation timed out.', 'TimeoutError')
+    })
+
+    const response = await fetch(`${origin}/internal/sweep`, { method: 'POST' })
+
+    expect(response.status).toBe(500)
+    expect(((await response.json()) as { message: string }).message).toBe("The sweep's steps failed: syncExchangeRates")
+    // The steps after it ran all the same, the last the test can see included
+    expect(pruneDeletedTasks).toHaveBeenCalledTimes(1)
+    expect(pruneIntegrationAuthorizations).toHaveBeenCalledTimes(1)
+  })
+
   test('removes the conversations deleted over a day ago, and keeps the rest', async () => {
     const old = await start()
     const kept = await start()
@@ -257,7 +278,8 @@ describe('POST /internal/sweep', () => {
     expect([...fake.searches.keys()]).toEqual([kept.id])
   })
 
-  test("prunes the board's deleted tasks, the organizations' deleted servers and members' expired Connects too", async () => {
+  test("syncs the exchange rates, and prunes the board's deleted tasks, the organizations' deleted servers and members' expired Connects too", async () => {
+    syncExchangeRates.mockClear()
     pruneDeletedTasks.mockClear()
     pruneDeletedIntegrations.mockClear()
     pruneIntegrationAuthorizations.mockClear()
@@ -265,6 +287,7 @@ describe('POST /internal/sweep', () => {
     const response = await fetch(`${origin}/internal/sweep`, { method: 'POST' })
 
     expect(response.status).toBe(200)
+    expect(syncExchangeRates).toHaveBeenCalledTimes(1)
     expect(pruneDeletedTasks).toHaveBeenCalledTimes(1)
     expect(pruneDeletedIntegrations).toHaveBeenCalledTimes(1)
     expect(pruneIntegrationAuthorizations).toHaveBeenCalledTimes(1)

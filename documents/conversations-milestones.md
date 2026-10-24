@@ -1,10 +1,55 @@
 # Conversations: the milestones
 
+| # | Milestone | Packages | Depends on | Implementation PR |
+| --- | --- | --- | --- | --- |
+| M1 | Spikes: the request to Claude, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
+| M2 | The conversation tables | database, core | M1 | #95 |
+| M3 | The Markdown component | design-system | | #94 |
+| M4 | Navigation, the list and delete | web, backend, database, root | M2 | #102 |
+| M5 | The conversation page and its thread, read-only | web, database | M3, M4 | #104 |
+| M6 | Runs without a model, in the backend's process | backend, database, root, web | M5 | #105 |
+| M7 | The composer and drafts | web | M6 | #111 |
+| M8 | Runs through Cloud Tasks on the worker service, and the daily sweeper | backend, database, root | M6, setup 3, 4 | #113 |
+| M9 | Claude replies, with web search | backend, database, web | M6; M8 to reach production | #120 |
+| M10 | Stop, resume, retry, failures and refusals | backend, database, web | M7, M9 | #121 |
+| M11 | Questions | backend, database, web | M10 | #122 |
+| M12 | Searching conversations | backend, database, web | M8, M9 | #123 |
+| M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | #130 |
+| M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | #132 |
+| M15 | The Tasks module | database, core, backend, web, root | M14 | #136 |
+| M16 | Knowledge in conversations | backend, database, web | M10, M14 | #137 |
+| M17 | Tasks in conversations | design-system, backend, web, root | M15, M16 | #139 |
+| M18 | The authorization server | backend, database, core, root | M14, setup 10 | #141 |
+| M19 | The consent page and Connected agents | web, backend, database, root | M15, M18 | #144 |
+| M20 | The Knowledge module for external agents | backend, web, root | M19 | #146 |
+| M21 | The Tasks module for external agents | backend, web, root | M15, M20 | #148 |
+| M22 | Mentioning knowledge in the composer | web | M7, M16 | #140 |
+| M23 | Aspect tagging | backend, database, web | M7, M9 | #143 |
+| M24 | The dock | web | M7 | #145 |
+| M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | #149 |
+| M26 | Attachments in the composer and the thread | web, database | M22, M25 | #151 |
+| M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | #157 |
+| M28 | Integrations: members connect their accounts | database, backend, web | M27 | #165 |
+| M29 | Integrations in conversations | database, backend, web | M11, M28 | #171 |
+| M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | #184 |
+| M31 | Chains, slots and the subagents' queue | database, core, backend, web, root | M30, setup 11 | #193 |
+| M32 | The Subagents module | core, backend, database, web | M31 | #196 |
+| M33 | Subagents in conversations | backend, database, root | M11, M32 | #200 |
+| M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | #202 |
+| M35 | Usage caps | core, database, backend, web, root | M33 | #207 |
+| M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
+| M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | #210 |
+| M38 | Launch | all | all | #211 |
+| M39 | Daily spend ceilings | core, database, backend, web, root | M38 | #232 |
+| M40 | Document revisions for agents' edits | database, backend, web, root | M38 | #230 |
+| M41 | Races against a real Postgres | database, backend, root | M38 | #231 |
+| M42 | A subagent's report at any limit | backend | M38 | #229 |
+
 The forty-two milestones that build the conversations feature, each one pull request into `dev`
 that a Claude Code session can implement, with the conventions every one of them follows. What they
 build, and why, is in [conversations.md](conversations.md): the sections named here, such as The
 data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
-merges, write its pull request number in the table below.
+merges, write its pull request number in the table above.
 
 ## Conventions for every milestone
 
@@ -50,51 +95,6 @@ subagents and Retry ask before it discards them, so M33 keeps `launch_subagent` 
 production behind a gate of its own, which M34 removes: a release cut between the two launches
 nothing, rather than leave the daily sweep their only recovery. M39 to M42, which the adversarial
 review of M1 to M38 added on 2026-10-18, each start once M38 has merged, in any order.
-
-| # | Milestone | Packages | Depends on | PR |
-| --- | --- | --- | --- | --- |
-| M1 | Spikes: the request to Claude, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
-| M2 | The conversation tables | database, core | M1 | #95 |
-| M3 | The Markdown component | design-system | | #94 |
-| M4 | Navigation, the list and delete | web, backend, database, root | M2 | #102 |
-| M5 | The conversation page and its thread, read-only | web, database | M3, M4 | #104 |
-| M6 | Runs without a model, in the backend's process | backend, database, root, web | M5 | #105 |
-| M7 | The composer and drafts | web | M6 | #111 |
-| M8 | Runs through Cloud Tasks on the worker service, and the daily sweeper | backend, database, root | M6, setup 3, 4 | #113 |
-| M9 | Claude replies, with web search | backend, database, web | M6; M8 to reach production | #120 |
-| M10 | Stop, resume, retry, failures and refusals | backend, database, web | M7, M9 | #121 |
-| M11 | Questions | backend, database, web | M10 | #122 |
-| M12 | Searching conversations | backend, database, web | M8, M9 | #123 |
-| M13 | Rich text, Markdown and shared documents on the backend | design-system, backend | M1 | #130 |
-| M14 | The Knowledge module | database, core, backend, web, root | M12, M13 | #132 |
-| M15 | The Tasks module | database, core, backend, web, root | M14 | #136 |
-| M16 | Knowledge in conversations | backend, database, web | M10, M14 | #137 |
-| M17 | Tasks in conversations | design-system, backend, web, root | M15, M16 | #139 |
-| M18 | The authorization server | backend, database, core, root | M14, setup 10 | #141 |
-| M19 | The consent page and Connected agents | web, backend, database, root | M15, M18 | #144 |
-| M20 | The Knowledge module for external agents | backend, web, root | M19 | #146 |
-| M21 | The Tasks module for external agents | backend, web, root | M15, M20 | #148 |
-| M22 | Mentioning knowledge in the composer | web | M7, M16 | #140 |
-| M23 | Aspect tagging | backend, database, web | M7, M9 | #143 |
-| M24 | The dock | web | M7 | #145 |
-| M25 | Attachments: storing them and sending them to Claude | backend, database, root | M8, M9, setup 7 | #149 |
-| M26 | Attachments in the composer and the thread | web, database | M22, M25 | #151 |
-| M27 | Integrations: the organization's servers | database, backend, web | M8, setup 9 | #157 |
-| M28 | Integrations: members connect their accounts | database, backend, web | M27 | #165 |
-| M29 | Integrations in conversations | database, backend, web | M11, M28 | #171 |
-| M30 | Subagent conversations and their runs | database, core, backend, web, root | M17, M25 | #184 |
-| M31 | Chains, slots and the subagents' queue | database, core, backend, web, root | M30, setup 11 | #193 |
-| M32 | The Subagents module | core, backend, database, web | M31 | #196 |
-| M33 | Subagents in conversations | backend, database, root | M11, M32 | #200 |
-| M34 | Subagents in the thread | web, database, backend | M24, M26, M33 | #202 |
-| M35 | Usage caps | core, database, backend, web, root | M33 | #207 |
-| M36 | Integrations in subagents | backend, web | M29, M33 | #208 |
-| M37 | Launch readiness | backend, database, design-system, web, root | M35, M36 | #210 |
-| M38 | Launch | all | all | #211 |
-| M39 | Daily spend ceilings | core, database, backend, web, root | M38 | #232 |
-| M40 | Document revisions for agents' edits | database, backend, web, root | M38 | #230 |
-| M41 | Races against a real Postgres | database, backend, root | M38 | #231 |
-| M42 | A subagent's report at any limit | backend | M38 | #229 |
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 

@@ -1,5 +1,12 @@
 # The design sync to Claude Design
 
+| # | Milestone | Depends on | Implementation PR |
+| --- | --- | --- | --- |
+| M1 | The pipeline and the first checks | | #239 |
+| M2 | Every storied component checked | M1 | #240 |
+| M3 | The API and the conventions | M2 | #242 |
+| M4 | The linked project replaced | M3 | #244 |
+
 Claude Design builds screens and prototypes from React code it renders live. Out of the box it
 builds with generic components. The design sync gives it Strategy Dance's real ones: the design
 system's components compiled into one bundle, their props as `.d.ts`, a usage note for each, and a
@@ -24,7 +31,7 @@ was ported from, as `packages/strategydance-design-system/src/index.css` says.
   the build does not produce is deleted.
 - **The upload is atomic.** The project is in use and not empty, so nothing is uploaded until every
   component has been checked. Then one pass writes everything and deletes the rest.
-- **The work goes in milestones**, each a pull request, below.
+- **The work goes in milestones**, each a pull request, below, and listed in the table at the top.
 - **The display face falls back to the system's sans** (M3). `'Arial Narrow'` left
   `--font-display`: no text renders in it once Oswald loads, and the font check named it. BlockNote's
   default editor fonts, which `RichTextEditor.css` replaces, are accepted as they are.

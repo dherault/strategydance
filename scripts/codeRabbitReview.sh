@@ -6,8 +6,8 @@
 
 set -euo pipefail
 
-# Read from the checkout's remote rather than written in, so the commands this file shares with
-# sunshine's copilotReview.sh, `threads`, `reply`, `resolve` and `open`, are copied across as they are
+# Read from the checkout's remote rather than written in, so this file is the same in sunshine and
+# strategydance and a fix to one is copied to the other as it is
 REPOSITORY=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 
 # Under the ten minutes an agent's shell call may run, so a wait that has not landed yet exits and

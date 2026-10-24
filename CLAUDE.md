@@ -674,11 +674,11 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
 
 ## Conversation conventions
 
-A conversation is a member's exchange with Strategy Dance's agent in one of their organizations,
-every member of every organization having them: its runs, which the worker takes, the subagents
-its agent launches, and the modules and integrations it calls.
-[conversations.md](documents/conversations.md) says what each part does and why, and
-[conversations-milestones.md](documents/conversations-milestones.md) how each was built.
+A conversation is a member's exchange with Strategy Dance's agent in one of their organizations:
+its runs, which the worker takes, the subagents its agent launches, and the modules and
+integrations it calls. [conversations.md](documents/conversations.md) says what each part does and
+why, and [conversations-milestones.md](documents/conversations-milestones.md) how each was built:
+read the first before changing any of it.
 
 ### A run
 
@@ -690,541 +690,326 @@ later: WAITING ─▶ CONTINUED, once an answer or a send consumes its turn
 ```
 
 - A run is triggered by a member's `MESSAGE`, `ANSWER`, `RESUME` or `RETRY`, a subagent's by its
-  launch, `LAUNCH`, or the chain carrying it on, `CONTINUE`, and a parent's reaction to its
-  subagents' reports by `REPORTS`. `PENDING` and `CHAINED` are a subagent's alone (see The data)
-- One run goes at a time in a conversation. The first send inserts the conversation with its
-  `activeRunId` set, and every later start takes the row with a `conversation_updateMany` matching
-  `activeRunId: { isNull: true }` under `@check(this == 1)`, refused with
-  `ERROR_CODE_CONVERSATION_BUSY`. A member has three runs in flight in an organization
+  `LAUNCH` or its chain's `CONTINUE`, and a parent's reaction to its subagents' reports by
+  `REPORTS`. `PENDING` and `CHAINED` are a subagent's alone
+- One run goes at a time in a conversation: every start takes the row with a
+  `conversation_updateMany` on `activeRunId: { isNull: true }` under `@check(this == 1)`, refused
+  with `ERROR_CODE_CONVERSATION_BUSY`. A member has three runs in flight in an organization
   (`MAX_ACTIVE_RUNS_PER_MEMBER`), counted under their membership's lock once their dead runs are
-  finalized, so a crash elsewhere never locks them out
-- The worker claims a run `QUEUED`, or `RUNNING` past its lease, in a conditional update that adds
-  one to `attempts`, the attempt each of its writes after is fenced on, and answers Cloud Tasks 200
-  once the run is finished, or was already, and 503 while another worker holds its lease, so the
-  task comes back after the queue's backoff
-- A run's limits are the backend's: 25 requests (`CONVERSATION_RUN_MAX_REQUESTS`) and 10 minutes
-  from its first claim (`CONVERSATION_RUN_MAX_DURATION_MS`), a stream still going 14 minutes after
-  the claim cut (`CONVERSATION_RUN_STREAM_DEADLINE_MS`), inside the task's 15, 60 seconds a call
-  (`CONVERSATION_TOOL_CALL_TIMEOUT_MS`), its $10, and the daily spend ceilings its member's runs
-  share (below). A conversation holds 2000 entries
-  (`MAX_CONVERSATION_MESSAGES`) and a run draws 100 (`MAX_CONVERSATION_RUN_ENTRIES`). Each is
-  checked before a request, never after one, so a turn paid for is always stored and drawn, and a
-  run at a limit ends `FAILED` with its note, the full note for a conversation at its 2000 or a
-  context past what Claude takes
+  finalized
+- The worker claims a run `QUEUED`, or `RUNNING` past its lease, adding one to `attempts`, which
+  each of its later writes is fenced on, and answers Cloud Tasks 200 once the run is finished, 503
+  while another worker holds it
+- A run's limits are the backend's: 25 requests (`CONVERSATION_RUN_MAX_REQUESTS`), 10 minutes from
+  its first claim (`CONVERSATION_RUN_MAX_DURATION_MS`), a stream cut 14 minutes after the claim, 60
+  seconds a call, $10, and the member's daily spend ceilings. A conversation holds 2000 entries and
+  a run draws 100. Each is checked before a request, never after, so a turn paid for is always
+  stored and drawn, and a run at a limit ends `FAILED` with its note
 - The loop is the worker's own, never the SDK's tool runner, since a run stops for an answer and
-  writes each step as it happens: read the stop flag, build the request and check it, stream it,
-  writing its progress lines to `run.step` at most once a second, store the turn and draw it, then
-  by `stop_reason`:
-  - `end_turn`: `COMPLETED`
-  - `tool_use`: run the calls (see A new tool), store one `USER` entry with every result in the
-    turn's order, and go round again. A turn holding `ask_user` runs its other calls, keeps their
-    results in `pendingToolResults`, and ends `WAITING`
-  - `pause_turn`: send the turn back as it is, five times at most, its parts held in memory until
-    it ends
-  - `max_tokens`: run nothing, `FAILED` with its note
-  - `refusal`: the request's server-side fallback runs it again on another model, and a refusal
-    that survives it ends `REFUSED`
-- A request Claude's API refuses before its stream starts, as rate limited, overloaded, failing or
-  unreachable, costs nothing and is sent again, after its `retry-after` or a delay doubled at each
-  refusal, four times in a row at most within the run's time (`MAX_CONVERSATION_API_RETRIES`). Any
-  other error of the API fails the run with its note, and an error of the worker's own before the
-  request reached the API settles it at nothing before the step fails
-- Every write that ends a run cancels the calls still `RUNNING` in its conversation, not only those
-  its run drew, and lets go of `activeRunId` where it still names the run, in the write that sets
-  `isAwaitingAnswer` when it ends `WAITING`
+  writes each step as it happens. By `stop_reason`: `end_turn` completes; `tool_use` runs the calls,
+  stores one `USER` entry with every result in the turn's order and goes round again, a turn holding
+  `ask_user` ending `WAITING` with its other results kept in `pendingToolResults`; `pause_turn`
+  sends the turn back, five times at most; `max_tokens` fails; `refusal` runs again on the fallback
+  model, ending `REFUSED` if it survives
+- A request refused before its stream starts (rate limited, overloaded, failing, unreachable) costs
+  nothing and is sent again, after its `retry-after` or a doubling delay, four times in a row at most
+  (`MAX_CONVERSATION_API_RETRIES`). Any other error of the API fails the run with its note
+- Every write that ends a run cancels the calls still `RUNNING` in its conversation, and lets go of
+  `activeRunId` where it still names the run, in the same write
 
 ### The transcript
 
-- `checkTranscript` (`domain/agent/`) checks every request before it is sent, and a route the entry
-  it adds, against the rules every flow keeps, since Claude refuses a history that breaks them:
-  1. the first entry is the member's, `USER`
-  2. a `SYSTEM` entry sits right after a `USER` one and right before an `ASSISTANT` one, never beside
-     another, and last only as a request's context message, before it is stored
-  3. an `ASSISTANT` entry with `tool_use` blocks is followed by a `USER` entry opening with one
-     `tool_result` per call, in their order, before any text, image or document
-  4. so only the last entry holds calls with no result
-
-  A `server_tool_use`, web search's or the code around it, carries its result within its turn and is
-  none of their business
-- A run's context message is built when the run starts, kept on the run, and sent last, unstored,
-  until the run's first turn lands, then stored with it, `SYSTEM` then `ASSISTANT` at consecutive
-  positions, in one mutation. A turn that never lands stores neither. Its profile part, the member,
-  the organization and the conversation's aspects, goes only when its hash differs from the
-  `contextHash` of the last context message still in the transcript, so a Retry that cut one sends
-  it again
-- The `USER` entry that answers a turn, a send's, an answer's continuation's or the worker's, comes
-  from `buildConversationToolResults`: a result for each call in the turn's order, a call kept from
-  running answered `STOPPED_CALL_RESULT`, one that started and has none `INTERRUPTED_CALL_RESULT`,
-  unless its module write's key holds one, and a question still waiting `SKIPPED_QUESTION_RESULT`
-  (`conversationToolResults.ts`), then the subagents' reports waiting, then the member's file
-  names, files and text
-- A turn a fallback model finished is stored without the thinking, redacted thinking, `tool_use`
-  and unpaired `server_tool_use` blocks the declining model wrote before its boundary, and drawn as
-  it is stored
+- `checkTranscript` (`domain/agent/`) checks every request, and every entry a route adds, against
+  what Claude refuses: the first entry is `USER`; a `SYSTEM` entry sits between a `USER` and an
+  `ASSISTANT` one, and last only as a request's unstored context message; an `ASSISTANT` entry's
+  `tool_use` blocks are answered by a `USER` entry opening with one `tool_result` per call, in their
+  order; so only the last entry holds calls with no result. A `server_tool_use` carries its result
+  within its turn
+- A run's context message is built when the run starts, sent last and unstored until its first turn
+  lands, then stored with it in one mutation. Its profile part goes only when its hash differs from
+  the `contextHash` of the last context message still in the transcript
+- The `USER` entry answering a turn always comes from `buildConversationToolResults`: one result per
+  call in the turn's order (`STOPPED_CALL_RESULT`, `INTERRUPTED_CALL_RESULT` unless its write's key
+  holds one, `SKIPPED_QUESTION_RESULT`), then the subagents' reports waiting, then the member's
+  files and text
+- A turn a fallback model finished is stored without what the declining model wrote before its
+  boundary: its thinking, `tool_use` and unpaired `server_tool_use` blocks
 
 ### A new tool
 
-A tool the agent calls is its own, a module's or an integration's, and each kind takes what its
-kind says, beside what every tool takes:
+A tool the agent calls is its own, a module's or an integration's. Every tool takes:
 
-- **Every tool**:
-  - a description saying when to call it, which is what the model decides by
-  - its running and done labels in the `conversation` catalogue, in `getConversationToolLabel`,
-    whose test names every tool
-  - a result as JSON, cut at `MAX_TOOL_RESULT_LENGTH` (50000 characters) with a note, a long read
-    paging itself well short of it, and a failure answered `is_error: true` with a sentence the
-    model can act on, never one that fails the run
-  - `eager_input_streaming: true`, which the agent's own tools declare in `CONVERSATION_TOOLS` and
-    `toConversationModuleTool` gives a module's, so its input is checked before it runs, since it
-    streams in unchecked
-  - a place within ten calls a turn and fifty a run (`MAX_TOOL_CALLS_PER_TURN`,
-    `MAX_TOOL_CALLS_PER_RUN`): a call past either is drawn failed, its result saying so, and never
-    runs
-  - whether it only reads: reads run four at a time beside the reads next to them, and a write or an
-    integration call alone, so writes land in the order Claude made them. A tool reads only when
-    running it twice changes nothing, which a module's says with `readOnlyHint`
-  - whether a subagent gets it: `isSubagentTool` withholds the deletes and the Subagents module's
-    tools from a subagent, which works with nobody watching, as `buildSubagentTools` withholds
-    `ask_user`, nobody being there to answer, so a new tool that deletes or reaches subagents joins
-    them
-  - its bytes pinned: the conversation's and the subagent's tools are, so the list's tests move with
-    it and the release costs every conversation its earlier reasoning once (`drop_block`), and
-    `bun run probe:claude` runs after, since a list the API refuses fails every run
-- **The agent's own**, in `CONVERSATION_TOOLS`: strict, within a request's 20 strict tools, 24
-  optional and 16 union parameters, which `buildConversationTools.test.ts` holds it to, and run by a
-  `ConversationToolRunner` (see The backend)
-- **A module's**: registered by its module's server, as [Module conventions](#module-conventions)
-  says, after the agent's own and not strict. Past some 10000 tokens of definitions Claude's tool
-  search (`defer_loading`) keeps tools out of the context, and the list held 16017 from M33: a module
-  added later weighs it (`documents/conversations.md` § Modules)
-- **An integration's**: none. Integrations reach the agent through its three fixed tools, so what an
-  organization adds never changes the list
+- a description saying when to call it, which is what the model decides by, and its running and
+  done labels in the `conversation` catalogue, in `getConversationToolLabel`, whose test names every
+  tool
+- a JSON result, cut at `MAX_TOOL_RESULT_LENGTH` (50000 characters), a long read paging itself well
+  short of it, and a failure answered `is_error: true` with a sentence the model can act on, never
+  one that fails the run
+- `eager_input_streaming: true` (`CONVERSATION_TOOLS`, `toConversationModuleTool`), its input
+  checked before it runs, since it streams in unchecked
+- a place within ten calls a turn and fifty a run (`MAX_TOOL_CALLS_PER_TURN`,
+  `MAX_TOOL_CALLS_PER_RUN`): a call past either is drawn failed and never runs
+- whether it only reads, which a module's says with `readOnlyHint`: reads run four at a time, a
+  write or an integration call alone, in Claude's order. A tool reads only when running it twice
+  changes nothing
+- whether a subagent gets it: `isSubagentTool` withholds the deletes and the Subagents module's
+  tools, and `buildSubagentTools` withholds `ask_user`, so a new tool that deletes or reaches
+  subagents joins them
+- its bytes pinned: the tool lists' tests move with it, the release costs every conversation its
+  earlier reasoning once (`drop_block`), and `bun run probe:claude` runs after, since a list the API
+  refuses fails every run
+
+The agent's own tools, in `CONVERSATION_TOOLS`, are strict, within a request's 20 strict tools, 24
+optional and 16 union parameters (`buildConversationTools.test.ts`), each run by a
+`ConversationToolRunner`. A module's are registered by its server, as
+[Module conventions](#module-conventions) says, after them and not strict. Past some 10000 tokens of
+definitions Claude's tool search (`defer_loading`) takes over, and the list held 16017 from M33, so
+a module added later weighs it (conversations.md § Modules). An integration adds none: integrations
+reach the agent through three fixed tools, so the list never varies.
 
 ### The data
 
-A conversation is kept twice, once for Claude and once for the page, and
-`documents/conversations.md` says how each is written:
+A conversation is kept twice, the transcript for Claude and the thread for the page.
 
 - A file a member sends is a `ConversationAttachment`, uploaded before its message, into a draft's
-  conversation as often as a saved one's, so its `conversationId` is a plain UUID nothing reserves.
-  Every lookup, count and prune matches it with `userId` and `organizationId`, since another member
-  who learned a draft's id could upload under it. Its row goes `UPLOADING`, reserved under the
-  membership's lock before any byte is read, then `READY`, or `PRUNING` once a prune claims it, which
-  no upload finishes and no send takes; its `message` is set once, by the mutation that sends it.
-  The transcript holds it by its id in Claude's Files API, never its bytes, and a conversation's
-  prune deletes its files' rows before its own, since `message` is nulled on delete
-
-- The transcript, `ConversationTranscriptEntry`, is what Claude is sent: the exact content blocks
-  of every turn, thinking blocks and their signatures included. Only the backend reads or writes
-  it. It is append-only with one exception: Retry cuts the tail back to a run's anchor, which
-  leaves a prefix the remaining thinking blocks were made with. Nothing else ever edits or deletes
-  an entry, since Claude refuses a history changed under its thinking
-- An entry's `content`, a run's `context` and its `pendingToolResults` are `String` columns holding
-  the JSON text of exactly what was sent, never `Any`, so the transcript replays byte for byte.
-  Data Connect stores `Any` as Postgres `jsonb`, which keeps one of two duplicate keys and refuses
-  U+0000 in a string
+  conversation as often as a saved one's, so its `conversationId` is a UUID nothing reserves: every
+  lookup, count and prune also matches `userId` and `organizationId`. It goes `UPLOADING`, reserved
+  under the membership's lock, then `READY`, or `PRUNING` once a prune claims it. The transcript
+  holds it by its Files API id, and a conversation's prune deletes its files' rows before its own
+- The transcript, `ConversationTranscriptEntry`, holds the exact content blocks of every turn,
+  thinking and signatures included, and only the backend touches it. It is append-only, but for
+  Retry cutting the tail back to a run's anchor, since Claude refuses a history changed under its
+  thinking. An entry's `content`, a run's `context` and its `pendingToolResults` are `String`
+  columns of JSON text, never `Any`, which Postgres' `jsonb` would rewrite, so it replays byte for
+  byte
 - A run's `usage` is a ledger (`conversationRunUsage`): each request is reserved at its measured
-  input before it is sent, in the fenced write that renews the lease (`RecordConversationRunUsage`),
-  and settled from its answer with the model, why it stopped and where its part was stored. A worker
-  taking a run over charges an unsettled request at its estimate. What a request came to, the turn
-  to store or the run's end, is kept until it is written, so a refused write is tried again and never
-  paid for twice. Every write of a run's `usage` sends what the ledger may have cost beside it
-  (`toConversationUsageVariables`), which the write upserts as the run's `RunSpend` in its
-  transaction: a new write of a run's ledger does the same, which the fake's `unpricedLedgerWrites`
-  holds the tests to, and `RenewConversationRunLease`, the timer's, carries none
-- A run's side request, today the one that tags a conversation's aspects
-  (`requestConversationTagging`), goes through the same ledger, marked with its `purpose`: it stores
-  no part, so its `turnPosition` stays null, which the readers of a turn's requests skip, and a
-  takeover charges it at its own allowance. It never fails a run, and a run tries it once, as its
-  ledger says. An aspects note belongs to no run, the agent's as the member's, so it counts toward
-  no run's entries and a Retry keeps it
-- A run stops at $10 (`CONVERSATION_RUN_MAX_COST_MICRODOLLARS`), held before each request, a side
-  request's included: its ledger priced at list prices, each request no answer settled at the worst
-  case its reservation recorded (`priceConversationUsageBound`), plus the most the request about to
-  go can cost (`priceRequestWorstCase`), its input written to the cache, its whole `max_tokens` and
-  five searches, each reading the input again from the cache and bringing back
-  `WEB_SEARCH_RESULT_TOKEN_ALLOWANCE`, every earlier result read again by each later step. A request
-  whose fallback would pass the limit or a daily spend ceiling goes without `fallbacks`, one that
-  cannot fit fails the run with its limits' note, which chains a subagent's at the $10 and never at a
-  ceiling, and tagging past either is recorded skipped. A stream cut partway counts at the most its
-  model could write in the time it streamed (`priceCutRequestBound`,
-  `CLAUDE_MAX_OUTPUT_TOKENS_PER_SECOND`), its reasoning being billed and never streamed, and at its
-  reservation when it showed a fallback. A model a request names, or one a refusal may fall back
-  to, joins `CLAUDE_MODEL_PRICES` and `CLAUDE_FALLBACK_MODELS` before it ships, which a test holds
-  every request's model to, with `bun run probe:claude` after, which holds the fallbacks to the
-  API's list and the allowance to what a search brings back
+  input before it is sent, in the fenced lease renewal (`RecordConversationRunUsage`), and settled
+  from its answer. A worker taking over charges an unsettled request at its estimate. What a request
+  came to is kept until written, so a refused write is tried again and never paid twice. Every write
+  of `usage` upserts the run's `RunSpend` beside it (`toConversationUsageVariables`), which the
+  fake's `unpricedLedgerWrites` holds the tests to; `RenewConversationRunLease` carries none. A side
+  request, today the aspects' tagging (`requestConversationTagging`), goes through the ledger with
+  its `purpose` and no `turnPosition`, is tried once a run and never fails it
+- A run stops at $10 (`CONVERSATION_RUN_MAX_COST_MICRODOLLARS`), held before each request: the ledger
+  at list prices, each unsettled request at its worst case (`priceConversationUsageBound`), plus the
+  worst the next request can cost (`priceRequestWorstCase`). A request whose fallback would pass a
+  limit goes without `fallbacks`, and one that cannot fit fails the run, a subagent's chaining at the
+  $10. A cut stream counts at the most its model could write in the time it streamed
+  (`priceCutRequestBound`). A model a request names, or falls back to, joins `CLAUDE_MODEL_PRICES`
+  and `CLAUDE_FALLBACK_MODELS` before it ships, with `bun run probe:claude` after
 - Daily caps bound what a member starts (`MAX_DAILY_…` in strategydance-core): conversations, runs
-  and subagents, in 24 hours, the member's in each organization, the account's across its
-  organizations and the organization's, counted on `CappedStart` rows, which hold their organization
-  as a plain id, so deleting it gets round nothing. Every mutation that starts one counts in its one
-  query step, the member's after the membership's lock, and inserts its row last: a conversation's
-  start, every run triggered `MESSAGE`, `ANSWER`, `RESUME`, `RETRY` or `REPORTS`, and a launch, never
-  a subagent's own runs. Its domain function reads the counts first (`readReachedUsageCap`), after
-  recognizing an action sent again, and a refusal of its mutation reads them again; a route answers
-  429 with the cap's code and `Retry-After` (`respondUsageCapped`). An answer's continuation, an
-  Allow's and a reaction pass a cap up to one and a half times it, then wait. A new way to start a
-  conversation, a run or a subagent counts and records it the same way. The development backend
-  lifts them (`IS_USAGE_CAPPED`, `USAGE_CAPPED=true` holding them there), through each mutation's
-  optional `$isUsageCapped`, which left out holds them, as the tests and the check scripts do: a
-  test or a check that builds past a cap lifts it in its fixtures
-- Daily spend ceilings bound what a member's conversations cost (`MAX_DAILY_SPEND_MICRODOLLARS_…` in
-  strategydance-core, $25, $50 and $150), over the caps' 24 hours and their three scopes, summed
-  from `RunSpend` rows, which hold each run's `costBound` and their organization as plain ids, so no
-  deletion gets round them. The worker holds every request to them where it holds the $10
-  (`readRunSpendRoom`), and every start is held to them beside the caps (`readReachedUsageCap` with
-  `spend`): a send, Resume and Retry answer 429 with the ceiling's code, a continuation and a
-  reaction wait, a launch is refused with its sentence, a promotion leaves its runs pending and a
-  chain ends its subagent with its report. A run a ceiling stops ends failed with its note naming
-  the ceiling and when it has room (`ConversationMessage.ceilingScope`, `ceilingFreesAt`), which a
-  page from before reads as the failed note. A new way to start, promote or chain a run reads them
-  too, and a read of the caps or the ceilings hands its operation `{ organizationId, userId }` alone,
-  as Data Connect refuses any variable it does not declare, which the fake refuses too there. They
-  are lifted with the caps (`IS_USAGE_CAPPED`), the rows written anyway
-- A member starts or continues a run only with a confirmed address and conversations not suspended:
-  every route that starts or continues one, the send, an answer, an approval, Resume, Retry and a
-  file's upload, mounts `verifiedEmailMiddleware`, which reads the ID token's `email_verified`, then
-  `conversationsSuspensionMiddleware`, which reads `User.conversationsSuspendedAt` and
-  `Organization.conversationsSuspendedAt`, after `organizationMemberMiddleware`, and a new one mounts
-  both, while the stops, the reconciles and the reads mount neither. The development backend asks for no
-  confirmed address (`IS_EMAIL_VERIFICATION_REQUIRED`, `EMAIL_VERIFICATION_REQUIRED=true` holding it
-  there), and the route tests' viewer carries `isEmailVerified`. A suspension is read where a worker
-  claims a run (`isClaimable`), never at the steps after, which would throw away a turn paid for, by
-  a launch (`suspended`) and by a reaction, which waits: a new way to start a run that no member's
-  route starts reads it too, or its runs are interrupted at their claim, each a run of the caps.
-  Only `bun run suspend:conversations` writes the columns, through one transaction that locks the
-  account's or the organization's row, then every membership it reaches, which every start of a run
-  locks first, then asks every run in flight of theirs to stop. A start that must not commit for a
-  suspended member reads the columns in its query step, after the membership's lock, as
-  `StartSubagentReaction` does, since a suspension landing between a domain's read and its write is
-  otherwise a run the claim refuses
+  and subagents in 24 hours, per member in an organization, per account and per organization,
+  counted on `CappedStart` rows that hold their organization as a plain id. Every mutation that
+  starts one counts in its one query step, after the membership's lock, and inserts its row last.
+  Its domain function reads the counts first (`readReachedUsageCap`), and a route answers 429 with
+  the cap's code and `Retry-After` (`respondUsageCapped`). An answer's continuation, an Allow and a
+  reaction pass a cap up to one and a half times it, then wait. A new way to start a conversation, a
+  run or a subagent counts the same way. The development backend lifts them (`IS_USAGE_CAPPED`,
+  held by `USAGE_CAPPED=true`) through each mutation's optional `$isUsageCapped`, which the tests and
+  checks leave out
+- Daily spend ceilings, $25, $50 and $150 (`MAX_DAILY_SPEND_MICRODOLLARS_…`), over the caps' 24
+  hours and scopes, are summed from `RunSpend` rows. The worker holds every request to them beside
+  the $10 (`readRunSpendRoom`), and every start is held to them beside the caps: a send, Resume and
+  Retry answer 429, a continuation and a reaction wait, a launch is refused, a promotion leaves its
+  runs pending and a chain ends its subagent with its report. A run a ceiling stops fails with a
+  note naming it and when it frees (`ceilingScope`, `ceilingFreesAt`). A new way to start, promote
+  or chain a run reads them too. A read of the caps or the ceilings hands its operation
+  `{ organizationId, userId }` alone
+- Every route that starts or continues a run, the send, an answer, an approval, Resume, Retry and an
+  upload, mounts `verifiedEmailMiddleware`, then `conversationsSuspensionMiddleware`, after
+  `organizationMemberMiddleware`; the stops, the reconciles and the reads mount neither. The
+  development backend asks for no confirmed address (`IS_EMAIL_VERIFICATION_REQUIRED`, held by
+  `EMAIL_VERIFICATION_REQUIRED=true`). A suspension is read where a worker claims a run
+  (`isClaimable`), never after, which would throw a paid turn away, and by a launch and a reaction:
+  a new way to start a run that no member's route starts reads it too. Only `bun run
+  suspend:conversations` writes it, locking the account's or organization's row and every membership
+  it reaches, then stopping their runs. A start that must not commit for a suspended member reads it
+  after the membership's lock, as `StartSubagentReaction` does
 - A turn `pause_turn` paused is held in memory until it ends, then stored as consecutive `ASSISTANT`
-  entries, one write each, the first with the run's context message. A crash between two leaves
-  the turn paused at its last stored part, which the ledger says, and the next worker sends its
-  continuation. A part is one response of a paused turn; a piece is one slice of a reply past 20000
-  characters, drawn as its own message, the entry's cursor keeping its piece (`drawnPieces`)
-- The thread, `ConversationMessage`, is a drawing of the transcript, and what the page reads. Its
-  messages are ordered by `position`, never by time, since two mutations can share an instant: a
-  mutation that inserts messages first claims their positions on the conversation's
-  `nextMessagePosition`, moving it on under `@check(this == 1)`, and a writer that loses the race
-  reads it again and retries. The counter only grows, so a deleted message leaves a gap rather
-  than a position used twice
+  entries, one write each, the first with the context message: a crash between two leaves it paused
+  at its last part, which the next worker continues. A reply past 20000 characters is drawn in
+  pieces, its entry's cursor keeping its piece (`drawnPieces`)
+- The thread, `ConversationMessage`, is a drawing of the transcript and what the page reads, ordered
+  by `position`, never time: a mutation inserting messages claims positions on the conversation's
+  `nextMessagePosition` under `@check(this == 1)`, and a loser reads it again. The counter only
+  grows
 - The page reads the thread in three parts: `GetConversation`'s live tail of the latest 150
-  messages, carrying only what is small or changes in place (kind, position, run, a call's status,
-  an answer), each message's body once by id through `GetConversationMessageBodies`, and older
-  messages in pages through `GetConversationMessagesBefore`. `createConversationThread` merges
-  them, and reads every page it holds again when `historyRevision` moves. A field that changes in
-  place belongs in the tail, one that never changes once written in the bodies, and the history
-  page carries both: a member's message's files, their id, name, type and size, are its body's,
-  since the send that inserts it sets them. Their bytes come from `GET …/attachments/:attachmentId`
-  alone, read with the reader's token past the browser's HTTP cache (`useConversationAttachmentFile`)
-  and drawn from an address `useObjectUrl` holds while something draws them. An image drawn small
-  is drawn from a small copy (`useImageThumbnail`), never its own bytes, which an `<img>` decodes
-  whole whatever size it is drawn at
-- A web conversation mutation takes the caller's own `$userId` and checks `vars.userId ==
-  auth.uid` on its first, redacted step. The live conversation queries' refresh conditions match
-  the author on it, `mutation.variables.userId == request.auth.uid`, since the backend's
-  mutations, run through the Admin SDK, carry no `mutation.auth.uid` and take the verified
-  `$userId` anyway
+  messages, with only what is small or changes in place; each body once by id
+  (`GetConversationMessageBodies`); and older pages (`GetConversationMessagesBefore`), merged by
+  `createConversationThread`, which reads its pages again when `historyRevision` moves. A field that
+  changes in place belongs in the tail, one that never changes in the bodies. A file's bytes come
+  from `GET …/attachments/:attachmentId` alone, with the reader's token past the HTTP cache
+  (`useConversationAttachmentFile`), drawn from an address `useObjectUrl` holds, and an image drawn
+  small from a small copy (`useImageThumbnail`)
+- A web conversation mutation takes the caller's own `$userId`, checking `vars.userId == auth.uid` on
+  its first, redacted step, and the live queries' refresh conditions match
+  `mutation.variables.userId == request.auth.uid`, since the backend's Admin SDK mutations carry no
+  `mutation.auth.uid`
 - A run is `QUEUED`, `RUNNING` or, a subagent's, `PENDING` exactly while its conversation's
-  `activeRunId` names it, a `PENDING` run with no lease and no task. Every write that ends a run
-  lets go of it in the same mutation, matching `activeRunId` on the run and never filtering on
-  `deletedAt`, or a conversation restored later stays busy for good. A run's lease is set from the
-  database's clock (`leaseExpiresAt_time`), the clock the filters that find it dead read: two
-  minutes while it is queued (`CONVERSATION_RUN_QUEUED_LEASE_MS`, which every mutation that queues
-  one writes out), then a minute, which every write of its worker renews. A claimed run
-  past its lease is dead, and a route finalizes it as interrupted before it counts or starts
-  another, as the page's reconcile does. A queued run's lease only says when to ask Cloud Tasks
-  whether it is still coming (`finalizeDeadConversationRun`): its task there, the lease is pushed
-  back; gone, the run is queued again while it is under twenty minutes old, and finalized once
-  older, so a run whose task never came, its process gone between storing it and queueing it, is
-  queued again within minutes, by its page or the worker's reconcile. A run whose task could not be
-  queued has its lease brought in to now, so its page reconciles it at once. Development has no
-  queue, and a queued run past its lease is dead there
-- Every write of a worker is fenced: its first step is the run's own update, matching the run
-  `RUNNING`, the attempt its worker claimed and its author's membership by the `createdAt` the run
-  recorded, as `RenewConversationRunLease` does alone. It is the run's only write in the mutation,
-  so its end, its step and its lease ride in its data. A worker whose run was claimed again, or
-  whose author left or was invited back since, writes nothing more. A `Timestamp` read back from
-  Data Connect keeps its microseconds and matches itself in a filter, which is what that match
-  relies on, and `check:conversation-runs` checks it
+  `activeRunId` names it. Every write that ends a run lets go of it in the same mutation, matching
+  `activeRunId` and never filtering on `deletedAt`, or a conversation restored later stays busy. A
+  lease is set on the database's clock (`leaseExpiresAt_time`): two minutes queued
+  (`CONVERSATION_RUN_QUEUED_LEASE_MS`), then a minute that every write of its worker renews. A
+  claimed run past it is dead, finalized as interrupted by the next route that counts or starts, or
+  by the page's reconcile. A queued run past it is checked against Cloud Tasks
+  (`finalizeDeadConversationRun`): pushed back while its task is there, queued again while under
+  twenty minutes old, finalized after. Development has no queue, so a queued run past its lease is
+  dead there
+- Every write of a worker is fenced: its first step is the run's own update, matching `RUNNING`, its
+  claimed attempt and its author's membership by the `createdAt` the run recorded, so a worker whose
+  run was claimed again, or whose author left, writes nothing more. A `Timestamp` read back keeps its
+  microseconds and matches itself in a filter, which `check:conversation-runs` checks
 - A message the backend draws takes an id derived from what it is drawn from
-  (`deriveConversationMessageId`): a transcript entry with its first block and its piece, or a run
-  with its note. A worker taking over after a crash draws from the entry's cursor, `drawnBlocks`,
-  and derives the same ids, so drawing a message twice is a conflict rather than a copy. The
-  member's message keeps the browser's id, which makes a retried send store it once, and names the
-  run it started, so a Retry deletes a run's messages but that one. Drawing finds an entry by its
-  id and cursor, never by the run that stored it, so a resumed run draws what the run it carries on
-  left undrawn, under its own name
-- A member stops a run through its `stopRequestedAt`, which its worker reads before each request and
-  every two seconds while one streams (`createConversationRequestSignal`); a turn already answered
-  is still stored and drawn, since it was paid for. A queued run is stopped by the route at once.
-  Resume deletes the stopped or interrupted note, the thread's newest message, and moves no
-  `historyRevision`, so it refuses once anything follows the note; Retry cuts the transcript after
-  the run's anchor and deletes the messages of every run on that anchor, so it moves
-  `historyRevision`, and every tab reads its pages again. Both start a run on the same anchor, and a
-  route that receives either again answers with the run numbered right after the one it names
-- Every run that ends with a note says why in its `failure`, for the logs, and
-  `FinishConversationRunWithNote` pairs each status with its own note: failed with failed or full,
-  stopped with stopped, refused with refused
-- Conversations are searched by the backend alone, `POST …/conversations/search`, since what a
-  search finds is messages, which no web query could group by conversation. `Conversation.title`
-  and `ConversationMessage.text` are `@searchable(language: "simple")`, which splits words and
-  lowercases them in every language the app speaks and stems nothing, read with
-  `queryFormat: PLAIN`, which needs every word. A `_search` is ordered by its relevance alone:
-  its `orderBy` cannot name it. A query holding Chinese or Japanese, which put no space between
-  words, matches by substring instead (`isSubstringSearchQuery`), over every title and the
-  messages of the most recently active conversations to 20000. Only member and agent messages
-  are searched, never a question, a tool call or a note
-- A subagent is a conversation with a `parent`, the conversation whose agent launched it with a
-  brief (`launchSubagent` in `domain/subagents/`), its member's and run as theirs, and hidden from
-  them. Every read or count of a member's conversations leaves subagents out with `parentId: {
-  isNull: true }`: the list, the badge's and the dock's reads, the searches, the counts
-  `MAX_CONVERSATIONS` and `MAX_ACTIVE_RUNS_PER_MEMBER` hold and the runs in flight a route reads
-  first. Every way a member acts on a conversation refuses one, the send, answer, approval, Resume,
-  Retry, Stop, reconcile and upload routes, `missing` in the domain and the same filter in the
-  mutation, and the web's delete, restore, read and aspects mutations, while a read of one
-  conversation by its id reads one as any other. A new read, count or action of a member's does the
-  same. A subagent's run sends `SUBAGENT_SYSTEM_PROMPT` and `buildSubagentTools`, both pinned by
-  their bytes, the agent's own tools but `ask_user` among them, asks nothing, tags nothing, draws its text with no unread count
-  (`DrawSubagentAgentText`), and ends only through `FinishSubagentRun`, `FinishSubagentRunWithNote`
-  and `InterruptSubagentRun`, which write its `report` in the write that ends it, however it ends:
-  every other ending's fence matches a conversation that is no subagent, and a dead one only through
-  `InterruptDeadSubagentRun`, which `finalizeDeadConversationRun` writes when told of a run on the
-  subagents' queue, answering `missing` for a subagent's run on the conversations' and the reverse.
-  `bun run check:subagent-runs`, in the backend's package, checks the operations against the
-  emulators
-- A parent's page draws its subagents from `GetConversationSubagents`, live, read once its
-  `subagentCount` says it launched one: each launch's row finds its subagent by the call's
-  `toolUseId`, which the bodies carry, as the subagent's `launchToolUseId`, the strip above the
-  composer counts them, and Retry counts those launched on its run's anchor (`launchAnchorPosition`),
-  which it discards. A subagent's runs write under its own id, never the parent's, so the list
-  refreshes on each of them under the member and the organization, and on the parent's own writes,
-  its launches, stops, Retry, delete, restore and every delivery of its reports, under the parent's
-  id: a new write that changes a subagent's row or the status of its latest run names itself there.
-  A subagent's thread is drawn read only, in its viewer (`ConversationSubagentDialog`), which
-  `conversation.parentId` decides: no reconcile of its own run, whose route refuses it, no note
-  actions, and notes worded for a subagent. Its brief's files are the parent's, read by
-  `attachmentIds` among the parent's sent files (`GetConversationBriefAttachments`) and served under
-  the parent's id. No page polls a subagent's run, so the parent's page reconciles the member's
-  subagents (`useReconcileConversationSubagents`) every two minutes while one is busy, and a few
-  seconds in once a batch has reported whole while the parent could react, its timer keyed on its
-  delay alone
-- A subagent's run at one of its limits, its 25 requests, 10 minutes or 100 entries, before its
-  fourth run (`MAX_SUBAGENT_RUNS`) chains: `ChainSubagentRun` ends it `CHAINED` and queues the next,
-  `CONTINUE` on the same anchor, in one write, the next run's id derived from it
-  (`deriveChainedRunId`), carrying on as Resume does without a note. A run asked to stop as it
-  reaches a limit stops instead. The worker queues the next run once its lease has stopped, and a
-  run whose next could not be queued answers `held`, so its delivery comes back to queue it, as a
-  delivery finding the run `CHAINED` does. The calls count 50 for each run of the chain
-  (`planConversationToolCalls`' `maxCalls`). The fourth run's results entry ends asking for the
-  report (`SUBAGENT_REPORT_REQUEST`) once any of its budgets nears its end (`isSubagentReportDue`):
-  its 24th request, two minutes left of its ten, 95 entries, or a next request whose worst case leaves
-  no room for another, within the $10 or what the daily spend ceilings leave it. Once asked, that request, its last, goes past the requests, the entries and
-  the ten minutes until 12 minutes after the claim (`readSubagentReportDeadline`), its cost held as
-  any request's, and nothing its reply calls runs. Only the last run writes the report
-- A member has five subagent runs at once in an organization
-  (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`), `QUEUED` or `RUNNING` across all their conversations,
-  apart from their own three. A launch first finalizes their dead subagent runs, then takes a free
-  slot (`LaunchSubagent`, whose check refuses the sixth) or waits `PENDING`
-  (`LaunchPendingSubagent`), and a pending launch promotes right after, so a slot freed while it
-  counted goes to the oldest run waiting. The promotion is a mutation of its own, one run at a time
-  (`PromoteSubagentRun`, looped by `promoteSubagentRuns`), taking the membership's lock after
-  whatever freed the slot, never inside it: after every end of a subagent's run that held a slot and
-  every dead one finalized, never after a chain, which keeps its slot, nor after a `PENDING` run's
-  end, which held none. It skips a run asked to stop, one whose subagent is deleted and one launched
-  under a membership since replaced, which the reconcile and the sweep end through
-  `StopPendingSubagentRun` and `InterruptPendingSubagentRun`, each fenced on its reason:
-  `GetSubagentPendingRuns` reads the runs it may promote apart from those it skips, filtered in the
-  query, so no number of runs skipped hides one it may promote, and a read of runs waiting filtered
-  in code would. A promotion refused is read again, and a run found queued is queued, since its
-  answer may be what was lost. A promotion sets the run's `createdAt` again, so its twenty minutes
-  to be queued again count from there. A new way to end a subagent's run that held a slot promotes
-  after it. `POST …/:conversationId/subagents/reconcile`, which a parent's page calls, and the daily
-  sweep (`sweepSubagentRuns`) reconcile a member's subagent runs (`reconcileSubagentRuns`): the dead
-  ones finalized or queued again, the skipped ones ended, a hundred at a time until none is left,
-  then a promotion
-- A parent reacts to its subagents' reports in a run of its own, triggered `REPORTS`, the first run
-  no member started (`reactToSubagentReports` in `domain/subagents/`): once every live subagent of a
-  batch, those its runs launched on one anchor, has reported and the parent is idle, its latest run
-  `COMPLETED` and nothing waiting. `StartSubagentReaction` takes the membership's lock, counts the
-  member's three runs, writes the parent's row under `activeRunId` null and the run number read, and
-  marks exactly the reports its entry carries delivered (`reportDeliveredAt`), so two subagents
-  ending at once start one reaction. Its entry holds one JSON block per report
-  (`buildSubagentReportBlock`, `{"subagentReport": {...}}`), which the thread draws as nothing, and
-  the run counts toward the three like any of the member's. A report names the first 20 of the
-  subagent's module writes and of its calls to integrations, with their totals, in the key order the
-  system prompt names, and `read_subagent` pages the writes and lists every call: the calls are those
-  that started (`GetSubagentIntegrationCallsForAgent`), each with its server, its tool and how it
-  ended, since a call to another company's server is what no restore undoes: a call that failed
-  without its server refusing it before running it, its address, its credential, a refusal it
-  answered or a 4xx, is recorded as unanswered on its message (`isToolUnanswered`, from
-  `IntegrationCallUnanswered`), since it may have run, which its duration cannot say: one that timed
-  out, found no server, was interrupted or brought an answer that could not be read. A subagent's end starts its parent's;
-  any other run's end, the route-side ones included, starts the member's oldest due
-  (`startDueSubagentReactions`), its own conversation's first; the subagents' reconcile route and
-  the daily sweep (`sweepSubagentReactions`) start them too, the sweep every one. A new way to end a
-  member's run starts their reactions due after it. A reaction launches and deletes nothing:
-  `LaunchSubagentForAgent` refuses a `REPORTS` launcher, and `delete_document` and `delete_task` read
-  the caller's launcher (`isReactionCaller`) and refuse one, telling the agent to ask the member
-- A member's send carries every finished report not delivered yet, after the turn's results and
-  before the file names, files and text, those of a batch still working included, and an answer's
-  continuation, and the results entry an Allow's run stores, carry them after every result. Each
-  names exactly what it marks delivered, `$deliveredSubagentIds`, counted as `$attachmentIds` is,
-  and is always called with the list, empty when nothing waits, since a write leaving it out is
-  refused while a report waits. Resume and Retry carry none. A parent ended with the full note takes
-  no report: `FinishConversationRunFull` marks every report waiting delivered as it ends, and a
-  report that comes after is marked with no run (`MarkSubagentReportsDelivered`), from whatever reads
-  the parent full, the subagent's end, the reconcile or the sweep
-- Every write on a parent and its subagents keeps one lock order: the membership, the parent's runs,
-  the parent's row, its subagents' runs, then their rows, and each reads its lock's response, so its
-  steps run apart and whichever of a launch and a cascade commits second sees the first. The
-  subagents' stops take the membership's lock to read its response, the suspensions read the runs
-  through the locked account's or organization's, and the web's `DeleteConversation` reads its
-  subagents through its membership read. The parent's Stop asks its anchor's live subagents to stop in the
-  same write (`RequestConversationRunStopWithSubagents`, `StopQueuedConversationRunWithSubagents`),
-  Stop all and a row's Stop go through the parent's routes (`POST …/subagents/stop`, `POST
-  …/subagents/:subagentId/stop`), Retry stops and deletes the cut runs' subagents at an instant of
-  their own, and the web's `DeleteConversation` writes the parent's runs before its row, then its
-  live subagents at its own instant, which `RestoreConversation` brings back by, reading it through
-  `response`. Each that freed a slot ends the queued and waiting runs at once
-  (`stopConversationSubagents`) and promotes after. The sweep prunes a parent's subagents before it,
-  only once idle, lowering a remaining parent's `subagentCount` (`PruneClaimedSubagents`).
-  `check:conversation-runs` reads the order off the mutations themselves, since PGlite serializes
-  every race: a new write on a parent keeps it
+  (`deriveConversationMessageId`), so a worker taking over draws the same ids from the entry's cursor
+  (`drawnBlocks`), and drawing twice conflicts rather than copies. The member's message keeps the
+  browser's id, so a retried send stores it once
+- A stop sets `stopRequestedAt`, read before each request and every two seconds while one streams
+  (`createConversationRequestSignal`); a turn already answered is still stored, and a queued run is
+  stopped at once. Resume deletes the stopped or interrupted note, the thread's newest message, and
+  refuses once anything follows it. Retry cuts the transcript after the run's anchor, deletes the
+  messages of every run on it and moves `historyRevision`. A route receiving either again answers
+  with the run numbered after the one it names. Every run that ends with a note says why in its
+  `failure`, and `FinishConversationRunWithNote` pairs each status with its note
+- Conversations are searched by the backend alone, `POST …/conversations/search`, since a search
+  finds messages, which no web query could group by conversation. `Conversation.title` and
+  `ConversationMessage.text` are `@searchable(language: "simple")`, read with `queryFormat: PLAIN`,
+  ordered by relevance alone. A query in Chinese or Japanese matches by substring
+  (`isSubstringSearchQuery`), over the messages of the 20000 most recently active conversations.
+  Only member and agent messages are searched
+- A subagent is a conversation with a `parent`, launched with a brief (`launchSubagent` in
+  `domain/subagents/`), run as its member's and hidden from them: every read or count of a member's
+  conversations filters `parentId: { isNull: true }`, and every way a member acts on one refuses a
+  subagent, in the domain and in the mutation, while a read of one conversation by id reads one as
+  any other. A new read, count or action does the same. Its run sends `SUBAGENT_SYSTEM_PROMPT` and
+  `buildSubagentTools`, both pinned, asks and tags nothing, and ends only through
+  `FinishSubagentRun`, `FinishSubagentRunWithNote`, `InterruptSubagentRun` or
+  `InterruptDeadSubagentRun`, which write its `report` as it ends. `check:subagent-runs` checks the
+  operations
+- A parent's page draws its subagents from `GetConversationSubagents`, live, once `subagentCount`
+  says it launched one. A subagent's runs write under its own id, so the list refreshes on them by
+  member and organization, and on the parent's own writes by the parent's id: a new write that
+  changes a subagent's row, or its latest run's status, names itself there. A subagent's thread is
+  drawn read only (`ConversationSubagentDialog`), its brief's files read among the parent's
+  (`GetConversationBriefAttachments`). No page polls a subagent's run, so the parent's page
+  reconciles them (`useReconcileConversationSubagents`)
+- A subagent's run at one of its limits before its fourth run (`MAX_SUBAGENT_RUNS`) chains:
+  `ChainSubagentRun` ends it `CHAINED` and queues the next, `CONTINUE`, in one write, its id derived
+  (`deriveChainedRunId`), and the next is queued once the lease has stopped. The fourth run asks for
+  the report (`SUBAGENT_REPORT_REQUEST`) once a budget nears its end (`isSubagentReportDue`), and that
+  last request may go on to 12 minutes after the claim (`readSubagentReportDeadline`). Only the last
+  run writes the report
+- A member has five subagent runs at once in an organization (`MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER`),
+  apart from their own three: a launch takes a free slot (`LaunchSubagent`) or waits `PENDING`
+  (`LaunchPendingSubagent`). A promotion (`PromoteSubagentRun`, looped by `promoteSubagentRuns`) runs
+  after every end that freed a slot, never inside it, skipping runs asked to stop, deleted or under a
+  replaced membership, which `GetSubagentPendingRuns` leaves out in the query, never in code. A new
+  way to end a subagent's run that held a slot promotes after it. The parent's reconcile route and
+  the sweep reconcile a member's subagent runs (`reconcileSubagentRuns`)
+- A parent reacts to its subagents' reports in a run triggered `REPORTS` (`reactToSubagentReports`),
+  once every live subagent its runs launched on one anchor has reported and the parent is idle.
+  `StartSubagentReaction` marks exactly the reports its entry carries delivered, so two subagents
+  ending at once start one reaction, and the thread draws its report blocks as nothing. A report
+  names the first 20 module writes and integration calls with their totals, a call that may have run
+  marked unanswered (`isToolUnanswered`), since no restore undoes another company's server. Any end
+  of a member's run starts their oldest reaction due (`startDueSubagentReactions`), and a new way to
+  end one does too. A reaction launches and deletes nothing (`isReactionCaller`)
+- A send carries every finished report not delivered yet, after the turn's results, and so do an
+  answer's continuation and an Allow's run. Each names what it marks delivered,
+  `$deliveredSubagentIds`, always passed, empty when nothing waits. Resume and Retry carry none. A
+  parent ended full marks its reports delivered (`FinishConversationRunFull`,
+  `MarkSubagentReportsDelivered`)
+- Every write on a parent and its subagents locks, in order, the membership, the parent's runs, the
+  parent's row, its subagents' runs and their rows, each reading its lock's response.
+  `check:conversation-runs` reads that order off the mutations: a new write on a parent keeps it.
+  Stops, deletes and Retry cascade to the anchor's live subagents, freeing their slots at once
+  (`stopConversationSubagents`) and promoting after
 - `bun run check:conversation-races`, in the backend's package, races the runs' bounds and cascades
-  against a real Postgres: one run per conversation, three in flight, five slots, promotions,
-  reactions, a stop beside a chain, a delete beside a launch and a suspension beside a send, each
-  the backend's own writers released at once, many rounds over, printing the interleaving of a
-  round that fails. It never runs in CI: run it before a release that changes a run's mutations, as
-  `probe:claude` runs before one that changes a request. It needs Docker, where it starts a
-  throwaway Postgres, with four emulators on it behind a proxy, since one emulator runs one
-  operation at a time on any database (`withPostgresEmulators.ts`), on ports beside the person's
-  stack. `bun run emulators:postgres` serves the same until Ctrl-C, for any check pointed at it
+  against a real Postgres in Docker. It never runs in CI: run it before a release that changes a
+  run's mutations. `bun run emulators:postgres` serves the same stack until Ctrl-C
 - A domain function hands an operation only the variables it declares: Data Connect refuses one it
-  does not, which the fakes let through, so pass a member as `{ organizationId, userId }`, never a
-  run reference that carries more
+  does not, which the fakes let through, so pass a member as `{ organizationId, userId }`
 
 ### The backend
 
-- Claude reads a conversation's files through Anthropic's Files API (`ClaudeFiles`, the placeholder
-  standing in under `CONVERSATION_AGENT=placeholder`), where the upload sends each once. Its files
-  are the workspace's, and development and production read the same key: every file is named
-  `CLAUDE_FILE_NAME_PREFIX` and its attachment's id, never the member's name for it, and only
-  production's sweep deletes the files no row names, under its own prefix. The count endpoint takes
-  no Files API source, so a file is counted once from its bytes when it is stored, into
-  `tokenCount`, and every measurement takes file blocks out and adds those counts
-  (`replaceConversationFiles`)
-- Conversations' routes sit in `routes/conversations.ts`, mounted at
-  `/organizations/:organizationId/conversations` with `mergeParams`, and each runs
-  `organizationMemberMiddleware`. A send
-  queues a run, and `enqueueRun` sends it on its way: in development it starts in the backend's
-  own process, and in production (`ARE_CONVERSATION_RUNS_IN_PROCESS` off) a Cloud Tasks task named
-  after the run, `run-<runId>` on the `conversation-runs` queue, delivers it to the worker's
-  `/internal/conversation-runs`, whose request stays open for the whole run, since Cloud Run
-  throttles the CPU once a response is sent. Queueing it twice queues it once (`ALREADY_EXISTS`),
-  and a run that could not be queued stays queued while the send answers 503
-- A subagent's run goes through a queue of its own, `subagent-runs` (`SUBAGENT_RUN_QUEUE_PATH`, 20
-  deliveries at once), to the same worker route, so a fan-out never holds the deliveries every
-  member's reply waits on. Cloud Tasks takes a task's name only under the queue it was created in,
-  so a run's queue (`ConversationRunQueue`) is a required argument of everything that touches its
-  task, `enqueueRun`, `queueConversationRun`, `buildConversationRunTaskName`,
-  `findConversationRunTask` and `finalizeDeadConversationRun(s)`, and a new one takes it too
-- A search of conversations is metered twice, both refusing with `ERROR_CODE_TOO_MANY_REQUESTS`:
-  `createConversationSearchRateLimitMiddleware` counts a caller in the instance's memory, one
-  limiter a router, and `RecordConversationSearch` holds the same 120 in ten minutes across
-  instances, per member and organization, under a lock on the membership, in `ConversationSearch`
-  rows. The query travels in the body, never the address, and is never logged
-- A worker's writes go through its run's lease (`createConversationRunLease`), one after the
-  other, so they land in the order it made them and never beside a renewal of its own, and its
-  steps are read afresh each time (`runConversation`), so taking over after a crash follows the
-  same path as carrying on
-- What a run asks Claude lives in `domain/agent/`. Claude is reached through a `ClaudeClient`: the
-  real one on Anthropic's API, the placeholder `CONVERSATION_AGENT=placeholder` picks in
-  development, and the tests' scripted one, which records each request's bytes and refuses to count
-  a Files API source, as the endpoint does. Every request is
-  built by `buildConversationRequest`, in one key order, so the next request starts with the last
-  one's bytes, and passes `checkTranscript` before it is sent. The system prompt is pinned by its
-  hash, and so are the tools a request sends (`buildConversationTools`): a change to either costs
-  every conversation its earlier reasoning once, as `drop_block` lets a replay do, so it ships with a
-  release that means to. Load the `claude-api` skill before writing code that calls Claude
-- A tool the agent calls is its own, declared in `CONVERSATION_TOOLS` beside Claude's web search,
-  or a module's (see [Module conventions](#module-conventions)). Each is run by a
-  `ConversationToolRunner`, the modules' from the connection a run opens once it is claimed
-  (`connectConversationModules`): its name, whether it only reads, which lets it run four at a time
-  beside the reads next to it, and a `run` that checks its input, since Claude's streams in
-  unchecked, and answers JSON or throws a sentence Claude can act on. A write the worker stops
-  waiting for is answered as one that may still have run. What becomes of each call is planned from
-  the transcript alone (`planConversationToolCalls`),
-  so a worker taking over plans the same; each call starts and finishes in fenced writes, its result
-  kept on the run in `pendingToolResults` until the entry answering the turn is stored; and that
-  entry, for the worker, an answer's continuation and a send alike, comes from
-  `buildConversationToolResults`, one result per call in the turn's order. `ask_user` is answered by
-  the member instead: only the turn the transcript ends on holds questions without an answer, so
-  what waits is the conversation's (`isAwaitingAnswer`), never a question's run's
-- The organization's integrations, other companies' MCP servers, reach the agent through three tools
-  of its own, always in `CONVERSATION_TOOLS` and always run, whatever the organization added, so the
-  tools list never varies and a turn is replanned the same: `list_integrations` and
-  `describe_integration_tool`, strict, and `call_integration_tool`, which is not, since a strict
-  schema cannot leave its `arguments` open, its input checked by `checkConversationIntegrationCall`.
-  Their runners (`createConversationIntegrationRunners`) close over the run's fence, as the modules'
-  connection closes over its caller, and a call is made through `callIntegrationTool`, 30 seconds in
-  all, as the member, a 401 alone marking their connection
-- What a call to an integration becomes is decided once, when it is drawn, from the server as it is
-  then (`decideConversationIntegrationCall`): refused, drawn failed with the server it named; run at
-  once, when an administrator lets its tool run without approval; or an `APPROVAL` the member allows
-  or denies. A subagent's that would wait is drawn failed instead, since nobody can approve one, its
-  result asking it to say in its report what it would call, so a subagent never waits and its parent
-  proposes the call. Both of the last two are bound to the server's `configRevision`, the tool's
-  definition hash and the credential's generation, recorded on the message, which Allow and the call
-  right before it is made check again, the run carrying a subagent on included: a mismatch denies an
-  approval, its result saying the server changed.
-  An approval waits as a question does, in every waiting count (`kind in [QUESTION, APPROVAL]`, not
-  answered), its `toolStatus` null until a run starts its call. A turn's other calls run beside it, as
-  David chose. A call to an integration that started is never made again: one a crash or a stop left
-  unfinished is finished as interrupted
-- A continuation that carries an allowed call stores no entry, since the call has not run:
-  `ContinueConversationRunWithCalls` starts its run anchored where the waiting run was, with its
-  results, and answers the calls a stop kept from running as stopped; the worker makes the calls,
-  then stores the turn's results and anchors the run on them (`StoreConversationToolResults`'
-  `$anchorPosition`), so a Retry keeps a call that went to another company's server. A send denies
-  the approvals waiting and answers an allowed call never run, each by a list it names, which a
-  backend from before leaves out and is refused for
-- The conversation domain's tests run against `createConversationDatabaseFake`: the backend
-  connector's conversation operations over tables in memory, each mirroring its namesake's
-  conditions and refusals. It holds the modules' fake as `modules`, and the integrations' as
-  `integrations`, their operations in the same SDK, since a run's worker loads every module's server
-  and its agent reads the organization's servers, and adds or removes a member in all with one
-  `createdAt`; a test bringing its own runners in passes `connectTestModules(runners)`. `bun run check:conversation-runs` and `bun run check:conversation-search`,
-  in the backend's package, check those conditions against the emulators, the second also what
-  Postgres' full-text search and LIKE match. An operation changed is changed in both
+- Claude reads a conversation's files through Anthropic's Files API (`ClaudeFiles`), uploaded once.
+  Development and production share its workspace, so every file is named
+  `CLAUDE_FILE_NAME_PREFIX` and its attachment's id, and only production's sweep deletes those no row
+  names. The count endpoint takes no Files API source, so a file is counted once from its bytes into
+  `tokenCount` (`replaceConversationFiles`)
+- Conversations' routes are `routes/conversations.ts`, at
+  `/organizations/:organizationId/conversations` with `mergeParams`, behind
+  `organizationMemberMiddleware`. A send queues a run and `enqueueRun` sends it on: in development
+  in the backend's own process, in production (`ARE_CONVERSATION_RUNS_IN_PROCESS` off) as a Cloud
+  Tasks task, `run-<runId>` on `conversation-runs`, delivered to the worker's
+  `/internal/conversation-runs`, whose request stays open for the whole run, since Cloud Run throttles
+  the CPU once a response is sent. Queueing twice queues once (`ALREADY_EXISTS`), and a run that could
+  not be queued stays queued while the send answers 503
+- A subagent's run goes through a queue of its own, `subagent-runs` (`SUBAGENT_RUN_QUEUE_PATH`), so a
+  fan-out never holds members' replies. A task's name exists only under its queue, so a run's queue
+  (`ConversationRunQueue`) is a required argument of everything that touches its task
+- A conversation search is metered twice: in the instance's memory
+  (`createConversationSearchRateLimitMiddleware`), and across instances by `RecordConversationSearch`,
+  120 in ten minutes per member, under the membership's lock. The query travels in the body, never
+  the address, and is never logged
+- A worker's writes go through its run's lease (`createConversationRunLease`), one after the other,
+  and its steps are read afresh (`runConversation`), so taking over follows the same path as carrying
+  on
+- What a run asks Claude lives in `domain/agent/`, through a `ClaudeClient`: the real one, the
+  placeholder, and the tests' scripted one, which records each request's bytes. Every request is
+  built by `buildConversationRequest`, in one key order, so it starts with the last one's bytes, and
+  passes `checkTranscript`. The system prompt and the tools are pinned by their hash: a change costs
+  every conversation its earlier reasoning once, so it ships with a release that means to. Load the
+  `claude-api` skill before writing code that calls Claude
+- Each tool is run by a `ConversationToolRunner`, the modules' from the connection a claimed run
+  opens (`connectConversationModules`): its name, whether it only reads, and a `run` that checks its
+  input and answers JSON or throws a sentence Claude can act on. A write the worker stops waiting
+  for is answered as one that may have run. What becomes of each call is planned from the transcript
+  alone (`planConversationToolCalls`), so a worker taking over plans the same, and each result waits
+  in `pendingToolResults` until its entry is stored. `ask_user` is answered by the member, and what
+  waits is the conversation's (`isAwaitingAnswer`)
+- Integrations reach the agent through three tools always in `CONVERSATION_TOOLS`:
+  `list_integrations`, `describe_integration_tool`, and `call_integration_tool`, not strict, its
+  input checked by `checkConversationIntegrationCall`. Their runners
+  (`createConversationIntegrationRunners`) close over the run's fence, and a call goes through
+  `callIntegrationTool`, 30 seconds in all, as the member
+- A call to an integration is decided once, when it is drawn (`decideConversationIntegrationCall`):
+  refused, run at once when an administrator lets its tool run without approval, or an `APPROVAL` the
+  member allows or denies. A subagent's that would wait is drawn failed, asking it to propose the call
+  in its report. The last two bind the server's `configRevision`, the tool's definition hash and the
+  credential's generation, which Allow and the call itself check again. An approval waits as a
+  question does (`kind in [QUESTION, APPROVAL]`), the turn's other calls running beside it, as David
+  chose. A call that started is never made again: one cut off is finished as interrupted
+- A continuation carrying an allowed call stores no entry: `ContinueConversationRunWithCalls` starts
+  its run with its results, and the worker makes the calls, then stores the turn's results and
+  anchors the run on them (`StoreConversationToolResults`' `$anchorPosition`), so a Retry keeps the
+  call. A send denies the approvals waiting and answers an allowed call never run, each by a list it
+  names
+- The conversation domain's tests run against `createConversationDatabaseFake`, the backend
+  connector's conversation operations over tables in memory, holding the modules' fake as `modules`
+  and the integrations' as `integrations`; a test bringing its own runners passes
+  `connectTestModules(runners)`. `bun run check:conversation-runs` and `check:conversation-search`
+  check the same conditions against the emulators: an operation changed is changed in both
 
 ### The page
 
 - The dock's windows are each member's in each organization, kept by `_ConversationDockProvider`
-  under one persisted key, each set under `${userId}:${organizationId}`, since the key a persisted
-  state reads is read once. A minimized window reads nothing but `GetDockConversations`, the
-  conversations the windows hold, at most 20, which refreshes on every mutation that changes a
-  conversation's title, `activeRunId`, `unreadCount` or `isAwaitingAnswer`, or whether it is there:
-  a new one joins its refreshes, or a minimized window's count stands still. An open window draws
-  the page's own thread and composer, which mark replies read as the page does. A composer's message,
-  its mentions, its files, where its send stands and the run the reader last started are kept by account,
-  organization and conversation for the life of the tab (`~data/conversationComposerDrafts`) and shared by every view
-  drawing it, so a conversation drawn again, on its page or in a window, carries on where it was:
-  anything new a message holds goes there too, never in a view's own state. A file's upload is the
-  tab's, not a composer's: it runs in `~data/conversationAttachmentUploads`, three at a time, and
-  writes how far it has gone into the draft it was added to, so it goes on wherever the
-  conversation is drawn, and removing the file anywhere stops it.
-  A question's answer under way is kept the same way (`~data/conversationQuestionAnswers`), and
-  anything else a reader has under way in a conversation joins them on `createTabStore`
-- A conversation's thread scrolls the window on its page, and a box of its own in a dock's window,
-  `scrollerRef`: whatever scrolls the thread, or measures what the reader sees of it, takes that
-  box, through `readConversationViewport` and `scrollConversationToEnd`, never `window` directly
+  under one persisted key, by `${userId}:${organizationId}`. A minimized window reads only
+  `GetDockConversations`, which refreshes on every mutation that changes a conversation's title,
+  `activeRunId`, `unreadCount`, `isAwaitingAnswer` or existence: a new one joins its refreshes
+- A composer's message, mentions, files, send state and last run are kept per account, organization
+  and conversation for the tab's life (`~data/conversationComposerDrafts`), shared by every view
+  drawing it, so anything new a message holds goes there, never in a view's state. An upload is the
+  tab's (`~data/conversationAttachmentUploads`, three at a time), an answer under way too
+  (`~data/conversationQuestionAnswers`), and anything else a reader has under way joins them on
+  `createTabStore`
+- A thread scrolls the window on its page and a box of its own in a dock window, `scrollerRef`:
+  scroll or measure it through `readConversationViewport` and `scrollConversationToEnd`, never
+  `window`
 
-A subagent has no page of its own. Its address sends the reader to its parent's page with its work
-open over it, `?subagent=<hyphenated id>` (`ConversationSubagentBouncer`, under
-`ConversationBouncer`), before anything of the page draws, so no composer or title ever shows for
-one. View work pushes that search as a step of the history, with `isFromConversationThread` in its
-state, so Back closes the viewer and closing it steps back, as a task's dialog does over the board.
+A subagent has no page of its own: its address opens its parent's page with its work over it,
+`?subagent=<hyphenated id>` (`ConversationSubagentBouncer`), before anything of the page draws. View
+work pushes that search as a step of the history, with `isFromConversationThread` in its state, so
+Back closes the viewer.
 
 ## Module conventions
 

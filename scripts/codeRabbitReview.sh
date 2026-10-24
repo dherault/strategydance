@@ -29,18 +29,19 @@ EOF
   exit 64
 }
 
-# The commit the round reviews. A checkout on the pull request's branch waits for its own HEAD, since
-# GitHub can still name the previous head for a moment after a push, and a wait that read it would
-# return that round's review again. Any other checkout takes the pull request's head as it is
+# The commit the round reviews. A checkout on the pull request's branch waits for what it last pushed,
+# `@{push}`, since GitHub can still name the previous head for a moment after a push, and a wait that
+# read it would return that round's review again. Its HEAD would not do: the loop commits fixes before
+# pushing them. Any other checkout takes the pull request's head as it is
 expected_head() {
-  local branch head
+  local branch
   branch=$(gh pr view "$1" --repo "$REPOSITORY" --json headRefName --jq .headRefName)
 
-  if [ "$(git branch --show-current)" = "$branch" ]; then
-    git rev-parse HEAD
-  else
-    gh pr view "$1" --repo "$REPOSITORY" --json headRefOid --jq .headRefOid
+  if [ "$(git branch --show-current)" = "$branch" ] && git rev-parse --verify --quiet '@{push}'; then
+    return 0
   fi
+
+  gh pr view "$1" --repo "$REPOSITORY" --json headRefOid --jq .headRefOid
 }
 
 # Where CodeRabbit stands on <head>, read from the `CodeRabbit` commit status it writes there
@@ -66,7 +67,7 @@ review_state() {
     const at = timestamp => Date.parse(timestamp)
 
     if (PULL_REQUEST_HEAD !== EXPECTED_HEAD) {
-      console.log(`waiting the pull request names ${PULL_REQUEST_HEAD.slice(0, 7)}, not ${EXPECTED_HEAD.slice(0, 7)}: push it first`)
+      console.log(`waiting the pull request names ${PULL_REQUEST_HEAD.slice(0, 7)}, not ${EXPECTED_HEAD.slice(0, 7)}, which this checkout pushed`)
       process.exit()
     }
 

@@ -2,7 +2,7 @@
 
 | # | Milestone | Packages | Depends on | Implementation PR |
 | --- | --- | --- | --- | --- |
-| M1 | Money, payments and the budget's computations | core | | |
+| M1 | Money, payments and the budget's computations | core | | #249 |
 | M2 | Exchange rates | database, core, backend, root | M1 | |
 | M3 | The budget's tables and the receipts' routes | database, core, backend, root | M1 | |
 | M4 | The chart | design-system, root | | |

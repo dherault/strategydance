@@ -539,237 +539,138 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
 
 ## Backend conventions
 
-`packages/strategydance-backend` follows sunshine's backend, trimmed: one router per resource
-in `routes/`, the Express middleware in `middleware/`, what a route does in `domain/`, helpers
-in `utils/`, one concern per file.
+`packages/strategydance-backend` follows sunshine's backend, trimmed: one router per resource in
+`routes/`, the Express middleware in `middleware/`, what a route does in `domain/`, helpers in
+`utils/`, one concern per file.
 
-- Rich text, its Yjs helpers and its Markdown come from the design system's `lib/`, imported by
-  their exported paths, `strategydance-design-system/lib/*`, never a component, and `yjs` at the
-  design system's range, so one copy resolves: the helpers test their Yjs types with `instanceof`.
-  The backend's `tsc` follows those modules into the editor's block specs, which build elements
-  with `document` in functions only an editor on a page calls, so its `lib` takes DOM, and the
-  emails' with it, so the two still agree
-- Every answer is the `ApiResponse` envelope from strategydance-core, and every refusal goes
-  through `respondError` with an `ERROR_CODE_*` from there, so the web app reads one shape. It
-  calls the backend through `requestApi` in `~data/api`, which throws an `ApiError`, carrying the
-  answer's `Retry-After` as `retryAfterMs`, which the backend's `cors` exposes. A file goes up
-  through `uploadApiFile`, on `XMLHttpRequest`, since `fetch` tells nothing of a body on its way,
-  and its bytes come back through `requestApiFile`: never an `<img>` pointed at the backend, which
-  carries no token
-- No body parser is applied app wide. A route parses its own, then runs `appCheckMiddleware`,
-  `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`.
-  A route taking a file parses last instead, after `organizationAdministratorMiddleware` or
-  whatever says the caller may send it, so nobody else gets megabytes buffered. The worker's
-  internal routes run neither App Check nor the token's check: Cloud Run's invoker check guards
-  them, as the next bullets say
-- The same image runs as two services, built by `createApp` in `src/app.ts`. The backend,
-  `strategydance-backend`, mounts every route but the internal ones. The worker,
-  `strategydance-worker`, started with `SERVICE=worker` (`IS_WORKER`), mounts `routes/internal.ts`
-  at `/internal` and nothing else, so neither answers the other's routes. A route Cloud Tasks or
-  Cloud Scheduler calls goes in `routes/internal.ts`, never beside the backend's
-- The worker is private where the backend is public: its invoker check stays on, and
-  `conversation-tasks@strategydance.iam.gserviceaccount.com`, the account Cloud Tasks and Cloud
-  Scheduler call it as with an OIDC token, is the one account granted `roles/run.invoker` on it,
-  on the service alone, never on the project. Anybody holding Cloud Run's invoke permission across
-  the project can call it too, as they can any service there: its owners, and `deployer` through
-  `roles/run.admin`. Cloud Run refuses everybody else before the code runs, a caller with no token
-  included, so no internal route verifies a token by hand. On the public backend it would have to,
-  and a run of up to fifteen minutes would share its instances and its timeout. The worker's
-  timeout is fifteen minutes and its concurrency four; the backend keeps Cloud Run's defaults. Its
-  address is Cloud Run's deterministic one, `WORKER_URL`, which is also the token's audience
-- Credentials are Application Default Credentials: nothing is stored, and on Cloud Run the
-  service's own account needs `roles/firebasedataconnect.dataAdmin`, which runs reads and writes
-  but cannot change the schema, and `roles/storage.objectAdmin` on the bucket. For conversations'
-  runs it also needs `roles/cloudtasks.enqueuer` and `roles/cloudtasks.viewer` (a queued run's
-  task is looked up, which the enqueuer role cannot), and `roles/iam.serviceAccountUser` on
-  `conversation-tasks`, which a task carrying that account's token takes. Both services run as
-  it. In development `dev:backend` points Auth, Data Connect and Storage at the emulators, and
-  App Check is skipped, as the emulators skip it
-- The service is public, and `deploy` makes it so with `--no-invoker-iam-check`, never
-  `--allow-unauthenticated`. The project sits in the strategydance.com organization, whose
-  domain restricted sharing refuses the `allUsers` member that flag grants. Turning the invoker
-  check off lets anybody call the service without widening its IAM policy; what guards a route
-  is its own middleware, App Check and the caller's ID token
-- The organization also withholds the Editor role Google used to hand default service
-  accounts. `deploy` builds on Cloud Build as the Compute Engine default service account, which
-  is also the account the service runs as, so it starts with no roles: grant it
-  `roles/run.builder` before the first deploy, beside the Data Connect and Storage roles it needs
-  to run and Secret Manager's accessor role on each secret it reads
-- A push to `main` deploys the backend and the worker with the rest of the release, by running
-  `bun run deploy:backend`, as [What a merge into `main` deploys](#what-a-merge-into-main-deploys)
-  says. `.gcloudignore` leaves out `gha-creds-*.json`, the credentials file the job writes into
-  the workspace, which the upload would otherwise carry into the image
-- Organizations' logos and banners are the backend's to write, since only an administrator may
-  and a Storage rule cannot read who administers what. It stores each under a fresh name with
-  its own download token, writes that URL to the row, and deletes the file the row pointed at
-  before. `storage.rules` grants clients nothing under `organizations/`
-- A logo arrives as a form, with the thumbnail the page drew of it (`createImageThumbnail`, fitted
-  inside `THUMBNAIL_SIZE`), and is stored beside it as `logoThumbnailUrl`. A profile picture's
-  thumbnail is the page's to write, beside the picture in Storage, as `imageThumbnailUrl`. The
-  organization switcher, the user menu and the task board's faces draw the thumbnail and fall back to
-  the picture, which is all a picture from before thumbnails, or from Google, has. The team's query
-  selects it for the board; the other small faces, a team member's on the team page, a Today
-  identity's and a document's presences, still draw the picture, until they draw it too
-- So are the pictures of documents' text, which any member may put in, under
-  `organizations/<id>/rich-text/`. Nothing deletes one before its organization is: the text points
-  at it by its URL alone, and an undo or another tab can bring a deleted picture back
-- So are the revisions of documents' text, which any member reads and goes back to, through
-  `routes/knowledge.ts`, mounted at `/organizations/:organizationId/knowledge`: which of a
-  conversation's edits an Undo can still take back, read from each document's text as it stands,
-  and a restore, written back as a difference. Both merge a whole document's text in the instance,
-  so a member makes 60 in ten minutes at most (`knowledgeRevisionRateLimitMiddleware`)
-- So are the files sent in conversations, which the backend serves itself (`GET
-  …/attachments/:attachmentId`), checking the reader is still a member, so none has a download
-  token. An upload streams its body into Storage under `pending/{organizationId}/{userId}/{id}`,
-  create-only, through a check of its signature and its declared `Content-Length`; a send copies it
-  to `organizations/{organizationId}/users/{userId}/conversations/{conversationId}/{id}`. Every id
-  in an object's name is canonical (`toCanonicalUuid`), never the route's spelling, so a retry
-  finds the same object. `conversationAttachmentStorage` is the one module that touches the bucket
-  for them, and a test that mocks `~firebase` without `bucket` mocks it instead, with
-  `createAttachmentStorageFake`
-- An upload reads its file back from Storage one at a time in the instance, then collects the heap
-  whole (`Bun.gc(true)`): Bun collects the buffers a read-back leaves late, and twenty files of 10
-  MiB at once took a backend past Cloud Run's 512 MiB otherwise. `bun run
-  load:conversation-attachments <email>`, in the backend's package, is the check, against a local
-  backend: run it after changing what an upload reads, holds or sends
+- Rich text, its Yjs helpers and its Markdown come from the design system's `lib/`
+  (`strategydance-design-system/lib/*`), never a component, with `yjs` at the design system's range
+  so one copy resolves, since the helpers test their types with `instanceof`. The backend's `tsc`
+  follows them into code that builds elements, so its `lib` takes DOM, and the emails' with it
+- Every answer is strategydance-core's `ApiResponse` envelope, and every refusal goes through
+  `respondError` with an `ERROR_CODE_*`. The web calls the backend through `requestApi` in
+  `~data/api`, which throws an `ApiError` carrying `Retry-After` as `retryAfterMs`. A file goes up
+  through `uploadApiFile`, on `XMLHttpRequest` for its progress, and comes back through
+  `requestApiFile`, never an `<img>` pointed at the backend, which carries no token
+- No body parser is applied app wide: a route parses its own, then runs `appCheckMiddleware`,
+  `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`. A
+  route taking a file parses last, after whatever says the caller may send it
+- The image runs as two services, built by `createApp` in `src/app.ts`: the public backend,
+  `strategydance-backend`, and the private worker, `strategydance-worker` (`SERVICE=worker`,
+  `IS_WORKER`), which mounts `routes/internal.ts` at `/internal` and nothing else. A route Cloud
+  Tasks or Cloud Scheduler calls goes there
+- The worker keeps Cloud Run's invoker check, `conversation-tasks@strategydance.iam.gserviceaccount.com`,
+  the account Cloud Tasks and Cloud Scheduler call it as, holding `roles/run.invoker` on it alone, so
+  no internal route verifies a token by hand. Its timeout is fifteen minutes and its concurrency
+  four, and its address is Cloud Run's deterministic one, `WORKER_URL`, also the token's audience
+- Credentials are Application Default Credentials. Both services run as the Compute Engine default
+  service account, which also builds them and, since the organization withholds the Editor role,
+  needs `roles/run.builder`, `roles/firebasedataconnect.dataAdmin`, `roles/storage.objectAdmin` on
+  the bucket, `roles/cloudtasks.enqueuer` and `roles/cloudtasks.viewer`,
+  `roles/iam.serviceAccountUser` on `conversation-tasks`, and Secret Manager's accessor role on each
+  secret it reads. `dev:backend` points at the emulators and skips App Check
+- `deploy` makes the backend public with `--no-invoker-iam-check`, never `--allow-unauthenticated`,
+  whose `allUsers` the organization's domain restricted sharing refuses: each route's middleware
+  guards it. A push to `main` deploys both services, and `.gcloudignore` leaves the job's
+  `gha-creds-*.json` out of the image
+- What only an administrator or a member may store is the backend's to write, since a Storage rule
+  cannot read who administers what: `storage.rules` grants clients nothing under `organizations/`
+  - An organization's logo or banner is stored under a fresh name with its own download token, the
+    file before it deleted. A logo arrives with the thumbnail the page drew
+    (`createImageThumbnail`), stored as `logoThumbnailUrl`, and a profile picture's thumbnail is the
+    page's to write, as `imageThumbnailUrl`. The small faces draw the thumbnail and fall back to
+    the picture
+  - A picture of a document's text, under `organizations/<id>/rich-text/`, goes only with its
+    organization: an undo or another tab can bring a deleted one back
+  - A conversation's file has no download token: the backend serves it (`GET
+    …/attachments/:attachmentId`), checking the reader is still a member. An upload streams into
+    `pending/{organizationId}/{userId}/{id}`, create-only, through a check of its signature and
+    `Content-Length`, and a send copies it under its conversation. Every id in an object's name is
+    canonical (`toCanonicalUuid`). `conversationAttachmentStorage` is the one module touching the
+    bucket for them, and a test that mocks `~firebase` mocks it with `createAttachmentStorageFake`
+  - An upload reads its file back one at a time, then collects the heap whole (`Bun.gc(true)`), or
+    twenty files of 10 MiB take a backend past Cloud Run's 512 MiB: run `bun run
+    load:conversation-attachments <email>`, in the backend's package, after changing what an upload
+    reads, holds or sends
+- Documents' revisions are read and restored through `routes/knowledge.ts`, which merges a whole
+  document in the instance, so a member makes 60 calls in ten minutes at most
+  (`knowledgeRevisionRateLimitMiddleware`)
 - A request to an address somebody else gave goes through the outbound guard in `utils/`, never
-  `fetch`. `requestOutbound` makes one request: http or https on its own port, https alone where
-  the caller says, a hostname that is no name of this server's own network, every address it
-  resolves to public (`isGloballyRoutableAddress`), the connection pinned to the address checked,
-  and a redirect answered rather than followed. `fetchOutbound`, for a link preview's page or a
-  client ID metadata document, follows redirects through it, each checked again, within a deadline
-  and a byte cap. `createGuardedFetch` is the `fetch` the MCP SDK's client takes to reach an
-  organization's MCP server: https alone, every redirect handed to the SDK, which follows a
-  same-origin one through it again and refuses another, so a key never leaves its server, each
-  request's deadline merged with the operation's, and a streamed body cut at its cap. A refusal names
-  the origin alone, never a path or a query that could hold a key. The server otherwise reaches its
-  metadata server and its own network on anybody's say
+  `fetch`: `requestOutbound`, one request on its own port to public addresses alone
+  (`isGloballyRoutableAddress`), pinned to the address checked, a redirect answered rather than
+  followed; `fetchOutbound`, following redirects through it within a deadline and a byte cap; and
+  `createGuardedFetch`, the MCP SDK's `fetch`, https alone, following a same-origin redirect alone,
+  so a key never leaves its server. A refusal names the origin alone, never a path or a query
 - Every email goes out through `sendEmails` in `domain/email/`, over Resend's batch endpoint, from
-  `david@strategydance.com`. That domain has to stay verified in Resend, and the mailbox has to
-  receive, since the welcome email asks for a reply. The key is the `resend-api-key` secret, read
-  from Secret Manager through `retrieveSecret` in `utils/`, which caches it for the life of the
-  process: the service's account needs Secret Manager's accessor role on it, and a rotated key
-  takes effect with the next revision. A secret read by version, as `oauth-token-secret` is, goes
-  through `retrieveSecretVersion`, which says which version the latest was and keeps each apart
-- Only production sends. Anywhere else `sendEmails` writes the HTML to the OS temp directory and
-  logs its path, and `sendOrganizationInvitationEmails` also logs each invitation's link, which
-  is how an invitation gets accepted locally
-- An organization's MCP servers are its administrators' to change, through `routes/integrations.ts`,
-  mounted at `/organizations/:organizationId/integrations`, each route running
-  `organizationAdministratorMiddleware`, and those that reach a server
-  `integrationRateLimitMiddleware`. What they do is in
-  `domain/integrations/`: `reachIntegration` lists a server's tools through the MCP SDK's client,
-  a 2025 handshake first, or discovers an OAuth server's issuer, which has to offer S256 and a way to
-  register, a server's origin taken as its authorization server only when every metadata address
-  answered 404. Whatever fails is an `IntegrationFailure` of one of the database's
-  `IntegrationError` kinds, which a route answers with its own code
-  (`INTEGRATION_FAILURE_ERROR_CODES`), and nothing is saved when a server cannot be reached. A key
-  is encrypted with Cloud KMS in production (`INTEGRATION_KMS_KEY_NAME`, on which the runtime
-  account holds `roles/cloudkms.cryptoKeyEncrypterDecrypter`) and under a fixed local key anywhere
-  else, bound to its organization and server, and read back only to reach the server again. A log
-  or a refusal names a server's origin alone, never what it answered. The routes' tests run against
-  `createIntegrationDatabaseFake` with `reachIntegration` mocked, `bun run check:integrations`
-  checks the operations against the emulators, and `bun run probe:integrations` reaches every
-  server of strategydance-external-mcp-servers through the same code from this machine
+  `david@strategydance.com`, which has to stay verified in Resend and receive mail, since the
+  welcome email asks for a reply. The key is the `resend-api-key` secret, read through
+  `retrieveSecret`, cached for the process, so a rotated key takes effect with the next revision; a
+  secret read by version, as `oauth-token-secret` is, goes through `retrieveSecretVersion`. Only
+  production sends: elsewhere the HTML lands in the OS temp directory and each invitation's link in
+  the log, which is how an invitation is accepted locally
+- An organization's MCP servers are its administrators' to change, through
+  `routes/integrations.ts`, every route behind `organizationAdministratorMiddleware` and those that
+  reach a server behind `integrationRateLimitMiddleware`. `reachIntegration` (`domain/integrations/`)
+  lists a server's tools or discovers an OAuth server's issuer, and nothing is saved when a server
+  cannot be reached. A failure is an `IntegrationFailure` of one of the database's
+  `IntegrationError` kinds, answered with its code (`INTEGRATION_FAILURE_ERROR_CODES`). A key is
+  encrypted with Cloud KMS in production (`INTEGRATION_KMS_KEY_NAME`), under a fixed local key
+  elsewhere, bound to its organization and server. A log or a refusal names a server's origin alone,
+  never what it answered. The routes' tests run against `createIntegrationDatabaseFake`, `bun run
+  check:integrations` checks the operations, and `bun run probe:integrations` reaches every
+  catalogued server
 - Any member connects their own account to an OAuth server through the same router's
-  `…/:integrationId/connection` routes, `organizationMemberMiddleware` in place of the administrator's:
-  start, finish, cancel and disconnect. Strategy Dance is the OAuth client there, every request to the
-  server and its authorization server through `createIntegrationFetch`, the guarded fetch, and the MCP
-  SDK's `registerClient`, `startAuthorization`, `exchangeAuthorization` and `refreshAuthorization`,
-  never its `auth()`: the client presented is Strategy Dance's client ID metadata document,
-  `GET /integrations/oauth/client`, where the authorization server reads such documents and the
-  backend is https, else the dynamic registration recorded on its row, the first recorded when two
-  members' first Connects register at once, the other left unused. The
-  authorization server's callback, `GET /integrations/oauth/callback` on the public backend
-  (`routes/integrationOAuth.ts`), finds the Connect by its state's hash, keeps the code encrypted for
-  two minutes and always answers a 303 to the app's page, which finishes it as the signed-in member:
-  the code is exchanged for the account that started the Connect alone, so a sign-in somebody else
-  started and sent connects nothing (OAuth CSRF). A token is read through
-  `readIntegrationAccessToken`, refreshed under the connection's lease, and goes to the address of the
-  revision it was given for. The backend logs no code, state, token or anything a server answered,
-  the development logger leaving the callback's query out; Cloud Run's own request log keeps the
-  callback's address, code and state with it, unless the exclusion of setup step 12 in
-  conversations.md is in place, the code being worthless without the verifier the Connect keeps
-  encrypted. The flow's tests run the real SDK through the
-  guard against `createIntegrationOAuthServerFake`, an MCP server and its authorization server in
-  memory, with `createIntegrationFetch` mocked to reach it
-- The worker's `POST /internal/sweep`, which Cloud Scheduler calls once a day, removes what is
-  still deleted past its Undo window whether or not anybody comes back: today the conversations
-  deleted over a day ago, claimed first, so a restore refuses them, then deleted in batches, each
-  with what its agent's module calls kept under its scope, `conversation:<id>`
-  (`DeleteConversationModuleCallResults`), since nothing references the conversation from them. It
-  is a conversation's only prune: starting one leaves its author's to it, and `RestoreConversation`
-  refuses one deleted over a day ago whether or not the sweep has run. Each goes with its files,
-  in the Files API and Storage, and their rows, found by the conversation, its author and its
-  organization; one whose files could not all go stays claimed for the next sweep. Then the files
-  uploaded to conversations and never sent, a reservation ten minutes old or a file two days old,
-  and in production the files the Files API holds that no row names, a day old
-  (`pruneConversationAttachments`). Then the
-  board's tasks deleted over a day ago, with their links (`PruneDeletedTasks`), every
-  organization's documents and MCP servers deleted over a day ago, documents' revisions over 30
-  days old (`DeleteExpiredDocumentRevisions`), the servers with their keys and
-  members' connections (`PruneDeletedIntegrations`), members' Connects to them expired over an hour
-  ago (`PruneIntegrationAuthorizations`), the conversation searches over a day old, which
-  no count reads any more, what runs that last spent over a day ago may have cost
-  (`pruneRunSpends`), the module call results past their expiry, and the authorization
-  server's requests expired over a day ago, its tokens past their expiry and the registrations
-  nobody uses (`domain/oauth/prune…`). Before all of them, it reconciles the runs no page
-  reconciled, as the reconcile below does. Each step runs whatever the steps before it met
-  (`runSweepSteps`), and the route answers 500 naming those that failed. A milestone that keeps
-  something deleted, or counted, for a while adds its prune there, idempotent like the rest, so a
-  sweep that failed is finished by the next
-- The worker's `POST /internal/runs-reconcile`, which Cloud Scheduler calls every five minutes,
-  reconciles the runs no page watches: every member's subagent runs past their lease or waiting for
-  a slot (`sweepSubagentRuns`), the runs of members' conversations past their lease
-  (`sweepDeadConversationRuns`), and the reactions to subagents' reports no run's end started
-  (`sweepSubagentReactions`), each step on its own (`runSweepSteps`), each going on past what fails
-  in it and throwing once done when anything did (`SweepIncomplete`), so the route answers 500. A
-  queued run whose task never came is queued again while it is young, and a slot freed is promoted
-  into within minutes. A new kind of run no page watches is reconciled there too
-- The worker's `POST /internal/directories-check`, which Cloud Scheduler calls once a day, checks
-  a day's directories and commits what it found to one rolling pull request into `dev`, from the
-  branch `directories-check`, which only it writes (`publishDirectoryCheck` in
-  `domain/directories/`): it reads the lists at that branch's head, or `dev`'s when no pull request
-  is open, and commits both files at once against the head it read. It reaches GitHub as a GitHub
-  App, its id and private key the `github-app-id` and `github-app-private-key` secrets, minted into
-  an installation token by `domain/github/`, since a pull request opened with Actions' own token
-  runs no CI. It runs the last release's code on `dev`'s lists, so `readDirectoryLists` refuses a
-  field or a value it does not know rather than write the lists back without it. What a run picks,
-  proves and writes, and its setup, are [directories.md](documents/directories.md)'s
-- Strategy Dance's OAuth authorization server, which external agents go through to reach a module
-  as a member, is the public backend's: the protocol's own endpoints in `routes/oauth.ts`
-  (`register`, `authorize`, `token`, `revoke`), the consent page's in `routes/oauthRequests.ts`,
-  the metadata in `routes/wellKnown.ts`, and what they do in `domain/oauth/`. The protocol's
-  endpoints answer OAuth's own JSON (`respondOAuthError`), a page or a redirect, never
-  `ApiResponse`, carry no App Check, which no client could, answer any origin without credentials
-  (`OAUTH_PROTOCOL_PATHS`, which the app's `cors` reads, matched exactly), never log a body, and
-  find tokens by their hash. Each is metered per address, registration and authorization capped in
-  all too, the token and revocation endpoints generously, since a hosted client calls them for
-  every member from a few addresses of its own. The consent page's routes keep the app's middleware,
-  App Check and the ID token, and are the only place a client ID metadata document is fetched,
-  once a member has signed in. `createAgentConnectionTokenVerifier` is what a module's endpoint
-  checks a bearer token with. Its tests run against `createOAuthDatabaseFake`, which the modules'
-  fake composes, and `bun run check:oauth`, in the backend's package, goes through the whole flow
-  against the local backend at `API_URL`, both modules' endpoints included, and checks the
-  operations against the emulators: an operation changed is changed in both
-- The modules' endpoints, `routes/modules.ts` mounted at `/mcp` (`MODULES_PATH`) on the public
-  backend alone, serve each module strategydance-core's `SERVED_MODULES` lists at its `MODULES` path, `POST` alone,
-  through the SDK's `toNodeHandler` around the module's handler. They answer MCP's JSON-RPC, never
-  `ApiResponse` (`respondJsonRpcError` for what they refuse before the handler), and carry no App
-  Check, which no external agent can carry: the bearer token is the guard. In order: any other
-  method 405; an `Origin` other than the app's 403 (the SDK's `originValidation`, against DNS
-  rebinding), one without passing; `moduleAddressRateLimitMiddleware`, per address, counting
-  refused calls alone, so made-up tokens cost a bounded number of reads; `requireBearerAuth` with
-  the token verifier and the endpoint's address as `expectedResource`, a 401 naming the module's
-  protected resource metadata; `moduleRateLimitMiddleware`, per connection; then the body, 1 MiB at
-  most, parsed only once the token is verified and handed to the handler whole, `(request,
+  `…/:integrationId/connection` routes, behind `organizationMemberMiddleware`. Strategy Dance is the
+  OAuth client, every request through `createIntegrationFetch`, with the MCP SDK's
+  `registerClient`, `startAuthorization`, `exchangeAuthorization` and `refreshAuthorization`, never
+  its `auth()`. It presents its client ID metadata document (`GET /integrations/oauth/client`) where
+  the server reads one, else the dynamic registration recorded on the server's row. The callback,
+  `GET /integrations/oauth/callback` (`routes/integrationOAuth.ts`), finds the Connect by its state's
+  hash, keeps the code encrypted for two minutes and redirects to the app's page, which finishes it
+  as the signed-in member, for the account that started it alone (OAuth CSRF). A token is read
+  through `readIntegrationAccessToken`, refreshed under the connection's lease. Nothing logs a code,
+  state, token or server's answer, though Cloud Run's request log keeps the callback's query unless
+  step 12 of conversations.md's setup excludes it. The tests run the real SDK against
+  `createIntegrationOAuthServerFake`
+- The worker's `POST /internal/sweep`, daily, first reconciles the runs nobody did, then removes
+  what stays deleted past its Undo window and prunes what expires: conversations deleted over a day
+  ago, claimed first and deleted with their files and module call results; files never sent; the
+  board's deleted tasks; deleted documents and MCP servers; revisions over 30 days old; and the
+  expired Connects, searches, run spends, call results and the authorization server's requests and
+  tokens. Each step runs whatever failed before it (`runSweepSteps`), and the route answers 500
+  naming the failures. Something kept deleted, or counted, for a while adds its idempotent prune
+  there
+- The worker's `POST /internal/runs-reconcile`, every five minutes, reconciles the runs no page
+  watches: subagent runs past their lease or waiting for a slot (`sweepSubagentRuns`), members' runs
+  past their lease (`sweepDeadConversationRuns`), and reactions no run's end started
+  (`sweepSubagentReactions`), each going on past its failures and throwing `SweepIncomplete` once
+  done. A new kind of run no page watches is reconciled there too
+- The worker's `POST /internal/directories-check`, daily, commits a day's check to one rolling pull
+  request into `dev`, from `directories-check`, which only it writes (`publishDirectoryCheck`). It
+  reaches GitHub as a GitHub App (`github-app-id`, `github-app-private-key`, through
+  `domain/github/`), since a pull request opened with Actions' token runs no CI, and
+  `readDirectoryLists` refuses a field or value it does not know.
+  [directories.md](documents/directories.md) has the rest
+- Strategy Dance's OAuth authorization server, which external agents reach a module through, is the
+  public backend's: `routes/oauth.ts` (`register`, `authorize`, `token`, `revoke`), the consent
+  page's `routes/oauthRequests.ts`, `routes/wellKnown.ts`, and `domain/oauth/`. The protocol's
+  endpoints answer OAuth's own JSON (`respondOAuthError`), carry no App Check, answer any origin
+  without credentials (`OAUTH_PROTOCOL_PATHS`, matched exactly), never log a body, find tokens by
+  their hash, and are metered per address. A client ID metadata document is fetched only by the
+  consent page's routes, once a member has signed in. A module's endpoint checks its token with
+  `createAgentConnectionTokenVerifier`. The tests run against `createOAuthDatabaseFake`, and `bun
+  run check:oauth` goes through the whole flow against the local backend: an operation changed is
+  changed in both
+- The modules' endpoints, `routes/modules.ts` at `/mcp` (`MODULES_PATH`) on the public backend,
+  serve each of strategydance-core's `SERVED_MODULES`, `POST` alone, through the SDK's
+  `toNodeHandler`, answering JSON-RPC (`respondJsonRpcError` before the handler) and carrying no App
+  Check: the bearer token is the guard. In order: 405 on another method; 403 on an `Origin` other
+  than the app's (`originValidation`); `moduleAddressRateLimitMiddleware`, counting refusals alone;
+  `requireBearerAuth` with the endpoint's `expectedResource`; `moduleRateLimitMiddleware`; then the
+  body, 1 MiB at most, parsed only once the token is verified and handed over whole, `(request,
   response) => nodeHandler(request, response, request.body)`, since the parser consumed the stream.
-  They answer the app's origins
-  alone, no browser client being served yet. Each served module's protected resource metadata (RFC
-  9728) is `routes/moduleMetadata.ts`, the SDK's `mcpAuthMetadataRouter` mounted at the app's root,
-  since its path ends with the module's, never under `/mcp`, and answers any origin, its path in
-  `OAUTH_PROTOCOL_PATHS`. A client of a 2025 revision is served statelessly, over SSE, as the SDK's
-  fallback answers it
+  Each module's protected resource metadata is `routes/moduleMetadata.ts`, mounted at the app's root,
+  its path in `OAUTH_PROTOCOL_PATHS`. A 2025 client is served statelessly over SSE
 
 ## Conversation conventions
 

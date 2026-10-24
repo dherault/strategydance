@@ -176,197 +176,132 @@ ends.
 
 ### No manual memoization
 
-The React compiler is on, so it memoizes components and values itself. Never write
-`useCallback` or `useMemo`: a hand-written memo is now noise the compiler has to see past, and
-the repo has none.
+The React compiler memoizes components and values itself, so never write `useCallback` or
+`useMemo`: the repo has none. `useRef` and `useState`'s lazy initializer stay.
 
-`useRef` is not a memo and stays. `useState`'s lazy initializer stays.
+`.oxlintrc.json` turns the compiler's diagnostics on as `react/*` rules (`purity`, `immutability`,
+`set-state-in-render` and the rest), which report at lint time what it would refuse to optimize.
 
-`.oxlintrc.json` turns on the compiler's own diagnostics as `react/*` rules: `purity`,
-`immutability`, `memo-dependencies`, `set-state-in-render`, `no-deriving-state-in-effects` and
-the rest. They report what the compiler would refuse to optimize, which is worth knowing at
-lint time rather than as quietly missing memoization.
-
-The one friction is oxlint's `react-hooks(exhaustive-deps)`, which reads the source rather than
-the compiler's output and so cannot tell that a plain function in a component body is stable.
-It fires when such a function appears in a dependency array. Restructure rather than reaching
-for `useCallback`: define the function inside the effect that uses it, or have the effect call
-the underlying stable thing (a mutation from a hook, a setter) directly.
+oxlint's `react-hooks(exhaustive-deps)` reads the source rather than the compiler's output, so it
+flags a plain function of a component's body in a dependency array. Restructure rather than reach
+for `useCallback`: define the function inside the effect, or have the effect call the stable thing
+(a mutation from a hook, a setter) directly.
 
 ### One concern, one file
 
 A hook, a context, a provider, a waiter and a bouncer are five kinds of thing, and each gets its
-own file. Never two in one module, even when one is three lines long.
+own file, however short.
 
 | Kind | Where | Named |
 | --- | --- | --- |
-| Context | `src/contexts/`, flat | `XContext.ts`, named for its domain: `ChatHomeContext`, not `HomeContext`. The prefix is what says which domain a generic name belongs to |
+| Context | `src/contexts/`, flat | `XContext.ts`, named for its domain: `ChatHomeContext`, not `HomeContext` |
 | Provider | `src/components/<domain>/` | `_XProvider.tsx`; the leading underscore sorts it to the bottom of the listing |
 | Hook | `src/hooks/<domain>/` | `useX.ts`, default-exported, one per file, under the same domain as its provider |
 | Waiter | `src/components/<domain>/` | `XWait.tsx` — renders `<Loading />` until its data lands, then passes `children` through. Gates, never decides |
 | Bouncer | `src/components/<domain>/` | `XBouncer.tsx` — turns a resolved verdict into a screen or a redirect, or passes `children` through. Decides, never waits |
 
-The order between a waiter and a bouncer is load-bearing: **a waiter sits above the bouncer that
-reads the same data**, or the bouncer judges a value that has not loaded. One concern per file is
-what makes that order auditable in a diff.
-
-`IntlMessagesRegistration` is a waiter under another name, parameterized by the catalogues it
-waits on.
+**A waiter sits above the bouncer that reads the same data**, or the bouncer judges a value that
+has not loaded. `IntlMessagesRegistration` is a waiter parameterized by the catalogues it waits on.
 
 ### Where a provider is mounted
 
-Providers go in `getRouter`'s `Wrap` in `src/router.tsx`. Waiters and bouncers do not. A provider
-that reads the router goes in `InnerWrap` beside it, which is inside the router's context and
-still above the document shell: `_CurrentOrganizationProvider`, which reads the organization off
-the path, and `_ConversationDockProvider` inside it, which reads the current organization.
-
-`Wrap` sits above the document shell, so anything mounted there that withholds its children
-replaces the whole document, `<Scripts />` included. The page then has no client bundle to boot
-from and keeps whatever the server rendered, forever. Anything that gates belongs inside the
-document, in `__root.tsx`'s `component` or below it.
+Providers go in `getRouter`'s `Wrap` in `src/router.tsx`, and one that reads the router in
+`InnerWrap` beside it, as `_CurrentOrganizationProvider` and `_ConversationDockProvider` do. Waiters
+and bouncers never go there: `Wrap` sits above the document shell, so anything there that withholds
+its children replaces the whole document, `<Scripts />` included, and the page never boots.
+Anything that gates belongs in `__root.tsx`'s `component` or below.
 
 ### UI comes from the design system
 
-The frontend has no shadcn setup of its own. Buttons, inputs, selects, alerts, the logo and the
-rest come from `strategydance-design-system`, and a primitive it lacks is added there, with a
-story, rather than to `src/components/ui/`. That folder holds only the frontend's glue around
-them: `FormField` for react-hook-form, `TextDivider`.
+The frontend has no shadcn setup of its own: buttons, inputs, the logo and the rest come from
+`strategydance-design-system`, and a primitive it lacks is added there, with a story.
+`src/components/ui/` holds only glue around them, `FormField` for react-hook-form and `TextDivider`.
 
-Text a page writes into a field itself, as a mention's pick does, goes through
-`replaceTextareaRange` in `~utils/common`, which writes it as typing would: a controlled field's
-`onChange` reads it, the caret lands after it, and the browser's undo takes it back, which setting
-its value from state does not. A list a field drives while it keeps the focus, as the mentions' list, is the
-design system's `SuggestionList`.
-
-A field's text is 16px on a touch screen, whatever it is elsewhere. iOS zooms the page into a
-focused input, textarea or editable element whose text is smaller, and leaves it zoomed.
-`inputClassName` carries `pointer-coarse:text-base`, so a field built on it has it; one that is
-not, like the `MultiSelect`'s search, the editor and its link field, sets it itself, as must a
-field that opens over text set smaller. Never put `maximum-scale=1` in the viewport instead:
-Android then refuses the pinch zoom people read by.
-
-Oswald, the display face, hangs its descenders 0.24em below its baseline, below the line box of
-the tight leading it is set at, so a box that clips its overflow cuts them off. The design system's
-`index.css` keeps their room in one place, `--descender-room`, worked out from the size and line
-height of whatever element reads it, and hands it out three ways. An h1 to h3, or anything in
-`font-display` or `font-heading`, that clips itself, as a field, a clamp or a truncated line does,
-gets it automatically, and takes no bottom margin of its own. A box that clips display text it does
-not set, as a card's wrapper does, takes the `descender-room` utility. `RichText` keeps a final
-heading's room inside itself. FitText counts its own as it fits. A descender cut anywhere else is a
-gap in that rule to widen in `index.css`, never a padding added to one element: the Typography page
-in Storybook shows each case.
-
-Strings stay in the frontend's catalogues. A design-system component that names itself in
-English, like the spinner's "Loading", gets its label from `react-intl` where the frontend uses
-it: `~components/common/Spinner` is the design system's spinner with that label. The one
-exception is BlockNote's menus, dozens of strings that BlockNote translates into every locale the
-app speaks: `RichTextEditor` takes the app's `locale` for them, and only its placeholder and the
-words BlockNote has none for come from a catalogue, through `labels`: the block menu's "Turn into",
-which every caller passes (`log.editorTurnInto` is the label's), and the video's and the link
-preview's words, which the knowledge editor passes.
-
-shadcn's combobox is Base UI's, so the `MultiSelect` runs on `@base-ui/react` beside Radix, and
-its popup is a stranger to Radix's layers. A modal Radix dialog traps focus, disables pointer
-events and hides from assistive technology everything outside itself, and dismisses on any Escape
-that reaches the document. The `MultiSelect` portals its list into the dialog around its trigger
-and claims Escape while the list is open. A Base UI popup added later needs both, and a story
-inside a `Dialog` to show it works there. BlockNote's shadcn menus are Base UI's too: they portal
-into the editor, and `RichTextEditor` claims Escape while one is open and floats its toolbar over
-the selection on touch screens too, since BlockNote's mobile toolbar portals to the body.
+- Text a page writes into a field itself, as a mention's pick does, goes through
+  `replaceTextareaRange` in `~utils/common`, so `onChange`, the caret and the browser's undo take it
+  as typing. A list a field drives while it keeps the focus is the design system's `SuggestionList`
+- A field's text is 16px on a touch screen, or iOS zooms into it and stays zoomed. `inputClassName`
+  carries `pointer-coarse:text-base`, and a field not built on it, like the `MultiSelect`'s search,
+  the editor and its link field, sets it itself. Never put `maximum-scale=1` in the viewport:
+  Android then refuses the pinch zoom
+- Oswald hangs its descenders below the line box of its tight leading, so a box that clips its
+  overflow cuts them off. The design system's `index.css` keeps their room in one place,
+  `--descender-room`: an h1 to h3, or text in `font-display` or `font-heading`, that clips itself
+  gets it automatically, a box that clips display text it does not set takes the `descender-room`
+  utility, and `RichText` and FitText count their own. A descender cut elsewhere is a gap to widen
+  in `index.css`, never a padding on one element: the Typography page in Storybook shows each case
+- Strings stay in the frontend's catalogues. A design-system component that names itself in English
+  gets its label from `react-intl` where the frontend uses it, as `~components/common/Spinner`
+  labels the spinner. BlockNote's menus are the exception, translated by BlockNote: `RichTextEditor`
+  takes the app's `locale`, and only its placeholder and the words BlockNote lacks come through
+  `labels`, the block menu's "Turn into" (`log.editorTurnInto`), which every caller passes, and the
+  knowledge editor's video and link preview words
+- A Base UI popup is a stranger to Radix's layers: a modal Radix dialog traps focus, disables
+  pointer events outside itself and dismisses on any Escape. The `MultiSelect` portals its list into
+  the dialog around its trigger and claims Escape while open, and a Base UI popup added later needs
+  both, with a story inside a `Dialog`. BlockNote's menus are Base UI's too: they portal into the
+  editor, `RichTextEditor` claims Escape while one is open, and it floats its toolbar over the
+  selection on touch screens, since BlockNote's mobile toolbar portals to the body
 
 ### The design sync
 
 The Strategy Dance Design System project in Claude Design
-(`https://claude.ai/design/p/61b2a9b3-1ee3-4661-a21d-a0b400b517f7`) holds the design system's own
-components, which its design agent builds with: one bundle, each component's props, a usage note
-and a preview card. It follows this repository through the `/design-sync` skill of Claude Code,
-which a person starts: it builds the upload from `.design-sync/`, checks every preview against the
-design system's Storybook, and uploads only once the checks pass, after one approval.
-[design-sync.md](documents/design-sync.md) says why it is built as it is, and
-`.design-sync/NOTES.md`, which a sync reads first, how to run it and every quirk met so far.
+(`https://claude.ai/design/p/61b2a9b3-1ee3-4661-a21d-a0b400b517f7`) holds the design system's
+components for its design agent. It follows this repository through the `/design-sync` skill, which
+a person starts, which checks every preview against Storybook and uploads after one approval.
+[design-sync.md](documents/design-sync.md) says why it is built so, and `.design-sync/NOTES.md`,
+which a sync reads first, how to run it.
 
-- Nothing syncs on a merge. A change to the design system reaches the project at the next
-  `/design-sync`, which fetches the project's record, `_ds_sync.json`, checks only the components
-  that changed since it and uploads the difference
-- A component's props and its usage note are written by hand, in `.design-sync/config.json`'s
-  `dtsPropsFor` and in `.design-sync/docs/<Name>.md`, and the agent reads them as the component's
-  API: a change to a component's props or behaviour changes them too. `bun
-  .design-sync/checkNames.ts` catches a prop, a part, a class or a token gone, and `bun
-  .design-sync/runExamples.ts` an example that no longer runs, but neither catches a default or a
-  behaviour that changed
-- A grade follows the story file, never the component's source, so a component that draws
-  differently under the same story keeps its old grade: clear it and grade it again, as
-  NOTES.md says
-- What a sync builds stays local and ignored: the skill's scripts in `.ds-sync/`, the reference
-  Storybook in `.design-sync/sb-reference/`, the previews and grades in `.design-sync/.cache/` and
-  the upload in `ds-bundle/`. A commit under `.design-sync/` is scoped `[root]`
+- Nothing syncs on a merge: the next `/design-sync` checks only what changed since the project's
+  record, `_ds_sync.json`
+- A component's props and usage note are written by hand, in `.design-sync/config.json`'s
+  `dtsPropsFor` and `.design-sync/docs/<Name>.md`, and the agent reads them as its API: a change to a
+  component's props or behaviour changes them too. `bun .design-sync/checkNames.ts` and `bun
+  .design-sync/runExamples.ts` catch a name gone or an example broken, never a changed default or
+  behaviour
+- A grade follows the story file, not the component's source: a component that draws differently
+  under the same story keeps its grade until it is cleared, as NOTES.md says
+- What a sync builds stays local and ignored: `.ds-sync/`, `.design-sync/sb-reference/`,
+  `.design-sync/.cache/` and `ds-bundle/`. A commit under `.design-sync/` is scoped `[root]`
 
 ### Static files
 
-`packages/strategydance-web/public/` is served as-is from the site root, unhashed. Images go
-under `public/assets/images/`, so the logos are at `/assets/images/logo/logo-black.svg` and the
-like, for anything that needs a URL rather than a component, like an email. Inside the app the
-mark is still the design system's `Logo`.
+`packages/strategydance-web/public/` is served as is from the site root, unhashed: images go under
+`public/assets/images/`, so the logos are at `/assets/images/logo/logo-black.svg`, for whatever
+needs a URL, like an email. Inside the app the mark is the design system's `Logo`.
 
-Vite writes its hashed bundles flat into `/assets/`, and `firebase.json` caches them for a year
-as immutable. That rule's source is `/assets/*`, one star, so it stops at that folder: an image
-under `/assets/images/` keeps its name when its content changes, and falls to the one-day image
-rule instead. Widening it to `/assets/**` would pin an edited logo in browsers for a year.
+`firebase.json` caches Vite's hashed bundles, flat in `/assets/`, for a year as immutable. Its
+source is `/assets/*`, one star, so an image under `/assets/images/` keeps the one-day image rule:
+`/assets/**` would pin an edited logo in browsers for a year.
 
 ### Firebase
 
-`src/data/firebase.ts` initializes everything: Auth, App Check, Data Connect, Storage and
-Performance. Nothing else calls `initializeApp`.
+`src/data/firebase.ts` initializes Auth, App Check, Data Connect, Storage and Performance, and
+nothing else calls `initializeApp`.
 
-**Guard anything that touches a browser global.** SPA mode prerenders the document shell in
-Node at build time, and the route tree really is rendered there, so every module a route
-imports is evaluated with no `window`. App Check reads `self`, Performance reads `document`,
-and an emulator connect opens a socket no build should open. That is what the `isBrowser`
-constant in that file is for, and why `appCheck` is nullable.
-
-The config is hardcoded and public by design. An apiKey identifies the project rather than
-authorizing anything; the guards are App Check, `storage.rules`, and the `@auth` level on
-every Data Connect operation.
-
-Development always talks to the emulators, so `bun run dev` wants `bun run dev:emulators`
-beside it. So does `bun run preview`, which starts its own: its bundle is a production build,
-so the `DEV` check cannot carry it, and `VITE_USE_FIREBASE_EMULATORS=true` is what does. A
-local preview that signs people into the real project and writes real rows would be a trap
-rather than a preview.
-
-**A Hosting preview channel, which a pull request gets only when somebody deploys one by hand,
-is the exception, and it writes real data.** There is one Firebase project, so a preview build
-talks to it: signing in on a preview URL creates a real account, and anything it stores is a
-real row. Use a preview to look at what renders, not to exercise sign-up. Isolating it means a
-second project with its own Cloud SQL instance, which is a deliberate decision nobody has taken yet. The App Check debug token prints to the console on first run and has to be
-registered in the Firebase console before a browser can reach the real project; the emulators
-do not enforce App Check, so the usual loop never needs it.
-
-**App Check enforcement is a console setting, not a code one.** Initializing it here attaches
-a token; nothing rejects a request without one until enforcement is switched on per service.
-That matters most for the sign-in screen's `@auth(level: PUBLIC)` email lookup, which
-enumerates registered addresses to any direct caller until it is. Switch it on for Data
-Connect and Storage before the project is reachable from the internet.
-
-**Storage lets another origin read a file only as `storage.cors.json` allows.** A browser shows
-an `<img>` from Storage without it, but reading the bytes, as the build in public page does to
-draw a card as a PNG, takes the bucket's CORS rule. It is a setting on the bucket, which no
-deploy sends: after changing the file, run `gcloud storage buckets update
-gs://strategydance.firebasestorage.app --cors-file=storage.cors.json` as an account that may
-change the bucket. A preview channel's origin is not listed, so an export there draws initials
-where the pictures were. The Storage emulator applies no rule, so development never needs it.
-
-**Storage deletes what waits under `pending/` for two days, as `storage.lifecycle.json` says.** A
-conversation's files wait there between their upload and their send, and the rule is what makes a
-draft never sent cost nothing for long. It is a setting on the bucket too, which no deploy sends:
-after changing the file, run `gcloud storage buckets update gs://strategydance.firebasestorage.app
---lifecycle-file=storage.lifecycle.json` as an account that may change the bucket. The emulator
-applies no lifecycle rule.
-
-**The Storage emulator ignores generation preconditions.** An object written or copied with
-`preconditionOpts: { ifGenerationMatch: 0 }` is create-only in production and overwritten in the
-emulator, so code that relies on one, as a conversation's files do, reads what is there first and
-treats an object found as the precondition would, and its tests simulate the 412 on a fake.
+- **Guard anything that touches a browser global**, with its `isBrowser`: SPA mode prerenders the
+  shell in Node at build time, evaluating every module a route imports with no `window`, which is
+  why `appCheck` is nullable
+- The config is hardcoded and public by design. The guards are App Check, `storage.rules` and the
+  `@auth` level on every Data Connect operation
+- Development always talks to the emulators, `bun run preview` too, through
+  `VITE_USE_FIREBASE_EMULATORS=true`, since its bundle is a production build
+- **A Hosting preview channel writes real data**: there is one Firebase project, so signing in on a
+  preview creates a real account. Look at what renders there, never exercise sign-up. Its App Check
+  debug token, printed on first run, has to be registered in the console first
+- **App Check enforcement is a console setting**, switched on per service. Until it is, nothing
+  rejects a request without a token, and the sign-in screen's `PUBLIC` email lookup enumerates
+  addresses to any caller: switch it on for Data Connect and Storage before the project is public
+- **Storage lets another origin read a file's bytes only as `storage.cors.json` allows**, which the
+  build in public page's PNG export needs. It is a bucket setting no deploy sends: after changing
+  the file, run `gcloud storage buckets update gs://strategydance.firebasestorage.app
+  --cors-file=storage.cors.json`. A preview channel's origin is not listed
+- **Storage deletes what waits under `pending/` after two days**, as `storage.lifecycle.json` says,
+  so a draft's files never sent cost nothing for long. Also a bucket setting: `gcloud storage
+  buckets update gs://strategydance.firebasestorage.app --lifecycle-file=storage.lifecycle.json`
+- **The Storage emulator applies no rule and ignores generation preconditions**: code relying on
+  `ifGenerationMatch: 0`, as a conversation's files do, reads what is there first, and its tests
+  simulate the 412 on a fake
 
 ### The database
 
@@ -649,103 +584,64 @@ not a prune has run, so a day means a day wherever a restore starts.
 
 ### Routing
 
-The authenticated area is the pathless `src/routes/_authenticated.tsx`, so its pages share the
-root with the public ones: `/account` beside `/legal`. A page there takes a name no public page
-has. Two static routes at one path fail the build ("Conflicting configuration paths").
-
-An organization's pages sit under the segment its paths lead with, `$organizationSlug`, as in
-`/strategy-dance-ad34/today`: its slug, or its id while it has none. That dynamic segment is the
-one at the root, and a static route outranks it silently, so an organization whose slug was a
-page's name could never be reached. A slug always ends in a dash and four letters or digits,
-which no page's name does, and `routeTree.test.ts` fails the day one does: name a page at the
-root accordingly. Any other `$param` stays off the root, as the aspects sit under an
-organization's `aspects/`. A first segment that can be neither a slug nor an id is the app's not
-found page, before anything asks the reader to sign in.
-
-The path says which organization is current: `_CurrentOrganizationProvider` reads it, and
-remembers the last one opened for the pages outside any organization, the account and the
-administration, and for `/today`, which stays as the landing every "go home" leads to and sends
-the reader on to that organization's today. A link to an organization's page takes its segment
-from `useCurrentOrganizationSlug`. Switching organization is a navigation, to the same page in the
-other one (`useSwitchOrganization`), a document or a conversation back to its list. A path
-naming an organization the reader is not in is the organization not found page, inside the app's
-frame, and one whose organization goes while its page is open, deleted or the reader removed,
-moves the reader on instead: `CurrentOrganizationBouncer` decides both.
-
-The consent page, `/oauth/consent?request=<id>`, where an external agent's authorization sends the
-member, sits under `_authenticated` outside `_app`, as the invitation page does: the whole screen,
-its own way to log out, and never sent to the prologue, so it says itself when the reader is in no
-organization. `firebase.json` sends `frame-ancestors 'none'` and `X-Frame-Options: DENY` for every
-path under `/oauth`, matched by a case-insensitive regex, since the router ignores case, so a page
-there is never framed by another site dressing Allow up as something else. It reads its request
-once, never again on focus, reconnecting or retry: a read is what has the backend fetch the client's
-metadata document, and a read after the member decided would find the request gone while the
-browser leaves.
-
-The page an OAuth MCP server's sign-in ends on, `/integrations/connected` (`INTEGRATION_CONNECTED_PATH`
-in strategydance-core), where the backend's callback sends the window the Integrations page opened,
-sits under `_authenticated` outside `_app` too, and `firebase.json` gives every path under
-`/integrations` the `/oauth` paths' headers. It finishes the Connect as the reader signed in, then
-says how it went on a `BroadcastChannel` (`INTEGRATION_CONNECTION_CHANNEL`) and closes itself where
-the browser lets it. The page that opened the window (`useIntegrationConnect`) opens it blank inside
-the click, sets its `opener` to null before sending it to the sign-in, an https address alone, takes
-the channel's `connected` as a nudge, since anybody can open the page, and the reader's live
-connection appearing anew as the proof, and never reads the window's `closed`, which an
-authorization server's Cross-Origin-Opener-Policy makes read true while the reader is still in it.
-
-TanStack parses each value of a query as JSON before `validateSearch` sees it, so 32 hex digits
-that happen to be decimal, or decimal around one `e`, arrive as a number that lost its digits. An
-id the backend writes into an address the app reads is hyphenated (`toHyphenatedUuid`), which never
-parses, and `validateSearch` takes a string alone.
-
-No path prefix marks a page as authenticated, so code that needs to know asks the question it
-means: `isAuthenticationPath` in `~utils/authentication` says whether a path is a sign-in
-screen, which is all `parseRedirectPath` and `AuthenticationBouncer` need.
-
-The page a signed-out reader asked for is kept in localStorage, never in the sign-in screen's
-URL: `AuthenticationBouncer` keeps it before sending them to `/authentication`,
-`AuthenticationRedirect` returns them there once they are in, for an hour at most, and the
-bouncer forgets it once a signed-in reader reaches a page of the app. A new way into the app
-from the sign-in screen goes through a page that mounts the bouncer, or the kept page waits for
-whoever signs in next.
-
-An address nothing matches, and a `notFound()` any page throws, render `NotFound` full screen:
-it is the root's `notFoundComponent`, and no other route sets one. The root stays mounted as the
-boundary and shows it in its outlet, so its strings live in `global`, the one catalogue the root
-registers. A route that sets a `notFoundComponent` of its own catches its pages before the root
-does.
-
-The area used to live under `/-/`, and invitation emails sent then still link there, so
-`firebase.json` redirects `/-/<path>` to `/<path>` with a 301. It is a `regex` rather than a
-`:path*` source because the Hosting emulator's `:path*` matches one segment only, and
-`/-/invitation/<id>` has two. Its capture has to start with a letter or a digit: `/-//evil.example`
-would otherwise answer `Location: //evil.example`, which a browser reads as another host.
-
-A `validateSearch` that leaves a key out does not remove it. TanStack lays what it returns over
-the raw query, so `useSearch()` still reads the raw value: a key that fails validation has to be
-overwritten with `undefined`, above all one that is followed, since following an unchecked one
-is how a link sends somebody elsewhere.
-
-`<Navigate>` navigates again whenever its props change. Fed anything that follows the location,
-it redirects to its own redirect: navigate from an effect on the verdict instead, reading the
-location off the router inside it, as `AuthenticationBouncer` does.
+- The authenticated area is the pathless `src/routes/_authenticated.tsx`, so its pages share the
+  root with the public ones and take names none of them has: two static routes at one path fail the
+  build ("Conflicting configuration paths")
+- An organization's pages sit under `$organizationSlug`, its slug or its id while it has none. A
+  static route outranks it silently, so no page at the root may be named like a slug, which always
+  ends in a dash and four letters or digits: `routeTree.test.ts` fails the day one is. Any other
+  `$param` stays off the root. A first segment that can be neither a slug nor an id is the not found
+  page, before anything asks the reader to sign in
+- The path says which organization is current. `_CurrentOrganizationProvider` reads it and
+  remembers the last one, for the pages outside any organization and for `/today`, where every "go
+  home" leads. A link takes its segment from `useCurrentOrganizationSlug`, switching is a navigation
+  to the same page in the other organization (`useSwitchOrganization`), and
+  `CurrentOrganizationBouncer` decides a path naming an organization the reader is not in, or one
+  gone while its page is open
+- The consent page, `/oauth/consent?request=<id>`, and the page an OAuth MCP server's sign-in ends
+  on, `/integrations/connected` (`INTEGRATION_CONNECTED_PATH`), sit under `_authenticated` outside
+  `_app`: full screen, never sent to the prologue. `firebase.json` sends `frame-ancestors 'none'` and
+  `X-Frame-Options: DENY` under `/oauth` and `/integrations`, matched case-insensitively, since the
+  router ignores case. The consent page reads its request once, never again on focus, reconnecting
+  or retry: a read has the backend fetch the client's metadata, and one after the decision finds the
+  request gone
+- `useIntegrationConnect` opens the sign-in window blank inside the click and nulls its `opener`
+  before sending it to an https address. It takes the `BroadcastChannel`'s `connected`
+  (`INTEGRATION_CONNECTION_CHANNEL`) as a nudge and the reader's live connection appearing as the
+  proof, and never reads the window's `closed`, which a Cross-Origin-Opener-Policy makes read true
+- TanStack parses each query value as JSON before `validateSearch` sees it, so 32 hex digits that
+  are decimal arrive as a number: an id the backend writes into an address is hyphenated
+  (`toHyphenatedUuid`), and `validateSearch` takes a string alone
+- A `validateSearch` that leaves a key out does not remove it, since TanStack lays its result over
+  the raw query: overwrite a key that fails with `undefined`, above all one that is followed
+- No path prefix marks a page as authenticated: `isAuthenticationPath` in `~utils/authentication`
+  says whether a path is a sign-in screen
+- The page a signed-out reader asked for is kept in localStorage, never in the sign-in screen's
+  URL: `AuthenticationBouncer` keeps it, `AuthenticationRedirect` returns them there within the
+  hour, and the bouncer forgets it on the next page of the app. A new way in from the sign-in screen
+  goes through a page that mounts the bouncer
+- An address nothing matches, and any `notFound()`, render `NotFound` full screen, the root's
+  `notFoundComponent`, with its strings in `global`, the one catalogue the root registers. A route
+  that sets its own catches its pages first
+- `firebase.json` redirects `/-/<path>` to `/<path>` with a 301, for invitation emails sent when the
+  app lived there: a `regex`, since the Hosting emulator's `:path*` matches one segment, whose
+  capture starts with a letter or a digit, or `/-//evil.example` would send a browser to another host
+- `<Navigate>` navigates again whenever its props change, so fed the location it redirects to its
+  own redirect: navigate from an effect on the verdict, reading the location off the router, as
+  `AuthenticationBouncer` does
 
 ### Internationalization
 
-- User-facing strings go in `src/data/intl/messages/*.ts`, never hardcoded in a component. Ids
-  are dotted `<messageType>.<path>` and unique across every message file
+- User-facing strings go in `src/data/intl/messages/*.ts`, never hardcoded in a component. Ids are
+  dotted `<messageType>.<path>` and unique across every message file
 - A new message type needs its source module, an entry in `MESSAGE_TYPES`, and an
   `IntlMessagesRegistration` on the route that needs it
-- **Never edit `src/data/intl/messages-translated/` by hand.** Those files are written by
-  `bun run translate` and nothing else
-- **Run `bun run translate` whenever a message changes**, and commit the result. It is
-  incremental: `translations.lock.json` records a hash per id, so only genuinely new or edited
-  strings reach Gemini and a no-op run costs nothing. Leaving it for somebody else means the
-  branch ships six locales that silently render English. Commit `translations.lock.json` with
-  the locale files it vouches for; deleting the lock, a locale file, or one entry forces a
-  retranslation
-- **Never write an em dash in a `defaultMessage` or a `description`.** Use a full stop, a comma
-  or a colon. It reads as machine-written, and all six translated locales inherit it
+- **Never edit `src/data/intl/messages-translated/` by hand**: `bun run translate` alone writes it
+- **Run `bun run translate` whenever a message changes**, and commit the locale files with
+  `translations.lock.json`, which records a hash per id, so only new or edited strings reach Gemini.
+  A branch that skips it ships six locales that silently render English
+- **Never write an em dash in a `defaultMessage` or a `description`**: use a full stop, a comma or
+  a colon. It reads as machine-written, and all six locales inherit it
 
 ## Backend conventions
 

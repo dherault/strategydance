@@ -455,3 +455,90 @@ export type ExchangeRateTable = ReadonlyMap<
     readonly rates: readonly number[]
   }
 >
+
+// The budget an administrator set: an amount, in minor units of the currency the Budget computes
+// in, meant to last a month, a quarter or a year
+export type BudgetLimit = {
+  readonly amountMinor: number
+  readonly period: BudgetPeriod
+}
+
+// What a stretch of days pays, in minor units: on or before today, and after it
+export type BudgetSpending = {
+  spent: number
+  expected: number
+}
+
+// Which of today's periods a budget is held to, after the period it was set for
+export type BudgetScope = 'month' | 'quarter' | 'year'
+
+/*
+  Where spending stands against the budget in its own period: over once what was spent passes the
+  limit, warned once what is still expected would take it past, and by how much, with the limit and
+  what is expected
+*/
+export type BudgetStatus = {
+  level: 'over' | 'warn'
+  scope: BudgetScope
+  by: number
+  limit: number
+  expected: number
+}
+
+/*
+  What the Budget page draws, every amount in minor units of the currency it computes in: this
+  month, quarter and year, next month, each month of the year, the recurring bills next month pays,
+  the limits, the status, and the same stretches before, to compare with. `missingRates` names the
+  currencies a payment could not be converted from or to, which the sums leave out
+*/
+export type BudgetSummary = {
+  month: BudgetSpending
+  quarter: BudgetSpending
+  year: BudgetSpending
+  next: number
+  months: (BudgetSpending & { isCurrent: boolean })[]
+  recurringCount: number
+  monthlyLimit: number | null
+  yearlyLimit: number | null
+  status: BudgetStatus | null
+  previous: {
+    monthToDate: number
+    yearToDate: number
+    lastYear: number
+  }
+  missingRates: Currency[]
+}
+
+/*
+  A month, a quarter or a year against the budget, as the Budget module's `read_budget` answers it:
+  its first and last days, what it paid and still expects relative to today, its share of the
+  budget, and what is left of it once what was spent, then also what is expected, is taken off
+*/
+export type BudgetPeriodSummary = BudgetSpending & {
+  from: string
+  to: string
+  limit: number | null
+  left: number | null
+  projectedLeft: number | null
+}
+
+// A month, its quarter and its year against the budget, and the currencies left out
+export type BudgetPeriodsSummary = {
+  month: BudgetPeriodSummary
+  quarter: BudgetPeriodSummary
+  year: BudgetPeriodSummary
+  missingRates: Currency[]
+}
+
+// A payment still to come, converted, or null when its currency has no rate
+export type UpcomingBillPayment<T extends BudgetBill = BudgetBill> = {
+  bill: T
+  day: string
+  amountMinor: number | null
+}
+
+// What a company was paid, converted, under the name its latest bill spells it with
+export type CompanySpending = {
+  company: string
+  amountMinor: number
+}

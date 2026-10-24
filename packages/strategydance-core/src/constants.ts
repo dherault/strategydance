@@ -1,4 +1,4 @@
-import { Locale } from './enums'
+import { type Currency, Locale } from './enums'
 import type { ModuleDefinition, ModuleName, OrganizationImageKind } from './types'
 
 /*
@@ -772,3 +772,53 @@ export const INTEGRATION_CONNECTION_CHANNEL = 'strategydance-integration-connect
   ID token gave, which only the member who connected reads
 */
 export const MAX_INTEGRATION_ACCOUNT_LABEL_LENGTH = 100
+
+/* ---
+  BUDGET
+--- */
+
+/*
+  Each currency's exponent, ISO 4217's: how many digits its minor unit takes after the point. Money
+  is a whole number of minor units, so $312.40 is 31240 and ¥1,500 is 1500. Held here rather than
+  read off `Intl`, whose digits differ between runtimes and would let the page and the module
+  disagree on an amount
+*/
+export const CURRENCIES = {
+  AUD: { exponent: 2 },
+  BRL: { exponent: 2 },
+  CAD: { exponent: 2 },
+  CHF: { exponent: 2 },
+  CNY: { exponent: 2 },
+  CZK: { exponent: 2 },
+  DKK: { exponent: 2 },
+  EUR: { exponent: 2 },
+  GBP: { exponent: 2 },
+  HKD: { exponent: 2 },
+  HUF: { exponent: 2 },
+  IDR: { exponent: 2 },
+  ILS: { exponent: 2 },
+  INR: { exponent: 2 },
+  ISK: { exponent: 0 },
+  JPY: { exponent: 0 },
+  KRW: { exponent: 0 },
+  MXN: { exponent: 2 },
+  MYR: { exponent: 2 },
+  NOK: { exponent: 2 },
+  NZD: { exponent: 2 },
+  PHP: { exponent: 2 },
+  PLN: { exponent: 2 },
+  RON: { exponent: 2 },
+  SEK: { exponent: 2 },
+  SGD: { exponent: 2 },
+  THB: { exponent: 2 },
+  TRY: { exponent: 2 },
+  USD: { exponent: 2 },
+  ZAR: { exponent: 2 },
+} as const satisfies Record<Currency, { readonly exponent: number }>
+
+/*
+  The most minor units an amount may hold. The database stores it as an `Int64`, which the SDK
+  hands over as a string, and the code reads it as a number: 10^15 keeps it an exact integer, far
+  below 2^53, and is still a quadrillion yen
+*/
+export const MAX_MONEY_MINOR = 10 ** 15

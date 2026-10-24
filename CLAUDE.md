@@ -33,9 +33,10 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 
 - `packages/strategydance-web` — TanStack Start in SPA mode, React 19 (with the React compiler),
   Tailwind CSS v4, built by Vite
-- `packages/strategydance-core` — types, enums and constants every package agrees on. Zero
-  runtime dependencies, so it is importable from the browser bundle and from a Node script
-  alike. Keep it that way
+- `packages/strategydance-core` — types, enums and constants every package agrees on, and the
+  Budget's computations, in minor units and `YYYY-MM-DD` days, which its page and module share
+  ([budget.md](documents/budget.md)). Zero runtime dependencies, so it is importable from the
+  browser bundle and from a Node script alike. Keep it that way
 - `packages/strategydance-directories` — the places a startup can be submitted to, websites and
   Reddit communities, as `DIRECTORIES` from `src/directories.json`: each with its `id`, a slug
   that never changes, even on a rename, its root and submission addresses, its description, the

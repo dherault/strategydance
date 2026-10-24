@@ -1439,9 +1439,9 @@ CodeRabbit reviews every pull request into `dev` when it opens and at each push,
    The round is the head commit's, so the wait needs no baseline and never returns an earlier
    round. When CodeRabbit's status says it waits to be asked, as the free plan of a public
    repository under ten stars can, the wait asks it with an `@coderabbitai review` comment, and
-   does the same once a rate limit runs out. Reviews are rationed by the hour, ten on that free
-   plan, shared by every session, so never ask by hand: an ask beside the wait's costs a review. A
-   round with nothing to say ends `Review completed` and leaves no review at all.
+   does the same once a rate limit runs out. CodeRabbit allows ten reviews an hour to the account,
+   sunshine's and strategydance's together, so never ask by hand: an ask beside the wait's costs a
+   review. A round with nothing to say ends `Review completed` and leaves no review at all.
    **Wait in the foreground, inside the same turn**. Nothing else is waiting on you, and a turn
    that ends on "I will pick it up when it lands" leaves the person to come back and tell you it
    has. A review takes a few minutes. The wait gives up after nine minutes, inside the shell's

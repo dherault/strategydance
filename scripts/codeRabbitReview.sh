@@ -95,7 +95,7 @@ review_state() {
       // The rate limit notice says how long from when it was written, as "34 minutes" or "8 seconds"
       const notice = comments.filter(comment => isCodeRabbit(comment.user.login) && /Next included review available in/.test(comment.body)).at(-1)
       const units = { second: 1000, minute: 60000, hour: 3600000, day: 86400000 }
-      const sentence = notice?.body.match(/Next included review available in ([^.*\n]*)/)[1] ?? ""
+      const sentence = notice?.body.match(/Next included review available in\s*([^.*\n]*)/)?.[1] ?? ""
       const delay = [...sentence.matchAll(/(\d+)\s*(second|minute|hour|day)/g)].reduce((sum, [, count, unit]) => sum + count * units[unit], 0)
       const freesAt = notice && delay ? at(notice.updated_at) + delay : at(status.created_at) + 600000
 

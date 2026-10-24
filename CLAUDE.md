@@ -1014,202 +1014,149 @@ Back closes the viewer.
 ## Module conventions
 
 A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
-agent uses in its own process and which a member can add to an agent of their own: Knowledge and the
-team's tasks first, then Subagents, which Strategy Dance's own agents alone reach, the rest later.
-`MODULES` in strategydance-core lists each one's name, path, title and scopes, `SERVED_MODULE_NAMES`
-beside it those served to external agents, and [conversations.md](documents/conversations.md) §
-Modules says what each does and why.
+agent uses in its own process and a member can add to an agent of their own: Knowledge and Tasks,
+then Subagents, which Strategy Dance's agents alone reach. `MODULES` in strategydance-core lists
+each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served to external agents.
+[conversations.md](documents/conversations.md) § Modules says what each does and why.
 
-- A module's server lives in `src/modules/<name>/`, built by its `create<Name>Server(caller)` for one
-  caller, one file per tool registering it, which only validates, calls `domain/<name>/` and shapes
-  the result. `src/modules/` holds the frame: `MODULE_SERVERS`, by the module's name, and
-  `createModuleHandler`, the SDK's `createMcpHandler` around it, which builds a fresh server for
-  each request, answering JSON, statelessly. Strategy Dance's agent and the public endpoint both go
-  through that one handler, so they get the same tools and checks. What every module's tools share
-  sits beside it, `readModuleWriteCall`, `createModuleAddresses` and `moduleSchemas`, and in
-  `domain/modules/` the call results and `isOperationRefusal`: a module adds its own to them rather
-  than copy them
-- A module is worded for members in the web's `module` catalogue, by its name, through
-  `getModuleMessages`, typed over every `ModuleName`: a module added to `MODULES` fails the
-  typecheck until its name, what its read and write access let an agent do, and the tooltip of its
-  page's agents button are worded there, for the consent page, the Connected agents tab and that
-  button. `MODULES`' `title` is the server's own, in English, for what MCP clients show
-- The caller, `ModuleCaller`, is verified before a server is built and reaches it in the `extra` of
-  the SDK's `AuthInfo`, which `toModuleAuthInfo` writes and `readModuleCaller` reads back, refusing a
-  request that carries none. Nothing in it comes from a tool's arguments. Every operation a tool runs
-  matches the membership on the `membershipCreatedAt` the caller carries, so a member removed, or
-  removed and invited back, stops every agent acting as them at its next call. Its `launcher`, the
-  run calling, `{ conversationId, runId }`, is filled only by a worker that has claimed a run, from
-  that run, and every Subagents tool refuses a caller without one, before anything is read, though
-  the module lists its tools to it. `readModuleCaller`'s schema is strict: a field the caller gains
-  joins it, or every call carrying it is refused
-- A tool's name is snake_case, as Claude takes a tool name (`^[a-zA-Z0-9_-]{1,128}$`, no dot,
-  though MCP allows one), and unique across the modules and the agent's own tools, since the agent
-  puts them all in one list: `moduleServers.test.ts` fails on a clash between modules. The order a
-  module registers its tools in is the order the agent lists them in, frozen as the agent's tools are
+- A module's server lives in `src/modules/<name>/`, built by its `create<Name>Server(caller)`, one
+  file per tool, which validates, calls `domain/<name>/` and shapes the result. `src/modules/` holds
+  `MODULE_SERVERS` and `createModuleHandler`, the SDK's `createMcpHandler` around a fresh server for
+  each request, statelessly, which Strategy Dance's agent and the public endpoint both go through.
+  What the tools share, `readModuleWriteCall`, `createModuleAddresses`, `moduleSchemas`, and in
+  `domain/modules/` the call results and `isOperationRefusal`, gains what a module needs rather than
+  being copied
+- A module is worded for members in the web's `module` catalogue (`getModuleMessages`, typed over
+  every `ModuleName`), so a module added to `MODULES` fails the typecheck until it is worded there.
+  `MODULES`' `title` is the server's own, in English
+- The caller, `ModuleCaller`, is verified before a server is built and reaches it in the SDK's
+  `AuthInfo` `extra` (`toModuleAuthInfo`, `readModuleCaller`), never from a tool's arguments. Every
+  operation matches the membership on the caller's `membershipCreatedAt`, so a member removed, or
+  removed and invited back, stops every agent acting as them. Its `launcher`, `{ conversationId,
+  runId }`, is filled only by a worker that claimed a run, and every Subagents tool refuses a caller
+  without one. `readModuleCaller`'s schema is strict: a field the caller gains joins it
+- A tool's name is snake_case, as Claude takes it, and unique across the modules and the agent's own
+  tools (`moduleServers.test.ts`). The order a module registers its tools in is frozen, since the
+  agent lists them so
 - A tool takes a zod input schema and an `outputSchema`, answers `structuredContent` with the same
-  JSON as text (`toToolResult`), carries annotations, `readOnlyHint` on reads, `destructiveHint` on a
-  delete and on a write that can rewrite what it changes whole, as `update_document` can,
-  `openWorldHint: false` on all, and refuses with a result, `isError` and a sentence the
-  model can act on (`toToolRefusal`), never a protocol error. The SDK answers an input that fails its
-  schema the same way. Annotations reach external agents' clients alone: Claude's tool list keeps a
-  module's name, description and input schema (`toConversationModuleTool`), so changing one moves
-  no pinned bytes
+  JSON as text (`toToolResult`), carries annotations (`readOnlyHint` on reads, `destructiveHint` on
+  a delete or a write that can rewrite what it changes whole, `openWorldHint: false` on all), and
+  refuses with a result, `isError` and a sentence the model can act on (`toToolRefusal`), never a
+  protocol error. Claude's list keeps only a tool's name, description and input schema, so
+  annotations move no pinned bytes
 - Every write takes an idempotency key in the call's `_meta`, under
   `com.strategydance/idempotencyKey`, and its mutation inserts its `ModuleCallResult` first, under
-  `@include(if: $isKeyed)`, in the transaction that writes: a key taken refuses the write, and the
-  module reads the row back, the same tool with the same arguments, hashed as canonical JSON,
-  answered with the stored result and anything else refused. The scope is the caller's,
-  `conversation:<id>` or `connection:<id>`, never the client's. A write also checks the caller's
-  write scope before anything is read
-- Strategy Dance's agent reaches the modules `CONVERSATION_MODULES` lists, in `MODULES`' order, in
-  process: each run's worker connects to them once it is claimed (`connectConversationModules`), as
-  the run's member, every scope, through the module's own handler, by the SDK's client pinned to the
-  2026-07-28 revision on a transport whose `fetch` hands each request to the handler. A module's
-  tools join the request after the agent's own as streamed Claude tools that are not strict
-  (`toConversationModuleTool`), each schema as the module wrote it, less the dialect it names, so
-  Claude reads its bounds and patterns, and the module's own schema checks every call, answering one
-  it refuses with a sentence the model can act on, as it answers an external agent. A request takes
-  at most 20 strict tools, 24 optional parameters and 16 union ones across them all, which the
-  modules outgrew in M17: only the agent's own tools are strict, and
-  `buildConversationTools.test.ts` holds them to those limits. A module's schema still has to be one
-  the API takes: run `bun run probe:claude` whenever a module's tools change, since a list it
-  refuses fails every run. The connection carries the claimed run as the caller's `launcher`, which
-  the Subagents module reads; a send's or a launch's measurement connects without one. A subagent's
-  worker sends none of the Subagents module's tools nor the deletes, by name (`isSubagentTool`), and
-  plans a call to one as a call to a tool nobody runs. A subagent's requests carry settings of their
-  own, `SUBAGENT_REQUEST_SETTINGS` beside its tools, a model, an effort and a task budget, which a
-  change of is a change of its request alone
-- The agent keys each write with Claude's id for the call, under `conversation:<id>`, so a worker
-  taking over or a Resume calling it again is answered from its key. Finalizing a dead run, and a send
-  or a continuation answering its calls, read the key of each write it left started
-  (`settleConversationModuleWrites`): a stored result is the call's, recorded `SUCCEEDED` through
-  `SettleConversationToolCall`, which refuses while a run holds the conversation, and anything else
-  is answered as a call that may have run
-- What a module reads and writes goes through backend-connector operations named `…ForAgent`, which
-  take `$userId` and `$membershipCreatedAt` and hold to the AI permissions for every caller, Strategy
-  Dance's agent and a member's own alike: a document whose `isAiReadable` is off is never loaded,
-  whatever the call, and one whose `isAiWritable` is off is never changed. Tasks carry no AI
-  permission: the board is the team's, and any agent changes any task as any member can. Each write
-  is named in the refreshes of the live queries whose rows it changes, in a web query too, since a
-  mutation the backend runs fires them
-- The tests drive a module through the SDK's `Client`, pinned to the 2026-07-28 revision, on a
-  transport whose `fetch` hands each request to the module's handler with the caller as `authInfo`
-  (`createModuleTestKit`, which takes the module's name), never the SDK's in-memory transport, which
-  speaks only the 2025 revisions. They run against `createModuleDatabaseFake`, the operations over
-  tables in memory: one base holding the memberships and the call results, to which each module's
-  fake, `createKnowledgeDatabaseFake` and `createTasksDatabaseFake`, adds its own, since a module's
-  handler loads every module's server and Bun refuses an import the mock does not hold. A new
-  module's fake joins it. The Subagents module is the exception: its domain is the conversation
-  runtime, so each of its tools imports `domain/subagents/` inside its handler (`await import`),
-  which no other module's server, nor the modules' fake, then loads, and its tests run against
-  `createConversationDatabaseFake`, which holds the modules' fake and every subagent operation. A
-  module whose domain needs the conversation runtime does the same. `bun run check:knowledge-module`,
-  `bun run check:tasks-module` and `bun run check:subagents-module`, in the backend's package, check
-  those conditions against the emulators: an operation changed is changed in both
-- An external agent reaches a module at its address, `https://api.strategydance.com/mcp/<name>`,
-  `/mcp/knowledge` and `/mcp/tasks` today, each its own OAuth resource, so one module's token never
-  opens the other, once a member allowed it on the consent page, through the modules' endpoints (see [Backend
-  conventions](#backend-conventions)). Its caller comes from the access token,
-  `createAgentConnectionTokenVerifier` reading it on every call: `kind: 'external'`, the token's
-  scopes within its connection's, the scope `connection:<id>`, and the membership's `createdAt`, so a
-  member removed or an agent disconnected is stopped at its next call. A
-  verified token marks its connection used, `lastUsedAt`, at most once a minute
-  (`createAgentConnectionUseRecorder` in memory, `RecordAgentConnectionUse` across instances), which
-  no live query refreshes on
-- A served module's write tools each register `scopeChallenge: requireModuleWriteScope(module)`, so a
-  connection granted read alone still lists every write, and a call to one answers 403
-  `insufficient_scope`, naming the write scope and the resource metadata, as MCP's step-up asks: the
-  client asks the member again, and their new consent replaces the connection. `readModuleWriteCall`'s
-  check stays behind it, a second guard. An external agent's search, a Knowledge `search_documents`
-  or a `list_tasks` with a query, each page of it, draws on the member's search allowance
-  (`recordModuleSearch`, in `domain/modules/`), which their conversation searches use too, since no
-  run bounds it, and one past it is answered with a result saying when to search again
-  (`toTooManySearchesSentence`) and which read still works
-- A module joins the external agents with its name in strategydance-core's `SERVED_MODULE_NAMES`,
-  which mounts its endpoint and its metadata, lets the metadata answer any origin, and lets the
-  authorization server and the consent page take it: `parseModuleResource`, the metadata's
-  `scopes_supported` and the consent page read the served modules alone, so a module in `MODULES`
-  but served to nobody, as Subagents is, is refused as an address no module has. It takes besides
-  `requireModuleWriteScope` on every write tool; its searches on the member's allowance; the agents
-  button on its page, `ModuleAgentsButton`, an icon after the page's own action, which takes its
-  name and opens the dialog worded from the `module` catalogue; and its endpoint in `check:oauth`.
-  Knowledge joined in M20 and Tasks in M21
-- `bun run mcp:knowledge <email>` and `bun run mcp:tasks <email>` serve a module over stdio for a
-  client on this machine, against the emulators only, through one script, `serveModule.ts`, which
-  takes the module's name. stdout is the protocol's there, so the script points the logger's info
-  lines at stderr. The local backend serves a served module over HTTP too, as its own issuer, with
-  the consent page on the local web app: `claude mcp add --transport http
-  strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge` and `claude mcp add
-  --transport http strategydance-tasks-http-local http://localhost:3003/mcp/tasks`, then `/mcp` in
-  Claude Code to sign in to each
-- `bun run backfill:document-text --production` and `bun run backfill:task-text --production`, in
-  the backend's package, fill the plain text of documents stored before `contentText` existed and of
-  tasks stored before `descriptionText` did, and `bun run backfill:task-done-at --production` stamps
-  the tasks done before `doneAt` existed with their last change, each run by hand once, after the
-  release that added it
+  `@include(if: $isKeyed)`: a key taken refuses the write, and the module answers the stored result
+  to the same tool with the same arguments, hashed as canonical JSON, refusing anything else. The
+  scope is the caller's, `conversation:<id>` or `connection:<id>`. A write checks the caller's write
+  scope before reading anything
+- Strategy Dance's agent reaches `CONVERSATION_MODULES` in process: a claimed run connects to each
+  (`connectConversationModules`) as its member, every scope, through the module's handler, by the
+  SDK's client pinned to the 2026-07-28 revision. A module's tools join after the agent's own, not
+  strict (`toConversationModuleTool`), each schema as the module wrote it less its dialect, and the
+  module's own schema checks every call. That schema still has to be one the API takes: run `bun run
+  probe:claude` whenever a module's tools change. A subagent's worker sends none of the Subagents
+  module's tools nor the deletes (`isSubagentTool`), and its requests carry their own settings,
+  `SUBAGENT_REQUEST_SETTINGS`
+- The agent keys each write with Claude's id for the call, so a worker taking over, or a Resume
+  calling again, is answered from its key, and finalizing a dead run, or a send answering its calls,
+  settles each write it left started from its key (`settleConversationModuleWrites`,
+  `SettleConversationToolCall`)
+- What a module reads and writes goes through backend operations named `…ForAgent`, which take
+  `$userId` and `$membershipCreatedAt` and hold to the AI permissions for every caller: a document
+  whose `isAiReadable` is off is never loaded, one whose `isAiWritable` is off never changed. Tasks
+  carry no AI permission. Each write names itself in the refreshes of the live queries whose rows it
+  changes, web queries included
+- The tests drive a module through the SDK's `Client`, pinned to 2026-07-28, on a transport handing
+  each request to the module's handler with the caller as `authInfo` (`createModuleTestKit`), never
+  the SDK's in-memory transport, which speaks only 2025. They run against `createModuleDatabaseFake`,
+  to which each module's fake adds its own, since a handler loads every module's server: a new
+  module's fake joins it. The Subagents module's tools import `domain/subagents/` inside their
+  handler (`await import`), so no other module loads the conversation runtime, and its tests run
+  against `createConversationDatabaseFake`; a module whose domain needs the runtime does the same.
+  `bun run check:knowledge-module`, `check:tasks-module` and `check:subagents-module`, in the
+  backend's package, check the operations against the emulators: an operation changed is changed in
+  both
+- An external agent reaches a module at `https://api.strategydance.com/mcp/<name>`, each module its
+  own OAuth resource, once a member allowed it on the consent page. Its caller comes from the access
+  token, read by `createAgentConnectionTokenVerifier` at every call: `kind: 'external'`, the token's
+  scopes, `connection:<id>`, the membership's `createdAt`. A verified token marks its connection used
+  at most once a minute (`createAgentConnectionUseRecorder`, `RecordAgentConnectionUse`)
+- A served module's write tools each register `scopeChallenge: requireModuleWriteScope(module)`, so
+  a connection granted read alone still lists them, and a call answers 403 `insufficient_scope`, as
+  MCP's step-up asks. An external agent's search draws on the member's search allowance
+  (`recordModuleSearch`), which their conversation searches share, and one past it is answered with
+  `toTooManySearchesSentence`
+- A module joins the external agents with its name in `SERVED_MODULE_NAMES`, which mounts its
+  endpoint and its metadata and lets the authorization server and the consent page take it; one
+  served to nobody, as Subagents is, is refused as an address no module has. It also takes
+  `requireModuleWriteScope` on every write, its searches on the allowance, the agents button on its
+  page (`ModuleAgentsButton`) and its endpoint in `check:oauth`
+- `bun run mcp:knowledge <email>` and `mcp:tasks` serve a module over stdio against the emulators,
+  through `serveModule.ts`, whose logger writes to stderr, stdout being the protocol's. The local
+  backend serves them over HTTP too, as its own issuer: `claude mcp add --transport http
+  strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge`, the same for tasks, then
+  `/mcp` in Claude Code to sign in
+- Run once by hand, after the release that added each, in the backend's package: `bun run
+  backfill:document-text --production`, `backfill:task-text --production` and
+  `backfill:task-done-at --production`
 - `bun run suspend:conversations --production <email | organization id or slug> [--lift]`, in the
   backend's package, is staff's suspension of an account's or an organization's conversations, and
   `bun run report:usage --production [--days <n>] [--workspace-usage <dollars>]` what conversations
-  cost from the runs' ledgers, by organization and by account, with each daily spend ceiling's scope
-  over the last 24 hours against it, which the decisions left for the recorded usage are taken with. The second reads through the Admin SDK's own GraphQL, so it reads
-  production whatever its release. `finalizeDeadConversationRun` logs a line beginning with
-  `DEAD_RUN_LOG_PREFIX` for each run it ends, which a log-based metric counts and an alert watches
-  (Setup 13 in conversations.md): its words change with the metric's filter
+  cost, by organization and account, against each ceiling, read through the Admin SDK's GraphQL.
+  `finalizeDeadConversationRun` logs `DEAD_RUN_LOG_PREFIX` for each run it ends, which a log-based
+  metric counts and an alert watches (Setup 13 in conversations.md): its words change with the
+  metric's filter
 
 ## Email conventions
 
-`packages/strategydance-emails` holds the transactional emails as React Email templates. It
-renders and nothing else: each `renderXEmail` takes props and answers `{ senderName, subject,
-html, text }`. It owns no key and opens no socket, so the delivery provider and its secret stay
-on the backend's side.
+`packages/strategydance-emails` holds the transactional emails as React Email templates, and only
+renders them: each `renderXEmail` takes props and answers `{ senderName, subject, html, text }`. The
+delivery provider and its key stay on the backend's side.
 
-- Everything comes from the one `react-email` package, components and `render` alike. Version 6
+- Everything comes from the one `react-email` package, components and `render` alike: version 6
   deprecated `@react-email/components` and the per-component packages
-- `src/emails/` holds templates and nothing else, because the preview server treats every file
-  there as one. Shared pieces go in `src/components/`. A template sets `PreviewProps`, which is
-  what the preview renders it with
-- Styles are inline style objects only. Gmail and Outlook strip `<style>` blocks and know no CSS
-  variable, so the design system's tokens are copied into `src/constants.ts` as literals. The
-  one `<style>` block is `EmailLayout`'s font face, which a client may drop at no cost.
-  react-email's `Font` is not used: it also sets every element's family to the face
+- `src/emails/` holds templates and nothing else, since the preview server takes every file there
+  for one. Shared pieces go in `src/components/`. A template sets the `PreviewProps` the preview
+  renders it with
+- Styles are inline style objects alone: Gmail and Outlook strip `<style>` blocks and know no CSS
+  variable, so the design system's tokens are copied into `src/constants.ts` as literals. The one
+  `<style>` block is `EmailLayout`'s font face, which a client may drop at no cost. react-email's
+  `Font` is not used, since it sets every element's family to the face
 - Images, the mark included, are hotlinked PNGs at an absolute production URL, from
-  `packages/strategydance-web/public/assets/images/`. Gmail and Outlook render neither inline
-  SVG nor a `data:` URI. A new image shows as broken, in the preview server too, until a release
-  has deployed it
-- The backend's `tsc` follows its import into these `.tsx` files, so both tsconfigs carry
-  `"jsx": "react-jsx"`, and their other options agree. Keep them agreeing
-- English only for now. The copy follows the catalogues' rule anyway: no em dashes
-- `bun run dev:emails` opens the preview server through `scripts/devEmails.sh`, which runs the
-  CLI from a scratch directory outside the tree. Read its header before changing how it is
-  invoked. The preview is indicative: check a real client before trusting a layout change
+  `packages/strategydance-web/public/assets/images/`: Gmail and Outlook render neither inline SVG
+  nor a `data:` URI. A new image shows broken, in the preview too, until a release has deployed it
+- The backend's `tsc` follows its import into these `.tsx` files, so both tsconfigs carry `"jsx":
+  "react-jsx"` and agree on their other options: keep them agreeing
+- English only for now, with no em dashes, as the catalogues' rule says
+- `bun run dev:emails` opens the preview through `scripts/devEmails.sh`, which runs the CLI from a
+  scratch directory outside the tree: read its header before changing how it is invoked. The preview
+  is indicative, so check a real client before trusting a layout change
 
 ## Tackling a task
 
 "Tackle task 123", or anything worded like it, names a task of the team's own board in Strategy
-Dance: read it through the Strategy Dance MCP, the `strategydance-tasks` server, which is the
-production Tasks module at `https://api.strategydance.com/mcp/tasks` acting as the person, never
-the `-local` ones of [Module conventions](#module-conventions), which serve the emulators' board.
-Then do what it asks as any other task, [Workflow](#workflow) included.
+Dance: read it through the `strategydance-tasks` MCP server, the production Tasks module at
+`https://api.strategydance.com/mcp/tasks` acting as the person, never the `-local` ones, which serve
+the emulators. Then do what it asks as any other task, [Workflow](#workflow) included.
 
 - What follows "task" is whatever the person copied: the task's id, which `read_task` takes
-  hyphenated or not, or else a piece of its name, which `list_tasks` finds with `query`. A piece
-  that matches several tasks is a question for the person, never a pick. Several tasks named at
-  once are each tackled the same way
-- Its description, which `read_task` answers in Markdown, is the brief. A `task:<id>` link in it
-  is another task, which `read_task` opens too, and a `doc:<id>` link a knowledge document, which
-  the Knowledge module's `read_document` opens where the session has it. A task it waits on that
-  is not done yet blocks it, which is worth saying before the work starts
+  hyphenated or not, or a piece of its name, which `list_tasks` finds with `query`. A piece that
+  matches several tasks is a question for the person, never a pick. Several tasks named at once are
+  each tackled the same way
+- Its description, which `read_task` answers in Markdown, is the brief. A `task:<id>` link in it is
+  another task, which `read_task` opens, and a `doc:<id>` link a knowledge document, which the
+  Knowledge module's `read_document` opens where the session has it. A task it waits on that is not
+  done yet blocks it, which is worth saying before the work starts
 - When the session has no `strategydance-tasks` tools, or they ask to sign in, say so and stop
   rather than guess the task: the person adds the server with `claude mcp add --transport http
   strategydance-tasks https://api.strategydance.com/mcp/tasks` and signs in with `/mcp`
-- Once the work starts, the task is under way: `update_task` moves it to `ONGOING`, from whatever
-  column it is in, before the first edit, so the team sees it taken up. One already in `ONGOING`
-  stays where it is
-- Once its pull request merges, the task is done: `update_task` moves it to `DONE` as soon as the
-  session learns of the merge, from `bun run review open` reporting `MERGED` or from the person,
-  and the person is told of the tasks its answer says can start now (`canStartNow`). Nothing else
-  on the board changes unless the person asks, since the server writes as them
+- Once the work starts, `update_task` moves the task to `ONGOING`, from whatever column it is in,
+  before the first edit, so the team sees it taken up
+- Once its pull request merges, which `bun run review open` reporting `MERGED` or the person says,
+  `update_task` moves it to `DONE`, and the person is told of the tasks its answer says can start now
+  (`canStartNow`). Nothing else on the board changes unless the person asks, since the server writes
+  as them
 
 ## Workflow
 

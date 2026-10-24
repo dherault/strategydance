@@ -8,9 +8,11 @@ reviews:
   # A pull request's description is written by hand, so the summary goes in the walkthrough comment
   high_level_summary_in_walkthrough: true
   # `bun run review wait` reads the `CodeRabbit` commit status of the pull request's head, which
-  # CodeRabbit writes only while its check run is off
+  # CodeRabbit writes only while its check run is off, and which a review that errors fails, rather
+  # than leaving the wait to time out
   review_progress: false
   commit_status: true
+  fail_commit_status: true
   auto_review:
     # Every pull request goes into `dev`, and only the default branch, `main`, is reviewed otherwise
     base_branches:
@@ -18,6 +20,10 @@ reviews:
     # The wait asks for a round once auto reviews pause, and a pause would make each pull request
     # past five commits wait on that ask
     auto_pause_after_reviewed_commits: 0
+    # The directories check's rolling pull request carries data its own review proved, and a person
+    # reads it before merging
+    ignore_usernames:
+      - strategy-dance[bot]
   # What a generator writes is never edited by hand, so a finding there has nowhere to go
   path_filters:
     - '!packages/strategydance-web/src/routeTree.gen.ts'

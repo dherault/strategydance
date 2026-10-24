@@ -186,9 +186,9 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
   past 600 are cut, and a report too long for a comment is cut there, its commit holding it whole,
   so it always reaches the pull request once the commit lands.
 
-CI runs on the pull request, and Copilot reviews each push, as on any pull request into `dev`. It
-needs no Hosting preview, which is only ever deployed by hand (`firebase-hosting-pull-request.yml`),
-since no page reads the two files.
+CI runs on the pull request, as on any pull request into `dev`, and CodeRabbit skips it, since a bot
+opened it: the person who merges it reads it. It needs no Hosting preview, which is only ever
+deployed by hand (`firebase-hosting-pull-request.yml`), since no page reads the two files.
 
 ## Cost
 

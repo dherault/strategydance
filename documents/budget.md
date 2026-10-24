@@ -420,7 +420,7 @@ Its tools, in their frozen order:
 - **Follow `CLAUDE.md`:**
   - a branch from `origin/dev`;
   - granular commits, each green on lint, typecheck, test and build;
-  - a pull request into `dev` and the Copilot loop;
+  - a pull request into `dev` and the review loop;
   - then a human merges.
 - **Read this document's How it works first.** Load the `claude-api` skill before writing Claude SDK
   code (M7), and never guess an SDK name.

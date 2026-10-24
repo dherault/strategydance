@@ -211,4 +211,25 @@ describe('syncExchangeRates', () => {
     })
     expect(requests.map(({ range }) => range)).toEqual(['1999-01-01..1999-12-31', '2000-01-01..'])
   })
+
+  test.each([
+    { answer: 'no day at all', today: '2000-01-04', range: '1999-01-01..1999-12-31', rates: {}, year: 1999 },
+    {
+      answer: 'the year before alone',
+      today: '2001-01-02',
+      range: '2000-01-01..2000-12-31',
+      rates: { '1999-12-30': FRANKFURTER_2000.rates['1999-12-30'] },
+      year: 2000,
+    },
+  ])(
+    'stops at a past year answered with $answer, writing nothing of it or after it',
+    async ({ today, range, rates, year }) => {
+      const { fetch, requests } = createFrankfurter({ [range]: { ...FRANKFURTER_2000, rates } })
+
+      await expect(syncExchangeRates({ fetch, today })).rejects.toThrow(`Frankfurter answered no day of ${year}`)
+      expect(requests.at(-1)?.range).toBe(range)
+      // The latest year stored stays before it, so the next run fetches it again
+      expect([...rows.values()].every(row => row.year < year)).toBe(true)
+    },
+  )
 })

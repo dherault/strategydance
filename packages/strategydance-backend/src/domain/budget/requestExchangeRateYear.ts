@@ -25,7 +25,9 @@ const answerSchema = z.object({
   published nothing for that year, as the króna in 2010, has no entry.
 
   Throws on a status outside 2xx, an answer it cannot read whole, or a request past 20 seconds, its
-  answer read whole within them, so a year is never written from part of an answer
+  answer read whole within them, so a year is never written from part of an answer. So does a past
+  year with no day of its own, which the ECB published every year since 1999: the sync would move
+  past it, and never fetch it again once a later year is stored
 */
 async function requestExchangeRateYear(
   fetch: (url: string, init: RequestInit) => Promise<Response>,
@@ -62,6 +64,8 @@ async function requestExchangeRateYear(
       ratesByCurrency.set(currency, days)
     }
   }
+
+  if (!isUnderWay && !ratesByCurrency.size) throw new Error(`Frankfurter answered no day of ${year}'s rates`)
 
   return ratesByCurrency
 }

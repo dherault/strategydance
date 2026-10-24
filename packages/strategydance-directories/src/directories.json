@@ -747,8 +747,8 @@
     "description": "",
     "categories": [],
     "businessModel": "PAID",
-    "lastChecked": null,
-    "unreachableSince": null
+    "lastChecked": "2026-10-24",
+    "unreachableSince": "2026-10-24"
   },
   {
     "id": "aibesttop-tools",
@@ -1442,10 +1442,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://betabound.com/",
     "submissionUrl": "https://betabound.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Listing of beta testing opportunities for software, apps, games and hardware, where product developers announce their betas to recruit early-adopter testers.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -1677,11 +1679,13 @@
     "name": "Clapstorm",
     "type": "WEBSITE",
     "rootUrl": "https://www.clapstorm.com/",
-    "submissionUrl": "https://www.clapstorm.com/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE",
-    "lastChecked": null,
+    "submissionUrl": "https://www.clapstorm.com/sign-in?intent=submit",
+    "description": "Weekly product launch platform where indie makers submit products of any kind and the community ranks them with claps in week-long rounds.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -1690,10 +1694,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.cloudfindr.co/",
     "submissionUrl": "https://www.cloudfindr.co/list-your-app",
-    "description": "",
-    "categories": [],
+    "description": "Directory of B2B software with reviews, buyer ratings and comparisons, sorted by category, where vendors can sign in and submit their tools.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -3044,7 +3050,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -3615,10 +3621,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://mcpub.dev/",
     "submissionUrl": "https://mcpub.dev/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Open directory of Model Context Protocol (MCP) servers, where owners submit their endpoints through a form or an MCP tool and live servers are verified automatically.",
+    "categories": [
+      "MCP_SERVERS"
+    ],
+    "businessModel": "FREE",
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -4618,10 +4626,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.saaspa.ge/",
     "submissionUrl": "https://www.saaspa.ge/submit",
-    "description": "",
-    "categories": [],
+    "description": "Weekly launch board where makers submit SaaS, apps and tech products to compete for upvotes. The top three each week win a dofollow backlink.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -5029,7 +5039,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -6533,7 +6543,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -6590,10 +6600,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://zplatform.ai/",
     "submissionUrl": "https://zplatform.ai/submit-ai-tool/",
-    "description": "",
-    "categories": [],
+    "description": "Directory and review site for AI tools, including AI agents and chatbots, where founders submit their tools for a profile, with optional hands-on reviews.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {

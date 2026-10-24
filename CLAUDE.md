@@ -112,8 +112,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   imports itself by its package name, `strategydance-design-system/*` mapped to its `src/`, the
   alias shadcn writes with, so a component resolves the same when another package reads it as
   source. Its tokens and components
-  are ported from the Strategy Dance Design System project in Claude Design and keep that
-  project's props, so what a design uses maps onto code. Another package imports
+  were ported from the Strategy Dance Design System project in Claude Design and keep that
+  project's props, and the project now follows it ([The design sync](#the-design-sync)), so what
+  a design uses maps onto code. Another package imports
   `strategydance-design-system/components/ui/Button` and `strategydance-design-system/index.css`
 - `packages/strategydance-translations` — the Gemini-backed CLI that fills the locale
   catalogues. Node-only: never import it from the frontend
@@ -315,6 +316,33 @@ and claims Escape while the list is open. A Base UI popup added later needs both
 inside a `Dialog` to show it works there. BlockNote's shadcn menus are Base UI's too: they portal
 into the editor, and `RichTextEditor` claims Escape while one is open and floats its toolbar over
 the selection on touch screens too, since BlockNote's mobile toolbar portals to the body.
+
+### The design sync
+
+The Strategy Dance Design System project in Claude Design
+(`https://claude.ai/design/p/61b2a9b3-1ee3-4661-a21d-a0b400b517f7`) holds the design system's own
+components, which its design agent builds with: one bundle, each component's props, a usage note
+and a preview card. It follows this repository through the `/design-sync` skill of Claude Code,
+which a person starts: it builds the upload from `.design-sync/`, checks every preview against the
+design system's Storybook, and uploads only once the checks pass, after one approval.
+[design-sync.md](documents/design-sync.md) says why it is built as it is, and
+`.design-sync/NOTES.md`, which a sync reads first, how to run it and every quirk met so far.
+
+- Nothing syncs on a merge. A change to the design system reaches the project at the next
+  `/design-sync`, which fetches the project's record, `_ds_sync.json`, checks only the components
+  that changed since it and uploads the difference
+- A component's props and its usage note are written by hand, in `.design-sync/config.json`'s
+  `dtsPropsFor` and in `.design-sync/docs/<Name>.md`, and the agent reads them as the component's
+  API: a change to a component's props or behaviour changes them too. `bun
+  .design-sync/checkNames.ts` catches a prop, a part, a class or a token gone, and `bun
+  .design-sync/runExamples.ts` an example that no longer runs, but neither catches a default or a
+  behaviour that changed
+- A grade follows the story file, never the component's source, so a component that draws
+  differently under the same story keeps its old grade: clear it and grade it again, as
+  NOTES.md says
+- What a sync builds stays local and ignored: the skill's scripts in `.ds-sync/`, the reference
+  Storybook in `.design-sync/sb-reference/`, the previews and grades in `.design-sync/.cache/` and
+  the upload in `ds-bundle/`. A commit under `.design-sync/` is scoped `[root]`
 
 ### Static files
 

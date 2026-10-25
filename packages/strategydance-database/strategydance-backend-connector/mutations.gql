@@ -8883,3 +8883,10 @@ mutation DisconnectIntegration($organizationId: UUID!, $userId: String!, $integr
 mutation PruneIntegrationAuthorizations @auth(level: NO_ACCESS) {
   integrationAuthorization_deleteMany(where: { expiresAt: { lt_time: { now: true, sub: { hours: 1 } } } })
 }
+
+# The daily sync's: writes one currency's rates for one year, whole, over what was there. Each row is
+# written again while its year is the latest stored, so a run that failed partway is finished by the
+# next. `updatedAt` is written by hand, since a default applies to an insert alone
+mutation UpsertExchangeRateYear($currency: Currency!, $year: Int!, $rates: String!) @auth(level: NO_ACCESS) {
+  exchangeRateYear_upsert(data: { currency: $currency, year: $year, rates: $rates, updatedAt_expr: "request.time" })
+}

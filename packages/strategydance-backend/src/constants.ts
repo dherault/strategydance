@@ -485,6 +485,22 @@ export const DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/dir
 export const INACTIVE_DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/inactiveDirectories.json'
 
 /* ---
+  EXCHANGE RATES
+--- */
+
+/*
+  Frankfurter, which serves the European Central Bank's daily rates, free and with no key, and the
+  first year the ECB published them, 1999. A fixed address nobody gave, so the daily sync reaches it
+  with plain `fetch` rather than the outbound guard
+*/
+export const EXCHANGE_RATES_URL = 'https://api.frankfurter.dev/v1/'
+
+export const EXCHANGE_RATES_FIRST_YEAR = 1999
+
+// How long one year's request to Frankfurter may take, its answer read whole
+export const EXCHANGE_RATES_REQUEST_TIMEOUT_MS = 20 * 1000
+
+/* ---
   INTEGRATIONS
 --- */
 

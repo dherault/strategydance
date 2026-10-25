@@ -119,6 +119,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches up to 10 subagents of that account's conversation, as the Subagents module does, in its own process, and prints each transcript and report. A promotion runs in the process that freed the slot, so launch an account's subagents from one script at a time. Emulators only, and it costs money unless run under `CONVERSATION_AGENT=placeholder` |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` / `mcp:tasks` | Serves the Knowledge or the Tasks module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. See [Module conventions](#module-conventions) |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' daily check into this checkout's two files, or with `--publish` into the rolling pull request on GitHub. About $0.10 a directory. See [directories.md](documents/directories.md) |
+| `bun run sync:exchange-rates [--production]` | Syncs the ECB's exchange rates from Frankfurter, as the daily sweep does: into the emulators, which need it once, or with `--production` into the project. The first run backfills every year since 1999 |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model, price or top output rate, or of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
 | `bun run build` | Typechecks and builds the design system's Storybook, then the web package to static files |
@@ -344,9 +345,9 @@ way the app talks to them.
   `vars.state == null` alone errors on an absent variable
 - The ids a route hands an operation are canonical (`toCanonicalUuid`): a live query's refresh
   condition compares variables as text, so a hyphenated id refreshes no other tab
-- `Locale` is declared in both `schema.gql` and strategydance-core, which `schema.test.ts` keeps
-  agreeing: add a locale to both. Every other enum lives in `schema.gql` alone, imported by the
-  frontend from `strategydance-database/web`
+- `Locale` and `Currency` are declared in both `schema.gql` and strategydance-core, which
+  `schema.test.ts` keeps agreeing: add a value to both. Every other enum lives in `schema.gql` alone,
+  imported by the frontend from `strategydance-database/web`
 - An enum's order is the Postgres enum's: append a value, never reorder. The aspects' display order
   is `COMPANY_ASPECTS` in the web's `constants.ts`, which `constants.test.ts` holds to the enum
 - A schema change reaches production with its release, Data Connect before what queries it, and a
@@ -487,6 +488,12 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   `CreateTask` and `UpdateTaskDescription` stay for older pages and write null: a new way to write a
   description writes it too, or nulls it. `RestoreTask` refuses a task deleted over a day ago,
   pruned or not
+- The ECB's exchange rates are `ExchangeRateYear` rows, one per currency and calendar year, whose
+  `rates` is the JSON text of each ECB day of that year to the units one euro bought, the euro having
+  no row. A row per day would be some 200,000 rows since 1999, which single-row mutations take an
+  hour to fill, where a year is about 6 KB and the history some 800 rows. The daily sweep alone
+  writes them (`syncExchangeRates`), and any signed-in user reads them (`GetExchangeRates`), since
+  they are public
 
 ### Routing
 
@@ -652,16 +659,18 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   state, token or server's answer, though Cloud Run's request log keeps the callback's query unless
   step 12 of conversations.md's setup excludes it. The tests run the real SDK against
   `createIntegrationOAuthServerFake`
-- The worker's `POST /internal/sweep`, daily, first reconciles the runs nobody did, then removes
-  what stays deleted past its Undo window and prunes what expires: conversations deleted over a day
-  ago, claimed first, so a restore refuses them, and deleted with their files and module call
-  results, one whose files could not all go staying claimed for the next sweep; files never sent; the
-  board's deleted tasks; deleted documents and MCP servers; revisions over 30 days old; and the
-  expired Connects, searches, run spends, call results and the authorization server's requests and
-  tokens. Each step runs whatever failed before it (`runSweepSteps`), and the route answers 500
-  naming the failures. `RestoreConversation` refuses a conversation deleted over a day ago whether
-  or not the sweep has run. Something kept deleted, or counted, for a while adds its idempotent prune
-  there
+- The worker's `POST /internal/sweep`, daily, first syncs the ECB's exchange rates
+  (`syncExchangeRates`), then reconciles the runs nobody did, then removes what stays deleted past
+  its Undo window and prunes what expires: conversations deleted over a day ago, claimed first, so a
+  restore refuses them, and deleted with their files and module call results, one whose files could
+  not all go staying claimed for the next sweep; files never sent; the board's deleted tasks;
+  deleted documents and MCP servers; revisions over 30 days old; and the expired Connects, searches,
+  run spends, call results and the authorization server's requests and tokens. Each step runs
+  whatever failed before it (`runSweepSteps`), and the route answers 500 naming the failures.
+  `RestoreConversation` refuses a conversation deleted over a day ago whether or not the sweep has
+  run. Something kept deleted, or counted, for a while adds its idempotent prune there. Frankfurter
+  (`EXCHANGE_RATES_URL`) is the one outside address the sweep reaches, with plain `fetch` and a
+  20-second timeout rather than the outbound guard, since it is fixed and nobody gave it
 - The worker's `POST /internal/runs-reconcile`, every five minutes, reconciles the runs no page
   watches: subagent runs past their lease or waiting for a slot (`sweepSubagentRuns`), members' runs
   past their lease (`sweepDeadConversationRuns`), and reactions no run's end started

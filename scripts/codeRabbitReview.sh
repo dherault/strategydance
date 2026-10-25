@@ -6,8 +6,8 @@
 
 set -euo pipefail
 
-# Read from the checkout's remote rather than written in, so the commands this file shares with
-# sunshine's copilotReview.sh, `threads`, `reply`, `resolve` and `open`, are copied across as they are
+# Read from the checkout's remote rather than written in, so this file is the same in sunshine and
+# strategydance and a fix to one is copied to the other as it is
 REPOSITORY=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 
 # Under the ten minutes an agent's shell call may run, so a wait that has not landed yet exits and
@@ -95,7 +95,7 @@ review_state() {
       // The rate limit notice says how long from when it was written, as "34 minutes" or "8 seconds"
       const notice = comments.filter(comment => isCodeRabbit(comment.user.login) && /Next included review available in/.test(comment.body)).at(-1)
       const units = { second: 1000, minute: 60000, hour: 3600000, day: 86400000 }
-      const sentence = notice?.body.match(/Next included review available in ([^.*\n]*)/)[1] ?? ""
+      const sentence = notice?.body.match(/Next included review available in\s*([^.*\n]*)/)?.[1] ?? ""
       const delay = [...sentence.matchAll(/(\d+)\s*(second|minute|hour|day)/g)].reduce((sum, [, count, unit]) => sum + count * units[unit], 0)
       const freesAt = notice && delay ? at(notice.updated_at) + delay : at(status.created_at) + 600000
 

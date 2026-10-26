@@ -1707,9 +1707,10 @@ type BillReceipt @table @index(fields: ["createdAt"]) {
   id: UUID! @default(expr: "uuidV4()")
   # Implies an `organizationId: UUID!` column, cascade deleting
   organization: Organization!
-  # The member who uploaded it, the only one whose bill may take it first. Implies a
-  # `userId: String!` column, cascade deleting, though removing a member keeps it
-  user: User!
+  # The member who uploaded it, the only one whose bill may take it first, kept when they leave the
+  # organization. Optional, set to null when the account goes, so the receipt stays with its bill and
+  # the sweep still finds its file once no bill holds it
+  user: User
   status: BillReceiptStatus!
   # Its name as the member's device gave it, on one line of at most 200 characters
   # (`MAX_BILL_RECEIPT_NAME_LENGTH`)

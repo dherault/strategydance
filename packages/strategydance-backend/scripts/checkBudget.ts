@@ -766,6 +766,19 @@ async function checkRemovedMember() {
     "a removed member's receipt is kept and served to a member",
     data.userOrganization !== undefined && data.billReceipt?.userId === userIds.leaver,
   )
+
+  await write(`mutation DeleteAccount($userId: String!) { user_delete(id: $userId) }`, { userId: userIds.leaver })
+
+  const { data: orphaned } = await getBillReceiptForMember(dataConnect, {
+    organizationId,
+    userId: userIds.other,
+    receiptId,
+  })
+
+  check(
+    "a receipt whose uploader's account went stays, held by its bill",
+    orphaned.billReceipt?.userId === null && (await readReceiptRow(receiptId)) !== null,
+  )
 }
 
 async function checkPrunes() {

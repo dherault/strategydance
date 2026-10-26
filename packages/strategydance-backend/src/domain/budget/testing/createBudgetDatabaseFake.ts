@@ -10,7 +10,8 @@ export const BillReceiptStatus = {
 export type FakeBillReceipt = {
   id: string
   organizationId: string
-  userId: string
+  // Null once its uploader's account went
+  userId: string | null
   status: (typeof BillReceiptStatus)[keyof typeof BillReceiptStatus]
   name: string
   contentType: string
@@ -55,7 +56,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
   }
 
   // A receipt written straight into its table, as an upload would have stored it
-  function insertReceipt(fields: Partial<FakeBillReceipt> & { organizationId: string; userId: string }) {
+  function insertReceipt(fields: Partial<FakeBillReceipt> & { organizationId: string; userId: string | null }) {
     const receipt: FakeBillReceipt = {
       id: id(crypto.randomUUID()),
       status: BillReceiptStatus.READY,

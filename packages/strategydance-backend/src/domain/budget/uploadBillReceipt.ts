@@ -50,7 +50,8 @@ type UploadBillReceiptResult =
 
 type ExistingReceipt = {
   organizationId: string
-  userId: string
+  // Null once its uploader's account went
+  userId?: string | null
   status: BillReceiptStatus
   name: string
   contentType: string

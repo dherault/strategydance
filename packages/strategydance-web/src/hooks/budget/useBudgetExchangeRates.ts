@@ -10,13 +10,15 @@ import listExchangeRateYears from '~utils/budget/listExchangeRateYears'
   more, and the table read before stays meanwhile, as `useExchangeRates` keeps it.
 
   Nothing is read until the budget and the bills have landed: a read of the default currency before
-  them would be the table kept while theirs loads, and `BudgetWait` would open the page on it
+  them would be the table kept while theirs loads, and `BudgetWait` would open the page on it. Nor
+  after either failed, whose fallbacks name no currency of the organization's, so the page shows
+  its failure without waiting on rates it cannot use
 */
 function useBudgetExchangeRates(today: string) {
-  const { data: settings, initialLoading: isBudgetLoading } = useBudget()
-  const { data: bills, initialLoading: areBillsLoading } = useBills()
+  const { data: settings, initialLoading: isBudgetLoading, hasFailed: hasBudgetFailed } = useBudget()
+  const { data: bills, initialLoading: areBillsLoading, hasFailed: haveBillsFailed } = useBills()
 
-  const isReady = !isBudgetLoading && !areBillsLoading
+  const isReady = !isBudgetLoading && !areBillsLoading && !hasBudgetFailed && !haveBillsFailed
 
   return useExchangeRates(
     isReady ? [settings.currency, ...bills.map(bill => bill.currency)] : [],

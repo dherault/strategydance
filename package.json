@@ -31,6 +31,7 @@
     "send:conversation": "cd packages/strategydance-backend && bun run send:conversation",
     "launch:subagent": "cd packages/strategydance-backend && bun run launch:subagent",
     "sync:exchange-rates": "cd packages/strategydance-backend && bun run sync:exchange-rates",
+    "seed:budget": "cd packages/strategydance-backend && bun run seed:budget",
     "mcp:knowledge": "cd packages/strategydance-backend && bun run --silent mcp:knowledge",
     "mcp:tasks": "cd packages/strategydance-backend && bun run --silent mcp:tasks",
     "generate:database": "cd packages/strategydance-database && bun run generate",

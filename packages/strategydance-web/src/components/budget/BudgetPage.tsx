@@ -14,6 +14,7 @@ import { BUDGET_VIEWS } from '~utils/budget/parseBudgetSearch'
 
 import BudgetBillsEmpty from '~components/budget/BudgetBillsEmpty'
 import BudgetDialog from '~components/budget/BudgetDialog'
+import BudgetExpenses from '~components/budget/BudgetExpenses'
 import BudgetLoadFailed from '~components/budget/BudgetLoadFailed'
 import BudgetRevenue from '~components/budget/BudgetRevenue'
 import ContainerLayout from '~components/layout/ContainerLayout'
@@ -51,7 +52,7 @@ function BudgetPage() {
 
     if (view === 'bills') return <BudgetBillsEmpty />
 
-    return null
+    return <BudgetExpenses />
   }
 
   return (

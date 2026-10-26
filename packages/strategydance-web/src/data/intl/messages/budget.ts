@@ -214,6 +214,152 @@ const budgetMessages = defineMessages({
     defaultMessage: 'The budget could not be removed. Try again.',
     description: 'Notification when removing the budget failed, such as when the connection dropped.',
   },
+  warnTitle: {
+    id: 'budget.warnTitle',
+    defaultMessage: 'This {scope, select, month {month} quarter {quarter} other {year}} will go over budget',
+    description:
+      "Title of the warning on the Budget page when the bills still expected in the budget's current month, quarter or year will take its spending past the budget.",
+  },
+  warnText: {
+    id: 'budget.warnText',
+    defaultMessage:
+      'With {expected} in recurring bills still to come, you will spend {by} more than your {limit} {scope, select, month {monthly} quarter {quarterly} other {yearly}} budget.',
+    description:
+      'Body of the warning that the current month, quarter or year will go over budget. {expected} is what is still to be paid in that span, {by} how far past the budget it will go, and {limit} the budget for the span, each an amount such as "$1,304".',
+  },
+  adjustBudget: {
+    id: 'budget.adjustBudget',
+    defaultMessage: 'Adjust budget',
+    description: "Button of the over-budget warning, for an administrator, that opens the budget's dialog.",
+  },
+  noBudgetTitle: {
+    id: 'budget.noBudgetTitle',
+    defaultMessage: 'No budget yet',
+    description: 'Title of the notice on the Budget page while the company has no budget.',
+  },
+  noBudgetText: {
+    id: 'budget.noBudgetText',
+    defaultMessage: 'Set a monthly or yearly budget to let Strategy Dance know how much you can spend on the company.',
+    description:
+      "Body of the notice that the company has no budget yet. Strategy Dance is the product, whose AI uses the budget when it guides the company's spending.",
+  },
+  missingRates: {
+    id: 'budget.missingRates',
+    defaultMessage: 'Amounts in {currencies} are not converted yet.',
+    description:
+      'Line under the numbers of the Budget page when some bills are in currencies whose exchange rates are not loaded yet, which the numbers leave out. {currencies} lists currency codes, such as "JPY and GBP".',
+  },
+  thisMonth: {
+    id: 'budget.thisMonth',
+    defaultMessage: 'This month',
+    description: 'Label of the number on the Budget page for what was spent this calendar month so far.',
+  },
+  nextMonth: {
+    id: 'budget.nextMonth',
+    defaultMessage: 'Next month',
+    description: 'Label of the number on the Budget page for what next calendar month is expected to cost.',
+  },
+  thisYear: {
+    id: 'budget.thisYear',
+    defaultMessage: 'This year',
+    description: 'Label of the number on the Budget page for what was spent this calendar year so far.',
+  },
+  projectedThisYear: {
+    id: 'budget.projectedThisYear',
+    defaultMessage: 'Projected this year',
+    description:
+      'Label of the number on the Budget page for what this calendar year will have cost by its end: what was spent plus what is expected.',
+  },
+  comparedWithSameDaysLastMonth: {
+    id: 'budget.comparedWithSameDaysLastMonth',
+    defaultMessage: 'Compared with the same days last month',
+    description:
+      'Hover text of the percentage beside "This month", which compares it with last month from its first day to the same day of the month as today.',
+  },
+  comparedWithThisMonth: {
+    id: 'budget.comparedWithThisMonth',
+    defaultMessage: 'Compared with this month',
+    description: 'Hover text of the percentage beside "Next month", which compares it with all of this month.',
+  },
+  comparedWithSamePeriodLastYear: {
+    id: 'budget.comparedWithSamePeriodLastYear',
+    defaultMessage: 'Compared with the same period last year',
+    description:
+      'Hover text of the percentage beside "This year", which compares it with last year up to the same day.',
+  },
+  comparedWithLastYear: {
+    id: 'budget.comparedWithLastYear',
+    defaultMessage: 'Compared with last year',
+    description: 'Hover text of the percentage beside "Projected this year", which compares it with all of last year.',
+  },
+  expectedAmount: {
+    id: 'budget.expectedAmount',
+    defaultMessage: '{amount} expected',
+    description: 'Line under "This month": what is still to be paid this month, such as "$1,304 expected".',
+  },
+  nothingElseExpected: {
+    id: 'budget.nothingElseExpected',
+    defaultMessage: 'Nothing else expected',
+    description: 'Line under "This month" when nothing more is to be paid this month.',
+  },
+  recurringBills: {
+    id: 'budget.recurringBills',
+    defaultMessage: '{count, plural, one {# recurring bill} other {# recurring bills}}',
+    description: 'Line under "Next month": how many repeating bills, such as subscriptions, are paid next month.',
+  },
+  spentSince: {
+    id: 'budget.spentSince',
+    defaultMessage: 'Spent since {date}',
+    description: 'Line under "This year". {date} is January 1, written short, such as "Jan 1".',
+  },
+  expectedBy: {
+    id: 'budget.expectedBy',
+    defaultMessage: '{amount} expected by {date}',
+    description:
+      'Line under "Projected this year": what is still to be paid this year. {date} is December 31, written short, such as "Dec 31".',
+  },
+  overThisMonth: {
+    id: 'budget.overThisMonth',
+    defaultMessage: 'You are {amount} over budget this month',
+    description:
+      'Hover text of the red dot beside "This month" when spending already passed the monthly budget. {amount} is how far past it the month will end, counting what is still expected.',
+  },
+  overThisMonthExpected: {
+    id: 'budget.overThisMonthExpected',
+    defaultMessage: 'You will be {amount} over budget this month',
+    description:
+      'Hover text of the red dot beside "This month" when the bills still expected will take the month past its budget. {amount} is by how much.',
+  },
+  overNextMonth: {
+    id: 'budget.overNextMonth',
+    defaultMessage: 'You will be {amount} over budget next month',
+    description:
+      'Hover text of the red dot beside "Next month" when its bills pass the monthly budget. {amount} is by how much.',
+  },
+  overThisYear: {
+    id: 'budget.overThisYear',
+    defaultMessage: 'You are {amount} over budget this year',
+    description:
+      'Hover text of the red dot beside "This year" when spending already passed the yearly budget. {amount} is by how much.',
+  },
+  overThisYearExpected: {
+    id: 'budget.overThisYearExpected',
+    defaultMessage: 'You will be {amount} over budget this year',
+    description:
+      'Hover text of the red dot beside "Projected this year" when the year, counting the bills still expected, will pass the yearly budget. {amount} is by how much.',
+  },
+  barLabel: {
+    id: 'budget.barLabel',
+    defaultMessage: '{percent} of budget',
+    description:
+      'What a screen reader says of the bar under a number of the Budget page. {percent} is a percentage, such as "40%".',
+  },
+  barLabelWithExpected: {
+    id: 'budget.barLabelWithExpected',
+    defaultMessage: '{percent} of budget, {percentWithExpected} with expected bills',
+    description:
+      'What a screen reader says of the bar under a number of the Budget page, which shows what was spent and what is still expected. Both are percentages, such as "40%".',
+  },
 })
 
 export default budgetMessages

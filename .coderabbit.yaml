@@ -17,6 +17,12 @@ reviews:
     # Every pull request goes into `dev`, and only the default branch, `main`, is reviewed otherwise
     base_branches:
       - ^dev$
+    # The release, `bun run ship`'s pull request from `dev` into `main`, carries only commits that were
+    # reviewed on their way into `dev`, and a round on it spends one of the account's ten reviews an
+    # hour. `main` is the default branch, which `base_branches` cannot leave out, so the title that
+    # `scripts/ship.sh` gives it is what skips it, along with any pull request whose title contains it
+    ignore_title_keywords:
+      - Ship dev to main
     # The wait asks for a round once auto reviews pause, and a pause would make each pull request
     # past five commits wait on that ask
     auto_pause_after_reviewed_commits: 0

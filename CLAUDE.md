@@ -66,7 +66,9 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   same when another package reads it as source. Its tokens and components keep the props of the
   Claude Design project they were ported from, which now follows them
   ([The design sync](#the-design-sync)). Its chart is shadcn's on recharts, which reads React's
-  elements through `react-is`: the two keep one version, bumped together. Its rich text:
+  elements through `react-is`: the two keep one version, bumped together. The web declares both at
+  the same ranges, since the Budget page draws its chart from recharts' parts inside
+  `ChartContainer`, and a second copy would split recharts' context between them. Its rich text:
   - The editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and
     `RichText` draws what it writes without it. A post writes `RICH_TEXT_POST_BLOCKS`, a task's
     description `RICH_TEXT_TASK_BLOCKS`, a knowledge document `RICH_TEXT_EDITOR_BLOCKS`, the
@@ -121,6 +123,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` / `mcp:tasks` | Serves the Knowledge or the Tasks module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. See [Module conventions](#module-conventions) |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' daily check into this checkout's two files, or with `--publish` into the rolling pull request on GitHub. About $0.10 a directory. See [directories.md](documents/directories.md) |
 | `bun run check:budget` | Checks the Budget's operations against the emulators: the budget's, the bills' and the receipts' conditions, and the sweep's prunes. CI runs no emulator, so run it after changing one |
+| `bun run seed:budget <email> [--organization <id or slug>]` | Writes the Claude Design prototype's $2,500 monthly budget and 19 bills, dated around today, into the account's organization, in the emulators only. A second run moves the same bills to the new today |
 | `bun run sync:exchange-rates [--production]` | Syncs the ECB's exchange rates from Frankfurter, as the daily sweep does: into the emulators, which need it once, or with `--production` into the project. The first run backfills every year since 1999 |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model, price or top output rate, or of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
@@ -1212,6 +1215,12 @@ milestones that build it: read it before changing any of it.
 - `bun run check:budget` checks the operations against the emulators, and the domain's tests run
   against `createBudgetDatabaseFake`, built on the modules' fake base: an operation changed is
   changed in both
+- The page, `/$organizationSlug/budget`, computes through `useBudgetSummary`, on `useLocalDate`'s
+  today, so every part of it counts from the same bills, rates and day, and reads the rates of the
+  years `listExchangeRateYears` names. An `Int64String` becomes a number where it is read
+  (`toBudgetBill`, `useBudget`), and amounts and days are written through `utils/budget/`
+  (`formatBudgetAmount`, `formatBudgetDay`), a currency's digits coming from `CURRENCIES`, never
+  `Intl`. `bun run seed:budget <email>` fills an organization of the emulators to look at it
 
 ## Email conventions
 

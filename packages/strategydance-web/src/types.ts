@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
-import type { Locale } from 'strategydance-core'
+import type { BudgetBill, BudgetLimit, Currency, Locale } from 'strategydance-core'
 import type {
   CompanyAspect,
   GetAgentConnectionsData,
   GetAdministrationOrganizationsData,
+  GetBillsData,
   GetAdministrationUsersData,
   GetChecklistData,
   GetCurrentUserData,
@@ -128,6 +129,26 @@ export type StagedImage =
 // How the reader's own Today page lists the team's priorities: the order they chose, and whom they
 // hid, both as user ids
 export type TodayPreferences = NonNullable<GetTodayPreferencesData['userOrganization']>
+
+// What an organization means to spend, as the Budget page reads it: the budget, or null while it has
+// none, and the currency every amount of the page is counted in, US dollars while nobody chose one
+export type BudgetSettings = {
+  limit: BudgetLimit | null
+  currency: Currency
+}
+
+// One of an organization's bills, as the Budget page reads it: the fields strategydance-core's
+// computations take, in its shape, with the rest of its row, its payer and its receipt
+export type Bill = BudgetBill & Omit<GetBillsData['bills'][number], keyof BudgetBill>
+
+// One month of the Budget page's chart: its short name, what it comes to in whole units of the
+// currency, which the chart plots, and what was spent and is expected in it, in minor units
+export type BudgetChartMonth = {
+  name: string
+  value: number
+  spent: number
+  expected: number
+}
 
 // One task on its organization's board: where it sits, who is doing it, when it is due, what it is
 // about and which tasks it waits on. Its description is read apart, by `useTaskDescriptions`

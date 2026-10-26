@@ -1,0 +1,105 @@
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import { SlidersHorizontalIcon } from 'lucide-react'
+import { useIntl } from 'react-intl'
+import { Button } from 'strategydance-design-system/components/ui/Button'
+import { DialogTrigger } from 'strategydance-design-system/components/ui/Dialog'
+import { Tabs } from 'strategydance-design-system/components/ui/Tabs'
+import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
+
+import useBills from '~hooks/budget/useBills'
+import useBudget from '~hooks/budget/useBudget'
+import useBudgetReads from '~hooks/budget/useBudgetReads'
+
+import { BUDGET_VIEWS } from '~utils/budget/parseBudgetSearch'
+
+import BudgetBillsEmpty from '~components/budget/BudgetBillsEmpty'
+import BudgetDialog from '~components/budget/BudgetDialog'
+import BudgetExpenses from '~components/budget/BudgetExpenses'
+import BudgetLoadFailed from '~components/budget/BudgetLoadFailed'
+import BudgetRevenue from '~components/budget/BudgetRevenue'
+import ContainerLayout from '~components/layout/ContainerLayout'
+import PageHeader from '~components/layout/PageHeader'
+
+import budgetMessages from '~data/intl/messages/budget'
+import navigationMessages from '~data/intl/messages/navigation'
+
+/*
+  The Budget page: its header, with the budget's settings on the Expenses tab, then its three tabs,
+  Revenue, Expenses and Bills, the one open kept in the address, Expenses when it names none. While
+  a read has failed the settings are not offered, since a budget read as none would be set over the
+  real one
+*/
+function BudgetPage() {
+  const { formatMessage } = useIntl()
+  const search = useSearch({ from: '/_authenticated/_app/$organizationSlug/budget' })
+  const navigate = useNavigate({ from: '/$organizationSlug/budget' })
+  const { data: settings } = useBudget()
+  const { data: bills } = useBills()
+  const { hasFailed, isRetrying, retry } = useBudgetReads()
+
+  const view = search.view ?? 'expenses'
+  const settingsLabel = formatMessage(settings.limit ? budgetMessages.budgetSettings : budgetMessages.setBudget)
+
+  function renderView() {
+    if (hasFailed) {
+      return (
+        <BudgetLoadFailed
+          isRetrying={isRetrying}
+          onRetry={retry}
+        />
+      )
+    }
+
+    if (view === 'revenue') return <BudgetRevenue />
+
+    if (view === 'bills') return <BudgetBillsEmpty />
+
+    return <BudgetExpenses />
+  }
+
+  return (
+    <ContainerLayout className="gap-8">
+      <PageHeader
+        eyebrow={formatMessage(budgetMessages.eyebrow)}
+        title={formatMessage(navigationMessages.budget)}
+        lead={formatMessage(budgetMessages.lead)}
+        actions={
+          view === 'expenses' && !hasFailed ? (
+            <BudgetDialog>
+              <Tooltip content={settingsLabel}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    icon={<SlidersHorizontalIcon />}
+                    aria-label={settingsLabel}
+                  />
+                </DialogTrigger>
+              </Tooltip>
+            </BudgetDialog>
+          ) : undefined
+        }
+      />
+      <div className="@container flex flex-col gap-8">
+        <Tabs
+          aria-label={formatMessage(budgetMessages.tabsLabel)}
+          className="-mt-[18px] -mb-4"
+          value={view}
+          onValueChange={nextView =>
+            navigate({
+              search: { view: BUDGET_VIEWS.find(budgetView => budgetView === nextView && budgetView !== 'expenses') },
+              resetScroll: false,
+            })
+          }
+          items={[
+            { value: 'revenue', label: formatMessage(budgetMessages.revenueTab) },
+            { value: 'expenses', label: formatMessage(budgetMessages.expensesTab) },
+            { value: 'bills', label: formatMessage(budgetMessages.billsTab), count: bills.length },
+          ]}
+        />
+        {renderView()}
+      </div>
+    </ContainerLayout>
+  )
+}
+
+export default BudgetPage

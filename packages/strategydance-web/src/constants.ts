@@ -20,6 +20,7 @@ export const MESSAGE_TYPES = [
   'administration',
   'aspect',
   'authentication',
+  'budget',
   'buildInPublic',
   'checklist',
   'conversation',

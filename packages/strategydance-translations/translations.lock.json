@@ -492,6 +492,356 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "budget": {
+      "budget.adjustBudget": {
+        "hash": "d3d3ffe693f206c6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.amountInvalid": {
+        "hash": "f31d5c17ca9387ad",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.amountLabel": {
+        "hash": "511d9d98f4b26372",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.barLabel": {
+        "hash": "51e0dcf5c50b15ae",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.barLabelWithExpected": {
+        "hash": "9df91f8658d8ebe7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.billsEmptyText": {
+        "hash": "6ed1bb78223c0215",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.billsEmptyTitle": {
+        "hash": "382f7c7740559402",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.billsTab": {
+        "hash": "132c9e0c4325ad1d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.budgetRemoved": {
+        "hash": "5f663fe99e25776e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.budgetSaved": {
+        "hash": "ec0e3dfa1c49db86",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.budgetSettings": {
+        "hash": "dc2c0eb2203bc97f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.byCompany": {
+        "hash": "6eecfa1aecee2088",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.cancel": {
+        "hash": "9236851b3deb5506",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.chartBudgetLabel": {
+        "hash": "173101d91dc0083d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.chartLabel": {
+        "hash": "601ca36c8cbce197",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.close": {
+        "hash": "2c559fed904dbf85",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.companiesSummary": {
+        "hash": "eb10e89e21f58f15",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.comparedWithLastYear": {
+        "hash": "064da5ec21ef720f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.comparedWithMonth": {
+        "hash": "f0bfe9a5d3e54498",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.comparedWithSameDaysLastMonth": {
+        "hash": "4f4f8e6729b556a0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.comparedWithSamePeriodLastYear": {
+        "hash": "8950591d4b8eba69",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.comparedWithThisMonth": {
+        "hash": "b3e5b266f0031ffa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.conversionNote": {
+        "hash": "d9b39ab9e3679d77",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.conversionNoteUndated": {
+        "hash": "b7211966de57548e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.currencyLabel": {
+        "hash": "154dab7b74e4e5d1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.dialogDescription": {
+        "hash": "99387e8b0a10b849",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.dialogReadOnly": {
+        "hash": "26311db677e44dba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.dialogTitle": {
+        "hash": "098336c1ad1776c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.dialogTitleNew": {
+        "hash": "84228bfdaf401698",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.expectedAmount": {
+        "hash": "6c1475706cac40e0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.expectedBy": {
+        "hash": "91a6cd04729c3a5f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.expensesTab": {
+        "hash": "5144d22ad4ac6e30",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.eyebrow": {
+        "hash": "edceb7faec6c1dde",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.lead": {
+        "hash": "bf17120e6968cda4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.legendExpected": {
+        "hash": "6010d33598e375f5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.legendMonthlyBudget": {
+        "hash": "24393dd5c59a16a3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.legendSpent": {
+        "hash": "2f4e97e2d830313e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.loadFailed": {
+        "hash": "64027d6e0c816dae",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.missingRates": {
+        "hash": "2fe103fe2814a603",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.moreCompanies": {
+        "hash": "a1df7ae8bd4836fd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.morePayments": {
+        "hash": "f7a52cd6a99d5a97",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.nextDays": {
+        "hash": "88e731974f3f5b8a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.nextMonth": {
+        "hash": "5cd940b1b2bfddb3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.noBudgetText": {
+        "hash": "bf46f82dbe98cdb4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.noBudgetTitle": {
+        "hash": "cccc1cec6b08628f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.noCurrencies": {
+        "hash": "81c747a13fa9660f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.noSpendingYet": {
+        "hash": "b4dddd7ddda43b2f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.noSpendingYetText": {
+        "hash": "44d1697ddea7f95c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.nothingElseExpected": {
+        "hash": "064dac0ff2bdc778",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.nothingExpected": {
+        "hash": "d59ec05835485ac7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.nothingExpectedText": {
+        "hash": "799ecc8af7f3bf49",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.nothingYet": {
+        "hash": "03b748c0c561e876",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.overBudgetBy": {
+        "hash": "a0e417645ce50e18",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.overNextMonth": {
+        "hash": "7aa50b4b8b0b694c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.overThisMonth": {
+        "hash": "f20d291de944dda3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.overThisMonthExpected": {
+        "hash": "efb0014eaaeeab0c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.overThisYear": {
+        "hash": "2c1e21ee3526c4fd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.overThisYearExpected": {
+        "hash": "6e70f347647d468a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.periodLabel": {
+        "hash": "846de02422b0cbda",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.periodMonthly": {
+        "hash": "8995c874f05f9af2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.periodQuarterly": {
+        "hash": "758b0bd63da7bfd6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.periodYearly": {
+        "hash": "b0e62420ad481144",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.projectedThisYear": {
+        "hash": "6ad3951f4b57c8f8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.recurringBills": {
+        "hash": "9efe4524ac54a65d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.removeBudget": {
+        "hash": "5a2a51f3850c515d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.removeBudgetConfirm": {
+        "hash": "77c9827ca86aa8f0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.removeFailed": {
+        "hash": "e2f842d554cefc08",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.retry": {
+        "hash": "333c2ce02d31d9b7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.revenueTab": {
+        "hash": "841b7e3a031a03b3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.revenueText": {
+        "hash": "c3ee45cbb04076d2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.revenueTitle": {
+        "hash": "3e25709f99cb00be",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.save": {
+        "hash": "765e8679f15b2f33",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.saveFailed": {
+        "hash": "4ac9f3ee6043233f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.searchCurrencies": {
+        "hash": "568f9e678b54028c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.setBudget": {
+        "hash": "2337521fdf352566",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.spendingIn": {
+        "hash": "97b0006ce4dea767",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.spentSince": {
+        "hash": "5bfe1d0eda4752d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.spentSoFar": {
+        "hash": "6e9bba39c24aaeca",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.tabsLabel": {
+        "hash": "157390cc95f535b1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.thisMonth": {
+        "hash": "392b83b5990e7f24",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.thisYear": {
+        "hash": "a0f830a71c041af6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.underBudgetBy": {
+        "hash": "c7a143efb3fd0374",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.upcomingDetail": {
+        "hash": "3a47d84d1432fa14",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.upcomingSummary": {
+        "hash": "185eea78041f0646",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.upcomingSummaryUntil": {
+        "hash": "464044a246a369c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.warnText": {
+        "hash": "8ac15824097ed779",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.warnTitle": {
+        "hash": "04d45277bcdceb4c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "buildInPublic": {
       "buildInPublic.accentColor": {
         "hash": "fdb3dbb3c3da6361",
@@ -4595,6 +4945,10 @@
       },
       "navigation.aspects": {
         "hash": "ce221a37f6b30b70",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "navigation.budget": {
+        "hash": "ec9a588dd92680ab",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.buildInPublic": {

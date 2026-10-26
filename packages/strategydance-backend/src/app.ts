@@ -12,6 +12,7 @@ import loggerMiddleware from '~middleware/logger'
 import notFoundMiddleware from '~middleware/notFound'
 import securityMiddleware from '~middleware/security'
 
+import createBudgetRouter from '~routes/budget'
 import createConversationsRouter from '~routes/conversations'
 import createIntegrationOAuthRouter from '~routes/integrationOAuth'
 import createIntegrationsRouter from '~routes/integrations'
@@ -89,6 +90,7 @@ function createApp({ isWorker }: Options) {
     app.use('/integrations/oauth', createIntegrationOAuthRouter())
     app.use(MODULES_PATH, createModulesRouter())
     // Ahead of the organizations' router, so their paths are matched first
+    app.use('/organizations/:organizationId/budget', createBudgetRouter())
     app.use('/organizations/:organizationId/conversations', createConversationsRouter())
     app.use('/organizations/:organizationId/integrations', createIntegrationsRouter())
     app.use('/organizations/:organizationId/knowledge', createKnowledgeRouter())

@@ -12,6 +12,8 @@ const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 
 const CONVERSATION_ID = '1a2b3c4d5e6f40718293a4b5c6d7e8f9'
 
+const RECEIPT_ID = '2b3c4d5e6f7a48190a1b2c3d4e5f6a7b'
+
 const servers: Server[] = []
 const origins = { backend: '', worker: '' }
 
@@ -52,6 +54,9 @@ describe('createApp', () => {
     expect(
       (await post(origins.backend, `/organizations/${ORGANIZATION_ID}/conversations/${CONVERSATION_ID}/messages`))
         .status,
+    ).toBe(401)
+    expect(
+      (await fetch(`${origins.backend}/organizations/${ORGANIZATION_ID}/budget/receipts/${RECEIPT_ID}`)).status,
     ).toBe(401)
   })
 
@@ -101,6 +106,9 @@ describe('createApp', () => {
     expect(
       (await post(origins.worker, `/organizations/${ORGANIZATION_ID}/conversations/${CONVERSATION_ID}/messages`))
         .status,
+    ).toBe(404)
+    expect(
+      (await fetch(`${origins.worker}/organizations/${ORGANIZATION_ID}/budget/receipts/${RECEIPT_ID}`)).status,
     ).toBe(404)
   })
 })

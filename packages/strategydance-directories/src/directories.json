@@ -451,10 +451,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://airespo.com/",
     "submissionUrl": "https://airespo.com/submit-tool/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools organized by category, with guides and tips, where makers can submit their own AI tools for review and listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -1093,10 +1095,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://althunt.io/",
     "submissionUrl": "https://althunt.io/new",
-    "description": "",
-    "categories": [],
+    "description": "Platform where SaaS founders publish AI-drafted comparison pages that present their product as an alternative to a known competitor, ranked weekly by votes.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -1582,10 +1586,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://builtbyindies.com/",
     "submissionUrl": "https://builtbyindies.com/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "description": "Weekly launch platform where indie hackers submit their products to get upvotes, feedback from other makers and a permanent listing.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_ENGAGEMENT",
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -1995,10 +2001,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://directory.ldmstudio.com/",
     "submissionUrl": "https://directory.ldmstudio.com/add/add.php",
-    "description": "",
-    "categories": [],
+    "description": "General web directory organized by topic categories, where site owners submit websites of any kind for a regular or featured listing.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -2775,7 +2783,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -3503,7 +3511,7 @@
     "description": "",
     "categories": [],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -5865,10 +5873,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.tinylaunch.com/",
     "submissionUrl": "https://www.tinylaunch.com/",
-    "description": "",
-    "categories": [],
+    "description": "Product launch platform where makers submit startups and products of any kind to compete in upvote-ranked launch periods, with categories and a launch archive.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -5927,10 +5937,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://tooldirectory.ai/",
     "submissionUrl": "https://tooldirectory.ai/submit-tool",
-    "description": "",
-    "categories": [],
+    "description": "Curated directory of AI tools across 45 categories, where makers submit their tools for editorial review before listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -5998,11 +6010,13 @@
     "name": "Toolkitly",
     "type": "WEBSITE",
     "rootUrl": "https://www.toolkitly.com/",
-    "submissionUrl": "https://www.toolkitly.com/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://www.toolkitly.com/submit",
+    "description": "Directory of AI tools filed by task and category, where makers list their tools after a human review.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -6083,10 +6097,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://toolsfine.com/",
     "submissionUrl": "https://toolsfine.com/submit-ai-tools-or-product",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools and AI-native service companies with verified facts on pricing and status, where tool makers submit their products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {

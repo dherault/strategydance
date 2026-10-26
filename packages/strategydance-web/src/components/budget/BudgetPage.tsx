@@ -25,7 +25,9 @@ import navigationMessages from '~data/intl/messages/navigation'
 
 /*
   The Budget page: its header, with the budget's settings on the Expenses tab, then its three tabs,
-  Revenue, Expenses and Bills, the one open kept in the address, Expenses when it names none
+  Revenue, Expenses and Bills, the one open kept in the address, Expenses when it names none. While
+  a read has failed the settings are not offered, since a budget read as none would be set over the
+  real one
 */
 function BudgetPage() {
   const { formatMessage } = useIntl()
@@ -62,7 +64,7 @@ function BudgetPage() {
         title={formatMessage(navigationMessages.budget)}
         lead={formatMessage(budgetMessages.lead)}
         actions={
-          view === 'expenses' ? (
+          view === 'expenses' && !hasFailed ? (
             <BudgetDialog>
               <Tooltip content={settingsLabel}>
                 <DialogTrigger asChild>

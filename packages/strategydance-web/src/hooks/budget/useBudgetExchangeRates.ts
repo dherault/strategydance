@@ -7,13 +7,21 @@ import listExchangeRateYears from '~utils/budget/listExchangeRateYears'
 /*
   The exchange rates the Budget page converts with on `today`: the budget's currency and every
   bill's, for the years `listExchangeRateYears` names. A new bill in another currency or year reads
-  more, and the table read before stays meanwhile, as `useExchangeRates` keeps it
+  more, and the table read before stays meanwhile, as `useExchangeRates` keeps it.
+
+  Nothing is read until the budget and the bills have landed: a read of the default currency before
+  them would be the table kept while theirs loads, and `BudgetWait` would open the page on it
 */
 function useBudgetExchangeRates(today: string) {
-  const { data: settings } = useBudget()
-  const { data: bills } = useBills()
+  const { data: settings, initialLoading: isBudgetLoading } = useBudget()
+  const { data: bills, initialLoading: areBillsLoading } = useBills()
 
-  return useExchangeRates([settings.currency, ...bills.map(bill => bill.currency)], listExchangeRateYears(bills, today))
+  const isReady = !isBudgetLoading && !areBillsLoading
+
+  return useExchangeRates(
+    isReady ? [settings.currency, ...bills.map(bill => bill.currency)] : [],
+    isReady ? listExchangeRateYears(bills, today) : [],
+  )
 }
 
 export default useBudgetExchangeRates

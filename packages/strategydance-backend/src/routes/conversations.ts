@@ -3,6 +3,7 @@ import {
   type AnswerConversationApprovalData,
   type AnswerConversationQuestionData,
   type ApiResponse,
+  CONVERSATION_ATTACHMENT_CONTENT_TYPES,
   type ConversationAttachmentData,
   ERROR_CODE_ATTACHMENT_TOO_LARGE,
   ERROR_CODE_BAD_REQUEST,
@@ -18,6 +19,8 @@ import {
   ERROR_CODE_TOO_MANY_REQUESTS,
   ERROR_CODE_UNSUPPORTED_MEDIA_TYPE,
   MAX_ANSWER_OTHER_LENGTH,
+  MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
+  MAX_CONVERSATION_ATTACHMENT_SIZE,
   MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
   MAX_CONVERSATIONS,
   MAX_PENDING_CONVERSATION_ATTACHMENTS,
@@ -35,7 +38,7 @@ import { z } from 'zod'
 
 import { UUID_PATTERN } from '~constants'
 
-import parseConversationAttachmentHeaders from '~utils/parseConversationAttachmentHeaders'
+import parseUploadHeaders from '~utils/parseUploadHeaders'
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
 import respondUsageCapped from '~utils/respondUsageCapped'
@@ -775,6 +778,14 @@ function createConversationsRouter() {
     attachmentId: z.string().regex(UUID_PATTERN),
   })
 
+  // What a conversation takes of a file, as its upload declares it
+  const attachmentUploadLimits = {
+    contentTypes: CONVERSATION_ATTACHMENT_CONTENT_TYPES,
+    maxSize: MAX_CONVERSATION_ATTACHMENT_SIZE,
+    maxNameLength: MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
+    unsupportedReason: 'A conversation takes images, PDFs and text files',
+  }
+
   type AttachmentRequest<Data = unknown> = Request<z.infer<typeof attachmentParamsSchema>, ApiResponse<Data>>
 
   // Where a file is, by the route's parameters, canonical, and the caller as the backend verified them
@@ -812,11 +823,14 @@ function createConversationsRouter() {
       request: AttachmentRequest<ConversationAttachmentData>,
       response: Response<ApiResponse<ConversationAttachmentData>>,
     ) => {
-      const headers = parseConversationAttachmentHeaders({
-        contentType: request.header('content-type'),
-        contentLength: request.header('content-length'),
-        fileName: request.header('x-file-name'),
-      })
+      const headers = parseUploadHeaders(
+        {
+          contentType: request.header('content-type'),
+          contentLength: request.header('content-length'),
+          fileName: request.header('x-file-name'),
+        },
+        attachmentUploadLimits,
+      )
 
       if (headers.outcome !== 'valid') {
         respondAttachmentRefusal(response, headers)

@@ -47,8 +47,14 @@ describe('pruneBillReceipts', () => {
   test('deletes a receipt no bill holds two days after its upload, its file before its row', async () => {
     const old = upload(49)
     const recent = upload(47)
+    let isFileGoneBeforeRow = false
+
+    fake.beforeOperation = async name => {
+      if (name === 'DeleteBillReceipts') isFileGoneBeforeRow = !storage.objects.has(objectName(old.id))
+    }
 
     expect(await pruneBillReceipts()).toEqual({ deleted: 1, kept: 0 })
+    expect(isFileGoneBeforeRow).toBe(true)
     expect(fake.receipts.has(old.id)).toBe(false)
     expect(storage.objects.has(objectName(old.id))).toBe(false)
     expect(fake.receipts.has(recent.id)).toBe(true)

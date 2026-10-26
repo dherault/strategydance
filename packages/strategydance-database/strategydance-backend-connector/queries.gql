@@ -3239,3 +3239,42 @@ query GetExchangeRatesForAgent($currencies: [Currency!]!, $years: [Int!]!) @auth
     rates
   }
 }
+
+# A bill's receipt by its id alone, with whether the caller belongs to the organization the route
+# names: the backend serves its file to any member of the receipt's own organization, and its upload
+# reads it to tell a retry from an id another member or organization holds. `$userId` is the uid the
+# backend verified
+query GetBillReceiptForMember($organizationId: UUID!, $userId: String!, $receiptId: UUID!) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+  }
+  billReceipt(id: $receiptId) {
+    organizationId
+    userId
+    status
+    name
+    contentType
+    size
+    createdAt
+  }
+}
+
+# The daily sweep's: a hundred receipts that no bill holds, deleted bills included, uploaded over two
+# days ago, whatever their status, whose files it deletes before their rows (`DeleteBillReceipts`).
+# A bill's save takes no receipt that old unless it holds it already, so none of these is taken
+# meanwhile
+query GetPrunableBillReceipts @auth(level: NO_ACCESS) {
+  billReceipts(
+    where: {
+      _and: [
+        { createdAt: { lt_time: { now: true, sub: { days: 2 } } } }
+        { _not: { bill_on_receipt: { id: { isNull: false } } } }
+      ]
+    }
+    orderBy: [{ createdAt: ASC }]
+    limit: 100
+  ) {
+    id
+    organizationId
+  }
+}

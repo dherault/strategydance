@@ -3294,3 +3294,128 @@ query GetExchangeRates($currencies: [Currency!]!, $years: [Int!]!) @auth(level: 
     rates
   }
 }
+
+# An organization's budget, which every member reads and only its administrators set: its currency,
+# and its amount and period, both null once removed. No row before an administrator first sets one,
+# which the page reads as US dollars and no budget. Outsiders read nothing.
+#
+# A live query: setting the budget pushes it, and so do removing a member, who then reads nothing,
+# and deleting the organization
+query GetBudget($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetBudget"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  budgets(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    currency
+    amountMinor
+    period
+    updatedById
+    updatedAt
+  }
+}
+
+# An organization's bills, every one not deleted, which the Budget page computes the budget from and
+# lists: up to 2000, as many as an organization keeps (`MAX_BILLS` in strategydance-core), so nothing
+# is left out of a sum. Each carries its receipt's name, type and size, whose file the backend serves,
+# and its payer's name and pictures, since a payer who left the organization is no longer among the
+# team the page reads. Outsiders read nothing.
+#
+# A live query: each `@refresh` names a mutation that changes a bill the page shows. Removing a
+# member empties theirs, and deleting the organization empties everybody's. The daily sweep's prune
+# takes only bills deleted already, which nobody reads
+query GetBills($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateBill"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateBill"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteBill"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreBill"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  bills(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 2000
+  ) {
+    id
+    name
+    description
+    company
+    amountMinor
+    currency
+    paidOn
+    recurrence
+    endsOn
+    paidById
+    paidBy {
+      displayName
+      imageUrl
+      imageThumbnailUrl
+    }
+    receipt {
+      id
+      name
+      contentType
+      size
+    }
+    createdById
+    createdAt
+    # The dialog saves on it, and is refused once another save moved it
+    updatedAt
+  }
+}

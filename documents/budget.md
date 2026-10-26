@@ -700,8 +700,8 @@ The design system's chart, which the Expenses tab draws the year with.
   cooldown, with `react-is` at React's own version, which recharts reads React's elements through.
 
 **A story, `Chart.stories.tsx`, draws the Budget's chart** with the prototype's seed months, so the
-component is shown as the page will use it. M5 moves its composition into `components/budget/` and
-its helpers into `utils/budget/`:
+component is shown as the page will use it. M5 ports its composition into `components/budget/` and
+its helpers into `utils/budget/`, the story staying `ChartContainer`'s:
 - the months in minor units, as `summarizeBudget` gives them, drawn in whole units of the currency;
 - an `Area` with the primary-50 gradient under the line;
 - one monotone line of what each month comes to, drawn twice through two clips that the current
@@ -746,29 +746,49 @@ The Bills tab shows its empty state until M6.
 
 **The route and the sidebar:**
 - `routes/_authenticated/_app/$organizationSlug/budget.tsx`, registering the `budget` catalogue,
-  then `BudgetWait` (budget, bills and rates), keyed on the organization's id.
-- `validateSearch` keeps `view` to `revenue`, `expenses` and `bills`, and overwrites anything else
-  with `undefined` (§ Routing).
+  then `BudgetWait` (budget, bills and rates), keyed on the organization's id, then `BudgetPage`.
+  The waiter keeps the team's live query open without waiting on it, as every organization's page
+  does.
+- `validateSearch` is `parseBudgetSearch`, which keeps `view` to `revenue`, `expenses` and `bills`
+  and overwrites anything else with `undefined` (§ Routing).
 - A `NavigationLink` in the sidebar's Guidance group, after Knowledge, with `WalletIcon` and
   `navigationMessages.budget`.
 
 **The hooks:**
-- `useBudget` and `useBills`, live, as `useTasks` is;
-- `useExchangeRates` from M2;
-- `useBudgetSummary`, which runs `summarizeBudget` on today, read once a minute so the page turns at
-  midnight;
-- `useSetBudget`.
+- `useBudget` and `useBills`, live, as `useTasks` is.
+  - `useBudget` answers `{ limit, currency }`: the budget or null, and its currency, USD without a
+    row.
+  - `useBills` reads each row into core's shape through `toBudgetBill`, its payer and receipt kept
+    beside it for M6.
+  - Each `Int64String` becomes a number where it is read.
+- `useBudgetExchangeRates(today)`: M2's `useExchangeRates` over the budget's currency and every
+  bill's, for the years `listExchangeRateYears` names: this year, last year, and each bill's last
+  payment's year.
+- `useBudgetSummary` runs `summarizeBudget` on `useLocalDate`'s today, which rechecks every minute
+  and on focus, so the page turns at midnight. It answers the inputs beside the summary, so the
+  panels count from the same bills, rates and day.
+- `useSetBudget` wraps the generated mutation and always sends every variable.
+- `useBudgetReads` says whether the budget, the bills or the rates failed. The page then shows
+  `BudgetLoadFailed`, a danger `Alert` with "Try again", in place of its tab, as the board does.
+
+**recharts in the web.** The chart's composition imports recharts' parts (`Area`, `Line`, `Curve`,
+`useXAxisScale`…), so the web declares `recharts` and `react-is` at the design system's ranges. Both
+packages then resolve one copy, which recharts' context needs: the chart is web's and its
+`ChartContainer` the design system's. CLAUDE.md's Stack says so.
 
 **The header**, as The page says:
-- the settings button an icon `Button` with a `Tooltip`, "Budget settings", or "Set budget" before
-  there is one;
+- the settings button an outline icon `Button` (`SlidersHorizontalIcon`) with a `Tooltip`, "Budget
+  settings", or "Set budget" before there is one, on the Expenses tab only;
 - the agents button is M9's.
 
-**The tabs** are the design system's `Tabs`, with Bills' `count` the number of bills. The Revenue tab
-is an `Empty`:
-- the wallet icon;
-- "Revenue is coming soon";
-- "You will see what the company earns here, next to what it spends."
+**The tabs** are the design system's `Tabs`, in its routing mode. Bills' `count` is the number of
+bills, and choosing a tab navigates the `view` search, leaving Expenses out of the address.
+- The Revenue tab is an `Empty`:
+  - the wallet icon;
+  - "Revenue is coming soon";
+  - "You will see what the company earns here, next to what it spends."
+- The Bills tab is M6's "No bills yet" `Empty`, without its "New bill" until M6. Nothing can add a
+  bill before M6 or M8, so in production it says the truth.
 
 **Alerts:**
 - **When the status is `warn`**, a warning `Alert` titled "This {month, quarter or year} will go
@@ -777,89 +797,145 @@ is an `Empty`:
 - **Without a budget**, an info `Alert`: "No budget yet". "Set a monthly or yearly budget to let
   Strategy Dance know how much you can spend on the company." An administrator also gets "Set
   budget".
-- **Once over**, the prototype shows no alert: the stats' red dots say it. Keep that.
+- **Once over**, the prototype shows no alert: the stats' red dots say it. Kept.
 - **When `missingRates` names a currency**, a muted line under the stats: "Amounts in {currencies}
-  are not converted yet."
+  are not converted yet.", the codes joined by `formatList`.
 
-**Four stats**, `BudgetStat`, in a grid:
-- four columns, two below 820 px of its container, one below 420 px, as the prototype's container
-  queries;
-- each with a label, a value, a change against its comparison, a bar and a foot.
+**Four stats**, `BudgetStat`, in `BudgetStats`' grid:
+- four columns, two below 820 px of the page's container, one below 420 px, as the prototype's
+  container queries;
+- each on the grid's rows (`grid-rows-subgrid`), so the four line up: a label, a value, its change
+  and its red dot, a bar, and a foot.
 
 | Stat | Value | Change against | Bar | Foot | Red dot's tooltip |
 | --- | --- | --- | --- | --- | --- |
 | This month | spent | the same days last month | spent, and with expected, of the monthly limit | "{expected} expected", or "Nothing else expected" | "You are" or "You will be" "{x} over budget this month", once spent plus expected passes the limit |
 | Next month | next | this month's spent plus expected | next, of the monthly limit | "{n} recurring bill(s)" | "You will be {x} over budget next month" |
-| This year | spent this year | the same period last year | spent, of the yearly limit | "Spent since Jan 1" | "You are {x} over budget this year" |
-| Projected this year | spent plus expected | last year | spent, and with expected, of the yearly limit | "{expected} expected by Dec 31" | "You will be {x} over budget this year" |
+| This year | spent this year | the same period last year | spent, of the yearly limit | "Spent since {Jan 1}" | "You are {x} over budget this year" |
+| Projected this year | spent plus expected | last year | spent, and with expected, of the yearly limit | "{expected} expected by {Dec 31}" | "You will be {x} over budget this year" |
 
-- **The change** is a percentage rounded to a whole number, signed when positive, with "Compared
-  with {comparison}" as its title. It is hidden when the comparison is 0.
-- **The bar** has four segments:
+- **The change** is a whole percentage (`getBudgetChange`), written with `signDisplay:
+  'exceptZero'`, with "Compared with {comparison}" as its title. It is hidden when the comparison is
+  0.
+- **The bar**, `BudgetBar`, has four segments, which `getBudgetBarSegments` places:
   - spent up to the limit, primary;
   - spent past it, danger;
   - expected up to the limit, primary-200;
   - expected past it, red-200.
   - Past 100%, the bar spans the whole and a white mark shows where the limit ends.
   - Its `aria-label` is "{p}% of budget", with ", {q}% with expected bills" when it applies.
+- **The red dot** is a focusable `role="img"` in a `Tooltip` that a tap opens too.
 - **Without a budget** there is no bar and no dot.
+- **The days** "Jan 1" and "Dec 31" are written in the reader's locale.
 
-**"Spending in {year}"**, a section with the legend Spent, Expected and Monthly budget, the last only
-with a budget. It draws M4's chart from `summary.months`, with `aria-label` "Monthly spending in
-{year}: {month} {amount}, …".
+**"Spending in {year}"**, a `PageSection` whose actions hold `BudgetChartLegend`: Spent, Expected,
+and Monthly budget with a budget.
+- It draws `BudgetSpendingChart`, M4's story ported to the page, with its clips, tooltip label and
+  tooltip row in files of their own and its tooltip's rows from `toSpendingTooltipRows`.
+- Every word comes from the catalogue, the `aria-label` "Monthly spending in {year}: {month}
+  {amount}, …" included. Month names and amounts are in the reader's locale.
+- The story stays in the design system as `ChartContainer`'s, which Storybook and the design sync
+  grade. Nothing of the design system changes.
 
-**Two panels** side by side, one column below 760 px. Each is a button opening a dialog, with a
-chevron that turns primary on hover.
+**Two panels** side by side, one column below 760 px of the page.
+- **Each is a `BudgetPanel`**, a card that opens a dialog, with a chevron that turns primary on
+  hover.
+  - Its heading holds the dialog's trigger, a button stretched over the card, since a heading
+    cannot sit inside a `<button>`. The prototype's `role="button"` section would hide its list
+    from a screen reader.
+  - The focus ring circles the card.
+  - Side by side, the cards reach past the page's edge by their padding, so their text lines up
+    with it. Stacked, they keep within a phone's narrower gutter.
 - **"Next 30 days"**:
   - its line is "{total} in {n} expected payment(s)";
-  - the five first payments, each with its day, its bill's name, "{company} · {recurrence}", and
-    its converted amount, then "{n} more";
+  - the five first payments, each with its day, its bill's name, "{company} · {recurrence}", or
+    "· Scheduled", the prototype's word, for a single payment, and its converted amount, then
+    "{n} more";
+  - a payment whose currency has no rate yet shows its own amount in its own currency, and the
+    total counts those converted;
   - empty, "Nothing expected", "Mark bills as recurring to see what is coming.".
-  - Its dialog lists all of them, with the year in each day, its line ending "until {date}", and
-    each row opens its bill (M6).
+  - Its dialog lists all of them, with the year in each day, its line ending "until {date}". Its
+    rows open their bills once M6 adds the bill dialog.
 - **"By company"**:
   - its line is "Spent in {year} so far";
-  - six bars, each relative to the largest, then "{n} more companies";
+  - six bars, the design system's `Progress`, each relative to the largest, then "{n} more
+    companies";
   - empty, "No spending yet", "Bills paid in {year} appear here.".
   - Its dialog lists every company with its share, "· {p}%", under "{n} companies, {total} spent in
     {year} so far".
+- Both dialogs scroll whole, 560 px wide, as the app's other long dialogs do.
 
-**The budget dialog**, `BudgetDialog`:
+**The budget dialog**, `BudgetDialog` around `BudgetDialogForm`:
+- **Its opener**, the header's button or an alert's, is its `DialogTrigger`, so the focus goes back
+  to it once it closes. The form mounts with the dialog's content, so each opening starts from the
+  budget as it stands.
 - **Its title** is "Budget", or "Set a budget".
 - **Its description** is "Spending is compared with this budget. Recurring bills count before they
   are paid." Members see "Only administrators can change the budget." instead, with every field
   disabled and no actions.
+- **The form** is react-hook-form with zod, as `AccountPasswordForm` is, so its error shows once it
+  was submitted.
 - **The fields:**
-  - the period as `Radio`s, Monthly, Quarterly and Yearly;
-  - "Amount per {month, quarter or year}", a decimal input checked by `parseMoney`, placeholder
-    2500, "Enter an amount above 0.";
-  - the currency, `CurrencySelect`.
+  - "Period", the `Radio`s Monthly, Quarterly and Yearly in a `radiogroup`;
+  - "Amount per {month, quarter or year}", a decimal input checked by `parseMoney` in the currency
+    picked, above 0, placeholder 2500, "Enter an amount above 0.";
+  - "Currency", `CurrencySelect`.
 - **Below them**, "Every amount on the Budget page is converted to {currency} at the rate of each
   payment's day. Rates are the European Central Bank's, latest {date}."
+  - The date is the latest day of the rates the page read (`getLatestExchangeRateDay`).
+  - With none read, as for a company counting only in euros, the sentence ends at "Rates are the
+    European Central Bank's."
 - **Its actions:**
-  - "Remove budget", after a confirmation, when there is one;
-  - Cancel and Save.
-- **Toasts:** "Budget saved", "Budget removed".
+  - "Remove budget", when there is one, armed by a first click to "Confirm removal" (`Button`'s
+    `confirm`);
+  - Cancel and Save, Save waiting for a change.
+- **Toasts:** "Budget saved", "Budget removed", or "The budget could not be saved" or "…removed.
+  Try again." on a failure.
 
 **`CurrencySelect`**, in `components/budget/`:
 - the design system's `Combobox`, searchable;
-- each option is the currency's narrow symbol, in a 28 px column, then its name from
-  `Intl.DisplayNames` in the reader's locale;
-- the search matches the code, the symbol or the name.
+- each option is the currency's narrow symbol (`getCurrencySymbol`), in a 28 px column, then its
+  name from `Intl.DisplayNames` in the reader's locale, sorted by name;
+- the search matches the code, the symbol or the name, the last two as the option's `keywords`.
 
 **Amounts:**
 - **Formatting.** `formatBudgetAmount(minor, currency, locale, { exact? })`, in `utils/budget/`, is
-  `Intl.NumberFormat` with `style: 'currency'`. It rounds to whole units unless `exact`.
-  `formatCompactBudgetAmount` is the chart's ticks.
-- **Days** are `Intl.DateTimeFormat` short month and day, with the year when it is not this year.
+  `Intl.NumberFormat` with `style: 'currency'`. It rounds to whole units unless `exact`, and sets
+  the fraction digits from `CURRENCIES`, never from `Intl`. `formatCompactBudgetAmount` writes the
+  chart's ticks and its budget's label.
+- **Days**, `formatBudgetDay(day, today, locale, { withYear? })`, are `Intl.DateTimeFormat` short
+  month and day, with the year when it is not this year, read as a UTC date so no time zone moves
+  them.
+
+**`bun run seed:budget <email> [--organization <id or slug>]`**, `scripts/seedBudget.ts` in the
+backend's package:
+- emulators only, through the Admin SDK's GraphQL, as `grantAdministrator.ts` writes;
+- the prototype's $2,500 monthly budget in US dollars and its 19 bills, dated around the machine's
+  today as `bgSeedBills` dates them, into the account's organization, or the one named;
+- the organization's members paying them in turn;
+- each bill's id derived from the organization and the bill, so a second run moves the same bills to
+  the new today rather than adding 19 more;
+- no receipts, which M6 can add.
+
+**CLAUDE.md:**
+- Budget conventions: the page computes through `useBudgetSummary` on `useLocalDate`'s today,
+  reads the years `listExchangeRateYears` names, turns an `Int64String` into a number where it is
+  read, and writes amounts and days through `utils/budget/`;
+- Commands gain `seed:budget`;
+- the design system's Stack entry says why the web declares recharts and react-is.
 
 **Verify:**
 - In a browser against the emulators, with `sync:exchange-rates` run and bills seeded by `bun run
-  seed:budget <email>`, a script under the backend's `scripts/` that writes the prototype's 19 bills
-  and budget dated around today into the account's organization, through the admin SDK, against the
-  emulators only.
-- At desktop and phone widths, against the prototype's screenshots, as a member and as an
-  administrator.
+  seed:budget <email>`.
+- At desktop and phone widths, against the prototype rendered from its export, as a member and as
+  an administrator:
+  - the stats, the chart's tooltip and both panels and their dialogs;
+  - each tab, and `?view=` anything else falling back to Expenses;
+  - the dialog: setting, changing the period and the currency, removing, and a member's read-only
+    view;
+  - the warning and the "No budget yet" alerts;
+  - a currency without rates named under the stats;
+  - no horizontal scroll at 390 px.
 - The four checks pass.
 
 ### M6: The Bills tab and the bill dialog

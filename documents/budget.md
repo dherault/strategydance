@@ -5,7 +5,7 @@
 | M1 | Money, payments and the budget's computations | core | | #249 |
 | M2 | Exchange rates | database, core, backend, root | M1 | #252 |
 | M3 | The budget's tables and the receipts' routes | database, core, backend, root | M1 | #255 |
-| M4 | The chart | design-system, root | | |
+| M4 | The chart | design-system, root | | #256 |
 | M5 | The page and its Expenses tab | web, backend | M2, M3, M4 | |
 | M6 | The Bills tab and the bill dialog | web | M5 | |
 | M7 | Reading receipts | backend, database, core, web | M6 | |

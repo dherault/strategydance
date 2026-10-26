@@ -8890,3 +8890,79 @@ mutation PruneIntegrationAuthorizations @auth(level: NO_ACCESS) {
 mutation UpsertExchangeRateYear($currency: Currency!, $year: Int!, $rates: String!) @auth(level: NO_ACCESS) {
   exchangeRateYear_upsert(data: { currency: $currency, year: $year, rates: $rates, updatedAt_expr: "request.time" })
 }
+
+# Reserves a receipt the caller uploads for a bill, before any of its bytes is accepted: its row,
+# `UPLOADING`, under the id the page made for it, so an upload sent again finds it, and its file is
+# never without its row. The first step writes the caller's membership, so somebody removed meanwhile
+# reserves nothing. The name, type and size are checked as the backend checked them,
+# `BILL_RECEIPT_CONTENT_TYPES`, `MAX_BILL_RECEIPT_NAME_LENGTH` and `MAX_BILL_RECEIPT_SIZE` in
+# strategydance-core. `$userId` is the uid the backend verified
+mutation ReserveBillReceipt(
+  $organizationId: UUID!
+  $userId: String!
+  $receiptId: UUID!
+  $name: String!
+  $contentType: String!
+  $size: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can upload a receipt to it")
+    @check(
+      expr: "size(vars.name) >= 1 && size(vars.name) <= 200 && vars.name.matches('^[^\\r\\n]*$') && vars.size >= 1 && vars.size <= 10485760 && vars.contentType in ['application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'image/jpeg', 'image/png', 'image/webp']"
+      message: "A receipt has a name on one line of at most 200 characters, a type a bill takes, and at most 10 MiB"
+    )
+  billReceipt_insert(
+    data: {
+      id: $receiptId
+      organizationId: $organizationId
+      userId: $userId
+      status: UPLOADING
+      name: $name
+      contentType: $contentType
+      size: $size
+    }
+  )
+}
+
+# Finishes the upload of a receipt whose row was reserved, once its file is stored and checked: it
+# turns `READY`, only while it is still `UPLOADING`, so a retry of the same upload that finished
+# first refuses it, and the backend reads the row again to tell
+mutation CompleteBillReceiptUpload($organizationId: UUID!, $userId: String!, $receiptId: UUID!)
+@auth(level: NO_ACCESS)
+@transaction {
+  billReceipt_updateMany(
+    where: {
+      id: { eq: $receiptId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      status: { eq: UPLOADING }
+    }
+    data: { status: READY }
+  ) @check(expr: "this == 1", message: "The receipt is no longer being uploaded")
+}
+
+# The daily sweep's: deletes every bill deleted over a day ago, past its Undo, in every organization.
+# Its receipt stays, held by nothing, for `GetPrunableBillReceipts` to take. Deleting what is gone
+# already deletes nothing, so a sweep that failed is finished by the next
+mutation PruneDeletedBills @auth(level: NO_ACCESS) {
+  bill_deleteMany(where: { deletedAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}
+
+# Deletes the rows of receipts the sweep read, once their files are gone. Only those still held by no
+# bill and over two days old, as it read them, so a row is never deleted on its id alone. Deleting
+# one twice deletes nothing
+mutation DeleteBillReceipts($ids: [UUID!]!) @auth(level: NO_ACCESS) {
+  billReceipt_deleteMany(
+    where: {
+      _and: [
+        { id: { in: $ids } }
+        { createdAt: { lt_time: { now: true, sub: { days: 2 } } } }
+        { _not: { bill_on_receipt: { id: { isNull: false } } } }
+      ]
+    }
+  )
+}

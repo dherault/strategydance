@@ -4,7 +4,7 @@
 | --- | --- | --- | --- | --- |
 | M1 | Money, payments and the budget's computations | core | | #249 |
 | M2 | Exchange rates | database, core, backend, root | M1 | #252 |
-| M3 | The budget's tables and the receipts' routes | database, core, backend, root | M1 | |
+| M3 | The budget's tables and the receipts' routes | database, core, backend, root | M1 | #255 |
 | M4 | The chart | design-system, root | | |
 | M5 | The page and its Expenses tab | web, backend | M2, M3, M4 | |
 | M6 | The Bills tab and the bill dialog | web | M5 | |
@@ -121,8 +121,8 @@ enum BillReceiptStatus { UPLOADING READY }
   - `id`, `organization`, and `user`, the member who uploaded it.
   - `status: BillReceiptStatus`.
   - `name`, `contentType` and `size`.
-  - `readAt`, when the receipt reader read it, which its daily caps count.
-  - `readFields`, the JSON text of what the read found, so asking again pays for nothing.
+  - `readAt`, when the receipt reader read it, which its daily caps count. M7 adds it.
+  - `readFields`, the JSON text of what the read found, so asking again pays for nothing. M7 adds it.
   - `createdAt`.
 - **`ExchangeRateYear`**: keyed by `["currency", "year"]`.
   - `rates: String` is the JSON text of an object from each ECB day of that year, `YYYY-MM-DD`, to
@@ -281,8 +281,12 @@ Deleting the organization deletes that prefix with the rest. `routes/budget.ts`,
     `createImageThumbnail` fits a picture. Claude reads no finer than that, and a phone's photo would
     otherwise pass Claude's 5 MB image limit.
   - It is metered by `billReceiptUploadRateLimitMiddleware`, 60 uploads in ten minutes per member.
+  - An upload sent again carries on its reservation, unless the reservation is over a day old: the
+    sweep may then be deleting it, and a file written meanwhile would be left without its row.
 - **`GET /receipts/:receiptId`** answers the file to any member of its organization, read by the
   page through `requestApiFile` and drawn from an address `useObjectUrl` holds.
+  - It is metered by `billReceiptReadRateLimitMiddleware`, 600 reads in ten minutes per member, as a
+    conversation's files are.
 - **`POST /receipts/:receiptId/read`** is the receipt reader. It belongs to the member who uploaded
   the receipt, and is covered under Reading a receipt.
 
@@ -290,7 +294,9 @@ Deleting the organization deletes that prefix with the rest. `routes/budget.ts`,
 - not `READY`;
 - in another organization;
 - uploaded by another member, unless it is the bill's own already;
-- held by another bill.
+- uploaded over two days ago, unless it is the bill's own already;
+- held by another bill, which the receipt's unique reference also refuses. `UpdateBill` runs as one
+  SQL statement, so it reports that refusal before its own check's.
 
 **Nothing moves a file.** A receipt is stored where it stays, and its row exists before its file, so
 no file is ever without its row.
@@ -625,18 +631,20 @@ prunes. Nothing draws them yet.
 - `CompleteBillReceiptUpload`;
 - `GetBillReceiptForMember`, which serves a receipt to any member of its organization;
 - `PruneDeletedBills`;
-- `GetPrunableBillReceipts` and `DeleteBillReceipt`.
+- `GetPrunableBillReceipts` and `DeleteBillReceipts`, which deletes a batch.
 
 **`routes/budget.ts`** with `PUT /receipts/:receiptId` and `GET /receipts/:receiptId`, as Receipts
 says:
 - `uploadBillReceipt` and `billReceiptStorage` in `domain/budget/`, `billReceiptStorage` being the
   one module that touches the bucket for receipts;
-- `billReceiptUploadRateLimitMiddleware`;
-- `parseConversationAttachmentHeaders` made general enough for both, or a sibling of it;
-- `BILL_RECEIPT_CONTENT_TYPES`, `MAX_BILL_RECEIPT_SIZE`, `MAX_BILL_RECEIPT_PDF_PAGES` and
-  `MAX_BILL_RECEIPT_TEXT_LENGTH` in core;
-- an upload reading its file back one at a time, then collecting the heap, as an attachment's does
-  (CLAUDE.md, Backend conventions).
+- `billReceiptUploadRateLimitMiddleware` and `billReceiptReadRateLimitMiddleware`;
+- `parseUploadHeaders`, which `parseConversationAttachmentHeaders` became, taking each route's
+  limits;
+- `BILL_RECEIPT_CONTENT_TYPES`, `MAX_BILL_RECEIPT_SIZE`, `MAX_BILL_RECEIPT_PDF_PAGES`,
+  `MAX_BILL_RECEIPT_TEXT_LENGTH` and `MAX_BILL_RECEIPT_NAME_LENGTH` in core;
+- an upload reading its file back one at a time, then collecting the heap, through
+  `runUploadReadBack`, which an attachment's upload goes through too (CLAUDE.md, Backend
+  conventions).
 
 **The sweep's steps:** `pruneDeletedBills`, then `pruneBillReceipts`, as Receipts says. Each is
 idempotent, deletes in batches, and leaves a receipt whose file could not go for the next sweep.
@@ -941,7 +949,8 @@ The reader of Reading a receipt, and the upload dialog that fills a bill from it
   `conversationsSuspensionMiddleware`, as Reading a receipt says.
 - In `domain/budget/`: `buildBillReceiptReadRequest`, `readBillReceiptFields` and
   `requestBillReceiptRead`.
-- On the database: `ClaimBillReceiptRead`, `RecordBillReceiptRead` and `ReleaseBillReceiptRead`.
+- On the database: `BillReceipt`'s `readAt` and `readFields`, then `ClaimBillReceiptRead`,
+  `RecordBillReceiptRead` and `ReleaseBillReceiptRead`.
 - In core: `MAX_DAILY_RECEIPT_READS_PER_MEMBER`, `MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION` and
   `ERROR_CODE_RECEIPT_READS_CAPPED`.
 - The placeholder's branch.

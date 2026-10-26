@@ -1,8 +1,29 @@
 import { describe, expect, it } from 'bun:test'
 
-import parseConversationAttachmentHeaders from './parseConversationAttachmentHeaders'
+import {
+  BILL_RECEIPT_CONTENT_TYPES,
+  CONVERSATION_ATTACHMENT_CONTENT_TYPES,
+  MAX_BILL_RECEIPT_NAME_LENGTH,
+  MAX_BILL_RECEIPT_SIZE,
+  MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
+  MAX_CONVERSATION_ATTACHMENT_SIZE,
+} from 'strategydance-core'
 
-describe('parseConversationAttachmentHeaders', () => {
+import parseUploadHeaders, { type UploadLimits } from './parseUploadHeaders'
+
+const conversationLimits: UploadLimits = {
+  contentTypes: CONVERSATION_ATTACHMENT_CONTENT_TYPES,
+  maxSize: MAX_CONVERSATION_ATTACHMENT_SIZE,
+  maxNameLength: MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
+  unsupportedReason: 'A conversation takes images, PDFs and text files',
+}
+
+// A conversation's file, as its route reads it
+function parseConversationAttachmentHeaders(headers: Parameters<typeof parseUploadHeaders>[0]) {
+  return parseUploadHeaders(headers, conversationLimits)
+}
+
+describe('parseUploadHeaders', () => {
   it('reads the type without its parameters, the size and the decoded name', () => {
     expect(
       parseConversationAttachmentHeaders({
@@ -47,5 +68,30 @@ describe('parseConversationAttachmentHeaders', () => {
     expect(parseConversationAttachmentHeaders({ ...upload, fileName: '🌞'.repeat(200) })).toMatchObject({
       outcome: 'valid',
     })
+  })
+
+  it("holds a file to its route's own types and size, and says which types it takes", () => {
+    const receiptLimits: UploadLimits = {
+      contentTypes: BILL_RECEIPT_CONTENT_TYPES,
+      maxSize: MAX_BILL_RECEIPT_SIZE,
+      maxNameLength: MAX_BILL_RECEIPT_NAME_LENGTH,
+      unsupportedReason: 'A receipt is a PDF, a text file or a photo',
+    }
+
+    expect(
+      parseUploadHeaders({ contentType: 'image/gif', contentLength: '10', fileName: 'a.gif' }, receiptLimits),
+    ).toEqual({
+      outcome: 'unsupported',
+      reason: 'A receipt is a PDF, a text file or a photo',
+    })
+    expect(
+      parseUploadHeaders({ contentType: 'image/webp', contentLength: '10', fileName: 'a.webp' }, receiptLimits),
+    ).toMatchObject({ outcome: 'valid' })
+    expect(
+      parseUploadHeaders(
+        { contentType: 'application/pdf', contentLength: String(MAX_BILL_RECEIPT_SIZE + 1), fileName: 'a.pdf' },
+        receiptLimits,
+      ),
+    ).toMatchObject({ outcome: 'tooLarge' })
   })
 })

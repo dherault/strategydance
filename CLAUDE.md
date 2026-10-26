@@ -119,6 +119,7 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches up to 10 subagents of that account's conversation, as the Subagents module does, in its own process, and prints each transcript and report. A promotion runs in the process that freed the slot, so launch an account's subagents from one script at a time. Emulators only, and it costs money unless run under `CONVERSATION_AGENT=placeholder` |
 | `bun run mcp:knowledge <email> [--organization <id or slug>]` / `mcp:tasks` | Serves the Knowledge or the Tasks module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. See [Module conventions](#module-conventions) |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' daily check into this checkout's two files, or with `--publish` into the rolling pull request on GitHub. About $0.10 a directory. See [directories.md](documents/directories.md) |
+| `bun run check:budget` | Checks the Budget's operations against the emulators: the budget's, the bills' and the receipts' conditions, and the sweep's prunes. CI runs no emulator, so run it after changing one |
 | `bun run sync:exchange-rates [--production]` | Syncs the ECB's exchange rates from Frankfurter, as the daily sweep does: into the emulators, which need it once, or with `--production` into the project. The first run backfills every year since 1999 |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model, price or top output rate, or of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
 | `bun run storybook` | The design system's Storybook on http://localhost:6006 |
@@ -610,8 +611,11 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
     `Content-Length`, and a send copies it under its conversation. Every id in an object's name is
     canonical (`toCanonicalUuid`). `conversationAttachmentStorage` is the one module touching the
     bucket for them, and a test that mocks `~firebase` mocks it with `createAttachmentStorageFake`
-  - An upload reads its file back one at a time, then collects the heap whole (`Bun.gc(true)`), or
-    twenty files of 10 MiB take a backend past Cloud Run's 512 MiB: run `bun run
+  - A bill's receipt has no download token either: `routes/budget.ts` stores it and serves it, as
+    [Budget conventions](#budget-conventions) says
+  - An upload, a conversation's file or a bill's receipt, reads its file back one at a time
+    (`runUploadReadBack`), then collects the heap whole (`Bun.gc(true)`), or twenty files of 10 MiB
+    take a backend past Cloud Run's 512 MiB: run `bun run
     load:conversation-attachments <email>`, in the backend's package, after changing what an upload
     reads, holds or sends
 - Documents' revisions are read and restored through `routes/knowledge.ts`, which merges a whole
@@ -664,7 +668,8 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   its Undo window and prunes what expires: conversations deleted over a day ago, claimed first, so a
   restore refuses them, and deleted with their files and module call results, one whose files could
   not all go staying claimed for the next sweep; files never sent; the board's deleted tasks;
-  deleted documents and MCP servers; revisions over 30 days old; and the expired Connects, searches,
+  deleted bills, then the receipts no bill holds two days after their upload; deleted documents and
+  MCP servers; revisions over 30 days old; and the expired Connects, searches,
   run spends, call results and the authorization server's requests and tokens. Each step runs
   whatever failed before it (`runSweepSteps`), and the route answers 500 naming the failures.
   `RestoreConversation` refuses a conversation deleted over a day ago whether or not the sweep has
@@ -1171,6 +1176,41 @@ each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served 
   `finalizeDeadConversationRun` logs `DEAD_RUN_LOG_PREFIX` for each run it ends, which a log-based
   metric counts and an alert watches (Setup 13 in conversations.md): its words change with the
   metric's filter
+
+## Budget conventions
+
+The Budget compares what a company spends, its bills, with what an administrator means it to spend,
+its budget. [budget.md](documents/budget.md) says what each part does and why, and gives the
+milestones that build it: read it before changing any of it.
+
+- Money is a whole number of a currency's minor units: `Int64` in the schema, a string in the SDK, a
+  number in code, within `MAX_MONEY_MINOR`. A day is `YYYY-MM-DD`. strategydance-core computes what
+  the page and the module show (`summarizeBudget` and its siblings) from plain shapes, so both
+  answer the same numbers
+- `Budget` is one row an organization, which only an administrator writes (`SetBudget`), always
+  with every variable: the amount and the period together, or both null to remove it, the currency
+  kept
+- Any member adds, saves, deletes and restores any bill, as the board's tasks. `UpdateBill` writes
+  every field on the `updatedAt` the dialog read, refused once another save moved it, and a delete
+  and its Undo leave `updatedAt` alone. A restore takes a bill deleted within a day. `CreateBill` and
+  `RestoreBill` hold `MAX_BILLS` under a lock on the organization's row, their count reading the
+  lock's response. A bill keeps its payer once they leave, and a new payer is a member. A bill's
+  limits are core's, written out again in its operations' checks, which `schema.test.ts` holds to
+  them
+- A receipt is a `BillReceipt` row, written `UPLOADING` before its file, then `READY` once the file
+  is stored and checked (`uploadBillReceipt`). The file lives at
+  `organizations/{organizationId}/receipts/{id}`, its ids canonical, create-only, with no download
+  token: the backend alone writes it and serves it, to any member of the organization
+  (`routes/budget.ts`), through `billReceiptStorage`, which the tests replace with
+  `createAttachmentStorageFake`. Nothing moves a file, so none is ever without its row
+- A save takes a receipt that is `READY`, in the organization, the caller's, held by no bill and
+  uploaded within two days, or one the bill holds already. The sweep prunes deleted bills a day
+  after, then the receipts no bill holds, deleted bills included, two days after their upload, each
+  file before its row (`pruneDeletedBills`, `pruneBillReceipts`). An upload never carries on a
+  reservation over a day old, so it never writes a file the sweep may be deleting
+- `bun run check:budget` checks the operations against the emulators, and the domain's tests run
+  against `createBudgetDatabaseFake`, built on the modules' fake base: an operation changed is
+  changed in both
 
 ## Email conventions
 

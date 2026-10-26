@@ -38,6 +38,24 @@ const pruneDeletedTasks = mock(async () => ({ deleted: 0 }))
 
 mock.module('~domain/tasks/pruneDeletedTasks', () => ({ default: pruneDeletedTasks }))
 
+// The Budget's prunes, which their own tests cover, recording the order they run in
+const budgetPrunes: string[] = []
+
+const pruneDeletedBills = mock(async () => {
+  budgetPrunes.push('pruneDeletedBills')
+
+  return { deleted: 0 }
+})
+
+const pruneBillReceipts = mock(async () => {
+  budgetPrunes.push('pruneBillReceipts')
+
+  return { deleted: 0, kept: 0 }
+})
+
+mock.module('~domain/budget/pruneDeletedBills', () => ({ default: pruneDeletedBills }))
+mock.module('~domain/budget/pruneBillReceipts', () => ({ default: pruneBillReceipts }))
+
 // The integrations' prune, which `check:integrations` checks against the emulators
 const pruneDeletedIntegrations = mock(async () => ({ deleted: 0 }))
 
@@ -291,6 +309,13 @@ describe('POST /internal/sweep', () => {
     expect(pruneDeletedTasks).toHaveBeenCalledTimes(1)
     expect(pruneDeletedIntegrations).toHaveBeenCalledTimes(1)
     expect(pruneIntegrationAuthorizations).toHaveBeenCalledTimes(1)
+  })
+
+  test('prunes the deleted bills, then the receipts no bill holds, so a bill pruned frees its receipt at once', async () => {
+    budgetPrunes.length = 0
+
+    expect((await fetch(`${origin}/internal/sweep`, { method: 'POST' })).status).toBe(200)
+    expect(budgetPrunes).toEqual(['pruneDeletedBills', 'pruneBillReceipts'])
   })
 
   test('removes the documents deleted over a day ago in every organization, and keeps the rest', async () => {

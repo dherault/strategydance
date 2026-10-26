@@ -2018,3 +2018,322 @@ mutation DeleteAgentConnection($userId: String!, $id: UUID!) @auth(level: USER) 
   }
   agentConnection_deleteMany(where: { id: { eq: $id }, membershipUserId: { eq_expr: "auth.uid" } })
 }
+
+# Sets an organization's budget, or removes it, which only an administrator may: its currency, and
+# its amount in minor units with the period it lasts, or both null to remove it, keeping the
+# currency the page goes on counting in. Always sent with every variable, written whole over the row,
+# which the first set inserts.
+#
+# The write comes first, the row's lock, so the checks after it read what a demotion in the same
+# instant committed, and a check that fails rolls it back, as in `UpdateOrganization`. An amount is
+# 1 to 10^15 minor units (`MAX_MONEY_MINOR` in strategydance-core). The checks are optional under the
+# membership, so somebody who is no member is told so (CLAUDE.md § The database)
+mutation SetBudget($organizationId: UUID!, $currency: Currency!, $amountMinor: Int64, $period: BudgetPeriod)
+@auth(level: USER)
+@transaction {
+  budget_upsert(
+    data: {
+      organizationId: $organizationId
+      currency: $currency
+      amountMinor: $amountMinor
+      period: $period
+      updatedById_expr: "auth.uid"
+      updatedAt_expr: "request.time"
+    }
+  )
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can set its budget") {
+      role
+        @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can set the budget", optional: true)
+        @check(
+          expr: "has(vars.amountMinor) && has(vars.period) && (vars.amountMinor == null) == (vars.period == null)"
+          message: "A budget has an amount and a period, or neither once removed"
+          optional: true
+        )
+        @check(
+          expr: "vars.amountMinor == null || (vars.amountMinor >= 1 && vars.amountMinor <= 1000000000000000)"
+          message: "A budget's amount is 1 to 10^15 minor units"
+          optional: true
+        )
+    }
+  }
+}
+
+# Adds a bill to an organization, which any of its members may do. The id is the page's, so a save
+# sent again stores the bill once.
+#
+# At most 2000 live bills an organization (`MAX_BILLS` in strategydance-core), counted under a lock:
+# the first step writes the organization's row, and the count reads its response, so it runs as a
+# statement of its own and sees every bill another member's add committed while the lock was waited
+# for (CLAUDE.md § The database). A name and a company are one line of at most 80 and 60 characters
+# (`MAX_BILL_NAME_LENGTH`, `MAX_BILL_COMPANY_LENGTH`) with no space at either end, and a description
+# at most 140 (`MAX_BILL_DESCRIPTION_LENGTH`). An amount is 1 to 10^15 minor units
+# (`MAX_MONEY_MINOR`). It is paid from 1999, the ECB's first year, to ten years ahead, and ends only
+# when it recurs, on or after its first payment. Its payer is a member of the organization.
+#
+# Its receipt, when it has one, is `READY`, in the organization, uploaded by the caller, held by no
+# bill, and uploaded within two days, past which the daily sweep may be deleting a receipt nothing
+# holds: a dialog left open that long is told to attach it again. The receipt's unique reference
+# refuses a second bill taking it at the same instant
+mutation CreateBill(
+  $organizationId: UUID!
+  $id: UUID!
+  $name: String!
+  $description: String!
+  $company: String!
+  $amountMinor: Int64!
+  $currency: Currency!
+  $paidOn: Date!
+  $recurrence: BillRecurrence
+  $endsOn: Date
+  $paidById: String!
+  $receiptId: UUID
+) @auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can add to its bills")
+    @check(
+      expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.company) <= 60 && vars.company.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.description) <= 140"
+      message: "A bill's name and company are one line of at most 80 and 60 characters, with no space at either end, and its description at most 140 characters"
+    )
+    @check(
+      expr: "vars.amountMinor >= 1 && vars.amountMinor <= 1000000000000000"
+      message: "A bill's amount is 1 to 10^15 minor units"
+    )
+    @check(
+      expr: "vars.paidOn >= timestamp('1999-01-01T00:00:00Z') && vars.paidOn <= request.time + duration('87672h')"
+      message: "A bill is paid from 1999 to ten years ahead"
+    )
+    @check(
+      expr: "!has(vars.endsOn) || vars.endsOn == null || (has(vars.recurrence) && vars.recurrence != null && vars.endsOn >= vars.paidOn)"
+      message: "A bill ends only when it recurs, on or after its first payment"
+    )
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can add to its bills") {
+      role
+    }
+    bills(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 2000
+    ) @check(expr: "size(this) < 2000", message: "An organization keeps at most 2000 bills") {
+      id
+    }
+    payers: userOrganizations(where: { organizationId: { eq: $organizationId }, userId: { eq: $paidById } }, limit: 1)
+      @check(expr: "size(this) == 1", message: "A bill is paid by a member of its organization") {
+      role
+    }
+    # With no receipt there is nothing to check, whatever this reads, since a filter on a null
+    # variable is dropped
+    receipts: billReceipts(
+      where: {
+        _and: [
+          { id: { eq: $receiptId } }
+          { organizationId: { eq: $organizationId } }
+          { status: { eq: READY } }
+          { userId: { eq_expr: "auth.uid" } }
+          { createdAt: { gt_time: { now: true, sub: { days: 2 } } } }
+          { _not: { bill_on_receipt: { id: { isNull: false } } } }
+        ]
+      }
+      limit: 1
+    )
+      @check(
+        expr: "!has(vars.receiptId) || vars.receiptId == null || size(this) == 1"
+        message: "The receipt can no longer be attached to this bill: attach it again"
+      ) {
+      id
+    }
+  }
+  bill_insert(
+    data: {
+      id: $id
+      organizationId: $organizationId
+      name: $name
+      description: $description
+      company: $company
+      amountMinor: $amountMinor
+      currency: $currency
+      paidOn: $paidOn
+      recurrence: $recurrence
+      endsOn: $endsOn
+      paidById: $paidById
+      receiptId: $receiptId
+      createdById_expr: "auth.uid"
+    }
+  )
+}
+
+# Saves a bill, which any member of its organization may do: every field, as the dialog shows them,
+# held to what `CreateBill` holds them to, on the `updatedAt` the dialog read, so a save made on what
+# another member's save replaced is refused, and the dialog shows the bill as it now is.
+#
+# The checks read the bill as it was before this save, which the `updatedAt` match then holds the
+# row to, so a bill keeps what it had already: the payer, even one who has left the organization, and
+# the receipt, whoever uploaded it and however long ago. A new payer is a member, and a new receipt
+# one `CreateBill` would take. The checks on the variables are optional under the membership, so
+# somebody who is no member is told so (CLAUDE.md § The database). A receipt another bill holds is
+# refused by the unique reference before the receipt's check, since the operation runs as one SQL
+# statement, where a constraint a later step breaks is reported first
+mutation UpdateBill(
+  $organizationId: UUID!
+  $id: UUID!
+  $updatedAt: Timestamp!
+  $name: String!
+  $description: String!
+  $company: String!
+  $amountMinor: Int64!
+  $currency: Currency!
+  $paidOn: Date!
+  $recurrence: BillRecurrence
+  $endsOn: Date
+  $paidById: String!
+  $receiptId: UUID
+) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its bills") {
+      role
+        @check(
+          expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.company) <= 60 && vars.company.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.description) <= 140"
+          message: "A bill's name and company are one line of at most 80 and 60 characters, with no space at either end, and its description at most 140 characters"
+          optional: true
+        )
+        @check(
+          expr: "vars.amountMinor >= 1 && vars.amountMinor <= 1000000000000000"
+          message: "A bill's amount is 1 to 10^15 minor units"
+          optional: true
+        )
+        @check(
+          expr: "vars.paidOn >= timestamp('1999-01-01T00:00:00Z') && vars.paidOn <= request.time + duration('87672h')"
+          message: "A bill is paid from 1999 to ten years ahead"
+          optional: true
+        )
+        @check(
+          expr: "!has(vars.endsOn) || vars.endsOn == null || (has(vars.recurrence) && vars.recurrence != null && vars.endsOn >= vars.paidOn)"
+          message: "A bill ends only when it recurs, on or after its first payment"
+          optional: true
+        )
+    }
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    payers: users(
+      where: {
+        _and: [
+          { id: { eq: $paidById } }
+          {
+            _or: [
+              { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+              { bills_on_paidBy: { exist: { id: { eq: $id } } } }
+            ]
+          }
+        ]
+      }
+      limit: 1
+    )
+      @check(
+        expr: "size(this) == 1"
+        message: "A bill is paid by a member of its organization, or by whoever paid it"
+      ) {
+      id
+    }
+    receipts: billReceipts(
+      where: {
+        _and: [
+          { id: { eq: $receiptId } }
+          { organizationId: { eq: $organizationId } }
+          {
+            _or: [
+              { bill_on_receipt: { id: { eq: $id } } }
+              {
+                _and: [
+                  { status: { eq: READY } }
+                  { userId: { eq_expr: "auth.uid" } }
+                  { createdAt: { gt_time: { now: true, sub: { days: 2 } } } }
+                  { _not: { bill_on_receipt: { id: { isNull: false } } } }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+      limit: 1
+    )
+      @check(
+        expr: "!has(vars.receiptId) || vars.receiptId == null || size(this) == 1"
+        message: "The receipt can no longer be attached to this bill: attach it again"
+      ) {
+      id
+    }
+  }
+  bill_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      updatedAt: { eq: $updatedAt }
+    }
+    data: {
+      name: $name
+      description: $description
+      company: $company
+      amountMinor: $amountMinor
+      currency: $currency
+      paidOn: $paidOn
+      recurrence: $recurrence
+      endsOn: $endsOn
+      paidById: $paidById
+      receiptId: $receiptId
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The bill was deleted or changed elsewhere since it was read")
+}
+
+# Deletes a bill by setting `deletedAt`, so `RestoreBill` can take it back with its receipt, which no
+# prune takes while a bill holds it. Deleting one that is gone already changes nothing and succeeds,
+# since the outcome is the one asked for. The daily sweep prunes it a day later
+mutation DeleteBill($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its bills") {
+      role
+    }
+  }
+  bill_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { deletedAt_expr: "request.time" }
+  )
+}
+
+# Takes back a delete, which the page offers for a few seconds after one. Fails once it was deleted
+# over a day ago, whether or not the sweep has pruned it since, so a day means a day wherever a
+# restore starts.
+#
+# A bill brought back counts against the 2000 as a new one does, under the same lock on the
+# organization's row as `CreateBill`'s: without it, deleting a bill at the cap, adding another and
+# taking the delete back would keep 2001
+mutation RestoreBill($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its bills")
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can change its bills") {
+      role
+    }
+    bills(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 2000
+    ) @check(expr: "size(this) < 2000", message: "An organization keeps at most 2000 bills") {
+      id
+    }
+  }
+  bill_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { gt_time: { now: true, sub: { days: 1 } } }
+    }
+    data: { deletedAt: null }
+  ) @check(expr: "this == 1", message: "The bill is gone for good")
+}

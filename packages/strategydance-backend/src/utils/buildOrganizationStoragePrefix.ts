@@ -2,9 +2,9 @@ import type { OrganizationImageKind } from 'strategydance-core'
 
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
-// The folders of an organization's part of the bucket: one per picture it carries, and one for the
-// pictures its documents show
-type OrganizationStorageFolder = OrganizationImageKind | 'rich-text'
+// The folders of an organization's part of the bucket: one per picture it carries, one for the
+// pictures its documents show, and one for its bills' receipts
+type OrganizationStorageFolder = OrganizationImageKind | 'rich-text' | 'receipts'
 
 /*
   Where an organization's files live in the bucket, or one kind of them. Deleting the organization

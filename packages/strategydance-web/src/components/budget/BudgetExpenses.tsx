@@ -4,8 +4,10 @@ import useBudgetSummary from '~hooks/budget/useBudgetSummary'
 
 import BudgetAlerts from '~components/budget/BudgetAlerts'
 import BudgetChartLegend from '~components/budget/BudgetChartLegend'
+import BudgetCompaniesPanel from '~components/budget/BudgetCompaniesPanel'
 import BudgetSpendingChart from '~components/budget/BudgetSpendingChart'
 import BudgetStats from '~components/budget/BudgetStats'
+import BudgetUpcomingPanel from '~components/budget/BudgetUpcomingPanel'
 import PageSection from '~components/layout/PageSection'
 
 import budgetMessages from '~data/intl/messages/budget'
@@ -17,7 +19,7 @@ import budgetMessages from '~data/intl/messages/budget'
 */
 function BudgetExpenses() {
   const { formatMessage, formatList } = useIntl()
-  const { summary, limit, currency, today } = useBudgetSummary()
+  const { summary, bills, limit, currency, today, rates } = useBudgetSummary()
   const year = Number(today.slice(0, 4))
 
   return (
@@ -53,6 +55,20 @@ function BudgetExpenses() {
           year={year}
         />
       </PageSection>
+      <div className="-mx-4 grid grid-cols-2 gap-8 @max-[760px]:mx-0 @max-[760px]:grid-cols-1 @max-[760px]:gap-4">
+        <BudgetUpcomingPanel
+          bills={bills}
+          currency={currency}
+          today={today}
+          rates={rates}
+        />
+        <BudgetCompaniesPanel
+          bills={bills}
+          currency={currency}
+          today={today}
+          rates={rates}
+        />
+      </div>
     </div>
   )
 }

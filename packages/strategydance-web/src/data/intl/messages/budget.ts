@@ -417,6 +417,80 @@ const budgetMessages = defineMessages({
     description:
       'Label in the hover box of a month of the spending chart, before how far the month stays under its budget.',
   },
+  nextDays: {
+    id: 'budget.nextDays',
+    defaultMessage: 'Next 30 days',
+    description:
+      'Title of the panel of the Budget page listing the payments due in the coming 30 days, and of its dialog.',
+  },
+  upcomingSummary: {
+    id: 'budget.upcomingSummary',
+    defaultMessage: '{total} in {count, plural, one {# expected payment} other {# expected payments}}',
+    description:
+      'Line under "Next 30 days": what the coming payments add up to, such as "$2,292 in 9 expected payments".',
+  },
+  upcomingSummaryUntil: {
+    id: 'budget.upcomingSummaryUntil',
+    defaultMessage: '{total} in {count, plural, one {# expected payment} other {# expected payments}}, until {date}',
+    description:
+      'Line under the title of the dialog listing the payments of the next 30 days. {date} is the last day it covers, written short, such as "Nov 25".',
+  },
+  upcomingDetail: {
+    id: 'budget.upcomingDetail',
+    defaultMessage:
+      '{company} · {recurrence, select, WEEKLY {Weekly} MONTHLY {Monthly} QUARTERLY {Quarterly} YEARLY {Yearly} other {Scheduled}}',
+    description:
+      'Small line under a coming payment\'s name: the company paid, then how often the bill repeats, or "Scheduled" for a single payment set for a later day.',
+  },
+  morePayments: {
+    id: 'budget.morePayments',
+    defaultMessage: '{count} more',
+    description:
+      'Last line of the "Next 30 days" panel, counting the coming payments it does not list, which its dialog does.',
+  },
+  nothingExpected: {
+    id: 'budget.nothingExpected',
+    defaultMessage: 'Nothing expected',
+    description: 'Title shown in "Next 30 days" when no payment is due in the coming 30 days.',
+  },
+  nothingExpectedText: {
+    id: 'budget.nothingExpectedText',
+    defaultMessage: 'Mark bills as recurring to see what is coming.',
+    description:
+      'Line under "Nothing expected" in the "Next 30 days" panel. A recurring bill repeats each week, month, quarter or year, so its next payments show there.',
+  },
+  byCompany: {
+    id: 'budget.byCompany',
+    defaultMessage: 'By company',
+    description:
+      'Title of the panel of the Budget page showing what each company was paid this year, and of its dialog.',
+  },
+  spentSoFar: {
+    id: 'budget.spentSoFar',
+    defaultMessage: 'Spent in {year} so far',
+    description: 'Line under "By company": the amounts are what each company was paid this calendar year until today.',
+  },
+  companiesSummary: {
+    id: 'budget.companiesSummary',
+    defaultMessage: '{count, plural, one {# company} other {# companies}}, {total} spent in {year} so far',
+    description:
+      'Line under the title of the dialog listing what each company was paid this year: how many companies, and what they were paid in all, such as "16 companies, $24,331 spent in 2026 so far".',
+  },
+  moreCompanies: {
+    id: 'budget.moreCompanies',
+    defaultMessage: '{count, plural, one {# more company} other {# more companies}}',
+    description: 'Last line of the "By company" panel, counting the companies it does not list, which its dialog does.',
+  },
+  noSpendingYet: {
+    id: 'budget.noSpendingYet',
+    defaultMessage: 'No spending yet',
+    description: 'Title shown in "By company" when no bill was paid this year yet.',
+  },
+  noSpendingYetText: {
+    id: 'budget.noSpendingYetText',
+    defaultMessage: 'Bills paid in {year} appear here.',
+    description: 'Line under "No spending yet" in the "By company" panel. {year} is this calendar year.',
+  },
 })
 
 export default budgetMessages

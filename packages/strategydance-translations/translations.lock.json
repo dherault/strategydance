@@ -493,6 +493,14 @@
       }
     },
     "budget": {
+      "budget.amountInvalid": {
+        "hash": "f31d5c17ca9387ad",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.amountLabel": {
+        "hash": "511d9d98f4b26372",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.billsEmptyText": {
         "hash": "6ed1bb78223c0215",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -503,6 +511,54 @@
       },
       "budget.billsTab": {
         "hash": "132c9e0c4325ad1d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.budgetRemoved": {
+        "hash": "5f663fe99e25776e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.budgetSaved": {
+        "hash": "ec0e3dfa1c49db86",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.budgetSettings": {
+        "hash": "dc2c0eb2203bc97f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.cancel": {
+        "hash": "9236851b3deb5506",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.close": {
+        "hash": "2c559fed904dbf85",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.conversionNote": {
+        "hash": "d9b39ab9e3679d77",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.conversionNoteUndated": {
+        "hash": "b7211966de57548e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.currencyLabel": {
+        "hash": "154dab7b74e4e5d1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.dialogDescription": {
+        "hash": "99387e8b0a10b849",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.dialogReadOnly": {
+        "hash": "26311db677e44dba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.dialogTitle": {
+        "hash": "098336c1ad1776c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.dialogTitleNew": {
+        "hash": "84228bfdaf401698",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.expensesTab": {
@@ -521,6 +577,38 @@
         "hash": "64027d6e0c816dae",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.noCurrencies": {
+        "hash": "81c747a13fa9660f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.periodLabel": {
+        "hash": "846de02422b0cbda",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.periodMonthly": {
+        "hash": "8995c874f05f9af2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.periodQuarterly": {
+        "hash": "758b0bd63da7bfd6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.periodYearly": {
+        "hash": "b0e62420ad481144",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.removeBudget": {
+        "hash": "5a2a51f3850c515d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.removeBudgetConfirm": {
+        "hash": "77c9827ca86aa8f0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.removeFailed": {
+        "hash": "e2f842d554cefc08",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.retry": {
         "hash": "333c2ce02d31d9b7",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -535,6 +623,22 @@
       },
       "budget.revenueTitle": {
         "hash": "3e25709f99cb00be",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.save": {
+        "hash": "765e8679f15b2f33",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.saveFailed": {
+        "hash": "4ac9f3ee6043233f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.searchCurrencies": {
+        "hash": "568f9e678b54028c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.setBudget": {
+        "hash": "2337521fdf352566",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.tabsLabel": {

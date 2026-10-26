@@ -2026,7 +2026,8 @@ mutation DeleteAgentConnection($userId: String!, $id: UUID!) @auth(level: USER) 
 #
 # The write comes first, the row's lock, so the checks after it read what a demotion in the same
 # instant committed, and a check that fails rolls it back, as in `UpdateOrganization`. An amount is
-# 1 to 10^15 minor units (`MAX_MONEY_MINOR` in strategydance-core)
+# 1 to 10^15 minor units (`MAX_MONEY_MINOR` in strategydance-core). The checks are optional under the
+# membership, so somebody who is no member is told so (CLAUDE.md § The database)
 mutation SetBudget($organizationId: UUID!, $currency: Currency!, $amountMinor: Int64, $period: BudgetPeriod)
 @auth(level: USER)
 @transaction {
@@ -2044,14 +2045,16 @@ mutation SetBudget($organizationId: UUID!, $currency: Currency!, $amountMinor: I
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can set its budget") {
       role
-        @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can set the budget")
+        @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can set the budget", optional: true)
         @check(
           expr: "has(vars.amountMinor) && has(vars.period) && (vars.amountMinor == null) == (vars.period == null)"
           message: "A budget has an amount and a period, or neither once removed"
+          optional: true
         )
         @check(
           expr: "vars.amountMinor == null || (vars.amountMinor >= 1 && vars.amountMinor <= 1000000000000000)"
           message: "A budget's amount is 1 to 10^15 minor units"
+          optional: true
         )
     }
   }
@@ -2169,7 +2172,10 @@ mutation CreateBill(
 # The checks read the bill as it was before this save, which the `updatedAt` match then holds the
 # row to, so a bill keeps what it had already: the payer, even one who has left the organization, and
 # the receipt, whoever uploaded it and however long ago. A new payer is a member, and a new receipt
-# one `CreateBill` would take
+# one `CreateBill` would take. The checks on the variables are optional under the membership, so
+# somebody who is no member is told so (CLAUDE.md § The database). A receipt another bill holds is
+# refused by the unique reference before the receipt's check, since the operation runs as one SQL
+# statement, where a constraint a later step breaks is reported first
 mutation UpdateBill(
   $organizationId: UUID!
   $id: UUID!
@@ -2192,18 +2198,22 @@ mutation UpdateBill(
         @check(
           expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.company) <= 60 && vars.company.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.description) <= 140"
           message: "A bill's name and company are one line of at most 80 and 60 characters, with no space at either end, and its description at most 140 characters"
+          optional: true
         )
         @check(
           expr: "vars.amountMinor >= 1 && vars.amountMinor <= 1000000000000000"
           message: "A bill's amount is 1 to 10^15 minor units"
+          optional: true
         )
         @check(
           expr: "vars.paidOn >= timestamp('1999-01-01T00:00:00Z') && vars.paidOn <= request.time + duration('87672h')"
           message: "A bill is paid from 1999 to ten years ahead"
+          optional: true
         )
         @check(
           expr: "!has(vars.endsOn) || vars.endsOn == null || (has(vars.recurrence) && vars.recurrence != null && vars.endsOn >= vars.paidOn)"
           message: "A bill ends only when it recurs, on or after its first payment"
+          optional: true
         )
     }
     # One `_and`, because a filter cannot put `_or` beside plain fields

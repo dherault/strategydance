@@ -185,6 +185,8 @@
         "react-dom": "^19.3.0",
         "react-hook-form": "^7.90.0",
         "react-intl": "^10.2.2",
+        "react-is": "^19.3.0",
+        "recharts": "^3.8.0",
         "strategydance-core": "workspace:*",
         "strategydance-database": "workspace:*",
         "strategydance-design-system": "workspace:*",

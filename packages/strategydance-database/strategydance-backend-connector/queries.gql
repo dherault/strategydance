@@ -3218,3 +3218,24 @@ query GetIntegrationConnectionForMember($organizationId: UUID!, $userId: String!
     }
   }
 }
+
+# The latest year of exchange rates stored, from which the daily sync carries on: it fetches that
+# year again, which a run before may have written only partly, or before the ECB's last day of it,
+# and every year after
+query GetLatestExchangeRateYear @auth(level: NO_ACCESS) {
+  exchangeRateYears(orderBy: [{ year: DESC }], limit: 1) {
+    year
+  }
+}
+
+# The ECB's daily rates of the currencies and years asked for, as `GetExchangeRates` reads them, for
+# the Budget module. It matches no membership, since the rates are public and say nothing of any
+# organization: the module reads them beside the budget, whose read checks its caller. Both lists
+# are required, since a filter on a list left out matches every row
+query GetExchangeRatesForAgent($currencies: [Currency!]!, $years: [Int!]!) @auth(level: NO_ACCESS) {
+  exchangeRateYears(where: { currency: { in: $currencies }, year: { in: $years } }, limit: 1000) {
+    currency
+    year
+    rates
+  }
+}

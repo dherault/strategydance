@@ -3280,3 +3280,17 @@ query GetIntegrationConnections($organizationId: UUID!)
     createdAt
   }
 }
+
+# The ECB's daily rates of the currencies and years asked for, from which the Budget page converts
+# every amount at its payment's day. `USER`, though no membership is read: the rates are public, the
+# European Central Bank's, and say nothing of any organization, so any signed-in user may read them.
+# Not a live query: the worker writes them once a day, and the page reads them again as it opens or
+# comes back into focus. Both lists are required, since a filter on a list left out matches every
+# row, and the whole history is some 800 rows, below the limit
+query GetExchangeRates($currencies: [Currency!]!, $years: [Int!]!) @auth(level: USER) {
+  exchangeRateYears(where: { currency: { in: $currencies }, year: { in: $years } }, limit: 1000) {
+    currency
+    year
+    rates
+  }
+}

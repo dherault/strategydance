@@ -1546,3 +1546,57 @@ type IntegrationAuthorization @table @unique(fields: ["integration", "membership
   expiresAt: Timestamp!
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+# The currencies a bill is paid in and a budget is set in: the 30 the European Central Bank
+# publishes a daily rate for, since every amount the Budget computes is converted at the ECB's rate
+# of its payment's day. Declared in strategydance-core as well, which cannot read this, as `Locale`
+# is, and `schema.test.ts` fails when the two disagree. Append a currency, never reorder
+enum Currency {
+  AUD
+  BRL
+  CAD
+  CHF
+  CNY
+  CZK
+  DKK
+  EUR
+  GBP
+  HKD
+  HUF
+  IDR
+  ILS
+  INR
+  ISK
+  JPY
+  KRW
+  MXN
+  MYR
+  NOK
+  NZD
+  PHP
+  PLN
+  RON
+  SEK
+  SGD
+  THB
+  TRY
+  USD
+  ZAR
+}
+
+# The European Central Bank's daily exchange rates, one row per currency and calendar year, which
+# the worker's daily sweep keeps current from Frankfurter (`syncExchangeRates`) and nothing else
+# writes. A row per currency and day would be some 200,000 rows since 1999, which connectors, writing
+# one row per mutation, would take an hour to fill: a year of one currency is some 256 days, about
+# 6 KB, the whole history some 800 rows, and a page reads only the currencies it shows for the years
+# it computes. The euro has no row, since its rate is 1. The rates are public, so any signed-in user
+# reads them (`GetExchangeRates`)
+type ExchangeRateYear @table(key: ["currency", "year"]) {
+  currency: Currency!
+  year: Int!
+  # The JSON text of an object from each ECB day of the year, `YYYY-MM-DD`, to the units of the
+  # currency one euro bought that day. A day of another year is filed under its own. A `String`
+  # rather than `Any`, which Postgres' `jsonb` would rewrite
+  rates: String!
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

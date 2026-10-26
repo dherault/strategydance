@@ -246,6 +246,25 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
 - The upload went as the skill orders it, with no retry: the sentinel, six content calls
   (`_ds_bundle.js`, 11.15 MB, alone; the two 1.2 MB scripts; the fonts; the 176 component files;
   the other previews; the root's three), one delete call, the sentinel again, `_ds_sync.json`
+- [GENERAL] Budget M4's chart would have been dropped, `[TITLE_UNMAPPED]`: shadcn's chart exports
+  `ChartContainer` and its parts, and no `Chart` for its stories' title -> the config's `titleMap`
+  maps `Chart` to `ChartContainer`, which enters ChartContainer's grade key alone. The converter
+  then names the component ChartContainer, so its note is `docs/ChartContainer.md` and its body
+  `dtsPropsFor.ChartContainer`, and `checkNames.ts` reads the titles through the map
+- [GENERAL] A design could not build a chart: `ChartContainer` sizes and dresses the recharts chart
+  it is given and draws nothing itself -> `buildPackage.ts` adds recharts' parts to the entry as
+  `Recharts`, beside `Icons` and for the same reason, the copy the container's tooltip and legend
+  share their context with. `checkNames.ts` checks the names a note takes from it, and takes a
+  `--color-<key>` a note's chart config names as the chart's own, which its container sets at
+  runtime. A story importing `recharts` bundles it from source together with `Chart.tsx`, whose
+  name is no export, so a preview runs on one recharts
+- [GENERAL] The chart took `_ds_bundle.js` from 10.64 MiB to 11.96 MiB, 40 KB under the upload's
+  12 MiB a file: the container alone brings 616 KB of recharts, unminified as the converter
+  bundles, and recharts' whole namespace 744 KB more -> `Recharts` carries the parts
+  `rechartsParts.ts` lists, the cartesian charts and the pie with their series, axes, marks,
+  shapes and hooks, which leave it at 11.70 MiB, 310 KB under. Radar, radial bars, scatter,
+  funnel, treemap, sankey and the brush wait for a design that needs them. The next component that
+  weighs anything needs the lever above, Shiki's precompiled grammars
 
 ## Open
 
@@ -260,6 +279,13 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
     a caller's `onMouseDown` replaces it
   - Calendar styles no `range`: every day of one fills as a picked day, since no react-day-picker
     stylesheet ships. The app picks single days alone
+  - `outline-none` beside `focus-visible:outline-2` draws no focus ring under Tailwind 4, whose
+    `outline-none` sets the `--tw-outline-style` the width's rule reads to none: Sidebar's rows,
+    found in M4 with the keyboard, and the same pairing in Tabs' panels, Calendar's days and
+    ImageDropzone. The chart takes the focus classes alone, as Button does
+- ChartContainer is new since the record: the next `/design-sync` builds and grades its three
+  stories, Default, Without Budget and Year Of Zeros, at rest. Its tooltip shows only under the
+  pointer, which no capture verifies
 
 ## Re-sync risks
 
@@ -290,7 +316,9 @@ milestones are in [documents/design-sync.md](../documents/design-sync.md).
     Table and Tabs), but none is graded against anything
 - What the build assumes:
   - `extraEntries: ["yjs"]`, in every grade key, so removing it grades everything again
-  - Lucide through the entry, and the bundle at 10.64 MiB of the upload's 12
+  - Lucide and recharts through the entry, and the bundle at 11.70 MiB of the upload's 12
+  - `titleMap`'s `Chart` to `ChartContainer`, which a story file renamed or a `Chart` export would
+    undo
   - the vocabulary through Tailwind 4's `@source inline()`
   - `runtimeFontPrefixes`' `inter`, which would hide a lost "Inter Variable" from validate, as
     `checkNames.ts` does not

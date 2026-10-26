@@ -5,7 +5,7 @@
 | M1 | Money, payments and the budget's computations | core | | #249 |
 | M2 | Exchange rates | database, core, backend, root | M1 | #252 |
 | M3 | The budget's tables and the receipts' routes | database, core, backend, root | M1 | #255 |
-| M4 | The chart | design-system, root | | |
+| M4 | The chart | design-system, root | | #256 |
 | M5 | The page and its Expenses tab | web, backend | M2, M3, M4 | |
 | M6 | The Bills tab and the bill dialog | web | M5 | |
 | M7 | Reading receipts | backend, database, core, web | M6 | |
@@ -688,31 +688,52 @@ The design system's chart, which the Expenses tab draws the year with.
 **`components/ui/Chart.tsx`** is shadcn's chart, `ChartContainer`, `ChartTooltip`,
 `ChartTooltipContent`, `ChartLegend` and `ChartLegendContent`, on `recharts`:
 - installed through the shadcn CLI as the design system's other components were;
-- its colors from the tokens;
-- built on shadcn's component, not the prototype's hand-drawn SVG, as every port is.
-- `recharts` joins the design system's dependencies, minding the seven-day install cooldown.
+- built on shadcn's component, not the prototype's hand-drawn SVG, as every port is;
+- its context and hook in files of their own, `contexts/ChartContext.ts` and `hooks/useChart.ts`,
+  and no `useMemo`;
+- its colors from the tokens. The config's colors are custom properties on the container's `style`,
+  `--color-<key>`, since the design has one theme: shadcn's `ChartStyle`, its `<style>` element with
+  a dark copy, and the config's `theme` are gone;
+- its tooltip a white box with the xs radius, and the design system's focus ring on the chart,
+  which recharts' accessibility layer lets the keyboard walk.
+- `recharts` joins the design system's dependencies at shadcn's 3.8.0, minding the seven-day install
+  cooldown, with `react-is` at React's own version, which recharts reads React's elements through.
 
 **A story, `Chart.stories.tsx`, draws the Budget's chart** with the prototype's seed months, so the
-component is shown as the page will use it:
+component is shown as the page will use it. M5 moves its composition into `components/budget/` and
+its helpers into `utils/budget/`:
+- the months in minor units, as `summarizeBudget` gives them, drawn in whole units of the currency;
 - an `Area` with the primary-50 gradient under the line;
-- spent as a solid primary line, monotone, up to the current month;
-- expected as a dashed primary line at 70% opacity from the current month on;
+- one monotone line of what each month comes to, drawn twice through two clips that the current
+  month's x places, from recharts' `useXAxisScale`: solid primary up to the current month, and
+  dashed at 70% opacity from it on, so the halves meet as one curve. A `Line` sets its curve's
+  `clipPath` itself, so each clip goes through its `shape`, recharts' `Curve`;
 - the current month's dot, 4 px, white-ringed;
 - a `ReferenceLine` at the monthly limit, black, 1.5 px, labelled "Budget $2.5K" at its left in the
   compact currency;
-- the y axis in compact currency with dashed grid lines, and the x axis the month's short names, the
-  current one bold;
-- a tooltip as the prototype's:
+- the y axis in compact currency with dashed grid lines, from $0, as the prototype's screenshot
+  has it: four to six round ticks a fifth above the year's highest month and the budget
+  (`getSpendingTicks`). The x axis is the month's short names, the current one bold, which recharts
+  thins on a phone;
+- a tooltip as the prototype's, `ChartTooltipContent` handed the hovered month's rows:
   - the month and the year, with the change from the month before;
   - Spent and Expected, each with its key;
   - "Nothing yet" when both are 0;
   - and, below a rule, "Over budget by" or "Under budget by".
+- the chart's `aria-label`, "Monthly spending in {year}: {month} {amount}, …", on its `<svg>`.
 - A second story shows the chart with no budget, and a third with a year of zeros.
 
 **The design sync:**
-- **`.design-sync/config.json`'s `dtsPropsFor`** gains the chart's props.
-- **`.design-sync/docs/Chart.md`** says what it is for and how the budget uses it. A commit under
-  `.design-sync/` is scoped `[root]`.
+- **`.design-sync/config.json`'s `titleMap`** maps the stories' title, Chart, to `ChartContainer`,
+  since shadcn exports no `Chart`. The converter then names the component `ChartContainer`.
+- **Its `dtsPropsFor`** gains `ChartContainer`'s props.
+- **`.design-sync/docs/ChartContainer.md`** says what it is for and how the budget uses it. A commit
+  under `.design-sync/` is scoped `[root]`.
+- **The global gains `Recharts`**, through `buildPackage.ts`'s entry as Lucide's `Icons`, since a
+  design builds its series from recharts' own parts: those `.design-sync/rechartsParts.ts` lists,
+  the cartesian charts and the pie, since recharts whole took the bundle 40 KB short of the upload's
+  12 MiB a file. `checkNames.ts` reads the titles through the `titleMap`, the names a note takes
+  from `Recharts`, and the `--color-<key>` a note's chart sets.
 - **`bun .design-sync/checkNames.ts` and `bun .design-sync/runExamples.ts`** pass.
 - **The Claude Design project gets it at the next `/design-sync`**, which a person starts.
 

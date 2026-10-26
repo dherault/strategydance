@@ -65,7 +65,8 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
   and the package imports itself by that name, mapped to its `src/`, so a component resolves the
   same when another package reads it as source. Its tokens and components keep the props of the
   Claude Design project they were ported from, which now follows them
-  ([The design sync](#the-design-sync)). Its rich text:
+  ([The design sync](#the-design-sync)). Its chart is shadcn's on recharts, which reads React's
+  elements through `react-is`: the two keep one version, bumped together. Its rich text:
   - The editor is [BlockNote](https://www.blocknotejs.org)'s, in its shadcn flavour, and
     `RichText` draws what it writes without it. A post writes `RICH_TEXT_POST_BLOCKS`, a task's
     description `RICH_TEXT_TASK_BLOCKS`, a knowledge document `RICH_TEXT_EDITOR_BLOCKS`, the

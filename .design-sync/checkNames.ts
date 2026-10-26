@@ -1,9 +1,9 @@
 /*
   Checks every name the design agent is told against the build it is told about: the props each
-  component's `dtsPropsFor` body declares, the global names, icons, classes and tokens the usage
-  notes and the conventions use, the layout vocabulary, and the fonts. The converter checks none
-  of it: a prop renamed upstream, a part that does not exist or a class nothing compiled would ship
-  as written, and the agent would build with it.
+  component's `dtsPropsFor` body declares, the global names, icons, recharts' parts, classes and
+  tokens the usage notes and the conventions use, the layout vocabulary, and the fonts. The
+  converter checks none of it: a prop renamed upstream, a part that does not exist or a class
+  nothing compiled would ship as written, and the agent would build with it.
 
   Run it from the repository's root after `buildPackage.ts`, the reference Storybook and the
   converter, since it reads the stand-in package's declarations, the stories' index and the built
@@ -19,6 +19,7 @@ import { parseArgs } from 'node:util'
 import type * as TsMorph from '../.ds-sync/node_modules/ts-morph'
 
 import { LAYOUT_CLASSES, expandClassPattern } from './layoutClasses'
+import { RECHARTS_PARTS } from './rechartsParts'
 
 const ROOT_PATH = join(import.meta.dir, '..')
 const DESIGN_SYSTEM_PATH = join(ROOT_PATH, 'packages/strategydance-design-system')
@@ -72,6 +73,12 @@ const css = readCss()
 const classes = readClasses(css)
 const tokens = readTokens(css)
 const icons = new Set(Object.keys(await import(requireFromDesignSystem.resolve('lucide-react'))))
+const rechartsNames = new Set(RECHARTS_PARTS)
+const rechartsExports = new Set(Object.keys(await import(requireFromDesignSystem.resolve('recharts'))))
+
+for (const part of RECHARTS_PARTS) {
+  if (!rechartsExports.has(part)) errors.push(`rechartsParts.ts: ${part} is no recharts export`)
+}
 const { exports: globalNames, checkProps } = loadDeclarations()
 
 for (const name of checkedComponents) {
@@ -135,14 +142,18 @@ console.log(
   `Checked ${checkedComponents.length} components${only ? '' : ', the conventions, the layout vocabulary and the fonts'}: every name is in the build`,
 )
 
-// The components the upload ships are those a story's title names, as the converter reads them
+// The components the upload ships are those a story's title names, as the converter reads them,
+// through the config's `titleMap`: Chart's stories ship as `ChartContainer`, and null leaves one out
 function readStoriedComponents() {
   const { entries } = JSON.parse(readFileSync(join(import.meta.dir, 'sb-reference/index.json'), 'utf8'))
-  const titles = Object.values(entries as Record<string, { type: string; title: string }>)
+  const titleMap: Record<string, string | null> = config.titleMap ?? {}
+  const names = Object.values(entries as Record<string, { type: string; title: string }>)
     .filter(entry => entry.type === 'story')
-    .map(entry => entry.title.split('/').at(-1)!)
+    .map(entry => entry.title.split('/').at(-1)!.replace(/\s+/g, ''))
+    .map(name => (name in titleMap ? titleMap[name] : name))
+    .filter((name): name is string => typeof name === 'string')
 
-  return Array.from(new Set(titles)).sort()
+  return Array.from(new Set(names)).sort()
 }
 
 function readBody(name: string): string | null {
@@ -179,8 +190,14 @@ function readTokens(text: string) {
 }
 
 function checkMarkdown(label: string, text: string) {
+  // A chart's container sets `--color-<key>` at runtime for each series its config names: the keys
+  // the text gives an entry with a `label`, as `organic: { label: 'Organic', color: … }`
+  const chartTokens = new Set(Array.from(text.matchAll(/^\s*(\w+):\s*\{\s*label:/gm), match => `--color-${match[1]}`))
+
   for (const token of new Set(Array.from(text.matchAll(/(?<![\w-])--[a-z][\w-]*/g), match => match[0]))) {
-    if (!tokens.has(token)) errors.push(`${label}: ${token} is no custom property of the stylesheet`)
+    if (!tokens.has(token) && !chartTokens.has(token)) {
+      errors.push(`${label}: ${token} is no custom property of the stylesheet`)
+    }
   }
 
   const fences = Array.from(text.matchAll(/^```(\w*)\n([\s\S]*?)^```/gm))
@@ -224,19 +241,20 @@ function checkCode(label: string, code: string) {
   const locals = new Set(['Fragment'])
   const iconLocals = new Set<string>()
   const globalPattern = new RegExp(
-    `(?:const|let|var)\\s*\\{([^}]*)\\}\\s*=\\s*window\\.${GLOBAL_NAME}(\\.Icons)?\\b`,
+    `(?:const|let|var)\\s*\\{([^}]*)\\}\\s*=\\s*window\\.${GLOBAL_NAME}(\\.Icons|\\.Recharts)?\\b`,
     'g',
   )
 
-  for (const [, names, fromIcons] of code.matchAll(globalPattern)) {
+  for (const [, names, namespace] of code.matchAll(globalPattern)) {
+    const fromIcons = namespace === '.Icons'
+    const available = fromIcons ? icons : namespace === '.Recharts' ? rechartsNames : globalNames
+
     for (const entry of names.split(',')) {
       const [key, alias] = entry.split(':').map(part => part.trim())
 
       if (!key || key.startsWith('...')) continue
 
-      if (fromIcons ? !icons.has(key) : !globalNames.has(key)) {
-        errors.push(`${label}: ${key} is not on window.${GLOBAL_NAME}${fromIcons ? '.Icons' : ''}`)
-      }
+      if (!available.has(key)) errors.push(`${label}: ${key} is not on window.${GLOBAL_NAME}${namespace ?? ''}`)
 
       locals.add(alias ?? key)
       if (fromIcons) iconLocals.add(alias ?? key)
@@ -252,7 +270,9 @@ function checkCode(label: string, code: string) {
   for (const [, name, member] of code.matchAll(/<([A-Z]\w*)(?:\.(\w+))?(?=[\s/>])/g)) {
     if (member) {
       if (name === 'Icons' && !icons.has(member)) errors.push(`${label}: Icons.${member} is no Lucide icon`)
-      else if (name !== 'Icons' && name !== 'React')
+      else if (name === 'Recharts' && !rechartsNames.has(member))
+        errors.push(`${label}: Recharts.${member} is not on the global's Recharts`)
+      else if (name !== 'Icons' && name !== 'Recharts' && name !== 'React')
         errors.push(`${label}: <${name}.${member}> is no part on the global`)
       continue
     }
@@ -262,6 +282,10 @@ function checkCode(label: string, code: string) {
 
   for (const [, member] of code.matchAll(/\bIcons\.(\w+)/g)) {
     if (!icons.has(member)) errors.push(`${label}: Icons.${member} is no Lucide icon`)
+  }
+
+  for (const [, member] of code.matchAll(/\bRecharts\.(\w+)/g)) {
+    if (!rechartsNames.has(member)) errors.push(`${label}: Recharts.${member} is not on the global's Recharts`)
   }
 
   checkClassNames(label, code)

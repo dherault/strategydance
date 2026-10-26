@@ -18,6 +18,10 @@ The page needs React 19.3, ReactDOM with it, before anything else: this project'
 - `Icons`, every Lucide icon, by its name with the `Icon` suffix:
   `const { PlusIcon } = window.StrategyDanceDesignSystem.Icons`. A component that takes an icon
   takes one of these
+- `Recharts`, the parts of [recharts](https://recharts.github.io) a chart inside a `ChartContainer`
+  is built from, as its usage note shows: the area, bar, line, composed and pie charts, their
+  series, axes, grid and reference marks, and the hooks that place a mark of the design's own.
+  `const { AreaChart, Area, XAxis } = window.StrategyDanceDesignSystem.Recharts`
 - `toast`, which raises a toast in the one `<Toaster />` a page mounts
 - the classes of a few components, for an element that has to look like one:
   `buttonVariants({ variant: 'outline', size: 'sm' })` makes a link look like a Button, and

@@ -542,3 +542,12 @@ export type CompanySpending = {
   company: string
   amountMinor: number
 }
+
+// What uploading a bill's receipt answers with, the first time and every time the same upload is
+// sent again: the file as it was stored
+export type BillReceiptData = {
+  id: string
+  name: string
+  contentType: string
+  size: number
+}

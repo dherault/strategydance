@@ -1,0 +1,14 @@
+{
+  "budget.billsEmptyText": "Sube un recibo o factura y Strategy Dance completará los detalles. Marca las suscripciones como recurrentes para proyectar el próximo mes.",
+  "budget.billsEmptyTitle": "Aún no hay facturas",
+  "budget.billsTab": "Facturas",
+  "budget.expensesTab": "Gastos",
+  "budget.eyebrow": "Cada céntimo cuenta",
+  "budget.lead": "Lo que gasta la empresa y hacia dónde se dirige.",
+  "budget.loadFailed": "No se pudo cargar el presupuesto. Comprueba tu conexión e inténtalo de nuevo.",
+  "budget.retry": "Reintentar",
+  "budget.revenueTab": "Ingresos",
+  "budget.revenueText": "Aquí podrás ver lo que ingresa la empresa, junto a lo que gasta.",
+  "budget.revenueTitle": "Próximamente: Ingresos",
+  "budget.tabsLabel": "Vistas del presupuesto"
+}

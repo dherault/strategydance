@@ -1,0 +1,14 @@
+{
+  "budget.billsEmptyText": "上传收据或发票，Strategy Dance 会自动提取并填写详细信息。将订阅标记为定期账单，即可预测下月的支出情况。",
+  "budget.billsEmptyTitle": "暂无账单",
+  "budget.billsTab": "账单",
+  "budget.expensesTab": "支出",
+  "budget.eyebrow": "每一分钱都至关重要",
+  "budget.lead": "了解公司支出现状，把控未来财务走向。",
+  "budget.loadFailed": "无法加载预算数据。请检查网络连接后重试。",
+  "budget.retry": "重试",
+  "budget.revenueTab": "收入",
+  "budget.revenueText": "您将在此处查看公司的收入情况，并与支出进行对比。",
+  "budget.revenueTitle": "收入功能即将推出",
+  "budget.tabsLabel": "预算视图"
+}

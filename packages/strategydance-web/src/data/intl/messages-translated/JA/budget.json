@@ -1,0 +1,14 @@
+{
+  "budget.billsEmptyText": "領収書や請求書をアップロードすると、Strategy Danceが詳細を自動入力します。サブスクリプションを定期的な支払いとして設定すれば、翌月の支出を予測できます。",
+  "budget.billsEmptyTitle": "請求書はまだありません",
+  "budget.billsTab": "請求書",
+  "budget.expensesTab": "支出",
+  "budget.eyebrow": "小さな支出も大切に",
+  "budget.lead": "会社の支出状況と、今後の見通し。",
+  "budget.loadFailed": "予算を読み込めませんでした。接続を確認して、もう一度お試しください。",
+  "budget.retry": "再試行",
+  "budget.revenueTab": "収益",
+  "budget.revenueText": "ここでは、支出と並んで会社の収益を確認できるようになります。",
+  "budget.revenueTitle": "収益は近日公開予定です",
+  "budget.tabsLabel": "予算ビュー"
+}

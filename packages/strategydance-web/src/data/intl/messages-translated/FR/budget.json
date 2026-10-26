@@ -1,0 +1,14 @@
+{
+  "budget.billsEmptyText": "Téléversez un reçu ou une facture et Strategy Dance renseigne les détails. Marquez les abonnements comme récurrents pour anticiper le mois prochain.",
+  "budget.billsEmptyTitle": "Aucune facture pour l'instant",
+  "budget.billsTab": "Factures",
+  "budget.expensesTab": "Dépenses",
+  "budget.eyebrow": "Chaque centime compte",
+  "budget.lead": "Ce que l'entreprise dépense, et vers quoi elle se dirige.",
+  "budget.loadFailed": "Impossible de charger le budget. Vérifiez votre connexion et réessayez.",
+  "budget.retry": "Réessayer",
+  "budget.revenueTab": "Revenus",
+  "budget.revenueText": "Vous verrez ici ce que l'entreprise gagne, à côté de ce qu'elle dépense.",
+  "budget.revenueTitle": "Les revenus arrivent bientôt",
+  "budget.tabsLabel": "Vues du budget"
+}

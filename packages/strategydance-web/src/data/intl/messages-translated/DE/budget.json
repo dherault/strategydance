@@ -1,0 +1,14 @@
+{
+  "budget.billsEmptyText": "Lade einen Beleg oder eine Rechnung hoch, und Strategy Dance füllt die Details aus. Markiere Abonnements als wiederkehrend, um den nächsten Monat zu prognostizieren.",
+  "budget.billsEmptyTitle": "Noch keine Rechnungen",
+  "budget.billsTab": "Rechnungen",
+  "budget.expensesTab": "Ausgaben",
+  "budget.eyebrow": "Jeder Cent zählt",
+  "budget.lead": "Was das Unternehmen ausgibt und wohin die Reise geht.",
+  "budget.loadFailed": "Das Budget konnte nicht geladen werden. Überprüfe deine Verbindung und versuche es erneut.",
+  "budget.retry": "Erneut versuchen",
+  "budget.revenueTab": "Einnahmen",
+  "budget.revenueText": "Hier siehst du, was das Unternehmen einnimmt, direkt neben den Ausgaben.",
+  "budget.revenueTitle": "Einnahmen kommen bald",
+  "budget.tabsLabel": "Budgetansichten"
+}

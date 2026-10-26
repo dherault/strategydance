@@ -16,8 +16,8 @@ import { CLAUDE_FILE_NAME_PREFIX } from '~constants'
 import { dataConnect } from '~firebase'
 
 import buildPendingAttachmentObjectName from '~utils/buildPendingAttachmentObjectName'
-import createConcurrencyLimit from '~utils/createConcurrencyLimit'
 import logger from '~utils/logger'
+import runUploadReadBack from '~utils/runUploadReadBack'
 
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
@@ -29,17 +29,6 @@ import createAttachmentUploadCheck, { AttachmentUploadRefusal } from '~domain/co
 import deletePrunedConversationAttachments from '~domain/conversations/deletePrunedConversationAttachments'
 import pruneMemberConversationAttachments from '~domain/conversations/pruneMemberConversationAttachments'
 import isOperationRefusal from '~domain/modules/isOperationRefusal'
-
-/*
-  The files each instance reads back from Storage at once, to check, count and send to the Files
-  API, so its memory stays bounded however many uploads arrive together: one, and the heap collected
-  whole after each. Bun collects the buffers a read-back leaves late, so they pile up across files
-  rather than files at once: twenty files of 10 MiB uploaded together took one backend past Cloud
-  Run's 512 MiB two at a time without collecting, and to 434 MiB one at a time with
-  (`load:conversation-attachments`, with the requests the real client sends simulated). A full
-  collection takes milliseconds, which an upload of megabytes does not notice
-*/
-const readBackLimit = createConcurrencyLimit(1)
 
 type UploadConversationAttachmentInput = {
   // Canonical, as `toCanonicalUuid` writes them, and the caller's uid as the backend verified it
@@ -165,13 +154,7 @@ async function uploadConversationAttachment(
     return stored
   }
 
-  return readBackLimit(async () => {
-    try {
-      return await finish(input)
-    } finally {
-      Bun.gc(true)
-    }
-  })
+  return runUploadReadBack(() => finish(input))
 }
 
 // What an upload sent again answers from the row it found, or null to carry on uploading it

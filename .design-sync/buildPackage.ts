@@ -1,6 +1,6 @@
 /*
-  Builds the package the design sync's converter reads: the design system's component modules and
-  Lucide's icons re-exported from one entry, which it bundles into
+  Builds the package the design sync's converter reads: the design system's component modules,
+  Lucide's icons and recharts' parts re-exported from one entry, which it bundles into
   `window.StrategyDanceDesignSystem`, their declarations, which it reads the components' props
   from, and the stylesheet, Tailwind's output with the fonts it loads, which no component imports.
 
@@ -16,6 +16,7 @@ import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 import { LAYOUT_CLASSES } from './layoutClasses'
+import { RECHARTS_PARTS } from './rechartsParts'
 
 const DESIGN_SYSTEM_PATH = join(import.meta.dir, '../packages/strategydance-design-system')
 const COMPONENTS_PATH = join(DESIGN_SYSTEM_PATH, 'src/components')
@@ -62,6 +63,7 @@ writeFileSync(
   join(PACKAGE_PATH, 'entry.ts'),
   toExportLines(path => relative(PACKAGE_PATH, join(COMPONENTS_PATH, path))),
 )
+writeFileSync(join(PACKAGE_PATH, 'recharts.ts'), toRechartsLine())
 
 // Run from the package, so the paths tsc reports start from it
 const compilation = Bun.spawnSync([join(DESIGN_SYSTEM_PATH, 'node_modules/.bin/tsc'), '-p', '.'], { cwd: PACKAGE_PATH })
@@ -86,6 +88,7 @@ writeFileSync(
   join(TYPES_PATH, 'entry.d.ts'),
   toExportLines(path => `./components/${path.replace(/\.tsx$/, '')}`),
 )
+writeFileSync(join(TYPES_PATH, 'recharts.d.ts'), toRechartsLine())
 
 /*
   The stylesheet is `index.css` built as Storybook builds it, through the design system's own
@@ -146,10 +149,20 @@ function writeJson(name: string, value: unknown) {
 /*
   Every component module, and Lucide's icons under one name, which the components draw but a design
   could not pass to a Button's `icon` otherwise. A namespace, since Lucide also exports `Calendar`,
-  `Table` and `Badge`, and two `export *` naming one export would leave both out
+  `Table` and `Badge`, and two `export *` naming one export would leave both out.
+
+  Recharts' parts too, under their own name: `ChartContainer` sizes one recharts chart and draws
+  nothing else, so a design builds its series from these, the copy the container's own tooltip and
+  legend run on, which they share their context with: those `rechartsParts.ts` lists, re-exported
+  by a module beside the entry. Through the entry rather than `extraEntries`, which is in every
+  component's grade key
 */
 function toExportLines(toSpecifier: (path: string) => string) {
   const lines = modules.map(path => `export * from '${toSpecifier(path)}'`)
 
-  return `${[...lines, "export * as Icons from 'lucide-react'"].join('\n')}\n`
+  return `${[...lines, "export * as Icons from 'lucide-react'", "export * as Recharts from './recharts'"].join('\n')}\n`
+}
+
+function toRechartsLine() {
+  return `export { ${RECHARTS_PARTS.join(', ')} } from 'recharts'\n`
 }

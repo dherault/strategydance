@@ -41,6 +41,7 @@ import { UUID_PATTERN } from '~constants'
 import parseUploadHeaders from '~utils/parseUploadHeaders'
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
+import respondStoredFile from '~utils/respondStoredFile'
 import respondUsageCapped from '~utils/respondUsageCapped'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
@@ -927,34 +928,11 @@ function createConversationsRouter() {
         return
       }
 
-      const stream = conversationAttachmentStorage.openRead(result.objectName)
-
-      stream.once('error', () => {
-        if (response.headersSent) response.destroy()
-        else respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This file no longer exists')
-      })
-      stream.once('readable', () => {
-        response.setHeader(
-          'Content-Type',
-          result.contentType.startsWith('text/') ? `${result.contentType}; charset=utf-8` : result.contentType,
-        )
-        response.setHeader('Content-Length', result.size)
-        response.setHeader('Cache-Control', 'private, max-age=31536000, immutable')
-        response.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeHeaderValue(result.name)}`)
-        stream.pipe(response)
-      })
+      respondStoredFile(response, conversationAttachmentStorage.openRead(result.objectName), result)
     },
   )
 
   return router
-}
-
-// A file's name as an RFC 5987 value, which takes none of the characters `encodeURIComponent` leaves
-function encodeHeaderValue(value: string) {
-  return encodeURIComponent(value).replace(
-    /['()*]/g,
-    character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
-  )
 }
 
 // The refusal of a file for what it is: a 415 for its type, a 413 for its size, a 400 otherwise

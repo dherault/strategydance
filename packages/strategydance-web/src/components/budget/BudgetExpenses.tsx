@@ -3,7 +3,10 @@ import { useIntl } from 'react-intl'
 import useBudgetSummary from '~hooks/budget/useBudgetSummary'
 
 import BudgetAlerts from '~components/budget/BudgetAlerts'
+import BudgetChartLegend from '~components/budget/BudgetChartLegend'
+import BudgetSpendingChart from '~components/budget/BudgetSpendingChart'
 import BudgetStats from '~components/budget/BudgetStats'
+import PageSection from '~components/layout/PageSection'
 
 import budgetMessages from '~data/intl/messages/budget'
 
@@ -15,6 +18,7 @@ import budgetMessages from '~data/intl/messages/budget'
 function BudgetExpenses() {
   const { formatMessage, formatList } = useIntl()
   const { summary, limit, currency, today } = useBudgetSummary()
+  const year = Number(today.slice(0, 4))
 
   return (
     <div className="flex flex-col gap-8">
@@ -37,6 +41,18 @@ function BudgetExpenses() {
           </p>
         ) : null}
       </div>
+      <PageSection
+        title={formatMessage(budgetMessages.spendingIn, { year })}
+        actions={<BudgetChartLegend hasBudget={summary.monthlyLimit !== null} />}
+        headClassName="flex-wrap"
+      >
+        <BudgetSpendingChart
+          months={summary.months}
+          monthlyLimit={summary.monthlyLimit}
+          currency={currency}
+          year={year}
+        />
+      </PageSection>
     </div>
   )
 }

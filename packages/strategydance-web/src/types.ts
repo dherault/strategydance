@@ -141,6 +141,15 @@ export type BudgetSettings = {
 // computations take, in its shape, with the rest of its row, its payer and its receipt
 export type Bill = BudgetBill & Omit<GetBillsData['bills'][number], keyof BudgetBill>
 
+// One month of the Budget page's chart: its short name, what it comes to in whole units of the
+// currency, which the chart plots, and what was spent and is expected in it, in minor units
+export type BudgetChartMonth = {
+  name: string
+  value: number
+  spent: number
+  expected: number
+}
+
 // One task on its organization's board: where it sits, who is doing it, when it is due, what it is
 // about and which tasks it waits on. Its description is read apart, by `useTaskDescriptions`
 export type Task = GetTasksData['tasks'][number]

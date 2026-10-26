@@ -360,6 +360,63 @@ const budgetMessages = defineMessages({
     description:
       'What a screen reader says of the bar under a number of the Budget page, which shows what was spent and what is still expected. Both are percentages, such as "40%".',
   },
+  spendingIn: {
+    id: 'budget.spendingIn',
+    defaultMessage: 'Spending in {year}',
+    description:
+      'Title of the chart of the Budget page showing what each month of this calendar year cost or will cost.',
+  },
+  legendSpent: {
+    id: 'budget.legendSpent',
+    defaultMessage: 'Spent',
+    description: 'Key of the solid line of the spending chart, what was paid, and its row in the hover box of a month.',
+  },
+  legendExpected: {
+    id: 'budget.legendExpected',
+    defaultMessage: 'Expected',
+    description:
+      'Key of the dashed line of the spending chart, what is still to be paid, and its row in the hover box of a month.',
+  },
+  legendMonthlyBudget: {
+    id: 'budget.legendMonthlyBudget',
+    defaultMessage: 'Monthly budget',
+    description: "Key of the black line across the spending chart, the budget's amount for one month.",
+  },
+  chartBudgetLabel: {
+    id: 'budget.chartBudgetLabel',
+    defaultMessage: 'Budget {amount}',
+    description:
+      'Label on the black line across the spending chart. {amount} is the monthly budget written short, such as "$2.5K".',
+  },
+  chartLabel: {
+    id: 'budget.chartLabel',
+    defaultMessage: 'Monthly spending in {year}: {months}',
+    description:
+      'What a screen reader says of the spending chart. {months} lists each month with what it comes to, such as "Jan $1,590, Feb $924".',
+  },
+  comparedWithMonth: {
+    id: 'budget.comparedWithMonth',
+    defaultMessage: 'Compared with {month}',
+    description:
+      'Hover text of the percentage in the hover box of a month of the spending chart, comparing it with the month before. {month} is that month\'s short name, such as "Sep".',
+  },
+  nothingYet: {
+    id: 'budget.nothingYet',
+    defaultMessage: 'Nothing yet',
+    description: 'Shown in the hover box of a month of the spending chart when nothing was paid or is expected in it.',
+  },
+  overBudgetBy: {
+    id: 'budget.overBudgetBy',
+    defaultMessage: 'Over budget by',
+    description:
+      'Label in the hover box of a month of the spending chart, before how far the month goes past its budget.',
+  },
+  underBudgetBy: {
+    id: 'budget.underBudgetBy',
+    defaultMessage: 'Under budget by',
+    description:
+      'Label in the hover box of a month of the spending chart, before how far the month stays under its budget.',
+  },
 })
 
 export default budgetMessages

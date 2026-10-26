@@ -541,12 +541,24 @@
         "hash": "9236851b3deb5506",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.chartBudgetLabel": {
+        "hash": "173101d91dc0083d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.chartLabel": {
+        "hash": "601ca36c8cbce197",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.close": {
         "hash": "2c559fed904dbf85",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.comparedWithLastYear": {
         "hash": "064da5ec21ef720f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.comparedWithMonth": {
+        "hash": "f0bfe9a5d3e54498",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.comparedWithSameDaysLastMonth": {
@@ -609,6 +621,18 @@
         "hash": "bf17120e6968cda4",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.legendExpected": {
+        "hash": "6010d33598e375f5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.legendMonthlyBudget": {
+        "hash": "24393dd5c59a16a3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.legendSpent": {
+        "hash": "2f4e97e2d830313e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.loadFailed": {
         "hash": "64027d6e0c816dae",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -635,6 +659,14 @@
       },
       "budget.nothingElseExpected": {
         "hash": "064dac0ff2bdc778",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.nothingYet": {
+        "hash": "03b748c0c561e876",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.overBudgetBy": {
+        "hash": "a0e417645ce50e18",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.overNextMonth": {
@@ -725,6 +757,10 @@
         "hash": "2337521fdf352566",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.spendingIn": {
+        "hash": "97b0006ce4dea767",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.spentSince": {
         "hash": "5bfe1d0eda4752d0",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -739,6 +775,10 @@
       },
       "budget.thisYear": {
         "hash": "a0f830a71c041af6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.underBudgetBy": {
+        "hash": "c7a143efb3fd0374",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.warnText": {

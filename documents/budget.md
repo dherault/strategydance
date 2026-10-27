@@ -361,8 +361,9 @@ which fills the bill dialog with the answer for the member to check. The module 
   - **Once per receipt.** `ClaimBillReceiptRead` sets `readAt` only where it is null, or where a
     claim over two minutes old stored nothing (`BILL_RECEIPT_READ_CLAIM_MS`), which only a backend
     that stopped mid-read leaves. The wait for a place, Storage's read and the request all fall
-    within 60 seconds of the claim, Storage's read held to them though it takes no signal
-    (`untilAborted`), so a read is over, its claim let go or kept, before another can take it over.
+    within 60 seconds of the claim, Storage's read a stream the deadline destroys, since a download
+    takes no signal, so a read is over, its bytes let go and its claim let go or kept, before
+    another can take it over.
     A second claim meanwhile is answered 409.
     - A read that answered keeps its fields in `readFields` (`RecordBillReceiptRead`), and asking
       again answers them for nothing. A write that fails is tried three times rather than let go,

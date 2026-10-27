@@ -1702,7 +1702,7 @@ type Bill @table @index(fields: ["organizationId", "deletedAt"]) {
 # row. One no bill holds, deleted bills included, is deleted by the daily sweep two days after its
 # upload, its file first, then its row: an upload never saved, one an edit replaced or removed, and
 # one whose bill was pruned
-type BillReceipt @table @index(fields: ["createdAt"]) {
+type BillReceipt @table @index(fields: ["createdAt"]) @index(fields: ["organizationId", "readAt"]) {
   # Made by the page, so an upload sent again stores the file once, and the object's name in Storage
   id: UUID! @default(expr: "uuidV4()")
   # Implies an `organizationId: UUID!` column, cascade deleting
@@ -1720,5 +1720,12 @@ type BillReceipt @table @index(fields: ["createdAt"]) {
   # In bytes, as its upload declared and its stored object confirms, at most 10 MiB
   # (`MAX_BILL_RECEIPT_SIZE`)
   size: Int!
+  # When the receipt reader claimed it, which the reader's daily caps count, null until its uploader
+  # asks for it to be read and again once a read that failed lets go (`ClaimBillReceiptRead`,
+  # `ReleaseBillReceiptRead`)
+  readAt: Timestamp
+  # What the read found, the JSON text of strategydance-core's `BillReceiptFields`, so asking again
+  # answers it for nothing. A `String` rather than `Any`, which Postgres' `jsonb` would rewrite
+  readFields: String
   createdAt: Timestamp! @default(expr: "request.time")
 }

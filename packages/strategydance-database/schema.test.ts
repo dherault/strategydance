@@ -10,6 +10,8 @@ import {
   MAX_BILL_RECEIPT_NAME_LENGTH,
   MAX_BILL_RECEIPT_SIZE,
   MAX_BILLS,
+  MAX_DAILY_RECEIPT_READS_PER_MEMBER,
+  MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION,
   MAX_MONEY_MINOR,
   ORGANIZATION_SLUG_BASE_MAX_LENGTH,
   ORGANIZATION_SLUG_PATTERN,
@@ -23,6 +25,7 @@ const webQueries = await Bun.file(new URL('./strategydance-web-connector/queries
 const backendMutations = await Bun.file(
   new URL('./strategydance-backend-connector/mutations.gql', import.meta.url),
 ).text()
+const backendQueries = await Bun.file(new URL('./strategydance-backend-connector/queries.gql', import.meta.url)).text()
 
 /*
   `Locale` and `Currency` are declared twice, once here and once in strategydance-core, because
@@ -131,5 +134,14 @@ describe('the bills', () => {
     expect(readNumbers(operation, /size\(vars\.name\) <= (\d+)/g)).toEqual([MAX_BILL_RECEIPT_NAME_LENGTH])
     expect(readNumbers(operation, /vars\.size <= (\d+)/g)).toEqual([MAX_BILL_RECEIPT_SIZE])
     expect(types?.split(',').map(type => type.trim().replaceAll("'", ''))).toEqual(BILL_RECEIPT_CONTENT_TYPES)
+  })
+
+  it("ClaimBillReceiptRead and GetBillReceiptReads count to the reader's caps", () => {
+    const caps = [MAX_DAILY_RECEIPT_READS_PER_MEMBER, MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION]
+    const claim = readOperation(backendMutations, 'ClaimBillReceiptRead')
+
+    expect(readNumbers(claim, /size\(this\) < (\d+)/g)).toEqual(caps)
+    expect(readNumbers(claim, /limit: (\d+)/g)).toEqual(caps)
+    expect(readNumbers(readOperation(backendQueries, 'GetBillReceiptReads'), /limit: (\d+)/g)).toEqual(caps)
   })
 })

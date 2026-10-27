@@ -3259,6 +3259,61 @@ query GetBillReceiptForMember($organizationId: UUID!, $userId: String!, $receipt
   }
 }
 
+# A receipt by its id alone, for the receipt reader: whether the caller belongs to the organization
+# the route names, and its name, which the reader's request quotes so the model tells the seller from
+# the buyer, then the receipt with what a read found already. `$userId` is the uid the backend
+# verified
+query GetBillReceiptForReader($organizationId: UUID!, $userId: String!, $receiptId: UUID!) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+    organization {
+      name
+    }
+  }
+  billReceipt(id: $receiptId) {
+    organizationId
+    userId
+    status
+    name
+    contentType
+    size
+    readAt
+    readFields
+  }
+}
+
+# The receipts the reader claimed in the last 24 hours but the one it is asked to read, as
+# `ClaimBillReceiptRead` counts them: the caller's in the organization and the organization's, newest
+# first, each as many as its cap counts, so the oldest of them says when the next read fits. `$userId`
+# is the uid the backend verified
+query GetBillReceiptReads($organizationId: UUID!, $userId: String!, $receiptId: UUID!) @auth(level: NO_ACCESS) {
+  memberReads: billReceipts(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      id: { ne: $receiptId }
+      readAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ readAt: DESC }]
+    limit: 50
+  ) {
+    id
+    readAt
+  }
+  organizationReads: billReceipts(
+    where: {
+      organizationId: { eq: $organizationId }
+      id: { ne: $receiptId }
+      readAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ readAt: DESC }]
+    limit: 200
+  ) {
+    id
+    readAt
+  }
+}
+
 # The daily sweep's: a hundred receipts that no bill holds, deleted bills included, uploaded over two
 # days ago, whatever their status, whose files it deletes before their rows (`DeleteBillReceipts`).
 # A bill's save takes no receipt that old unless it holds it already, so none of these is taken

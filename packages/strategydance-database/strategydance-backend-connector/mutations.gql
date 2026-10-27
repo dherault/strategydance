@@ -8945,6 +8945,115 @@ mutation CompleteBillReceiptUpload($organizationId: UUID!, $userId: String!, $re
   ) @check(expr: "this == 1", message: "The receipt is no longer being uploaded")
 }
 
+# Claims a receipt for the receipt reader, which reads each receipt once and only for the member who
+# uploaded it: sets `readAt` on the caller's `READY` receipt while it has none, or while a read that
+# claimed it over two minutes ago stored nothing, which only a backend that stopped mid-read leaves,
+# its request timing out after one. A second claim is refused, and the backend reads the row again to
+# tell a read under way from one done.
+#
+# It holds the reader to 50 receipts in 24 hours per member in an organization and 200 per
+# organization (`MAX_DAILY_RECEIPT_READS_PER_MEMBER` and `MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION` in
+# strategydance-core: change them together), counting every receipt but this one claimed in the 24
+# hours before. The first step writes the caller's membership, so the member's count after it sees
+# every claim of theirs that committed before it; the organization's runs under no lock of its own,
+# which two members claiming at once can each pass by one. `$isUsageCapped` false lifts both, as the
+# development backend does; left out, they hold. `$userId` is the uid the backend verified
+mutation ClaimBillReceiptRead($organizationId: UUID!, $userId: String!, $receiptId: UUID!, $isUsageCapped: Boolean)
+@auth(level: NO_ACCESS)
+@transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can have its receipts read")
+  query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
+    memberReads: billReceipts(
+      where: {
+        userId: { eq_expr: "response.userOrganization_update.userId" }
+        organizationId: { eq: $organizationId }
+        id: { ne: $receiptId }
+        readAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 50
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 50"
+        message: "Somebody has at most 50 receipts read in 24 hours in an organization"
+      ) {
+      id
+    }
+    organizationReads: billReceipts(
+      where: {
+        organizationId: { eq: $organizationId }
+        id: { ne: $receiptId }
+        readAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 200
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 200"
+        message: "An organization has at most 200 receipts read in 24 hours"
+      ) {
+      id
+    }
+  }
+  billReceipt_updateMany(
+    where: {
+      _and: [
+        {
+          id: { eq: $receiptId }
+          userId: { eq: $userId }
+          organizationId: { eq: $organizationId }
+          status: { eq: READY }
+        }
+        {
+          _or: [
+            { readAt: { isNull: true } }
+            { _and: [{ readFields: { isNull: true } }, { readAt: { lt_time: { now: true, sub: { minutes: 2 } } } }] }
+          ]
+        }
+      ]
+    }
+    data: { readAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The receipt is being read, or was read already")
+}
+
+# Keeps what the receipt reader found in a receipt it claimed, the JSON text of strategydance-core's
+# `BillReceiptFields`, clamped to a bill's lengths, so asking again answers it for nothing. Refused
+# once the claim is gone or fields are stored, which the reader logs
+mutation RecordBillReceiptRead($organizationId: UUID!, $userId: String!, $receiptId: UUID!, $readFields: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  billReceipt_updateMany(
+    where: {
+      id: { eq: $receiptId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      readAt: { isNull: false }
+      readFields: { isNull: true }
+    }
+    data: { readFields: $readFields }
+  )
+    @check(expr: "size(vars.readFields) <= 2000", message: "What a receipt's read found fits in 2000 characters")
+    @check(expr: "this == 1", message: "The receipt is no longer being read")
+}
+
+# Lets go of a receipt the reader claimed, once its request failed before it read anything, so the
+# read counts toward no cap and the member can ask again. A receipt whose fields are stored keeps its
+# claim, and letting go twice changes nothing
+mutation ReleaseBillReceiptRead($organizationId: UUID!, $userId: String!, $receiptId: UUID!) @auth(level: NO_ACCESS) {
+  billReceipt_updateMany(
+    where: {
+      id: { eq: $receiptId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      readFields: { isNull: true }
+    }
+    data: { readAt: null }
+  )
+}
+
 # The daily sweep's: deletes every bill deleted over a day ago, past its Undo, in every organization.
 # Its receipt stays, held by nothing, for `GetPrunableBillReceipts` to take. Deleting what is gone
 # already deletes nothing, so a sweep that failed is finished by the next

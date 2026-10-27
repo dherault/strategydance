@@ -781,6 +781,10 @@
         "hash": "9f1f825a7e877a7a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.enterManually": {
+        "hash": "eafb85f1cb60cd07",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.everyone": {
         "hash": "d2aa48b628b184ee",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -981,6 +985,10 @@
         "hash": "e24b0f440289729f",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.receiptFilled": {
+        "hash": "108df2d859badf70",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.receiptFor": {
         "hash": "ccfb421edc7f1783",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -995,6 +1003,22 @@
       },
       "budget.receiptProgress": {
         "hash": "6f80e45c963fcfbd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.receiptReadFailed": {
+        "hash": "979ea3fab5d80982",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.receiptReadSuspended": {
+        "hash": "627ab4593797f4de",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.receiptReadUnverified": {
+        "hash": "f2ab83c8c82501eb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.receiptReadsCapped": {
+        "hash": "ee9c1e136f70a284",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.receiptTitle": {
@@ -1159,6 +1183,42 @@
       },
       "budget.upcomingSummaryUntil": {
         "hash": "464044a246a369c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.uploadChooseFile": {
+        "hash": "5565863a817b176a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.uploadDescription": {
+        "hash": "e2612524c02c3693",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.uploadDrop": {
+        "hash": "e3d76d4d41abbbaf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.uploadReadingDescription": {
+        "hash": "108c1e894379ff4b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.uploadReceipt": {
+        "hash": "c3c5a3638156b5d2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.uploadStepFinding": {
+        "hash": "50d09f68e691c71a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.uploadStepReading": {
+        "hash": "1150c8ca55ef6af4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.uploadStepUploading": {
+        "hash": "dde969a04aa0ffe1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.uploadUnsupported": {
+        "hash": "d4d483c1f99d9461",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.viewReceipt": {

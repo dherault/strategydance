@@ -1,4 +1,8 @@
+import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
+import { useIntl } from 'react-intl'
+import { Button } from 'strategydance-design-system/components/ui/Button'
+import { DialogTrigger } from 'strategydance-design-system/components/ui/Dialog'
 
 import useBillPayers from '~hooks/budget/useBillPayers'
 import useBills from '~hooks/budget/useBills'
@@ -13,14 +17,18 @@ import BudgetBillsEmpty from '~components/budget/BudgetBillsEmpty'
 import BudgetBillsFilters from '~components/budget/BudgetBillsFilters'
 import BudgetBillsNoMatch from '~components/budget/BudgetBillsNoMatch'
 import BudgetBillsTable from '~components/budget/BudgetBillsTable'
+import NewBillDialog from '~components/budget/NewBillDialog'
 import PageToolbar from '~components/layout/PageToolbar'
+
+import budgetMessages from '~data/intl/messages/budget'
 
 /*
   The Bills tab: its search and its filter by payer over the organization's bills, by their last
-  payment, newest first. The filters live here, so they last while a bill is open over the tab, and
+  payment, newest first, and the button that adds one. The filters live here, so they last while a bill is open over the tab, and
   go once another tab is chosen
 */
 function BudgetBills() {
+  const { formatMessage } = useIntl()
   const today = useLocalDate()
   const { data: bills } = useBills()
   const { data: settings } = useBudget()
@@ -40,7 +48,15 @@ function BudgetBills() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageToolbar>
+      <PageToolbar
+        actions={
+          <NewBillDialog>
+            <DialogTrigger asChild>
+              <Button icon={<PlusIcon />}>{formatMessage(budgetMessages.newBill)}</Button>
+            </DialogTrigger>
+          </NewBillDialog>
+        }
+      >
         <BudgetBillsFilters
           query={query}
           payerId={payerId}

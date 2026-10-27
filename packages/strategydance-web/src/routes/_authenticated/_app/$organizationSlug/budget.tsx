@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Outlet, createFileRoute } from '@tanstack/react-router'
 
 import type { MessageType } from '~types'
 
@@ -20,7 +20,8 @@ export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/bud
 
 /*
   The current organization's budget: what it spends against what it means to spend, on the tab the
-  address names. The waiter is keyed by the organization, so switching organizations mounts the
+  address names, and under it the bill opened from it, whose dialog lies over the page rather than
+  replacing it. The waiter is keyed by the organization, so switching organizations mounts the
   page anew
 */
 function BudgetRoute() {
@@ -30,6 +31,7 @@ function BudgetRoute() {
     <IntlMessagesRegistration messageTypes={BUDGET_MESSAGE_TYPES}>
       <BudgetWait key={organization?.id ?? 'none'}>
         <BudgetPage />
+        <Outlet />
       </BudgetWait>
     </IntlMessagesRegistration>
   )

@@ -1,0 +1,432 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Trash2Icon } from 'lucide-react'
+import { useId, useState } from 'react'
+import { Controller, useForm, useWatch } from 'react-hook-form'
+import { useIntl } from 'react-intl'
+import {
+  type BillRecurrence,
+  type Currency,
+  MAX_BILL_COMPANY_LENGTH,
+  MAX_BILL_DESCRIPTION_LENGTH,
+  MAX_BILL_NAME_LENGTH,
+  addCalendarDays,
+  addCalendarMonths,
+  isCurrency,
+  parseMoney,
+} from 'strategydance-core'
+import { Alert } from 'strategydance-design-system/components/ui/Alert'
+import { Button } from 'strategydance-design-system/components/ui/Button'
+import {
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from 'strategydance-design-system/components/ui/Dialog'
+import { Select } from 'strategydance-design-system/components/ui/Select'
+import { Switch } from 'strategydance-design-system/components/ui/Switch'
+import { Textarea } from 'strategydance-design-system/components/ui/Textarea'
+import * as z from 'zod'
+
+import type { Bill } from '~types'
+
+import useAuthentication from '~hooks/authentication/useAuthentication'
+import useBillPayers from '~hooks/budget/useBillPayers'
+import useBillReceiptDraft from '~hooks/budget/useBillReceiptDraft'
+import useBills from '~hooks/budget/useBills'
+import useBudget from '~hooks/budget/useBudget'
+import useDeleteBill from '~hooks/budget/useDeleteBill'
+import useSaveBill from '~hooks/budget/useSaveBill'
+import useLocalDate from '~hooks/common/useLocalDate'
+
+import formatBudgetAmount from '~utils/budget/formatBudgetAmount'
+import formatBudgetDay from '~utils/budget/formatBudgetDay'
+import listBillCompanies from '~utils/budget/listBillCompanies'
+import toBillDraft from '~utils/budget/toBillDraft'
+import toBillFormValues, { type BillFormValues } from '~utils/budget/toBillFormValues'
+import createId from '~utils/common/createId'
+import getLocalDate from '~utils/date/getLocalDate'
+
+import BillCompanyField from '~components/budget/BillCompanyField'
+import BillDayField from '~components/budget/BillDayField'
+import BillPayerOption from '~components/budget/BillPayerOption'
+import BillReceiptField from '~components/budget/BillReceiptField'
+import CurrencySelect from '~components/budget/CurrencySelect'
+import Spinner from '~components/common/Spinner'
+import { FormField, FormInputField } from '~components/ui/FormField'
+
+import budgetMessages from '~data/intl/messages/budget'
+
+const BILL_RECURRENCES = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY'] as const satisfies readonly BillRecurrence[]
+
+// The first day a bill can be paid, the ECB's first, from which every rate is known
+const FIRST_BILL_DAY = '1999-01-01'
+
+// How far ahead a bill can be paid, a day short of the database's ten years, so no time zone
+// takes a day picked past them
+const BILL_DAYS_AHEAD = 3652
+
+// zod carries a key of the budget catalogue rather than a sentence, formatted in the reader's
+// language at render. The amount is checked in its currency, whose digits it may not pass, and
+// an end only while the bill recurs
+const billFormSchema = z
+  .object({
+    name: z.string().refine(name => name.trim() !== '', 'nameRequired'),
+    description: z.string(),
+    company: z.string().refine(company => company.trim() !== '', 'companyRequired'),
+    amount: z.string(),
+    currency: z.custom<Currency>(isCurrency),
+    paidOn: z
+      .string()
+      .nullable()
+      .refine(paidOn => paidOn !== null, 'dayRequired'),
+    paidById: z.string(),
+    isRecurring: z.boolean(),
+    recurrence: z.enum(BILL_RECURRENCES),
+    endsOn: z.string().nullable(),
+    receiptId: z.string().nullable(),
+  })
+  .refine(({ amount, currency }) => (parseMoney(amount.trim(), currency) ?? 0) > 0, {
+    message: 'amountInvalid',
+    path: ['amount'],
+  })
+  .refine(({ isRecurring, paidOn, endsOn }) => !isRecurring || !paidOn || !endsOn || endsOn >= paidOn, {
+    message: 'endsInvalid',
+    path: ['endsOn'],
+  })
+
+type Props = {
+  // The bill to change, or null for a new one
+  bill: Bill | null
+  onClose: () => void
+}
+
+/*
+  A bill's form, new or existing: its name, description and company, its amount in its own currency,
+  the day it was paid, or first paid while it recurs, who paid it, how often it repeats and until
+  when, and its receipt, which goes up as soon as it is attached. A save waits for that upload.
+  Saved over a save somebody made meanwhile, it says so and shows the bill as it now is, on which a
+  save goes through. Its errors show once it was submitted. Its fields scroll between its header
+  and its actions, which stay in view, as the design has it
+*/
+function BillDialogForm({ bill, onClose }: Props) {
+  const { formatMessage, locale } = useIntl()
+  const nameId = useId()
+  const descriptionId = useId()
+  const companyId = useId()
+  const amountId = useId()
+  const paidOnId = useId()
+  const paidById = useId()
+  const recurrenceId = useId()
+  const endsOnId = useId()
+  const today = useLocalDate()
+  const { data: viewer } = useAuthentication()
+  const { data: settings } = useBudget()
+  const { data: bills } = useBills()
+  const payers = useBillPayers()
+  const saveBill = useSaveBill()
+  const deleteBill = useDeleteBill()
+  // A new bill's id, made once, so a save sent again stores it once
+  const [id] = useState(() => bill?.id ?? createId())
+  // The `updatedAt` an edit is saved on: the bill's as the form read it
+  const [updatedAt, setUpdatedAt] = useState(bill?.updatedAt ?? null)
+  const [isStale, setIsStale] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const defaults = { currency: settings.currency, today, viewerId: viewer?.uid ?? '' }
+  const form = useForm<BillFormValues>({
+    resolver: zodResolver(billFormSchema),
+    defaultValues: toBillFormValues(bill, defaults),
+  })
+  const receipt = useBillReceiptDraft(bill?.receipt ?? null, receiptId =>
+    form.setValue('receiptId', receiptId, { shouldDirty: true }),
+  )
+  const [name, company, amount, currency, paidOn, payerId, isRecurring] = useWatch({
+    control: form.control,
+    name: ['name', 'company', 'amount', 'currency', 'paidOn', 'paidById', 'isRecurring'],
+  })
+  const { isDirty, isSubmitting } = form.formState
+
+  const companies = listBillCompanies(bills, locale)
+  // The members, and whoever paid this bill should they have left since
+  const payerOptions = payers
+    .filter(payer => !payer.hasLeft || payer.id === payerId || payer.id === bill?.paidById)
+    .map(payer => ({ value: payer.id, label: <BillPayerOption payer={payer} /> }))
+  const amountMinor = parseMoney(amount.trim(), currency)
+  const receiptDetails = [
+    company.trim(),
+    amountMinor ? formatBudgetAmount(amountMinor, currency, locale, { exact: true }) : '',
+  ]
+  const lastDay = addCalendarDays(today, BILL_DAYS_AHEAD)
+
+  function formatError(key: string) {
+    return formatMessage(budgetMessages[key as keyof typeof budgetMessages])
+  }
+
+  async function save(values: BillFormValues) {
+    if (!(await receipt.settle())) return
+
+    const draft = toBillDraft({ ...values, receiptId: form.getValues('receiptId') })
+
+    if (!draft) return
+
+    const outcome = await saveBill({ id, draft, updatedAt })
+
+    if (outcome.kind === 'saved' || outcome.kind === 'gone') {
+      onClose()
+
+      return
+    }
+
+    if (outcome.kind === 'stale') {
+      form.reset(toBillFormValues(outcome.bill, defaults))
+      receipt.reset(outcome.bill.receipt ?? null)
+      setUpdatedAt(outcome.bill.updatedAt)
+      setIsStale(true)
+
+      return
+    }
+
+    if (outcome.kind === 'receipt') receipt.remove()
+  }
+
+  function remove() {
+    if (!bill) return
+
+    setIsDeleting(true)
+    onClose()
+    deleteBill(bill)
+  }
+
+  return (
+    <form
+      noValidate
+      onSubmit={form.handleSubmit(save)}
+      className="flex min-h-0 flex-1 flex-col"
+    >
+      <DialogHeader className="px-6 pt-6 pb-5">
+        <DialogTitle>{formatMessage(bill ? budgetMessages.editBill : budgetMessages.newBill)}</DialogTitle>
+        <DialogDescription>
+          {bill
+            ? formatMessage(budgetMessages.billAddedOn, {
+                date: formatBudgetDay(getLocalDate(new Date(bill.createdAt)), today, locale, { withYear: true }),
+              })
+            : formatMessage(budgetMessages.newBillDescription)}
+        </DialogDescription>
+      </DialogHeader>
+      <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-6 pt-0.5 pb-6">
+        {isStale ? <Alert variant="warning">{formatMessage(budgetMessages.billStale)}</Alert> : null}
+        <FormInputField
+          control={form.control}
+          name="name"
+          id={nameId}
+          label={formatMessage(budgetMessages.nameLabel)}
+          formatError={formatError}
+          autoComplete="off"
+          maxLength={MAX_BILL_NAME_LENGTH}
+          placeholder={formatMessage(budgetMessages.namePlaceholder)}
+        />
+        <FormField
+          control={form.control}
+          name="description"
+          id={descriptionId}
+          label={formatMessage(budgetMessages.descriptionLabel)}
+        >
+          {({ field, id: fieldId, describedBy }) => (
+            <Textarea
+              {...field}
+              id={fieldId}
+              rows={2}
+              autosize
+              maxRows={4}
+              maxLength={MAX_BILL_DESCRIPTION_LENGTH}
+              placeholder={formatMessage(budgetMessages.descriptionPlaceholder)}
+              aria-describedby={describedBy}
+            />
+          )}
+        </FormField>
+        <FormField
+          control={form.control}
+          name="company"
+          id={companyId}
+          label={formatMessage(budgetMessages.companyLabel)}
+          formatError={formatError}
+        >
+          {({ field, fieldState, id: fieldId, describedBy }) => (
+            <BillCompanyField
+              ref={field.ref}
+              id={fieldId}
+              value={field.value}
+              companies={companies}
+              maxLength={MAX_BILL_COMPANY_LENGTH}
+              isInvalid={fieldState.invalid}
+              describedBy={describedBy}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+            />
+          )}
+        </FormField>
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px] sm:gap-3">
+          <FormInputField
+            control={form.control}
+            name="amount"
+            id={amountId}
+            label={formatMessage(budgetMessages.billAmountLabel)}
+            formatError={formatError}
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="0.00"
+          />
+          <Controller
+            control={form.control}
+            name="currency"
+            render={({ field }) => (
+              <CurrencySelect
+                label={formatMessage(budgetMessages.currencyLabel)}
+                value={field.value}
+                onValueChange={field.onChange}
+              />
+            )}
+          />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-3">
+          <FormField
+            control={form.control}
+            name="paidOn"
+            id={paidOnId}
+            label={formatMessage(isRecurring ? budgetMessages.firstPaymentLabel : budgetMessages.paidOnLabel)}
+            formatError={formatError}
+          >
+            {({ field, fieldState, id: fieldId, describedBy }) => (
+              <BillDayField
+                id={fieldId}
+                value={field.value}
+                today={today}
+                from={FIRST_BILL_DAY}
+                to={lastDay}
+                isInvalid={fieldState.invalid}
+                describedBy={describedBy}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          </FormField>
+          <FormField
+            control={form.control}
+            name="paidById"
+            id={paidById}
+            label={formatMessage(budgetMessages.paidBy)}
+          >
+            {({ field, id: fieldId }) => (
+              <Select
+                id={fieldId}
+                value={field.value}
+                options={payerOptions}
+                onValueChange={field.onChange}
+              />
+            )}
+          </FormField>
+        </div>
+        <div className="flex flex-col gap-3 rounded-xs border border-neutral-200 p-3">
+          <Controller
+            control={form.control}
+            name="isRecurring"
+            render={({ field }) => (
+              <Switch
+                ref={field.ref}
+                name={field.name}
+                checked={field.value}
+                label={formatMessage(budgetMessages.recurringLabel)}
+                hint={formatMessage(budgetMessages.recurringHint)}
+                onChange={event => field.onChange(event.target.checked)}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
+          {isRecurring ? (
+            <div className="grid gap-4 sm:grid-cols-2 sm:gap-3">
+              <FormField
+                control={form.control}
+                name="recurrence"
+                id={recurrenceId}
+                label={formatMessage(budgetMessages.repeatsLabel)}
+              >
+                {({ field, id: fieldId }) => (
+                  <Select
+                    id={fieldId}
+                    value={field.value}
+                    options={BILL_RECURRENCES.map(recurrence => ({
+                      value: recurrence,
+                      label: formatMessage(budgetMessages.recurrence, { recurrence }),
+                    }))}
+                    onValueChange={field.onChange}
+                  />
+                )}
+              </FormField>
+              <FormField
+                control={form.control}
+                name="endsOn"
+                id={endsOnId}
+                label={formatMessage(budgetMessages.endsLabel)}
+                description={formatMessage(budgetMessages.endsHint)}
+                formatError={formatError}
+              >
+                {({ field, fieldState, id: fieldId, describedBy }) => (
+                  <BillDayField
+                    id={fieldId}
+                    value={field.value}
+                    today={today}
+                    from={paidOn ?? FIRST_BILL_DAY}
+                    to={addCalendarMonths(lastDay, 600)}
+                    isClearable
+                    isInvalid={fieldState.invalid}
+                    describedBy={describedBy}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              </FormField>
+            </div>
+          ) : null}
+        </div>
+        <BillReceiptField
+          draft={receipt.draft}
+          billName={name.trim()}
+          details={receiptDetails}
+          onAttach={receipt.attach}
+          onRemove={receipt.remove}
+        />
+      </div>
+      <DialogFooter className="flex-row items-center justify-end border-t border-border px-6 py-4">
+        {bill ? (
+          <span className="min-w-0 flex-1">
+            <Button
+              variant="danger"
+              size="sm"
+              icon={<Trash2Icon />}
+              disabled={isDeleting || isSubmitting}
+              confirm={formatMessage(budgetMessages.deleteBillConfirm)}
+              onClick={remove}
+            >
+              {formatMessage(budgetMessages.deleteBill)}
+            </Button>
+          </span>
+        ) : null}
+        <Button
+          variant="transparent"
+          onClick={onClose}
+        >
+          {formatMessage(budgetMessages.cancel)}
+        </Button>
+        <Button
+          type="submit"
+          disabled={(bill !== null && !isDirty) || isSubmitting || isDeleting}
+          icon={isSubmitting ? <Spinner tone="current" /> : undefined}
+        >
+          {formatMessage(bill ? budgetMessages.save : budgetMessages.addBill)}
+        </Button>
+      </DialogFooter>
+    </form>
+  )
+}
+
+export default BillDialogForm

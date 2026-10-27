@@ -1,4 +1,6 @@
-import { ReceiptIcon, RepeatIcon } from 'lucide-react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { PencilIcon, ReceiptIcon, RepeatIcon } from 'lucide-react'
+import type { MouseEvent } from 'react'
 import { useIntl } from 'react-intl'
 import {
   type Currency,
@@ -15,6 +17,8 @@ import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Bill, BillPayer } from '~types'
+
+import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import formatBudgetAmount from '~utils/budget/formatBudgetAmount'
 import formatBudgetDay from '~utils/budget/formatBudgetDay'
@@ -42,10 +46,13 @@ type Props = {
   One bill of the Bills tab: its name and description, the company it paid, who paid it, when it
   was last paid or is due and when it is paid next, how it repeats, its amount as typed, with what
   it came to in the budget's currency, at the rate of its last payment's day, when it is in another,
-  and the button that opens its receipt
+  and the buttons that open its receipt and the bill itself. A click anywhere else on the row opens
+  the bill too
 */
 function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
   const { formatMessage, locale } = useIntl()
+  const navigate = useNavigate()
+  const organizationSlug = useCurrentOrganizationSlug()
 
   const lastPayment = getLastBillPayment(bill, today)
   const isDue = bill.paidOn > today
@@ -55,6 +62,23 @@ function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
     bill.currency === currency ? null : convertMoney(bill.amountMinor, bill.currency, currency, lastPayment, rates)
   const payerName = payer ? (payer.name ?? formatMessage(budgetMessages.formerMember)) : null
   const amount = formatBudgetAmount(bill.amountMinor, bill.currency, locale, { exact: true })
+
+  function open() {
+    navigate({
+      to: '/$organizationSlug/budget/$billId',
+      params: { organizationSlug, billId: bill.id },
+      state: { isFromBudgetPage: true },
+      resetScroll: false,
+    })
+  }
+
+  // A click anywhere but on a control opens the bill, as the design has it; its name is the link
+  // the keyboard reaches
+  function handleClick(event: MouseEvent<HTMLTableRowElement>) {
+    if (event.target instanceof Element && event.target.closest('button, a, input, label, [role="dialog"]')) return
+
+    open()
+  }
 
   function renderRepeats() {
     if (repeatState === 'recurring') {
@@ -83,9 +107,20 @@ function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
   }
 
   return (
-    <TableRow>
+    <TableRow
+      onClick={handleClick}
+      className="cursor-pointer"
+    >
       <TableCell className="w-full max-w-0">
-        <span className="line-clamp-2 font-medium whitespace-normal text-secondary wrap-anywhere">{bill.name}</span>
+        <Link
+          to="/$organizationSlug/budget/$billId"
+          params={{ organizationSlug, billId: bill.id }}
+          state={{ isFromBudgetPage: true }}
+          resetScroll={false}
+          className="line-clamp-2 rounded-xs font-medium whitespace-normal text-secondary no-underline wrap-anywhere hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
+        >
+          {bill.name}
+        </Link>
         {bill.description ? <p className={SUBLINE_CLASS_NAME}>{bill.description}</p> : null}
       </TableCell>
       <TableCell className="@max-[800px]:hidden">{bill.company}</TableCell>
@@ -140,6 +175,15 @@ function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
               </Tooltip>
             </BillReceiptDialog>
           ) : null}
+          <Tooltip content={formatMessage(budgetMessages.edit)}>
+            <Button
+              variant="transparent"
+              size="sm"
+              icon={<PencilIcon />}
+              aria-label={formatMessage(budgetMessages.editBillFor, { name: bill.name })}
+              onClick={open}
+            />
+          </Tooltip>
         </div>
       </TableCell>
     </TableRow>

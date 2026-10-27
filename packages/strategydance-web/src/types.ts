@@ -211,8 +211,9 @@ export type TaskSnapshot = {
   What history keeps for an address beside the router's own: whether the task board opened the task
   it names, so closing the task steps back to the board's entry rather than adding one, and whether
   the dialog the task was created in opened it in its own place, which the task's dialog then takes
-  without the opening animation; and whether a conversation's thread opened the subagent's work it
-  names, which closing it steps back from the same way. Extended on `@tanstack/history`, a dependency of the web package
+  without the opening animation; whether a conversation's thread opened the subagent's work it
+  names, and whether the Budget page opened the bill it names, which closing them steps back from
+  the same way. Extended on `@tanstack/history`, a dependency of the web package
   for this alone at the version the router pins: a router bump that moves it fails the typecheck
   where the key is read, until it follows
 */
@@ -223,6 +224,8 @@ declare module '@tanstack/history' {
     // Whether a subagent's work was opened from its row, so closing it steps back to the
     // conversation's entry rather than adding one
     isFromConversationThread?: boolean
+    // Whether the Budget page opened the bill, so closing it steps back to the page's entry
+    isFromBudgetPage?: boolean
   }
 }
 

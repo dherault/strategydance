@@ -1222,7 +1222,8 @@ milestones that build it: read it before changing any of it.
   (`formatBudgetAmount`, `formatBudgetDay`), a currency's digits coming from `CURRENCIES`, never
   `Intl`. `bun run seed:budget <email>` fills an organization of the emulators to look at it
 - A bill opens at `/$organizationSlug/budget/$billId` (`BillDialog`), over the Bills tab unless its
-  address names another, and a new one in a plain dialog (`NewBillDialog`). An address naming no
+  address names another, and a new one in a plain dialog, its receipt's upload first, then the
+  bill's form in its place (`BillUploadDialog`). An address naming no
   bill as it opens throws `notFound()` (`BillBouncer`), and one deleted while open goes back to the
   page. Whatever opens a bill passes `state: { isFromBudgetPage: true }`, so closing steps back
 - The page uploads a receipt through `useBillReceiptDraft`, the moment it is attached, a photo
@@ -1230,6 +1231,19 @@ milestones that build it: read it before changing any of it.
   refused save reads the bills again from the server (`useReloadBills`) to tell a bill somebody
   saved meanwhile, which the dialog then shows, from one deleted, a receipt to attach again, or the
   organization's `MAX_BILLS`
+- The receipt reader, `POST …/receipts/:receiptId/read` (`requestBillReceiptRead`), reads a
+  receipt once, for its uploader alone, on Haiku 5.5 (`BILL_RECEIPT_READ_MODEL`). Its claim
+  (`ClaimBillReceiptRead`) sets `readAt` under the membership's lock, counting
+  `MAX_DAILY_RECEIPT_READS_PER_MEMBER` and `…_PER_ORGANIZATION` on it over 24 hours, and the caps
+  are read before and after it, as the conversations' are. What a read found is kept in
+  `readFields`, which every later ask answers for nothing; a read that failed lets go
+  (`ReleaseBillReceiptRead`), counting toward no cap, and a claim over two minutes old that stored
+  nothing is taken over. Its route mounts `verifiedEmailMiddleware` and
+  `conversationsSuspensionMiddleware`, as every route that spends on Claude for a member does, and
+  `billReceiptReaderRateLimitMiddleware`, which bounds the reads that fail
+- A read's usage is logged with its model and price (`priceClaudeMessage`), never written to a run's
+  ledger, and `report:usage` does not count it. The placeholder answers the reader's schema in a
+  branch of its own, beside the tagging's, so a new request held to a schema takes a branch too
 
 ## Email conventions
 

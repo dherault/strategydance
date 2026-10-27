@@ -1,5 +1,9 @@
 import { useIntl } from 'react-intl'
-import { CONVERSATION_ATTACHMENT_CONTENT_TYPES, MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE } from 'strategydance-core'
+import {
+  CONVERSATION_ATTACHMENT_CONTENT_TYPES,
+  MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
+  MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
+} from 'strategydance-core'
 
 import useConversationComposerDraft from '~hooks/conversation/useConversationComposerDraft'
 import useRefreshConversationAccess from '~hooks/conversation/useRefreshConversationAccess'
@@ -7,13 +11,13 @@ import useRemoveConversationAttachment from '~hooks/conversation/useRemoveConver
 import useUploadConversationAttachment from '~hooks/conversation/useUploadConversationAttachment'
 
 import createId from '~utils/common/createId'
+import readFileType from '~utils/common/readFileType'
 import runImageDrawing from '~utils/common/runImageDrawing'
+import toUploadName from '~utils/common/toUploadName'
 import countConversationComposerAttachments from '~utils/conversation/countConversationComposerAttachments'
 import getConversationAttachmentRefusal from '~utils/conversation/getConversationAttachmentRefusal'
 import getConversationAttachmentUploadFailure from '~utils/conversation/getConversationAttachmentUploadFailure'
-import readConversationAttachmentType from '~utils/conversation/readConversationAttachmentType'
 import shrinkConversationImage from '~utils/conversation/shrinkConversationImage'
-import toConversationAttachmentName from '~utils/conversation/toConversationAttachmentName'
 
 import { abortConversationAttachmentUpload, runConversationAttachmentUpload } from '~data/conversationAttachmentUploads'
 import type { ConversationAttachmentRefusal, ConversationComposerAttachment } from '~data/conversationComposerDrafts'
@@ -148,14 +152,15 @@ function useConversationComposerAttachments(conversationId: string) {
       let refusal: ConversationAttachmentRefusal | null = null
 
       for (const file of files) {
-        const contentType = readConversationAttachmentType(file)
-        const name = toConversationAttachmentName(
+        const contentType = readFileType(file, CONVERSATION_ATTACHMENT_CONTENT_TYPES)
+        const name = toUploadName(
           file.name,
           formatMessage(
             contentType?.startsWith('image/')
               ? conversationMessages.composerPastedImage
               : conversationMessages.composerPastedFile,
           ),
+          MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
         )
 
         const kind = getConversationAttachmentRefusal(file, contentType)

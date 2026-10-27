@@ -1,16 +1,21 @@
-import { ReceiptIcon } from 'lucide-react'
+import { PlusIcon, ReceiptIcon } from 'lucide-react'
 import { useIntl } from 'react-intl'
+import { Button } from 'strategydance-design-system/components/ui/Button'
+import { DialogTrigger } from 'strategydance-design-system/components/ui/Dialog'
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
 } from 'strategydance-design-system/components/ui/Empty'
 
+import NewBillDialog from '~components/budget/NewBillDialog'
+
 import budgetMessages from '~data/intl/messages/budget'
 
-// The Bills tab with no bill, which is every organization's until bills can be added
+// The Bills tab with no bill, and the way to add the first
 function BudgetBillsEmpty() {
   const { formatMessage } = useIntl()
 
@@ -23,6 +28,18 @@ function BudgetBillsEmpty() {
         <EmptyTitle>{formatMessage(budgetMessages.billsEmptyTitle)}</EmptyTitle>
         <EmptyDescription>{formatMessage(budgetMessages.billsEmptyText)}</EmptyDescription>
       </EmptyHeader>
+      <EmptyContent>
+        <NewBillDialog>
+          <DialogTrigger asChild>
+            <Button
+              size="sm"
+              icon={<PlusIcon />}
+            >
+              {formatMessage(budgetMessages.newBill)}
+            </Button>
+          </DialogTrigger>
+        </NewBillDialog>
+      </EmptyContent>
     </Empty>
   )
 }

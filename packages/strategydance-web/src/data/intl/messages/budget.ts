@@ -63,6 +63,453 @@ const budgetMessages = defineMessages({
     description:
       'Line under "No bills yet" on the Bills tab of the Budget page. Strategy Dance is the product, whose AI reads a receipt into a bill. A recurring bill repeats each week, month, quarter or year, which lets the page forecast spending.',
   },
+  searchBills: {
+    id: 'budget.searchBills',
+    defaultMessage: 'Search bills',
+    description:
+      "Placeholder and accessible name of the search field over the Bills tab's table, which finds bills by their name, description or company.",
+  },
+  paidBy: {
+    id: 'budget.paidBy',
+    defaultMessage: 'Paid by',
+    description:
+      "Accessible name of the Bills tab's filter by payer, heading of the table's column naming who paid each bill, and label of the bill dialog's field picking who paid it.",
+  },
+  everyone: {
+    id: 'budget.everyone',
+    defaultMessage: 'Everyone',
+    description: "Choice of the Bills tab's filter by payer that shows every bill, whoever paid it.",
+  },
+  memberYou: {
+    id: 'budget.memberYou',
+    defaultMessage: '{name} - me',
+    description:
+      'How the reader is named among the people who pay bills, in the filter by payer and the bill dialog\'s "Paid by". {name} is their own name. Keep the plain hyphen.',
+  },
+  formerMember: {
+    id: 'budget.formerMember',
+    defaultMessage: 'A former member',
+    description:
+      'How somebody who paid a bill is named once they left the company without having given a name, in the filter by payer, the table and the bill dialog.',
+  },
+  columnBill: {
+    id: 'budget.columnBill',
+    defaultMessage: 'Bill',
+    description: "Heading of the Bills tab's table column holding each bill's name and description.",
+  },
+  columnCompany: {
+    id: 'budget.columnCompany',
+    defaultMessage: 'Company',
+    description: "Heading of the Bills tab's table column naming the company each bill paid.",
+  },
+  columnDate: {
+    id: 'budget.columnDate',
+    defaultMessage: 'Date',
+    description: "Heading of the Bills tab's table column holding when each bill was last paid, or is due.",
+  },
+  columnRepeats: {
+    id: 'budget.columnRepeats',
+    defaultMessage: 'Repeats',
+    description: "Heading of the Bills tab's table column saying how often each bill is paid again, if ever.",
+  },
+  columnAmount: {
+    id: 'budget.columnAmount',
+    defaultMessage: 'Amount',
+    description: "Heading of the Bills tab's table column holding each bill's amount.",
+  },
+  columnActions: {
+    id: 'budget.columnActions',
+    defaultMessage: 'Actions',
+    description:
+      "Heading, for screen readers only, of the Bills tab's table column holding each bill's buttons, to view its receipt and to edit it.",
+  },
+  dueOn: {
+    id: 'budget.dueOn',
+    defaultMessage: 'Due {date}',
+    description:
+      'Date of a bill in the Bills tab whose first payment is still ahead. {date} is that day written short, such as "Nov 3".',
+  },
+  nextOn: {
+    id: 'budget.nextOn',
+    defaultMessage: 'Next {date}',
+    description:
+      'Small line under the last payment of a repeating bill in the Bills tab: when it is paid again. {date} is that day written short, such as "Nov 3".',
+  },
+  recurrence: {
+    id: 'budget.recurrence',
+    defaultMessage: '{recurrence, select, WEEKLY {Weekly} MONTHLY {Monthly} QUARTERLY {Quarterly} other {Yearly}}',
+    description:
+      'How often a repeating bill is paid: each week, month, calendar quarter or year. Shown in the Bills tab and as the choices of the bill dialog\'s "Repeats".',
+  },
+  ended: {
+    id: 'budget.ended',
+    defaultMessage: 'Ended',
+    description: 'Shown in the Bills tab for a repeating bill, such as a cancelled subscription, that is paid no more.',
+  },
+  oneTime: {
+    id: 'budget.oneTime',
+    defaultMessage: 'One-time',
+    description: 'Shown in the Bills tab for a bill paid once, which does not repeat.',
+  },
+  convertedAmount: {
+    id: 'budget.convertedAmount',
+    defaultMessage: '≈ {amount}',
+    description:
+      'Small line under a bill\'s amount in the Bills tab when it is in another currency than the budget: about what it comes to in the budget\'s currency, such as "≈ $1,302.17". Keep the sign.',
+  },
+  billsNoMatchTitle: {
+    id: 'budget.billsNoMatchTitle',
+    defaultMessage: 'No bills match',
+    description: 'Title shown in the Bills tab when no bill matches its search and its filter by payer.',
+  },
+  billsNoMatchText: {
+    id: 'budget.billsNoMatchText',
+    defaultMessage: 'Search looks at names, descriptions and companies. Try another person or clear the filters.',
+    description: 'Line under "No bills match" in the Bills tab.',
+  },
+  clearFilters: {
+    id: 'budget.clearFilters',
+    defaultMessage: 'Clear filters',
+    description: 'Button under "No bills match" that empties the search and shows every payer\'s bills again.',
+  },
+  viewReceipt: {
+    id: 'budget.viewReceipt',
+    defaultMessage: 'View receipt',
+    description:
+      "Tooltip of the icon button that opens a bill's receipt, in the Bills tab's table and in the bill's dialog.",
+  },
+  viewReceiptFor: {
+    id: 'budget.viewReceiptFor',
+    defaultMessage: 'View receipt for {name}',
+    description:
+      "Accessible name of the icon button in the Bills tab's table that opens a bill's receipt. {name} is the bill's name, such as \"Figma Professional\".",
+  },
+  receiptTitle: {
+    id: 'budget.receiptTitle',
+    defaultMessage: 'Receipt',
+    description: "Title of the dialog showing a bill's receipt while the bill has no name yet.",
+  },
+  receiptFor: {
+    id: 'budget.receiptFor',
+    defaultMessage: 'Receipt for {name}',
+    description: "What a screen reader says of the photo of a bill's receipt. {name} is the bill's name.",
+  },
+  receiptLoading: {
+    id: 'budget.receiptLoading',
+    defaultMessage: 'Loading the receipt',
+    description: "What a screen reader says while a bill's receipt loads in its dialog.",
+  },
+  download: {
+    id: 'budget.download',
+    defaultMessage: 'Download',
+    description: "Button in the header of a bill's receipt's dialog that saves the file to the reader's device.",
+  },
+  receiptUnavailable: {
+    id: 'budget.receiptUnavailable',
+    defaultMessage: 'The receipt could not be loaded',
+    description: "Title shown in a bill's receipt's dialog when its file could not be read.",
+  },
+  receiptUnavailableText: {
+    id: 'budget.receiptUnavailableText',
+    defaultMessage: 'Check your connection and try again.',
+    description: 'Line under "The receipt could not be loaded", before a button that loads it again.',
+  },
+  newBill: {
+    id: 'budget.newBill',
+    defaultMessage: 'New bill',
+    description: 'Button of the Bills tab that adds a bill, and title of the dialog where a new bill is written.',
+  },
+  edit: {
+    id: 'budget.edit',
+    defaultMessage: 'Edit',
+    description: "Tooltip of the icon button in the Bills tab's table that opens a bill to change it.",
+  },
+  editBillFor: {
+    id: 'budget.editBillFor',
+    defaultMessage: 'Edit {name}',
+    description:
+      "Accessible name of the icon button in the Bills tab's table that opens a bill to change it. {name} is the bill's name.",
+  },
+  editBill: {
+    id: 'budget.editBill',
+    defaultMessage: 'Edit bill',
+    description: 'Title of the dialog where an existing bill is changed.',
+  },
+  newBillDescription: {
+    id: 'budget.newBillDescription',
+    defaultMessage: 'Bills count towards spending on the day they are paid.',
+    description: 'Line under the title of the dialog where a new bill is written.',
+  },
+  billAddedOn: {
+    id: 'budget.billAddedOn',
+    defaultMessage: 'Added {date}',
+    description:
+      'Line under the title of an existing bill\'s dialog: when it was added. {date} is a day with its year, such as "Oct 21, 2026".',
+  },
+  nameLabel: {
+    id: 'budget.nameLabel',
+    defaultMessage: 'Name',
+    description: "Label of the field holding a bill's name, a short label for what was bought.",
+  },
+  namePlaceholder: {
+    id: 'budget.namePlaceholder',
+    defaultMessage: 'Figma Professional',
+    description:
+      "Example in the empty field holding a bill's name: a product or a plan bought. Keep a brand and plan name a company in the reader's country would recognize.",
+  },
+  nameRequired: {
+    id: 'budget.nameRequired',
+    defaultMessage: 'Enter a name.',
+    description: "Error under a bill's name when it is empty.",
+  },
+  descriptionLabel: {
+    id: 'budget.descriptionLabel',
+    defaultMessage: 'Description',
+    description: "Label of the optional field holding a bill's description.",
+  },
+  descriptionPlaceholder: {
+    id: 'budget.descriptionPlaceholder',
+    defaultMessage: 'What it was for',
+    description: "Example in the empty field holding a bill's description.",
+  },
+  companyLabel: {
+    id: 'budget.companyLabel',
+    defaultMessage: 'Company paid',
+    description: 'Label of the field holding the company a bill paid.',
+  },
+  companyPlaceholder: {
+    id: 'budget.companyPlaceholder',
+    defaultMessage: 'Figma',
+    description:
+      'Example in the empty field holding the company a bill paid. Keep a company name a reader would recognize.',
+  },
+  companyRequired: {
+    id: 'budget.companyRequired',
+    defaultMessage: 'Enter the company you paid.',
+    description: 'Error under the company of a bill when it is empty.',
+  },
+  companiesPaidBefore: {
+    id: 'budget.companiesPaidBefore',
+    defaultMessage: 'Companies paid before',
+    description:
+      "Heading of the list of companies the company's bills paid, suggested under the field holding the company a bill paid.",
+  },
+  billAmountLabel: {
+    id: 'budget.billAmountLabel',
+    defaultMessage: 'Amount',
+    description: "Label of the field holding a bill's amount, in its own currency.",
+  },
+  paidOnLabel: {
+    id: 'budget.paidOnLabel',
+    defaultMessage: 'Paid on',
+    description: 'Label of the field holding the day a bill was paid, for a bill paid once.',
+  },
+  firstPaymentLabel: {
+    id: 'budget.firstPaymentLabel',
+    defaultMessage: 'First payment',
+    description: 'Label of the field holding the day a repeating bill was first paid.',
+  },
+  pickDay: {
+    id: 'budget.pickDay',
+    defaultMessage: 'Pick a date',
+    description: 'Shown in a field holding a day of a bill while it holds none, and the button opening its calendar.',
+  },
+  dayRequired: {
+    id: 'budget.dayRequired',
+    defaultMessage: 'Pick a date.',
+    description: 'Error under the day a bill was paid when it holds none.',
+  },
+  today: {
+    id: 'budget.today',
+    defaultMessage: 'Today',
+    description: "Button under the calendar of a bill's day that picks today.",
+  },
+  clearDay: {
+    id: 'budget.clearDay',
+    defaultMessage: 'Clear',
+    description: "Button under the calendar of a repeating bill's end that empties it, so the bill keeps going.",
+  },
+  recurringLabel: {
+    id: 'budget.recurringLabel',
+    defaultMessage: 'Recurring payment',
+    description: 'Label of the switch making a bill repeat, such as a subscription.',
+  },
+  recurringHint: {
+    id: 'budget.recurringHint',
+    defaultMessage: 'Repeats on the same day each period. Used to project spending.',
+    description:
+      'Line under the switch making a bill repeat: it is paid again on the same day each week, month, quarter or year, which the Budget page counts as expected spending.',
+  },
+  repeatsLabel: {
+    id: 'budget.repeatsLabel',
+    defaultMessage: 'Repeats',
+    description: 'Label of the field picking how often a repeating bill is paid: weekly, monthly, quarterly or yearly.',
+  },
+  endsLabel: {
+    id: 'budget.endsLabel',
+    defaultMessage: 'Ends',
+    description:
+      'Label of the field holding the last day a repeating bill can be paid, such as when a subscription was cancelled.',
+  },
+  endsHint: {
+    id: 'budget.endsHint',
+    defaultMessage: 'Leave empty if it keeps going.',
+    description: 'Line under the end of a repeating bill.',
+  },
+  endsInvalid: {
+    id: 'budget.endsInvalid',
+    defaultMessage: 'Pick a date after the first payment.',
+    description: 'Error under the end of a repeating bill when it is before its first payment.',
+  },
+  receiptLabel: {
+    id: 'budget.receiptLabel',
+    defaultMessage: 'Receipt',
+    description: "Label above the place where a bill's receipt or invoice is attached.",
+  },
+  attachReceipt: {
+    id: 'budget.attachReceipt',
+    defaultMessage: 'Attach a receipt',
+    description: "What a screen reader calls the zone where a bill's receipt is dropped or chosen.",
+  },
+  receiptDrop: {
+    id: 'budget.receiptDrop',
+    defaultMessage: '<strong>Drop a receipt here</strong> or click to choose',
+    description:
+      "What the zone where a bill's receipt is attached says. Keep the <strong> tags around the first words.",
+  },
+  receiptTypes: {
+    id: 'budget.receiptTypes',
+    defaultMessage: 'PDF, text file or photo',
+    description: 'Small line under "Drop a receipt here or click to choose": the kinds of file a receipt can be.',
+  },
+  receiptUploading: {
+    id: 'budget.receiptUploading',
+    defaultMessage: 'Uploading, {percent}',
+    description: 'Small line under the name of a receipt being uploaded. {percent} is how much went up, such as "45%".',
+  },
+  receiptProgress: {
+    id: 'budget.receiptProgress',
+    defaultMessage: 'Uploading the receipt',
+    description: "What a screen reader calls the bar showing a receipt's upload.",
+  },
+  replaceReceipt: {
+    id: 'budget.replaceReceipt',
+    defaultMessage: 'Replace receipt',
+    description:
+      "Tooltip and accessible name of the icon button that attaches another file in place of a bill's receipt.",
+  },
+  removeReceipt: {
+    id: 'budget.removeReceipt',
+    defaultMessage: 'Remove receipt',
+    description:
+      "Tooltip and accessible name of the icon button that takes a bill's receipt off, after a second click to confirm.",
+  },
+  removeReceiptConfirm: {
+    id: 'budget.removeReceiptConfirm',
+    defaultMessage: 'Confirm removal of the receipt',
+    description:
+      "What a screen reader says of the button removing a bill's receipt after its first click, until it is clicked again.",
+  },
+  receiptUnsupported: {
+    id: 'budget.receiptUnsupported',
+    defaultMessage: 'Attach a PDF, text file or photo',
+    description: "Notification when the file given as a bill's receipt is of another kind.",
+  },
+  receiptTooLarge: {
+    id: 'budget.receiptTooLarge',
+    defaultMessage: 'A receipt is 10 MB and 20 pages at most.',
+    description: "Notification when the file given as a bill's receipt is too large.",
+  },
+  receiptTooManyUploads: {
+    id: 'budget.receiptTooManyUploads',
+    defaultMessage: 'Too many receipts went up just now. Try again in a few minutes.',
+    description:
+      'Notification when the reader uploaded so many receipts in a short time that the next is refused for a while.',
+  },
+  receiptUploadFailed: {
+    id: 'budget.receiptUploadFailed',
+    defaultMessage: 'The receipt could not be uploaded. Try again.',
+    description: "Notification when a bill's receipt failed to upload, such as when the connection dropped.",
+  },
+  receiptExpired: {
+    id: 'budget.receiptExpired',
+    defaultMessage: 'The receipt can no longer be attached. Attach it again.',
+    description:
+      'Notification when a bill is saved with a receipt uploaded over two days ago, which has to be attached again.',
+  },
+  addBill: {
+    id: 'budget.addBill',
+    defaultMessage: 'Add bill',
+    description: 'Button of the dialog where a new bill is written, which saves it.',
+  },
+  deleteBill: {
+    id: 'budget.deleteBill',
+    defaultMessage: 'Delete',
+    description: "Button of an existing bill's dialog that deletes it, after a second click to confirm.",
+  },
+  deleteBillConfirm: {
+    id: 'budget.deleteBillConfirm',
+    defaultMessage: 'Confirm deletion',
+    description: 'What the "Delete" button of a bill\'s dialog reads after a first click, until it is clicked again.',
+  },
+  billAdded: {
+    id: 'budget.billAdded',
+    defaultMessage: '{name} added',
+    description: "Notification once a new bill was saved. {name} is the bill's name.",
+  },
+  billSaved: {
+    id: 'budget.billSaved',
+    defaultMessage: 'Bill saved',
+    description: 'Notification once changes to a bill were saved.',
+  },
+  billOverBudget: {
+    id: 'budget.billOverBudget',
+    defaultMessage: '{name} puts you over budget',
+    description:
+      "Warning once a bill was saved that takes the company's spending past its budget. {name} is the bill's name.",
+  },
+  billDeleted: {
+    id: 'budget.billDeleted',
+    defaultMessage: '{name} deleted',
+    description: "Notification once a bill was deleted, beside a button that takes it back. {name} is the bill's name.",
+  },
+  undo: {
+    id: 'budget.undo',
+    defaultMessage: 'Undo',
+    description: 'Button of the notification that a bill was deleted, which takes it back.',
+  },
+  billSaveFailed: {
+    id: 'budget.billSaveFailed',
+    defaultMessage: 'The bill could not be saved. Try again.',
+    description: 'Notification when saving a bill failed, such as when the connection dropped.',
+  },
+  billDeleteFailed: {
+    id: 'budget.billDeleteFailed',
+    defaultMessage: 'The bill could not be deleted. Try again.',
+    description: 'Notification when deleting a bill failed.',
+  },
+  billRestoreFailed: {
+    id: 'budget.billRestoreFailed',
+    defaultMessage: 'The bill could not be brought back.',
+    description: 'Notification when taking back a deleted bill failed.',
+  },
+  billGone: {
+    id: 'budget.billGone',
+    defaultMessage: 'This bill was deleted meanwhile.',
+    description: 'Notification when a bill being changed was deleted by somebody else before it was saved.',
+  },
+  billsFull: {
+    id: 'budget.billsFull',
+    defaultMessage: 'The company keeps at most {count, number} bills. Delete one to add another.',
+    description:
+      'Notification when a new bill is refused because the company holds as many bills as it may. {count} is that many, 2000.',
+  },
+  billStale: {
+    id: 'budget.billStale',
+    defaultMessage: 'Somebody changed this bill meanwhile. Check it, then save again.',
+    description:
+      "Warning in a bill's dialog when another member saved the bill while the reader was changing it: the dialog now shows the bill as they left it.",
+  },
   loadFailed: {
     id: 'budget.loadFailed',
     defaultMessage: 'The budget could not be loaded. Check your connection and try again.',

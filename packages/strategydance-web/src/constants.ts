@@ -192,6 +192,14 @@ export const CONVERSATION_SEARCH_DELAY_MS = 300
 export const CONVERSATION_IMAGE_LONG_SIDE = 1568
 export const CONVERSATION_IMAGE_QUALITY = 0.9
 
+/*
+  The longest side, in pixels, the browser fits a photo of a receipt within before it uploads it,
+  as a JPEG at this quality: what Claude reads it at, and well under its 5 MB, which a phone's photo
+  passes
+*/
+export const BILL_RECEIPT_PHOTO_LONG_SIDE = 2000
+export const BILL_RECEIPT_PHOTO_QUALITY = 0.9
+
 // How many files a tab uploads to conversations at once. The rest wait their turn, so ten files
 // picked together each move rather than all crawl
 export const CONVERSATION_ATTACHMENT_UPLOADS_AT_ONCE = 3

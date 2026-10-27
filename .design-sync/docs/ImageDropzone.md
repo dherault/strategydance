@@ -1,7 +1,8 @@
 Where a picture is chosen: a dashed zone that opens the file picker on a click, Enter or Space,
 takes a file dragged onto it, and previews the picture it is given. Use it in the dialog that
-changes a company's banner or logo, or a member's profile picture. It hands over the file and
-nothing more: the caller checks it, stores it and passes back the preview.
+changes a company's banner or logo, or a member's profile picture, and wherever a file is dropped
+that need not be a picture, as a bill's receipt, under an icon of its own. It hands over the file
+and nothing more: the caller checks it, stores it and passes back the preview.
 
 ## Usage
 
@@ -24,6 +25,23 @@ function LogoPicker() {
     </div>
   )
 }
+```
+
+A bill's receipt, a PDF, a text file or a photo, under an upload icon, with nothing to preview:
+
+```jsx
+const { ImageDropzone } = window.StrategyDanceDesignSystem
+const { UploadIcon } = window.StrategyDanceDesignSystem.Icons
+
+<div className="max-w-lg">
+  <ImageDropzone
+    label="Attach a receipt"
+    icon={<UploadIcon />}
+    accept="application/pdf,text/plain,image/jpeg,image/png,image/webp"
+    prompt={<><strong>Drop a receipt here</strong> or click to choose<span className="block text-xs">PDF, text file or photo</span></>}
+    onFileSelect={file => console.log('receipt', file.name)}
+  />
+</div>
 ```
 
 A banner, a profile picture with its own prompt, and a logo being saved:
@@ -55,8 +73,9 @@ const { ImageDropzone } = window.StrategyDanceDesignSystem
   `circle` are at most 200px and centered, for a logo and a profile picture. The preview is cropped
   to fill the zone, and a square one sits on white
 - `label` names the zone for assistive technology and is required, as is `onFileSelect`. The zone
-  shows `prompt` under an image icon, "Choose a file or drag it here" unless set, and a `<strong>`
-  in it takes the primary color
+  shows `prompt` under `icon`, an image unless set, and "Choose a file or drag it here" unless set,
+  and a `<strong>` in it takes the primary color. A zone taking files that are no pictures, as a
+  receipt, passes an upload icon and says which files it takes
 - `src` is the preview, typically an object URL of the file just chosen; without one the zone shows
   its prompt. It never reads the file itself, so a design passes `src` to show a chosen picture
 - `busy` dims the preview under a spinner and ignores clicks and drops while the picture saves;

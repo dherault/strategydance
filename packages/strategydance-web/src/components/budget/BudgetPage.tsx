@@ -1,4 +1,4 @@
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useMatch, useNavigate, useSearch } from '@tanstack/react-router'
 import { SlidersHorizontalIcon } from 'lucide-react'
 import { useIntl } from 'react-intl'
 import { Button } from 'strategydance-design-system/components/ui/Button'
@@ -12,7 +12,7 @@ import useBudgetReads from '~hooks/budget/useBudgetReads'
 
 import { BUDGET_VIEWS } from '~utils/budget/parseBudgetSearch'
 
-import BudgetBillsEmpty from '~components/budget/BudgetBillsEmpty'
+import BudgetBills from '~components/budget/BudgetBills'
 import BudgetDialog from '~components/budget/BudgetDialog'
 import BudgetExpenses from '~components/budget/BudgetExpenses'
 import BudgetLoadFailed from '~components/budget/BudgetLoadFailed'
@@ -25,9 +25,9 @@ import navigationMessages from '~data/intl/messages/navigation'
 
 /*
   The Budget page: its header, with the budget's settings on the Expenses tab, then its three tabs,
-  Revenue, Expenses and Bills, the one open kept in the address, Expenses when it names none. While
-  a read has failed the settings are not offered, since a budget read as none would be set over the
-  real one
+  Revenue, Expenses and Bills, the one open kept in the address, Expenses when it names none, or
+  Bills under a bill's dialog. While a read has failed the settings are not offered, since a budget
+  read as none would be set over the real one
 */
 function BudgetPage() {
   const { formatMessage } = useIntl()
@@ -36,8 +36,10 @@ function BudgetPage() {
   const { data: settings } = useBudget()
   const { data: bills } = useBills()
   const { hasFailed, isRetrying, retry } = useBudgetReads()
+  // A bill open over the page, which lies over the Bills tab unless its address names another
+  const billMatch = useMatch({ from: '/_authenticated/_app/$organizationSlug/budget/$billId', shouldThrow: false })
 
-  const view = search.view ?? 'expenses'
+  const view = search.view ?? (billMatch ? 'bills' : 'expenses')
   const settingsLabel = formatMessage(settings.limit ? budgetMessages.budgetSettings : budgetMessages.setBudget)
 
   function renderView() {
@@ -52,7 +54,7 @@ function BudgetPage() {
 
     if (view === 'revenue') return <BudgetRevenue />
 
-    if (view === 'bills') return <BudgetBillsEmpty />
+    if (view === 'bills') return <BudgetBills />
 
     return <BudgetExpenses />
   }

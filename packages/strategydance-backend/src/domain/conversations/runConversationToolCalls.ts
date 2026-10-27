@@ -383,12 +383,13 @@ function isUnfinished(message: GetConversationCallsData['conversationMessages'][
 }
 
 // What a call answers, unless its signal is aborted first, its time up or its run lost, when what
-// it answers later is dropped
+// it answers later is dropped, a failure included, which is observed so it is never unhandled
 function untilAborted<T>(promise: Promise<T>, signal: AbortSignal) {
   return new Promise<T>((resolve, reject) => {
     const abort = () => reject(signal.reason)
 
     if (signal.aborted) {
+      promise.catch(() => {})
       abort()
 
       return

@@ -360,10 +360,13 @@ which fills the bill dialog with the answer for the member to check. The module 
 - **Spend is bounded three ways:**
   - **Once per receipt.** `ClaimBillReceiptRead` sets `readAt` only where it is null, or where a
     claim over two minutes old stored nothing (`BILL_RECEIPT_READ_CLAIM_MS`), which only a backend
-    that stopped mid-read leaves. The request's 60 seconds, the wait for a place included, keep a
-    read under way from being taken over. A second claim meanwhile is answered 409.
+    that stopped mid-read leaves. The wait for a place, Storage's read and the request all fall
+    within 60 seconds of the claim, Storage's read held to them though it takes no signal
+    (`untilAborted`), so a read is over, its claim let go or kept, before another can take it over.
+    A second claim meanwhile is answered 409.
     - A read that answered keeps its fields in `readFields` (`RecordBillReceiptRead`), and asking
-      again answers them for nothing.
+      again answers them for nothing. A write that fails is tried three times rather than let go,
+      which would pay for the read again, and the member is answered with the fields all the same.
     - One whose request failed, or that Claude answered with nothing the bill dialog takes, a
       refusal or an answer cut at its length included, clears `readAt` again
       (`ReleaseBillReceiptRead`) and answers 503, so the dialog can offer to try again.

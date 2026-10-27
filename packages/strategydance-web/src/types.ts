@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { BudgetBill, BudgetLimit, Currency, Locale } from 'strategydance-core'
+import type { BillRecurrence, BudgetBill, BudgetLimit, Currency, Locale } from 'strategydance-core'
 import type {
   CompanyAspect,
   GetAgentConnectionsData,
@@ -140,6 +140,31 @@ export type BudgetSettings = {
 // One of an organization's bills, as the Budget page reads it: the fields strategydance-core's
 // computations take, in its shape, with the rest of its row, its payer and its receipt
 export type Bill = BudgetBill & Omit<GetBillsData['bills'][number], keyof BudgetBill>
+
+// Somebody who pays the organization's bills, as the Budget page offers them: a member, or a payer
+// a bill names who has left since, whose name the bill kept, null when they never gave one
+export type BillPayer = {
+  id: string
+  name: string | null
+  imageUrl: string | null
+  isViewer: boolean
+  hasLeft: boolean
+}
+
+// A bill as its dialog saves it, in strategydance-core's shape: its amount in minor units of its own
+// currency, and its receipt by id
+export type BillDraft = {
+  name: string
+  description: string
+  company: string
+  amountMinor: number
+  currency: Currency
+  paidOn: string
+  recurrence: BillRecurrence | null
+  endsOn: string | null
+  paidById: string
+  receiptId: string | null
+}
 
 // One month of the Budget page's chart: its short name, what it comes to in whole units of the
 // currency, which the chart plots, and what was spent and is expected in it, in minor units

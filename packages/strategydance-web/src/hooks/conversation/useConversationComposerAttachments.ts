@@ -7,11 +7,11 @@ import useRemoveConversationAttachment from '~hooks/conversation/useRemoveConver
 import useUploadConversationAttachment from '~hooks/conversation/useUploadConversationAttachment'
 
 import createId from '~utils/common/createId'
+import readFileType from '~utils/common/readFileType'
 import runImageDrawing from '~utils/common/runImageDrawing'
 import countConversationComposerAttachments from '~utils/conversation/countConversationComposerAttachments'
 import getConversationAttachmentRefusal from '~utils/conversation/getConversationAttachmentRefusal'
 import getConversationAttachmentUploadFailure from '~utils/conversation/getConversationAttachmentUploadFailure'
-import readConversationAttachmentType from '~utils/conversation/readConversationAttachmentType'
 import shrinkConversationImage from '~utils/conversation/shrinkConversationImage'
 import toConversationAttachmentName from '~utils/conversation/toConversationAttachmentName'
 
@@ -148,7 +148,7 @@ function useConversationComposerAttachments(conversationId: string) {
       let refusal: ConversationAttachmentRefusal | null = null
 
       for (const file of files) {
-        const contentType = readConversationAttachmentType(file)
+        const contentType = readFileType(file, CONVERSATION_ATTACHMENT_CONTENT_TYPES)
         const name = toConversationAttachmentName(
           file.name,
           formatMessage(

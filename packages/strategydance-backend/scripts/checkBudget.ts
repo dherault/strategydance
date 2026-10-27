@@ -2,14 +2,25 @@ import { randomUUID } from 'node:crypto'
 
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
-import { MAX_BILL_RECEIPT_SIZE, MAX_BILLS, MAX_MONEY_MINOR } from 'strategydance-core'
 import {
+  MAX_BILL_RECEIPT_SIZE,
+  MAX_BILLS,
+  MAX_DAILY_RECEIPT_READS_PER_MEMBER,
+  MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION,
+  MAX_MONEY_MINOR,
+} from 'strategydance-core'
+import {
+  claimBillReceiptRead,
   completeBillReceiptUpload,
   connectorConfig,
   deleteBillReceipts,
   getBillReceiptForMember,
+  getBillReceiptForReader,
+  getBillReceiptReads,
   getPrunableBillReceipts,
   pruneDeletedBills,
+  recordBillReceiptRead,
+  releaseBillReceiptRead,
   reserveBillReceipt,
   type ReserveBillReceiptVariables,
 } from 'strategydance-database/backend'
@@ -58,6 +69,8 @@ const checkId = createId().slice(0, 8)
 const organizationId = createId()
 const otherOrganizationId = createId()
 const fullOrganizationId = createId()
+// Where the receipt reader's caps are filled, so no other check's receipt counts toward them
+const readsOrganizationId = createId()
 
 const userIds = {
   administrator: `check-budget-${checkId}-administrator`,
@@ -271,6 +284,7 @@ async function setUp() {
       $organizationId: UUID!
       $otherOrganizationId: UUID!
       $fullOrganizationId: UUID!
+      $readsOrganizationId: UUID!
       $administrator: String!
       $member: String!
       $other: String!
@@ -280,14 +294,17 @@ async function setUp() {
       organization_insert(data: { id: $organizationId, name: "Checked organization" })
       other: organization_insert(data: { id: $otherOrganizationId, name: "Other organization" })
       full: organization_insert(data: { id: $fullOrganizationId, name: "Full organization" })
+      reads: organization_insert(data: { id: $readsOrganizationId, name: "Read organization" })
       administrator: userOrganization_insert(data: { userId: $administrator, organizationId: $organizationId, role: ADMINISTRATOR })
       member: userOrganization_insert(data: { userId: $member, organizationId: $organizationId, role: MEMBER })
       otherMember: userOrganization_insert(data: { userId: $other, organizationId: $organizationId, role: MEMBER })
       leaver: userOrganization_insert(data: { userId: $leaver, organizationId: $organizationId, role: MEMBER })
       outsider: userOrganization_insert(data: { userId: $outsider, organizationId: $otherOrganizationId, role: MEMBER })
       fullMember: userOrganization_insert(data: { userId: $member, organizationId: $fullOrganizationId, role: MEMBER })
+      readsMember: userOrganization_insert(data: { userId: $member, organizationId: $readsOrganizationId, role: MEMBER })
+      readsOther: userOrganization_insert(data: { userId: $other, organizationId: $readsOrganizationId, role: MEMBER })
     }`,
-    { organizationId, otherOrganizationId, fullOrganizationId, ...userIds },
+    { organizationId, otherOrganizationId, fullOrganizationId, readsOrganizationId, ...userIds },
   )
 }
 
@@ -297,7 +314,10 @@ async function tearDown() {
       organization_deleteMany(where: { id: { in: $ids } })
       user_deleteMany(where: { id: { in: $userIds } })
     }`,
-    { ids: [organizationId, otherOrganizationId, fullOrganizationId], userIds: Object.values(userIds) },
+    {
+      ids: [organizationId, otherOrganizationId, fullOrganizationId, readsOrganizationId],
+      userIds: Object.values(userIds),
+    },
   )
 }
 
@@ -517,6 +537,204 @@ async function checkReceiptOperations() {
   })
 
   check('an outsider reads no membership beside it', !outsider.userOrganization)
+}
+
+async function readReceiptRead(id: string) {
+  const data = await read<{ billReceipt: { readAt: string | null; readFields: string | null } | null }>(
+    `query ReadReceiptRead($id: UUID!) { billReceipt(id: $id) { readAt readFields } }`,
+    { id },
+  )
+
+  return data.billReceipt
+}
+
+function minutesAgo(minutes: number) {
+  return new Date(Date.now() - minutes * 60 * 1000).toISOString()
+}
+
+async function checkReceiptReadOperations() {
+  const reference = (receiptId: string, userId = userIds.member) => ({ organizationId, userId, receiptId })
+  const claim = (receiptId: string, userId = userIds.member) =>
+    claimBillReceiptRead(dataConnect, reference(receiptId, userId))
+  const fields = JSON.stringify({ name: 'Figma Professional' })
+  const again = 'being read, or was read already'
+
+  const receiptId = await insertReceipt()
+
+  check('its uploader claims a ready receipt for the reader', await isAccepted(claim(receiptId)))
+  check('the claim sets when it was read', (await readReceiptRead(receiptId))?.readAt !== null)
+  check('a second claim is refused', await isRefused(claim(receiptId), again))
+  check(
+    "another member's claim of a receipt is refused",
+    await isRefused(claim(await insertReceipt(), userIds.other), again),
+  )
+  check(
+    "an outsider's claim is refused",
+    await isRefused(claim(await insertReceipt(), userIds.outsider), 'Only a member of an organization'),
+  )
+  check(
+    "a receipt still uploading can't be claimed",
+    await isRefused(claim(await insertReceipt({ status: 'UPLOADING' })), again),
+  )
+
+  const { data } = await getBillReceiptForReader(dataConnect, reference(receiptId))
+
+  check(
+    'the reader reads the receipt with its organization’s name',
+    data.userOrganization?.organization.name === 'Checked organization' && data.billReceipt?.readAt !== null,
+  )
+
+  await releaseBillReceiptRead(dataConnect, reference(receiptId))
+
+  check('a release clears the claim', (await readReceiptRead(receiptId))?.readAt === null)
+  check('a receipt let go is claimed again', await isAccepted(claim(receiptId)))
+  check(
+    'what the read found is kept',
+    await isAccepted(recordBillReceiptRead(dataConnect, { ...reference(receiptId), readFields: fields })),
+  )
+  check('it is stored with the receipt', (await readReceiptRead(receiptId))?.readFields === fields)
+  check(
+    'a second record is refused',
+    await isRefused(
+      recordBillReceiptRead(dataConnect, { ...reference(receiptId), readFields: fields }),
+      'no longer being read',
+    ),
+  )
+
+  await releaseBillReceiptRead(dataConnect, reference(receiptId))
+
+  check(
+    'a release after the record keeps the claim, and a claim is refused',
+    (await readReceiptRead(receiptId))?.readAt !== null && (await isRefused(claim(receiptId), again)),
+  )
+
+  const long = await insertReceipt()
+
+  await claim(long)
+  check(
+    'a record past 2000 characters is refused',
+    await isRefused(
+      recordBillReceiptRead(dataConnect, { ...reference(long), readFields: 'a'.repeat(2001) }),
+      'fits in 2000 characters',
+    ),
+  )
+  check(
+    'a record without a claim is refused',
+    await isRefused(
+      recordBillReceiptRead(dataConnect, { ...reference(await insertReceipt()), readFields: fields }),
+      'no longer being read',
+    ),
+  )
+  check(
+    'a claim over two minutes old that stored nothing is taken over',
+    await isAccepted(claim(await insertReceipt({ readAt: minutesAgo(3) }))),
+  )
+  check(
+    'one under two minutes old is not',
+    await isRefused(claim(await insertReceipt({ readAt: minutesAgo(1) })), again),
+  )
+  check(
+    'nor one whose fields are stored, however old',
+    await isRefused(claim(await insertReceipt({ readAt: hoursAgo(30), readFields: fields })), again),
+  )
+}
+
+async function checkReceiptReadCaps() {
+  const reference = (receiptId: string, userId = userIds.member) => ({
+    organizationId: readsOrganizationId,
+    userId,
+    receiptId,
+  })
+  const claim = (
+    receiptId: string,
+    { userId = userIds.member, isUsageCapped }: { userId?: string; isUsageCapped?: boolean } = {},
+  ) =>
+    claimBillReceiptRead(dataConnect, {
+      ...reference(receiptId, userId),
+      ...(isUsageCapped === undefined ? {} : { isUsageCapped }),
+    })
+  const newReceipt = (userId = userIds.member) => insertReceipt({ organizationId: readsOrganizationId, userId })
+
+  // Receipts read so many hours ago, each a second older than the one before, in batches of 100
+  async function insertReads(count: number, { userId, hours }: { userId: string | null; hours: number }) {
+    const rows = Array.from({ length: count }, (_, index) => ({
+      id: createId(),
+      organizationId: readsOrganizationId,
+      userId,
+      status: 'READY',
+      name: 'Invoice.pdf',
+      contentType: 'application/pdf',
+      size: 1000,
+      readAt: new Date(Date.now() - hours * HOUR_MS - index * 1000).toISOString(),
+      readFields: '{}',
+    }))
+
+    for (let index = 0; index < rows.length; index += 100) {
+      await write(`mutation InsertReads($rows: [BillReceipt_Data!]!) { billReceipt_insertMany(data: $rows) }`, {
+        rows: rows.slice(index, index + 100),
+      })
+    }
+  }
+
+  // One place left for the member, and reads too old to count
+  await insertReads(MAX_DAILY_RECEIPT_READS_PER_MEMBER - 1, { userId: userIds.member, hours: 1 })
+  await insertReads(3, { userId: userIds.member, hours: 25 })
+
+  const last = await newReceipt()
+  const past = await newReceipt()
+
+  check(
+    `the member's ${MAX_DAILY_RECEIPT_READS_PER_MEMBER}th read in 24 hours is claimed, older reads not counting`,
+    await isAccepted(claim(last)),
+  )
+  check(
+    `the ${MAX_DAILY_RECEIPT_READS_PER_MEMBER + 1}st is refused`,
+    await isRefused(claim(past), `at most ${MAX_DAILY_RECEIPT_READS_PER_MEMBER} receipts read in 24 hours`),
+  )
+  check('the caps lifted, it is claimed', await isAccepted(claim(past, { isUsageCapped: false })))
+
+  const { data: memberReads } = await getBillReceiptReads(dataConnect, reference(await newReceipt()))
+
+  check(
+    'the reads are read newest first, as many as the cap counts',
+    memberReads.memberReads.length === MAX_DAILY_RECEIPT_READS_PER_MEMBER
+      && memberReads.memberReads.every(
+        ({ readAt }, index, rows) => index === 0 || Date.parse(readAt!) <= Date.parse(rows[index - 1]!.readAt!),
+      ),
+  )
+
+  const { data: ownLeftOut } = await getBillReceiptReads(dataConnect, reference(past))
+
+  check('the receipt a read asks for counts toward neither cap', !ownLeftOut.memberReads.some(({ id }) => id === past))
+
+  // The member's 51 within 24 hours, then reads of accounts gone, which count toward the
+  // organization's cap alone, to one short of it
+  await insertReads(MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION - MAX_DAILY_RECEIPT_READS_PER_MEMBER - 2, {
+    userId: null,
+    hours: 2,
+  })
+
+  const othersLast = await newReceipt(userIds.other)
+  const othersPast = await newReceipt(userIds.other)
+
+  check(
+    `the organization's ${MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION}th read is claimed`,
+    await isAccepted(claim(othersLast, { userId: userIds.other })),
+  )
+  check(
+    `the ${MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION + 1}st is refused, whoever asks`,
+    await isRefused(
+      claim(othersPast, { userId: userIds.other }),
+      `at most ${MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION} receipts read in 24 hours`,
+    ),
+  )
+
+  const { data: organizationReads } = await getBillReceiptReads(dataConnect, reference(othersPast, userIds.other))
+
+  check(
+    "the organization's reads are read to its cap",
+    organizationReads.organizationReads.length === MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION,
+  )
 }
 
 async function checkReceiptsOfBills() {
@@ -834,6 +1052,8 @@ try {
   await checkBudget()
   await checkBillFields()
   await checkReceiptOperations()
+  await checkReceiptReadOperations()
+  await checkReceiptReadCaps()
   await checkReceiptsOfBills()
   await checkSaving()
   await checkDeletingAndRestoring()

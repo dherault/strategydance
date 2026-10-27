@@ -72,10 +72,16 @@ function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
     })
   }
 
-  // A click anywhere but on a control opens the bill, as the design has it; its name is the link
-  // the keyboard reaches
+  /*
+    A click anywhere but on a control opens the bill, as the design has it; its name is the link
+    the keyboard reaches. React carries a click on the receipt's dialog, portaled out of the row, up
+    to it all the same, its overlay's included: only one inside the row's own elements counts
+  */
   function handleClick(event: MouseEvent<HTMLTableRowElement>) {
-    if (event.target instanceof Element && event.target.closest('button, a, input, label, [role="dialog"]')) return
+    const { target, currentTarget } = event
+
+    if (!(target instanceof Element) || !currentTarget.contains(target)) return
+    if (target.closest('button, a, input, label')) return
 
     open()
   }

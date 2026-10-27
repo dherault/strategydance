@@ -2,6 +2,9 @@ import { describe, expect, test } from 'bun:test'
 
 import { CompanyAspect } from 'strategydance-database/backend'
 
+import buildBillReceiptReadRequest from '~domain/budget/buildBillReceiptReadRequest'
+import readBillReceiptFields from '~domain/budget/readBillReceiptFields'
+
 import buildConversationTaggingRequest from './buildConversationTaggingRequest'
 import createPlaceholderClaudeClient from './createPlaceholderClaudeClient'
 import readConversationTagging from './readConversationTagging'
@@ -74,6 +77,30 @@ describe('createPlaceholderClaudeClient', () => {
 
     expect(lines).toEqual([])
     expect(readConversationTagging(message)).toEqual([CompanyAspect.STRATEGY])
+  })
+
+  test('reads a receipt at once into stand-in fields made from the file’s name, when asked for its schema', async () => {
+    const lines: string[] = []
+    const message = await createPlaceholderClaudeClient({ stepDurationMs: 1000 }).stream(
+      buildBillReceiptReadRequest({
+        file: { name: 'figma-invoice_october.pdf', contentType: 'application/pdf', bytes: new Uint8Array([37]) },
+        today: '2026-10-27',
+        organizationName: 'Acme Studio',
+      }),
+      { signal: new AbortController().signal, onProgress: line => lines.push(line) },
+    )
+
+    expect(lines).toEqual([])
+    expect(message.model).toBe('claude-haiku-5-5')
+    expect(readBillReceiptFields(message, { today: '2026-10-27' })).toEqual({
+      name: 'Figma invoice october',
+      description: 'Read by the placeholder',
+      company: 'Placeholder company',
+      amount: '42.00',
+      currency: null,
+      paidOn: '2026-10-27',
+      recurrence: null,
+    })
   })
 
   test('gives up when its worker aborts', async () => {

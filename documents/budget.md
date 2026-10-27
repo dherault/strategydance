@@ -942,98 +942,159 @@ backend's package:
 
 Adding, editing, viewing and deleting bills by hand, with their receipts. Reading a receipt is M7's.
 
-**The toolbar**, `PageToolbar`:
+**The toolbar**, `PageToolbar`, shown once there is a bill:
 - **A `SearchInput`**, "Search bills". Escape clears it. Every word must match the name, the
-  description or the company, ignoring case.
+  description or the company, ignoring case (`filterBills`).
 - **A "Paid by" `Select`**:
-  - "Everyone", then each member with their avatar, the reader's own followed by " - me";
-  - also anyone a bill names who has since left.
-- **"New bill"**, primary, with a plus. Until M7 it opens the bill dialog empty; from M7 it opens the
+  - "Everyone", with the users icon, then each member with their avatar, the reader's own followed
+    by " - me";
+  - also anyone a bill names who has since left, by the name the bill kept, or "A former member"
+    (`listBillPayers`, `useBillPayers`).
+  - On a phone, the search and the select each take the whole row.
+- **"New bill"**, primary, with a plus, which opens the bill dialog empty. From M7 it opens the
   upload dialog.
 
 **The table**, the design system's `Table`:
-- **Bill**: its name, with its description below in muted text, cut at 32 characters' width.
+- **Bill**: its name, a link to the bill that wraps to two lines at most, with its description below
+  in muted text, cut at 32 characters' width.
 - **Company**.
 - **Paid by**: their avatar and first name, or "-".
 - **Date**:
-  - "Due {day}" for a payment still ahead;
+  - "Due {day}" while the first payment is still ahead;
   - else its last payment's day, with "Next {day}" below while it recurs.
-- **Repeats**:
+- **Repeats** (`getBillRepeatState`):
   - a `Badge` with the repeat icon and the period while it recurs;
-  - an outline "Ended" once it has;
+  - an outline "Ended" once its first payment is past and it has none to come;
   - muted "One-time" otherwise.
 - **Amount**, right-aligned: its own, exact, with "≈ {converted, exact}" below when its currency
-  differs from the budget's.
+  differs from the budget's, at its last payment's rate, left out while that currency has none.
 - **Actions**: "View receipt" when it has one, and "Edit", icon buttons with tooltips.
-- Company, Paid by and Repeats hide below 760 px of the container.
-- Rows sort by their last payment, newest first. A click on a row, outside its buttons, opens the
-  bill.
+- **Company, Paid by and Repeats hide below 800 px of the container.** The prototype hides them below
+  760 px of its page, which is 16 px narrower than ours. At 800 a 1280-wide screen shows its three
+  columns, where the six would cut a name to a few letters.
+- **The actions hide below 480 px**: on a phone a row opens its bill, whose dialog shows its receipt.
+- **Rows sort by their last payment, newest first**, then by name (`sortBillsByLastPayment`). A
+  click on a row, outside its controls, opens the bill.
 - **Empty states**, the design system's `Empty`:
   - No bills: "No bills yet", "Upload a receipt or invoice and Strategy Dance fills in the details.
     Mark subscriptions as recurring to project next month.", "New bill".
   - Nothing matches: "No bills match", "Search looks at names, descriptions and companies. Try
     another person or clear the filters.", "Clear filters".
 
-**The bill dialog**, `BillDialog`:
+**The bill dialog**, `BillDialogForm`, in `BillDialog` or `NewBillDialog`:
 - **Where it opens:**
   - over the page at `budget.$billId.tsx`, as `tasks.$taskId.tsx` opens a task, its bill read from
-    the live list;
-  - an id that names no bill is a `notFound()`;
-  - a new bill opens as a plain dialog.
+    the live list, `budget.tsx` rendering an `Outlet`;
+  - the page's tab under it is Bills, unless the address names another, as the upcoming list's
+    rows name Expenses;
+  - an id that is no 32 hex digits is a `notFound()` in `beforeLoad` (`isBillId`), and one naming no
+    bill as the dialog opens is a `notFound()` thrown by `BillBouncer`;
+  - a bill deleted while its dialog is open, by another member, goes back to the page;
+  - whatever opens a bill passes `state: { isFromBudgetPage: true }`, so closing steps back;
+  - a new bill opens as a plain dialog, from a `DialogTrigger`.
+- **Focus.** An existing bill opens focused on the dialog, as a task does, rather than on its name
+  selected whole. Radix gives the focus back only to its own trigger, so the routed dialog notes what
+  had it as it opened, the row's link or Edit, and gives it back there.
 - **Its title** is "New bill" or "Edit bill".
 - **Its description** is "Bills count towards spending on the day they are paid.", or "Added
   {date}".
-- **The fields**, in order:
+- **The fields** scroll between the header and the actions, which stay in view, as the prototype's
+  do. In order:
   - **Name**: placeholder "Figma Professional", "Enter a name.".
   - **Description**: a `Textarea`, "What it was for".
-  - **Company paid**:
-    - an `Input` with a `SuggestionList` of the organization's companies, the case-insensitive
-      matches but an exact one;
+  - **Company paid** (`BillCompanyField`):
+    - an `Input` with a `SuggestionList` of the organization's companies (`listBillCompanies`), the
+      case-insensitive matches but an exact one (`suggestBillCompanies`), every company while the
+      field is empty;
+    - the arrows move, Enter picks, and Escape closes the list rather than the dialog, claimed on the
+      window as the rich text editor claims it;
     - placeholder "Figma", "Enter the company you paid.".
   - **Amount and Currency**, side by side:
     - the amount a decimal input checked by `parseMoney`, "0.00", "Enter an amount above 0.";
     - the currency `CurrencySelect`, defaulting to the budget's.
   - **Paid on and Paid by**:
-    - "First payment" while the bill recurs, a day picked with the calendar `TaskDueDateField` uses,
-      "Pick a date.";
-    - Paid by a `Select` of the members, defaulting to the reader.
+    - "First payment" while the bill recurs, a day picked with the calendar `TaskDueDateField` uses
+      (`BillDayField`), from 1999 to ten years ahead, "Pick a date.";
+    - Paid by a `Select` of the members, defaulting to the reader, and the bill's payer should they
+      have left.
   - **"Recurring payment"**, a `Switch` with the hint "Repeats on the same day each period. Used to
     project spending.". Turned on, it shows:
     - "Repeats", a `Select` of Weekly, Monthly, Quarterly and Yearly, Monthly first picked;
-    - "Ends", a day, "Leave empty if it keeps going.", "Pick a date after the first payment.".
-  - **"Receipt"**:
-    - empty, an `ImageDropzone` taking `BILL_RECEIPT_CONTENT_TYPES`, "Drop a receipt here or click
-      to choose", "PDF, text file or photo";
+    - "Ends", a day from the first payment on, with Clear, "Leave empty if it keeps going.", "Pick a
+      date after the first payment.".
+  - **"Receipt"** (`BillReceiptField`):
+    - empty, an `ImageDropzone` with the upload icon, taking `BILL_RECEIPT_CONTENT_TYPES`, "Drop a
+      receipt here or click to choose", "PDF, text file or photo";
     - attached, the file's name and size, with View, Replace and Remove, the last after a
-      confirmation.
-- **Uploading a receipt.** A file dropped or chosen uploads at once through `useUploadBillReceipt`
-  (`uploadApiFile`, with its progress). Save waits for it, and a type outside the list toasts "Attach
-  a PDF, text file or photo".
+      confirmation;
+    - uploading, its progress.
+- **Uploading a receipt** (`useBillReceiptDraft`):
+  - A file dropped or chosen uploads at once through `useUploadBillReceipt` (`uploadApiFile`, with
+    its progress).
+  - A photo is fitted within 2000 pixels as a JPEG first, renamed `.jpg` (`fitBillReceiptPhoto`), and
+    the name is held to the backend's rules (`toUploadName`).
+  - Save waits for the upload.
+  - A type outside the list toasts "Attach a PDF, text file or photo".
+  - A file past 10 MB or 20 pages, too many uploads, or a failure each toast why, and the field goes
+    back to the receipt it held.
 - **Its actions:**
-  - Cancel, and "Add bill" or "Save";
+  - Cancel, and "Add bill" or "Save", Save waiting for a change;
   - on an existing bill, "Delete", danger, after a confirmation.
+  - They stay in one row at every width.
 - **Errors** show once the form was submitted, as react-hook-form's `FormField` shows them.
-- **Toasts:**
+- **Toasts** (`useSaveBill`, `useDeleteBill`):
   - "{name} added", or "Bill saved";
-  - "{name} puts you over budget", a warning, when the save moves the status to `over`;
+  - "{name} puts you over budget", a warning in their place, when the save moves the status to
+    `over` (`isPushedOverBudget`). A bill in a currency with no rate yet counts for nothing, so it
+    raises none;
   - "{name} deleted" with "Undo", which calls `RestoreBill`.
-- **A save refused for a stale `updatedAt`** says "Somebody changed this bill meanwhile. Check it,
-  then save again." and shows the bill as it now is.
+- **A refused save reads the bills again from the server** (`useReloadBills`), past the SDK's cache:
+  - a new bill found there was added after all;
+  - an edited one gone was deleted meanwhile, which a toast says;
+  - one whose `updatedAt` moved shows "Somebody changed this bill meanwhile. Check it, then save
+    again." in a warning `Alert`, with the bill as it now is, which a save then goes through on;
+  - otherwise the refusal's message tells a receipt to attach again, which the field drops, from the
+    organization's `MAX_BILLS` (`readBillSaveRefusal`).
+  - `UpdateBill` reports the receipt's unique reference before its own check, so the message alone
+    would not tell a stale save.
 
-**The receipt dialog**, `BillReceiptDialog`:
+**The receipt dialog**, `BillReceiptDialog`, from the table and from the bill dialog:
 - **Its title** is the bill's name, and its description "{file} · {company} · {amount, exact}".
-- **Download** sits in its header.
-- **The file is fetched** by `useBillReceiptFile` (`requestApiFile` with the reader's token) and drawn
-  from an address `useObjectUrl` holds:
+- **Download** sits in its header, a link to the file's address.
+- **The file is fetched** by `useBillReceiptFile` (`requestApiFile` with the reader's token), kept,
+  and drawn from an address `useObjectUrl` holds. An upload leaves its file there, so a receipt just
+  attached is drawn without being read back:
   - a PDF in an `iframe` as tall as the screen allows;
   - a photo as an `img`;
   - text on a white "paper" in the monospaced face.
+  - One that cannot be read says so, with "Try again".
 - **It is wide**, up to 1040 px.
 
-**Verify:** in a browser:
-- a bill added by hand with a PDF, edited, its receipt replaced and viewed, deleted and undone;
-- the table filtered and searched;
-- at desktop and phone widths, against the prototype.
+**The upcoming list.** The rows of the "Next 30 days" dialog open their bills over the Expenses tab,
+the list staying open under them. The panel's own rows open nothing, since the card is the button
+that opens the list.
+
+**The design system:**
+- `ImageDropzone` takes an `icon`, an image unless set, with a story of a receipt's zone.
+- `.design-sync`'s props and note follow it.
+
+**Shared helpers:**
+- `formatFileSize`, `readFileType` and `toUploadName` in `utils/common/` are the conversation's
+  helpers made to serve a receipt too.
+
+**Not done:** `seed:budget` still writes no receipt, since a receipt takes a Storage file.
+
+**Verify:** in a browser, against a scratch emulator suite with the backend, at 1280 and 390 px,
+against the prototype:
+- a bill added by hand with a PDF, edited, its receipt replaced with a photo fitted to a JPEG, and
+  viewed;
+- deleted and undone;
+- the table searched and filtered, by a payer who has left too;
+- a stale save across two tabs;
+- the over-budget warning;
+- a bill's address opened directly, and one naming no bill;
+- an upcoming row opening its bill;
+- the focus going back to what opened each dialog.
 
 The four checks pass.
 

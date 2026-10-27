@@ -22,6 +22,14 @@ mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {},
 mock.module('strategydance-database/backend', () => fake.sdk)
 mock.module('~domain/budget/billReceiptStorage', () => ({ default: storage.storage }))
 mock.module('~domain/agent/conversationClaudeClient', () => ({ default: createScriptedClaudeClient().client }))
+// The read's 60 seconds, made short, so a read held up passes them within a test
+mock.module('~domain/budget/billReceiptReadSettings', () => ({
+  BILL_RECEIPT_READ_TIMEOUT_MS: 50,
+  BILL_RECEIPT_READ_CLAIM_MS: 2 * 60 * 1000,
+  BILL_RECEIPT_READ_MODEL: 'claude-haiku-5-5',
+  BILL_RECEIPT_READ_MAX_TOKENS: 1024,
+  MAX_BILL_RECEIPT_READ_IMAGE_SIZE: (5 * 1024 * 1024 * 3) / 4,
+}))
 
 const { default: requestBillReceiptRead } = await import('./requestBillReceiptRead')
 
@@ -197,6 +205,60 @@ describe('requestBillReceiptRead', () => {
     const scripted = createScriptedClaudeClient({ answers: [answer()] })
 
     expect(await read(receipt.id, scripted.client)).toEqual({ outcome: 'read', fields: FIELDS })
+  })
+
+  test('lets a read go once its 60 seconds pass, even while Storage has not answered', async () => {
+    const receipt = upload()
+    const read = storage.storage.read
+
+    storage.storage.read = () => new Promise(() => {})
+
+    try {
+      expect(
+        await requestBillReceiptRead({
+          organizationId: ORGANIZATION_ID,
+          userId: MEMBER,
+          receiptId: receipt.id,
+          today: TODAY,
+          client: createScriptedClaudeClient().client,
+        }),
+      ).toEqual({ outcome: 'failed' })
+      expect(fake.receipts.get(receipt.id)?.readAt).toBeNull()
+    } finally {
+      storage.storage.read = read
+    }
+  })
+
+  test('tries keeping what a read found again, rather than letting a read paid for go', async () => {
+    const receipt = upload()
+    let failures = 2
+
+    fake.beforeOperation = async name => {
+      if (name === 'RecordBillReceiptRead' && failures-- > 0) throw new Error('connection reset')
+    }
+
+    const scripted = createScriptedClaudeClient({ answers: [answer()] })
+
+    expect(await read(receipt.id, scripted.client)).toEqual({ outcome: 'read', fields: FIELDS })
+    expect(fake.receipts.get(receipt.id)).toMatchObject({ readFields: JSON.stringify(FIELDS) })
+    expect(await read(receipt.id, scripted.client)).toEqual({ outcome: 'read', fields: FIELDS })
+    expect(scripted.requests).toHaveLength(1)
+  })
+
+  test('answers what it found when keeping it keeps failing, its claim held rather than let go', async () => {
+    const receipt = upload()
+
+    fake.beforeOperation = async name => {
+      if (name === 'RecordBillReceiptRead') throw new Error('connection reset')
+    }
+
+    expect(await read(receipt.id, createScriptedClaudeClient({ answers: [answer()] }).client)).toEqual({
+      outcome: 'read',
+      fields: FIELDS,
+    })
+    expect(fake.calls.filter(name => name === 'RecordBillReceiptRead')).toHaveLength(3)
+    expect(fake.receipts.get(receipt.id)).toMatchObject({ readFields: null })
+    expect(fake.receipts.get(receipt.id)?.readAt).not.toBeNull()
   })
 
   test('refuses a photo past what Claude reads before anything is claimed', async () => {

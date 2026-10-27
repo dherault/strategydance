@@ -17,6 +17,7 @@ import { dataConnect } from '~firebase'
 import buildBillReceiptObjectName from '~utils/buildBillReceiptObjectName'
 import createConcurrencyLimit from '~utils/createConcurrencyLimit'
 import logger from '~utils/logger'
+import untilAborted from '~utils/untilAborted'
 
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
 import { BILL_RECEIPT_READ_TIMEOUT_MS, MAX_BILL_RECEIPT_READ_IMAGE_SIZE } from '~domain/budget/billReceiptReadSettings'
@@ -34,6 +35,10 @@ import isOperationRefusal from '~domain/modules/isOperationRefusal'
   as an upload's read-back collects it (`runUploadReadBack`)
 */
 const readLimit = createConcurrencyLimit(2)
+
+// How many times what a read found is written, should the write fail, before the member is answered
+// with it anyway, its claim lapsing in two minutes
+const MAX_RECORD_ATTEMPTS = 3
 
 type RequestBillReceiptReadInput = {
   // Canonical, as `toCanonicalUuid` writes them, and the caller's uid as the backend verified it
@@ -69,11 +74,12 @@ type RequestBillReceiptReadResult =
   - a receipt read already answers what its read found (`readFields`), for nothing
   - else the read is held to the daily caps, read first so a read at one writes nothing, then claimed
     (`ClaimBillReceiptRead`), which counts them again under the membership's lock
-  - its file is read from Storage and sent whole, within 60 seconds of the claim, the wait for a place
-    included (`BILL_RECEIPT_READ_TIMEOUT_MS`), so a claim is never taken over while it goes
-  - an answer the bill dialog takes is kept with the receipt (`RecordBillReceiptRead`); a refusal, an
-    answer cut at its length or past its schema, or a request that failed lets the claim go
-    (`ReleaseBillReceiptRead`), so it counts toward no cap
+  - its file is read from Storage and sent whole, the wait for a place, the read and the request all
+    within 60 seconds of the claim (`BILL_RECEIPT_READ_TIMEOUT_MS`), so the read is over, and its
+    claim let go or kept, before the two minutes after which another read may take it over
+  - an answer the bill dialog takes is kept with the receipt (`RecordBillReceiptRead`), the write
+    tried again should it fail; a refusal, an answer cut at its length or past its schema, or a
+    request that failed lets the claim go (`ReleaseBillReceiptRead`), so it counts toward no cap
 
   Its usage is logged with its model and price, since no run's ledger holds it
 */
@@ -110,7 +116,8 @@ async function requestBillReceiptRead({
       try {
         signal.throwIfAborted()
 
-        const bytes = await billReceiptStorage.read(buildBillReceiptObjectName(reference))
+        // Storage's read takes no signal, so what it answers past the deadline is dropped
+        const bytes = await untilAborted(billReceiptStorage.read(buildBillReceiptObjectName(reference)), signal)
         const body = buildBillReceiptReadRequest({
           file: { name: receipt.name, contentType: receipt.contentType, bytes },
           today,
@@ -138,14 +145,33 @@ async function requestBillReceiptRead({
 
   if (!fields) return release(reference)
 
-  try {
-    await recordBillReceiptRead(dataConnect, { ...reference, readFields: JSON.stringify(fields) })
-  } catch (error) {
-    // Its claim lapses in two minutes, and the member has the fields meanwhile
-    logger.warn(`Receipt ${reference.receiptId}: what its read found could not be kept`, error)
-  }
+  await record(reference, fields)
 
   return { outcome: 'read', fields }
+}
+
+/*
+  Keeps what a read found with its receipt, so asking again answers it for nothing, trying a failed
+  write again rather than letting the claim go, which would pay for the read a second time. A write
+  refused since the claim is gone, or still failing, leaves the member the fields all the same, and
+  the claim, should it be held still, lapses in two minutes
+*/
+async function record(reference: BillReceiptReadReference, fields: BillReceiptFields) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await recordBillReceiptRead(dataConnect, { ...reference, readFields: JSON.stringify(fields) })
+
+      return
+    } catch (error) {
+      const isClaimGone = isOperationRefusal(error, 'The receipt is no longer being read')
+
+      if (isClaimGone || attempt >= MAX_RECORD_ATTEMPTS) {
+        logger.warn(`Receipt ${reference.receiptId}: what its read found could not be kept`, error)
+
+        return
+      }
+    }
+  }
 }
 
 type BillReceiptReadReference = {

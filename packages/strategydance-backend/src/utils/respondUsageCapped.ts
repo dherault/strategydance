@@ -9,16 +9,17 @@ import {
   ERROR_CODE_ORGANIZATION_DAILY_CONVERSATIONS_REACHED,
   ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED,
   ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED,
+  ERROR_CODE_RECEIPT_READS_CAPPED,
   ERROR_CODE_TOO_MANY_REQUESTS,
 } from 'strategydance-core'
 
-import type { ReachedUsageCap, UsageCapKind, UsageCapScope } from '~types'
+import type { ReachedUsageCap, UsageCapScope } from '~types'
 
 import respondError from '~utils/respondError'
 
-// Each cap a member's start can reach, by what it counts and whose, a daily spend ceiling among
-// them. A launch is the agent's, which no route answers
-const ERROR_CODES: Record<UsageCapKind, Partial<Record<UsageCapScope, string>>> = {
+// Each cap a member's start can reach, by what it counts and whose, a daily spend ceiling and the
+// receipt reader's among them. A launch is the agent's, which no route answers
+const ERROR_CODES: Record<ReachedUsageCap['kind'], Partial<Record<UsageCapScope, string>>> = {
   conversations: {
     member: ERROR_CODE_MEMBER_DAILY_CONVERSATIONS_REACHED,
     account: ERROR_CODE_ACCOUNT_DAILY_CONVERSATIONS_REACHED,
@@ -35,12 +36,22 @@ const ERROR_CODES: Record<UsageCapKind, Partial<Record<UsageCapScope, string>>> 
     account: ERROR_CODE_ACCOUNT_DAILY_SPEND_REACHED,
     organization: ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED,
   },
+  receiptReads: {
+    member: ERROR_CODE_RECEIPT_READS_CAPPED,
+    organization: ERROR_CODE_RECEIPT_READS_CAPPED,
+  },
 }
 
 const WHOSE: Record<UsageCapScope, string> = {
   member: 'You started {max} {kind} in this organization in the last 24 hours',
   account: 'You started {max} {kind} across your organizations in the last 24 hours',
   organization: 'This organization started {max} {kind} in the last 24 hours',
+}
+
+const WHOSE_READS: Record<UsageCapScope, string> = {
+  member: 'Strategy Dance read {max} of your receipts in this organization in the last 24 hours',
+  account: 'Strategy Dance read {max} of your receipts in the last 24 hours',
+  organization: "Strategy Dance read {max} of this organization's receipts in the last 24 hours",
 }
 
 const WHOSE_SPEND: Record<UsageCapScope, string> = {
@@ -63,7 +74,9 @@ function respondUsageCapped(response: Response, cap: ReachedUsageCap) {
     ERROR_CODES[cap.kind][cap.scope] ?? ERROR_CODE_TOO_MANY_REQUESTS,
     cap.kind === 'spend'
       ? WHOSE_SPEND[cap.scope].replace('{max}', `$${cap.max / 1_000_000}`)
-      : `${WHOSE[cap.scope].replace('{max}', String(cap.max)).replace('{kind}', cap.kind === 'runs' ? 'responses' : cap.kind)}, the most allowed`,
+      : cap.kind === 'receiptReads'
+        ? `${WHOSE_READS[cap.scope].replace('{max}', String(cap.max))}, the most allowed`
+        : `${WHOSE[cap.scope].replace('{max}', String(cap.max)).replace('{kind}', cap.kind === 'runs' ? 'responses' : cap.kind)}, the most allowed`,
   )
 }
 

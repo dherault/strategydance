@@ -19,6 +19,7 @@ const { chargeUnsettledRequests, parseConversationRunUsage, reserveConversationR
   await import('./conversationRunUsage')
 const {
   default: priceConversationUsage,
+  priceClaudeMessage,
   priceConversationRequest,
   priceConversationUsageBound,
   priceCutRequestBound,
@@ -71,6 +72,23 @@ describe('CLAUDE_MODEL_PRICES', () => {
     for (const model of [...named, ...fallbacks]) expect(CLAUDE_MODEL_PRICES[model]).toBeDefined()
     for (const model of named.filter(model => model.endsWith('-5-5')))
       expect(CLAUDE_FALLBACK_MODELS[model]).toBeDefined()
+  })
+})
+
+describe('priceClaudeMessage', () => {
+  test('prices an answer from its usage at its model’s list prices', () => {
+    const message = {
+      model: 'claude-haiku-5-5',
+      usage: {
+        input_tokens: 3000,
+        cache_read_input_tokens: 1000,
+        cache_creation_input_tokens: null,
+        output_tokens: 200,
+      },
+    } as BetaMessage
+
+    // 3000 at 0.1, 1000 at 0.01 and 200 at 0.5 microdollars a token
+    expect(priceClaudeMessage(message)).toBeCloseTo(410)
   })
 })
 

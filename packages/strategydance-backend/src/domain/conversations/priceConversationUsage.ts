@@ -53,6 +53,19 @@ function priceTokens(model: string, tokens: Tokens) {
 }
 
 /*
+  What one answer of a request no run's ledger holds cost, in microdollars, at list prices from its
+  usage: the receipt reader's, which logs it
+*/
+export function priceClaudeMessage({ model, usage }: BetaMessage) {
+  return priceTokens(model, {
+    inputTokens: usage.input_tokens,
+    cacheReadInputTokens: usage.cache_read_input_tokens ?? 0,
+    cacheCreationInputTokens: usage.cache_creation_input_tokens ?? 0,
+    outputTokens: usage.output_tokens,
+  })
+}
+
+/*
   What one request of a run's ledger cost, in microdollars, at list prices from its figures: the
   model that answered it, the attempts other models declined before it, and its web searches. A
   request answered by no model, which the API refused before it started, cost nothing

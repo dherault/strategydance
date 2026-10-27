@@ -3,7 +3,7 @@ import { useIntl } from 'react-intl'
 
 import type { ConversationMessageAttachment } from '~types'
 
-import formatConversationAttachmentSize from '~utils/conversation/formatConversationAttachmentSize'
+import formatFileSize from '~utils/common/formatFileSize'
 
 type Props = {
   attachment: ConversationMessageAttachment
@@ -24,7 +24,7 @@ function ConversationAttachmentChip({ attachment }: Props) {
       </span>
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="truncate text-sm font-medium text-foreground">{name}</span>
-        <span className="text-xs text-muted-foreground">{formatConversationAttachmentSize(intl, size)}</span>
+        <span className="text-xs text-muted-foreground">{formatFileSize(intl, size)}</span>
       </span>
     </span>
   )

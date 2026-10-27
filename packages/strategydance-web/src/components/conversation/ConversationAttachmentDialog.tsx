@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from 'strategydance-design-system/components/ui/Dialog'
 
-import formatConversationAttachmentSize from '~utils/conversation/formatConversationAttachmentSize'
+import formatFileSize from '~utils/common/formatFileSize'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
@@ -34,7 +34,7 @@ function ConversationAttachmentDialog({ name, size, url, onClose }: Props) {
       >
         <DialogHeader>
           <DialogTitle className="pr-8 wrap-anywhere">{name}</DialogTitle>
-          <DialogDescription>{formatConversationAttachmentSize(intl, size)}</DialogDescription>
+          <DialogDescription>{formatFileSize(intl, size)}</DialogDescription>
         </DialogHeader>
         <img
           src={url}

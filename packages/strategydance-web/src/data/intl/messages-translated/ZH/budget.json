@@ -38,6 +38,7 @@
   "budget.dialogReadOnly": "只有管理员才能修改预算。",
   "budget.dialogTitle": "预算",
   "budget.dialogTitleNew": "设置预算",
+  "budget.download": "下载",
   "budget.dueOn": "{date} 到期",
   "budget.ended": "已结束",
   "budget.everyone": "所有人",
@@ -80,6 +81,11 @@
   "budget.periodQuarterly": "按季度",
   "budget.periodYearly": "按年",
   "budget.projectedThisYear": "今年预估",
+  "budget.receiptFor": "{name} 的收据",
+  "budget.receiptLoading": "正在加载收据",
+  "budget.receiptTitle": "收据",
+  "budget.receiptUnavailable": "无法加载收据",
+  "budget.receiptUnavailableText": "请检查网络连接并重试。",
   "budget.recurrence": "{recurrence, select, WEEKLY {每周} MONTHLY {每月} QUARTERLY {每季度} other {每年}}",
   "budget.recurringBills": "{count, plural, other {# 笔周期性账单}}",
   "budget.removeBudget": "移除预算",
@@ -104,6 +110,8 @@
   "budget.upcomingDetail": "{company} · {recurrence, select, WEEKLY {每周} MONTHLY {每月} QUARTERLY {每季度} YEARLY {每年} other {已排期}}",
   "budget.upcomingSummary": "{total}，共 {count, plural, other {# 笔预计付款}}",
   "budget.upcomingSummaryUntil": "{total}，共 {count, plural, other {# 笔预计付款}}，截至 {date}",
+  "budget.viewReceipt": "查看收据",
+  "budget.viewReceiptFor": "查看 {name} 的收据",
   "budget.warnText": "加上即将产生的 {expected} 周期性账单，您的支出将超出 {limit} 的{scope, select, month {月度} quarter {季度} other {年度}}预算 {by}。",
   "budget.warnTitle": "{scope, select, month {本月} quarter {本季度} other {今年}}将超出预算"
 }

@@ -38,6 +38,7 @@
   "budget.dialogReadOnly": "Apenas administradores podem alterar o orçamento.",
   "budget.dialogTitle": "Orçamento",
   "budget.dialogTitleNew": "Definir um orçamento",
+  "budget.download": "Baixar",
   "budget.dueOn": "Vence em {date}",
   "budget.ended": "Encerrado",
   "budget.everyone": "Todos",
@@ -80,6 +81,11 @@
   "budget.periodQuarterly": "Trimestral",
   "budget.periodYearly": "Anual",
   "budget.projectedThisYear": "Projetado para este ano",
+  "budget.receiptFor": "Recibo de {name}",
+  "budget.receiptLoading": "Carregando o recibo",
+  "budget.receiptTitle": "Recibo",
+  "budget.receiptUnavailable": "Não foi possível carregar o recibo",
+  "budget.receiptUnavailableText": "Verifique sua conexão e tente novamente.",
   "budget.recurrence": "{recurrence, select, WEEKLY {Semanal} MONTHLY {Mensal} QUARTERLY {Trimestral} other {Anual}}",
   "budget.recurringBills": "{count, plural, one {# despesa recorrente} other {# despesas recorrentes}}",
   "budget.removeBudget": "Remover orçamento",
@@ -104,6 +110,8 @@
   "budget.upcomingDetail": "{company} · {recurrence, select, WEEKLY {Semanal} MONTHLY {Mensal} QUARTERLY {Trimestral} YEARLY {Anual} other {Agendado}}",
   "budget.upcomingSummary": "{total} em {count, plural, one {# pagamento previsto} other {# pagamentos previstos}}",
   "budget.upcomingSummaryUntil": "{total} em {count, plural, one {# pagamento previsto} other {# pagamentos previstos}}, até {date}",
+  "budget.viewReceipt": "Ver recibo",
+  "budget.viewReceiptFor": "Ver recibo de {name}",
   "budget.warnText": "Com {expected} em despesas recorrentes ainda por vir, você gastará {by} além do seu orçamento {scope, select, month {mensal} quarter {trimestral} other {anual}} de {limit}.",
   "budget.warnTitle": "Este {scope, select, month {mês} quarter {trimestre} other {ano}} ultrapassará o orçamento"
 }

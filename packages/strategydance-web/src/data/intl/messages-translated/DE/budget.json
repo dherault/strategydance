@@ -38,6 +38,7 @@
   "budget.dialogReadOnly": "Nur Administratoren können das Budget ändern.",
   "budget.dialogTitle": "Budget",
   "budget.dialogTitleNew": "Budget festlegen",
+  "budget.download": "Herunterladen",
   "budget.dueOn": "Fällig am {date}",
   "budget.ended": "Beendet",
   "budget.everyone": "Alle",
@@ -80,6 +81,11 @@
   "budget.periodQuarterly": "Vierteljährlich",
   "budget.periodYearly": "Jährlich",
   "budget.projectedThisYear": "Prognose für dieses Jahr",
+  "budget.receiptFor": "Beleg für {name}",
+  "budget.receiptLoading": "Beleg wird geladen",
+  "budget.receiptTitle": "Beleg",
+  "budget.receiptUnavailable": "Der Beleg konnte nicht geladen werden",
+  "budget.receiptUnavailableText": "Überprüfe deine Verbindung und versuche es erneut.",
   "budget.recurrence": "{recurrence, select, WEEKLY {Wöchentlich} MONTHLY {Monatlich} QUARTERLY {Vierteljährlich} other {Jährlich}}",
   "budget.recurringBills": "{count, plural, one {# wiederkehrende Rechnung} other {# wiederkehrende Rechnungen}}",
   "budget.removeBudget": "Budget entfernen",
@@ -104,6 +110,8 @@
   "budget.upcomingDetail": "{company} · {recurrence, select, WEEKLY {Wöchentlich} MONTHLY {Monatlich} QUARTERLY {Vierteljährlich} YEARLY {Jährlich} other {Geplant}}",
   "budget.upcomingSummary": "{total} in {count, plural, one {# erwarteten Zahlung} other {# erwarteten Zahlungen}}",
   "budget.upcomingSummaryUntil": "{total} in {count, plural, one {# erwarteten Zahlung} other {# erwarteten Zahlungen}}, bis {date}",
+  "budget.viewReceipt": "Beleg anzeigen",
+  "budget.viewReceiptFor": "Beleg für {name} anzeigen",
   "budget.warnText": "Mit noch ausstehenden wiederkehrenden Rechnungen in Höhe von {expected} wirst du dein {scope, select, month {monatliches} quarter {vierteljährliches} other {jährliches}} Budget von {limit} um {by} überschreiten.",
   "budget.warnTitle": "In diesem {scope, select, month {Monat} quarter {Quartal} other {Jahr}} wird das Budget überschritten"
 }

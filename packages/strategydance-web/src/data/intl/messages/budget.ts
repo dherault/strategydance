@@ -172,6 +172,48 @@ const budgetMessages = defineMessages({
     defaultMessage: 'Clear filters',
     description: 'Button under "No bills match" that empties the search and shows every payer\'s bills again.',
   },
+  viewReceipt: {
+    id: 'budget.viewReceipt',
+    defaultMessage: 'View receipt',
+    description:
+      "Tooltip of the icon button that opens a bill's receipt, in the Bills tab's table and in the bill's dialog.",
+  },
+  viewReceiptFor: {
+    id: 'budget.viewReceiptFor',
+    defaultMessage: 'View receipt for {name}',
+    description:
+      "Accessible name of the icon button in the Bills tab's table that opens a bill's receipt. {name} is the bill's name, such as \"Figma Professional\".",
+  },
+  receiptTitle: {
+    id: 'budget.receiptTitle',
+    defaultMessage: 'Receipt',
+    description: "Title of the dialog showing a bill's receipt while the bill has no name yet.",
+  },
+  receiptFor: {
+    id: 'budget.receiptFor',
+    defaultMessage: 'Receipt for {name}',
+    description: "What a screen reader says of the photo of a bill's receipt. {name} is the bill's name.",
+  },
+  receiptLoading: {
+    id: 'budget.receiptLoading',
+    defaultMessage: 'Loading the receipt',
+    description: "What a screen reader says while a bill's receipt loads in its dialog.",
+  },
+  download: {
+    id: 'budget.download',
+    defaultMessage: 'Download',
+    description: "Button in the header of a bill's receipt's dialog that saves the file to the reader's device.",
+  },
+  receiptUnavailable: {
+    id: 'budget.receiptUnavailable',
+    defaultMessage: 'The receipt could not be loaded',
+    description: "Title shown in a bill's receipt's dialog when its file could not be read.",
+  },
+  receiptUnavailableText: {
+    id: 'budget.receiptUnavailableText',
+    defaultMessage: 'Check your connection and try again.',
+    description: 'Line under "The receipt could not be loaded", before a button that loads it again.',
+  },
   loadFailed: {
     id: 'budget.loadFailed',
     defaultMessage: 'The budget could not be loaded. Check your connection and try again.',

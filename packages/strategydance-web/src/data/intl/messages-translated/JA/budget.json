@@ -38,6 +38,7 @@
   "budget.dialogReadOnly": "予算を変更できるのは管理者のみです。",
   "budget.dialogTitle": "予算",
   "budget.dialogTitleNew": "予算の設定",
+  "budget.download": "ダウンロード",
   "budget.dueOn": "期日: {date}",
   "budget.ended": "終了",
   "budget.everyone": "全員",
@@ -80,6 +81,11 @@
   "budget.periodQuarterly": "四半期ごと",
   "budget.periodYearly": "毎年",
   "budget.projectedThisYear": "今年の見込み",
+  "budget.receiptFor": "{name}の領収書",
+  "budget.receiptLoading": "領収書を読み込み中",
+  "budget.receiptTitle": "領収書",
+  "budget.receiptUnavailable": "領収書を読み込めませんでした",
+  "budget.receiptUnavailableText": "接続状況を確認して、もう一度お試しください。",
   "budget.recurrence": "{recurrence, select, WEEKLY {毎週} MONTHLY {毎月} QUARTERLY {四半期ごと} other {毎年}}",
   "budget.recurringBills": "{count, plural, other {#件の定期請求}}",
   "budget.removeBudget": "予算を削除",
@@ -104,6 +110,8 @@
   "budget.upcomingDetail": "{company} · {recurrence, select, WEEKLY {毎週} MONTHLY {毎月} QUARTERLY {四半期ごと} YEARLY {毎年} other {予定済み}}",
   "budget.upcomingSummary": "{total}（{count, plural, other {支払い予定 #件}}）",
   "budget.upcomingSummaryUntil": "{total}（{count, plural, other {支払い予定 #件}}、{date}まで）",
+  "budget.viewReceipt": "領収書を表示",
+  "budget.viewReceiptFor": "{name}の領収書を表示",
   "budget.warnText": "今後予定されている定期請求（{expected}）を含めると、{scope, select, month {月間} quarter {四半期} other {年間}}予算（{limit}）を{by}超過する見込みです。",
   "budget.warnTitle": "{scope, select, month {今月} quarter {今四半期} other {今年}}は予算を超過する見込みです"
 }

@@ -22,7 +22,8 @@ type Props = {
   and how each bill repeats go once the page, not the window, grows narrow, leaving each bill's
   name, date and amount. The design hides them below 760px of its page, which is 16px narrower than
   this one: below 800px here, a screen 1280px wide shows the three columns it does, where the six
-  would leave a name a few letters
+  would leave a name a few letters. On a phone the buttons go too: a row opens its bill, whose dialog
+  shows its receipt
 */
 function BudgetBillsTable({ bills, payers, currency, today, rates }: Props) {
   const { formatMessage } = useIntl()
@@ -39,6 +40,9 @@ function BudgetBillsTable({ bills, payers, currency, today, rates }: Props) {
           <TableHead>{formatMessage(budgetMessages.columnDate)}</TableHead>
           <TableHead className="@max-[800px]:hidden">{formatMessage(budgetMessages.columnRepeats)}</TableHead>
           <TableHead align="right">{formatMessage(budgetMessages.columnAmount)}</TableHead>
+          <TableHead className="w-px pl-0 @max-[480px]:hidden">
+            <span className="sr-only">{formatMessage(budgetMessages.columnActions)}</span>
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

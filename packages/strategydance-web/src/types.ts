@@ -151,6 +151,12 @@ export type BillPayer = {
   hasLeft: boolean
 }
 
+// A bill's receipt as its dialog draws it: its bytes, and a text file's text read out of them
+export type BillReceiptFile = {
+  blob: Blob
+  text: string | null
+}
+
 // A bill as its dialog saves it, in strategydance-core's shape: its amount in minor units of its own
 // currency, and its receipt by id
 export type BillDraft = {

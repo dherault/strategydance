@@ -1,4 +1,4 @@
-import { RepeatIcon } from 'lucide-react'
+import { ReceiptIcon, RepeatIcon } from 'lucide-react'
 import { useIntl } from 'react-intl'
 import {
   type Currency,
@@ -8,7 +8,10 @@ import {
   getNextBillPayment,
 } from 'strategydance-core'
 import { Badge } from 'strategydance-design-system/components/ui/Badge'
+import { Button } from 'strategydance-design-system/components/ui/Button'
+import { DialogTrigger } from 'strategydance-design-system/components/ui/Dialog'
 import { TableCell, TableRow } from 'strategydance-design-system/components/ui/Table'
+import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { Bill, BillPayer } from '~types'
@@ -18,6 +21,7 @@ import formatBudgetDay from '~utils/budget/formatBudgetDay'
 import getBillRepeatState from '~utils/budget/getBillRepeatState'
 
 import BillPayerAvatar from '~components/budget/BillPayerAvatar'
+import BillReceiptDialog from '~components/budget/BillReceiptDialog'
 
 import budgetMessages from '~data/intl/messages/budget'
 
@@ -36,9 +40,9 @@ type Props = {
 
 /*
   One bill of the Bills tab: its name and description, the company it paid, who paid it, when it
-  was last paid or is due and when it is paid next, how it repeats, and its amount as typed, with
-  what it came to in the budget's currency, at the rate of its last payment's day, when it is in
-  another
+  was last paid or is due and when it is paid next, how it repeats, its amount as typed, with what
+  it came to in the budget's currency, at the rate of its last payment's day, when it is in another,
+  and the button that opens its receipt
 */
 function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
   const { formatMessage, locale } = useIntl()
@@ -50,6 +54,7 @@ function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
   const converted =
     bill.currency === currency ? null : convertMoney(bill.amountMinor, bill.currency, currency, lastPayment, rates)
   const payerName = payer ? (payer.name ?? formatMessage(budgetMessages.formerMember)) : null
+  const amount = formatBudgetAmount(bill.amountMinor, bill.currency, locale, { exact: true })
 
   function renderRepeats() {
     if (repeatState === 'recurring') {
@@ -80,7 +85,7 @@ function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
   return (
     <TableRow>
       <TableCell className="w-full max-w-0">
-        <span className="block truncate font-medium text-secondary">{bill.name}</span>
+        <span className="line-clamp-2 font-medium whitespace-normal text-secondary wrap-anywhere">{bill.name}</span>
         {bill.description ? <p className={SUBLINE_CLASS_NAME}>{bill.description}</p> : null}
       </TableCell>
       <TableCell className="@max-[800px]:hidden">{bill.company}</TableCell>
@@ -106,9 +111,7 @@ function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
       </TableCell>
       <TableCell className="@max-[800px]:hidden">{renderRepeats()}</TableCell>
       <TableCell align="right">
-        <span className="text-secondary">
-          {formatBudgetAmount(bill.amountMinor, bill.currency, locale, { exact: true })}
-        </span>
+        <span className="text-secondary">{amount}</span>
         {converted === null ? null : (
           <p className={cn(SUBLINE_CLASS_NAME, 'ml-auto')}>
             {formatMessage(budgetMessages.convertedAmount, {
@@ -116,6 +119,28 @@ function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
             })}
           </p>
         )}
+      </TableCell>
+      <TableCell className="pl-0 @max-[480px]:hidden">
+        <div className="flex justify-end gap-0.5">
+          {bill.receipt ? (
+            <BillReceiptDialog
+              receipt={bill.receipt}
+              billName={bill.name}
+              details={[bill.company, amount]}
+            >
+              <Tooltip content={formatMessage(budgetMessages.viewReceipt)}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="transparent"
+                    size="sm"
+                    icon={<ReceiptIcon />}
+                    aria-label={formatMessage(budgetMessages.viewReceiptFor, { name: bill.name })}
+                  />
+                </DialogTrigger>
+              </Tooltip>
+            </BillReceiptDialog>
+          ) : null}
+        </div>
       </TableCell>
     </TableRow>
   )

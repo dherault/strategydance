@@ -649,6 +649,10 @@
         "hash": "84228bfdaf401698",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.download": {
+        "hash": "7b0c3485cbc8c3ac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.dueOn": {
         "hash": "e495ea66b19f6686",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -817,6 +821,26 @@
         "hash": "6ad3951f4b57c8f8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.receiptFor": {
+        "hash": "ccfb421edc7f1783",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.receiptLoading": {
+        "hash": "216ab42eac4fbfb4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.receiptTitle": {
+        "hash": "77d64e837c9b6e1b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.receiptUnavailable": {
+        "hash": "cd7c2db8d30bb32f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.receiptUnavailableText": {
+        "hash": "2a662aa3ca54c090",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.recurrence": {
         "hash": "955296829329baa0",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -911,6 +935,14 @@
       },
       "budget.upcomingSummaryUntil": {
         "hash": "464044a246a369c8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.viewReceipt": {
+        "hash": "b5601b9fa3aa3e7f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.viewReceiptFor": {
+        "hash": "ff51c79866deb8f2",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.warnText": {

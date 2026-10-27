@@ -14,6 +14,7 @@ const {
   CONVERSATION_TAGGING_MODEL,
 } = await import('~domain/agent/conversationRequestSettings')
 const { SUBAGENT_REQUEST_SETTINGS } = await import('~domain/agent/subagentRequestSettings')
+const { BILL_RECEIPT_READ_MODEL } = await import('~domain/budget/billReceiptReadSettings')
 const { chargeUnsettledRequests, parseConversationRunUsage, reserveConversationRequest, settleConversationRequest } =
   await import('./conversationRunUsage')
 const {
@@ -59,6 +60,7 @@ describe('CLAUDE_MODEL_PRICES', () => {
       CONVERSATION_REQUEST_SETTINGS.model,
       SUBAGENT_REQUEST_SETTINGS.model,
       CONVERSATION_TAGGING_MODEL,
+      BILL_RECEIPT_READ_MODEL,
       // What `measure:subagents` runs a subagent on besides
       'claude-sonnet-5-5',
       // The fallback the tests' declined attempts name

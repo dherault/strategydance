@@ -18,6 +18,8 @@ import { CONVERSATION_READ_CALLS_AT_ONCE } from '~constants'
 
 import { dataConnect } from '~firebase'
 
+import untilAborted from '~utils/untilAborted'
+
 import type { ConversationToolCallPlan } from '~domain/agent/planConversationToolCalls'
 import type { ConversationToolCall } from '~domain/agent/readConversationToolCalls'
 import {
@@ -380,23 +382,6 @@ function isUnfinished(message: GetConversationCallsData['conversationMessages'][
     && (message.toolStatus === ConversationToolStatus.RUNNING
       || message.toolStatus === ConversationToolStatus.CANCELLED)
   )
-}
-
-// What a call answers, unless its signal is aborted first, its time up or its run lost, when what
-// it answers later is dropped
-function untilAborted<T>(promise: Promise<T>, signal: AbortSignal) {
-  return new Promise<T>((resolve, reject) => {
-    const abort = () => reject(signal.reason)
-
-    if (signal.aborted) {
-      abort()
-
-      return
-    }
-
-    signal.addEventListener('abort', abort, { once: true })
-    promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort))
-  })
 }
 
 export default runConversationToolCalls

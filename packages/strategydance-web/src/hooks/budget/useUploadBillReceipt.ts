@@ -59,10 +59,11 @@ function useUploadBillReceipt() {
       signal,
     })
 
-    queryClient.setQueryData(
-      getBillReceiptQueryKey(organizationId, receipt.id, viewerId),
-      await readBillReceiptFile(typed),
-    )
+    // Stored already: a file the browser can no longer read, moved on the disk meanwhile, leaves the
+    // dialog to read it from the backend
+    const stored = await readBillReceiptFile(typed).catch(() => null)
+
+    if (stored) queryClient.setQueryData(getBillReceiptQueryKey(organizationId, receipt.id, viewerId), stored)
 
     return receipt
   }

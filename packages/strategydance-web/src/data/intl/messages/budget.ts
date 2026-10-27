@@ -63,6 +63,115 @@ const budgetMessages = defineMessages({
     description:
       'Line under "No bills yet" on the Bills tab of the Budget page. Strategy Dance is the product, whose AI reads a receipt into a bill. A recurring bill repeats each week, month, quarter or year, which lets the page forecast spending.',
   },
+  searchBills: {
+    id: 'budget.searchBills',
+    defaultMessage: 'Search bills',
+    description:
+      "Placeholder and accessible name of the search field over the Bills tab's table, which finds bills by their name, description or company.",
+  },
+  paidBy: {
+    id: 'budget.paidBy',
+    defaultMessage: 'Paid by',
+    description:
+      "Accessible name of the Bills tab's filter by payer, heading of the table's column naming who paid each bill, and label of the bill dialog's field picking who paid it.",
+  },
+  everyone: {
+    id: 'budget.everyone',
+    defaultMessage: 'Everyone',
+    description: "Choice of the Bills tab's filter by payer that shows every bill, whoever paid it.",
+  },
+  memberYou: {
+    id: 'budget.memberYou',
+    defaultMessage: '{name} - me',
+    description:
+      'How the reader is named among the people who pay bills, in the filter by payer and the bill dialog\'s "Paid by". {name} is their own name. Keep the plain hyphen.',
+  },
+  formerMember: {
+    id: 'budget.formerMember',
+    defaultMessage: 'A former member',
+    description:
+      'How somebody who paid a bill is named once they left the company without having given a name, in the filter by payer, the table and the bill dialog.',
+  },
+  columnBill: {
+    id: 'budget.columnBill',
+    defaultMessage: 'Bill',
+    description: "Heading of the Bills tab's table column holding each bill's name and description.",
+  },
+  columnCompany: {
+    id: 'budget.columnCompany',
+    defaultMessage: 'Company',
+    description: "Heading of the Bills tab's table column naming the company each bill paid.",
+  },
+  columnDate: {
+    id: 'budget.columnDate',
+    defaultMessage: 'Date',
+    description: "Heading of the Bills tab's table column holding when each bill was last paid, or is due.",
+  },
+  columnRepeats: {
+    id: 'budget.columnRepeats',
+    defaultMessage: 'Repeats',
+    description: "Heading of the Bills tab's table column saying how often each bill is paid again, if ever.",
+  },
+  columnAmount: {
+    id: 'budget.columnAmount',
+    defaultMessage: 'Amount',
+    description: "Heading of the Bills tab's table column holding each bill's amount.",
+  },
+  columnActions: {
+    id: 'budget.columnActions',
+    defaultMessage: 'Actions',
+    description:
+      "Heading, for screen readers only, of the Bills tab's table column holding each bill's buttons, to view its receipt and to edit it.",
+  },
+  dueOn: {
+    id: 'budget.dueOn',
+    defaultMessage: 'Due {date}',
+    description:
+      'Date of a bill in the Bills tab whose first payment is still ahead. {date} is that day written short, such as "Nov 3".',
+  },
+  nextOn: {
+    id: 'budget.nextOn',
+    defaultMessage: 'Next {date}',
+    description:
+      'Small line under the last payment of a repeating bill in the Bills tab: when it is paid again. {date} is that day written short, such as "Nov 3".',
+  },
+  recurrence: {
+    id: 'budget.recurrence',
+    defaultMessage: '{recurrence, select, WEEKLY {Weekly} MONTHLY {Monthly} QUARTERLY {Quarterly} other {Yearly}}',
+    description:
+      'How often a repeating bill is paid: each week, month, calendar quarter or year. Shown in the Bills tab and as the choices of the bill dialog\'s "Repeats".',
+  },
+  ended: {
+    id: 'budget.ended',
+    defaultMessage: 'Ended',
+    description: 'Shown in the Bills tab for a repeating bill, such as a cancelled subscription, that is paid no more.',
+  },
+  oneTime: {
+    id: 'budget.oneTime',
+    defaultMessage: 'One-time',
+    description: 'Shown in the Bills tab for a bill paid once, which does not repeat.',
+  },
+  convertedAmount: {
+    id: 'budget.convertedAmount',
+    defaultMessage: '≈ {amount}',
+    description:
+      'Small line under a bill\'s amount in the Bills tab when it is in another currency than the budget: about what it comes to in the budget\'s currency, such as "≈ $1,302.17". Keep the sign.',
+  },
+  billsNoMatchTitle: {
+    id: 'budget.billsNoMatchTitle',
+    defaultMessage: 'No bills match',
+    description: 'Title shown in the Bills tab when no bill matches its search and its filter by payer.',
+  },
+  billsNoMatchText: {
+    id: 'budget.billsNoMatchText',
+    defaultMessage: 'Search looks at names, descriptions and companies. Try another person or clear the filters.',
+    description: 'Line under "No bills match" in the Bills tab.',
+  },
+  clearFilters: {
+    id: 'budget.clearFilters',
+    defaultMessage: 'Clear filters',
+    description: 'Button under "No bills match" that empties the search and shows every payer\'s bills again.',
+  },
   loadFailed: {
     id: 'budget.loadFailed',
     defaultMessage: 'The budget could not be loaded. Check your connection and try again.',

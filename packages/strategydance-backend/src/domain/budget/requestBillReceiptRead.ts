@@ -1,3 +1,5 @@
+import { addAbortSignal } from 'node:stream'
+
 import type { BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { BillReceiptFields } from 'strategydance-core'
 import {
@@ -17,7 +19,6 @@ import { dataConnect } from '~firebase'
 import buildBillReceiptObjectName from '~utils/buildBillReceiptObjectName'
 import createConcurrencyLimit from '~utils/createConcurrencyLimit'
 import logger from '~utils/logger'
-import untilAborted from '~utils/untilAborted'
 
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
 import { BILL_RECEIPT_READ_TIMEOUT_MS, MAX_BILL_RECEIPT_READ_IMAGE_SIZE } from '~domain/budget/billReceiptReadSettings'
@@ -75,8 +76,9 @@ type RequestBillReceiptReadResult =
   - else the read is held to the daily caps, read first so a read at one writes nothing, then claimed
     (`ClaimBillReceiptRead`), which counts them again under the membership's lock
   - its file is read from Storage and sent whole, the wait for a place, the read and the request all
-    within 60 seconds of the claim (`BILL_RECEIPT_READ_TIMEOUT_MS`), so the read is over, and its
-    claim let go or kept, before the two minutes after which another read may take it over
+    within 60 seconds of the claim (`BILL_RECEIPT_READ_TIMEOUT_MS`), the read's stream destroyed at
+    the deadline, so the read is over, its bytes let go and its claim let go or kept, before the two
+    minutes after which another read may take it over
   - an answer the bill dialog takes is kept with the receipt (`RecordBillReceiptRead`), the write
     tried again should it fail; a refusal, an answer cut at its length or past its schema, or a
     request that failed lets the claim go (`ReleaseBillReceiptRead`), so it counts toward no cap
@@ -116,8 +118,7 @@ async function requestBillReceiptRead({
       try {
         signal.throwIfAborted()
 
-        // Storage's read takes no signal, so what it answers past the deadline is dropped
-        const bytes = await untilAborted(billReceiptStorage.read(buildBillReceiptObjectName(reference)), signal)
+        const bytes = await readReceiptBytes(buildBillReceiptObjectName(reference), signal)
         const body = buildBillReceiptReadRequest({
           file: { name: receipt.name, contentType: receipt.contentType, bytes },
           today,
@@ -148,6 +149,20 @@ async function requestBillReceiptRead({
   await record(reference, fields)
 
   return { outcome: 'read', fields }
+}
+
+/*
+  A receipt's bytes from Storage, streamed rather than downloaded, since a download takes no signal:
+  the deadline destroys the stream, so a read that timed out holds no bytes past it, and its place
+  in the limit goes with them
+*/
+async function readReceiptBytes(objectName: string, signal: AbortSignal) {
+  const stream = addAbortSignal(signal, billReceiptStorage.openRead(objectName))
+  const chunks: Buffer[] = []
+
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk))
+
+  return new Uint8Array(Buffer.concat(chunks))
 }
 
 /*

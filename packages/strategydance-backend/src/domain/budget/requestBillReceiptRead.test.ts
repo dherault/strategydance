@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { Readable } from 'node:stream'
 
 import type { BetaStopReason } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import {
@@ -207,25 +208,26 @@ describe('requestBillReceiptRead', () => {
     expect(await read(receipt.id, scripted.client)).toEqual({ outcome: 'read', fields: FIELDS })
   })
 
-  test('lets a read go once its 60 seconds pass, even while Storage has not answered', async () => {
+  test('lets a read go once its 60 seconds pass, destroying the stream Storage has not finished', async () => {
     const receipt = upload()
-    const read = storage.storage.read
+    const openRead = storage.storage.openRead
+    let isDestroyed = false
 
-    storage.storage.read = () => new Promise(() => {})
+    storage.storage.openRead = () =>
+      new Readable({
+        read() {},
+        destroy(error, callback) {
+          isDestroyed = true
+          callback(error)
+        },
+      })
 
     try {
-      expect(
-        await requestBillReceiptRead({
-          organizationId: ORGANIZATION_ID,
-          userId: MEMBER,
-          receiptId: receipt.id,
-          today: TODAY,
-          client: createScriptedClaudeClient().client,
-        }),
-      ).toEqual({ outcome: 'failed' })
+      expect(await read(receipt.id)).toEqual({ outcome: 'failed' })
+      expect(isDestroyed).toBe(true)
       expect(fake.receipts.get(receipt.id)?.readAt).toBeNull()
     } finally {
-      storage.storage.read = read
+      storage.storage.openRead = openRead
     }
   })
 

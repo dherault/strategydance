@@ -47,6 +47,17 @@ function toUtcDate(year: number, month: number, date: number) {
   return value
 }
 
+// Whether a text is a day, `YYYY-MM-DD`, that exists: February 30 is not one
+export function isCalendarDay(text: string) {
+  try {
+    parseCalendarDay(text)
+
+    return true
+  } catch {
+    return false
+  }
+}
+
 // The day so many days after another, before it when negative
 export function addCalendarDays(day: string, days: number) {
   const { year, month, date } = parseCalendarDay(day)

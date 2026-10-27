@@ -7,6 +7,7 @@ import {
   countCalendarDays,
   countCalendarMonths,
   endOfMonth,
+  isCalendarDay,
   startOfMonth,
   startOfQuarter,
 } from './calendarDay'
@@ -92,6 +93,19 @@ describe('a day that is not one', () => {
   it('throws rather than roll over', () => {
     for (const day of ['2026-02-29', '2026-13-01', '2026-00-10', '2026-04-31', '2026-1-1', '19-10-2026', '']) {
       expect(() => addCalendarDays(day, 1)).toThrow(RangeError)
+    }
+  })
+})
+
+describe('isCalendarDay', () => {
+  it('holds a day that exists, written YYYY-MM-DD', () => {
+    expect(isCalendarDay('2026-10-27')).toBe(true)
+    expect(isCalendarDay('2028-02-29')).toBe(true)
+  })
+
+  it('refuses a day that is not one', () => {
+    for (const day of ['2026-02-29', '2026-13-01', '2026-1-1', '27/10/2026', '2026-10-27T00:00:00Z', '']) {
+      expect(isCalendarDay(day)).toBe(false)
     }
   })
 })

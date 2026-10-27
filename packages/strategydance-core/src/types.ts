@@ -551,3 +551,25 @@ export type BillReceiptData = {
   contentType: string
   size: number
 }
+
+/*
+  What the receipt reader found in a receipt, for the bill dialog to fill in and the member to check:
+  a name, a description, empty when it found none, and the company paid, each on one line within a
+  bill's lengths; the total paid as a decimal string, as the bill dialog types it; the currency and
+  how often it recurs, each null when the receipt said none it knows; and the day paid, `YYYY-MM-DD`,
+  today when it read none
+*/
+export type BillReceiptFields = {
+  name: string
+  description: string
+  company: string
+  amount: string | null
+  currency: Currency | null
+  paidOn: string
+  recurrence: BillRecurrence | null
+}
+
+// What asking the receipt reader answers with, the first time and every time after, for nothing
+export type BillReceiptReadData = {
+  fields: BillReceiptFields
+}

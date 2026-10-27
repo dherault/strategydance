@@ -150,8 +150,14 @@ function useBillReceiptDraft(initial: BillReceiptData | null, onChange: (receipt
     runRef.current?.controller.abort()
 
     const controller = new AbortController()
+    const run = { controller, done: upload(file, contentType, heldRef.current, controller.signal) }
 
-    runRef.current = { controller, done: upload(file, contentType, heldRef.current, controller.signal) }
+    runRef.current = run
+
+    // A failed upload went back to the receipt held before it, so a save has nothing left to wait on
+    run.done.then(isStored => {
+      if (!isStored && runRef.current === run) runRef.current = null
+    })
   }
 
   function remove() {
@@ -170,16 +176,20 @@ function useBillReceiptDraft(initial: BillReceiptData | null, onChange: (receipt
     setDraft(heldRef.current)
   }
 
-  // Whether the receipt is stored once its upload, the last one started, is done
+  /*
+    Whether the receipt is stored once its upload, the last one started, is done. An upload that
+    failed answers false to the save waiting on it, and none after; one aborted was replaced,
+    removed or reset, so the save waits on whatever took its place
+  */
   async function settle() {
     let run = runRef.current
 
     while (run) {
       const isStored = await run.done
 
-      if (run === runRef.current) return isStored
+      if (!run.controller.signal.aborted) return isStored
 
-      run = runRef.current
+      run = runRef.current === run ? null : runRef.current
     }
 
     return true

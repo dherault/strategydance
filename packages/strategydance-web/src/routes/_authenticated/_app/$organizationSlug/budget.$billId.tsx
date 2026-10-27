@@ -15,13 +15,17 @@ export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/bud
 /*
   A bill of the current organization, open in its dialog over the Budget page, under the page's
   waiter, at an address the Budget module answers with. An address naming no bill is a page that
-  does not exist. The dialog is keyed by the bill, so opening another starts it anew
+  does not exist. The bouncer and the dialog are keyed by the bill, so opening another judges it and
+  starts it anew
 */
 function BillRoute() {
   const { billId } = Route.useParams()
 
   return (
-    <BillBouncer billId={billId}>
+    <BillBouncer
+      key={billId}
+      billId={billId}
+    >
       <BillDialog
         key={billId}
         billId={billId}

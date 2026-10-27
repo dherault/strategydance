@@ -1,14 +1,18 @@
-import { type Request, type Response, Router } from 'express'
+import express, { type Request, type Response, Router } from 'express'
 import {
   type ApiResponse,
   BILL_RECEIPT_CONTENT_TYPES,
   type BillReceiptData,
+  type BillReceiptReadData,
+  countCalendarDays,
   ERROR_CODE_ATTACHMENT_TOO_LARGE,
   ERROR_CODE_BAD_REQUEST,
   ERROR_CODE_CONFLICT,
   ERROR_CODE_FORBIDDEN,
   ERROR_CODE_NOT_FOUND,
+  ERROR_CODE_SERVICE_UNAVAILABLE,
   ERROR_CODE_UNSUPPORTED_MEDIA_TYPE,
+  isCalendarDay,
   MAX_BILL_RECEIPT_NAME_LENGTH,
   MAX_BILL_RECEIPT_SIZE,
 } from 'strategydance-core'
@@ -20,17 +24,22 @@ import parseUploadHeaders from '~utils/parseUploadHeaders'
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
 import respondStoredFile from '~utils/respondStoredFile'
+import respondUsageCapped from '~utils/respondUsageCapped'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'
+import billReceiptReaderRateLimitMiddleware from '~middleware/billReceiptReaderRateLimit'
 import billReceiptReadRateLimitMiddleware from '~middleware/billReceiptReadRateLimit'
 import billReceiptUploadRateLimitMiddleware from '~middleware/billReceiptUploadRateLimit'
+import conversationsSuspensionMiddleware from '~middleware/conversationsSuspension'
 import organizationMemberMiddleware from '~middleware/organizationMember'
 import validateMiddleware from '~middleware/validate'
+import verifiedEmailMiddleware from '~middleware/verifiedEmail'
 
 import billReceiptStorage from '~domain/budget/billReceiptStorage'
 import readBillReceipt from '~domain/budget/readBillReceipt'
+import requestBillReceiptRead from '~domain/budget/requestBillReceiptRead'
 import uploadBillReceipt from '~domain/budget/uploadBillReceipt'
 
 /*
@@ -41,7 +50,9 @@ import uploadBillReceipt from '~domain/budget/uploadBillReceipt'
 
   Each runs App Check, the caller's token, the parameters' check, then the caller's membership,
   with its metering between the token and the checks, and only then reads a body, so nobody outside
-  the organization gets a byte read
+  the organization gets a byte read. The receipt reader, which spends on Claude for its member, also
+  asks for a confirmed address and a member whose conversations staff did not suspend, as every route
+  that starts a conversation's run does
 */
 function createBudgetRouter() {
   const router = Router({ mergeParams: true })
@@ -165,6 +176,75 @@ function createBudgetRouter() {
       }
 
       respondStoredFile(response, billReceiptStorage.openRead(result.objectName), result)
+    },
+  )
+
+  /*
+    Asks the receipt reader what a receipt says, for the upload dialog to fill a bill in with: 200 with
+    the fields it found, the first time and every time after, for nothing. Only the member who uploaded
+    the receipt asks, with their today, `YYYY-MM-DD`, within a day of the server's, which a day the
+    receipt writes without a year resolves against.
+
+    Refused with a 403 for another member's receipt, a 404 for one not stored, a 413 for a photo past
+    what Claude reads, a 409 while another read of it is under way, a 429 naming the cap the member's
+    or the organization's reads reached, its `Retry-After` saying when it has room again, and a 503 when
+    Claude answered nothing the bill dialog takes, or failed, which the member can ask again
+  */
+  const readBodySchema = z.object({
+    today: z
+      .string()
+      .refine(
+        today => isCalendarDay(today) && Math.abs(countCalendarDays(new Date().toISOString().slice(0, 10), today)) <= 1,
+        'today is a YYYY-MM-DD day within one of the server’s',
+      ),
+  })
+
+  router.post(
+    '/receipts/:receiptId/read',
+    express.json({ limit: '1kb' }),
+    appCheckMiddleware,
+    authenticationMiddleware,
+    billReceiptReaderRateLimitMiddleware,
+    validateMiddleware({ params: receiptParamsSchema, body: readBodySchema }),
+    organizationMemberMiddleware,
+    verifiedEmailMiddleware,
+    conversationsSuspensionMiddleware,
+    async (request: ReceiptRequest<BillReceiptReadData>, response: Response<ApiResponse<BillReceiptReadData>>) => {
+      const { today } = request.body as z.infer<typeof readBodySchema>
+      const result = await requestBillReceiptRead({ ...readReceiptLocation(request), today })
+
+      switch (result.outcome) {
+        case 'forbidden':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only a member of the organization can do this')
+
+          return
+        case 'notUploader':
+          respondError(response, 403, ERROR_CODE_FORBIDDEN, 'Only the member who uploaded a receipt can have it read')
+
+          return
+        case 'missing':
+          respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This receipt no longer exists')
+
+          return
+        case 'tooLarge':
+          respondError(response, 413, ERROR_CODE_ATTACHMENT_TOO_LARGE, 'This photo is too large to be read')
+
+          return
+        case 'busy':
+          respondError(response, 409, ERROR_CODE_CONFLICT, 'This receipt is being read already')
+
+          return
+        case 'capped':
+          respondUsageCapped(response, result.cap)
+
+          return
+        case 'failed':
+          respondError(response, 503, ERROR_CODE_SERVICE_UNAVAILABLE, 'The receipt could not be read, try again')
+
+          return
+        case 'read':
+          response.status(200).json({ status: 'success', data: { fields: result.fields } })
+      }
     },
   )
 

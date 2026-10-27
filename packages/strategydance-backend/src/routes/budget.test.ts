@@ -2,9 +2,21 @@ import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
+import type { BetaStopReason } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { PDFDocument } from 'pdf-lib'
+import {
+  ERROR_CODE_CONVERSATIONS_SUSPENDED,
+  ERROR_CODE_EMAIL_NOT_VERIFIED,
+  ERROR_CODE_RECEIPT_READS_CAPPED,
+  ERROR_CODE_SERVICE_UNAVAILABLE,
+  MAX_DAILY_RECEIPT_READS_PER_MEMBER,
+} from 'strategydance-core'
 
+import type { ClaudeClient } from '~types'
+
+import createClaudeMessage from '~domain/agent/createClaudeMessage'
+import createScriptedClaudeClient from '~domain/agent/testing/createScriptedClaudeClient'
 import createBudgetDatabaseFake from '~domain/budget/testing/createBudgetDatabaseFake'
 import createAttachmentStorageFake from '~domain/conversations/testing/createAttachmentStorageFake'
 import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDatabaseFakeBase'
@@ -17,6 +29,16 @@ mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {},
 mock.module('strategydance-database/backend', () => fake.sdk)
 mock.module('~domain/budget/billReceiptStorage', () => ({ default: storage.storage }))
 
+// The receipt reader's Claude, scripted afresh by each test
+let claude = createScriptedClaudeClient()
+
+const client: ClaudeClient = {
+  stream: (body, options) => claude.client.stream(body, options),
+  countTokens: body => claude.client.countTokens(body),
+}
+
+mock.module('~domain/agent/conversationClaudeClient', () => ({ default: client }))
+
 function passThrough(_request: Request, _response: Response, next: NextFunction) {
   next()
 }
@@ -25,7 +47,11 @@ mock.module('~middleware/appCheck', () => ({ default: passThrough }))
 
 mock.module('~middleware/authentication', () => ({
   default: (request: Request, _response: Response, next: NextFunction) => {
-    request.viewer = { id: request.header('x-viewer') ?? MEMBER, email: null, isEmailVerified: true }
+    request.viewer = {
+      id: request.header('x-viewer') ?? MEMBER,
+      email: null,
+      isEmailVerified: request.header('x-email-verified') !== 'false',
+    }
     next()
   },
 }))
@@ -35,6 +61,7 @@ mock.module('~middleware/authentication', () => ({
 mock.module('~middleware/organizationMember', () => ({ default: passThrough }))
 mock.module('~middleware/billReceiptUploadRateLimit', () => ({ default: passThrough }))
 mock.module('~middleware/billReceiptReadRateLimit', () => ({ default: passThrough }))
+mock.module('~middleware/billReceiptReaderRateLimit', () => ({ default: passThrough }))
 
 const { default: createBudgetRouter } = await import('./budget')
 
@@ -99,6 +126,7 @@ function objectName(receiptId: string, organizationId = ORGANIZATION_ID) {
 }
 
 beforeEach(async () => {
+  claude = createScriptedClaudeClient()
   fake.reset()
   storage.objects.clear()
   storage.calls.length = 0
@@ -348,5 +376,155 @@ describe('GET /receipts/:receiptId', () => {
     storage.objects.set(objectName(receipt.id), { bytes: await pdf(1), contentType: 'application/pdf' })
 
     expect((await read(receipt.id, OUTSIDER)).status).toBe(403)
+  })
+})
+
+const FIELDS = {
+  name: 'Figma Professional',
+  description: '',
+  company: 'Figma',
+  amount: '45.00',
+  currency: 'USD',
+  paidOn: '2026-10-03',
+  recurrence: 'MONTHLY',
+}
+
+function answer(stopReason: BetaStopReason = 'end_turn') {
+  return createClaudeMessage({
+    content: [{ type: 'text', text: JSON.stringify(FIELDS), citations: null }],
+    stopReason,
+    model: 'claude-haiku-5-5',
+  })
+}
+
+// A receipt the member uploaded, its file stored
+async function stored(userId = MEMBER) {
+  const receipt = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId })
+
+  storage.objects.set(objectName(receipt.id), { bytes: await pdf(1), contentType: 'application/pdf' })
+
+  return receipt
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+type Ask = {
+  viewer?: string
+  day?: unknown
+  isEmailVerified?: boolean
+}
+
+function ask(receiptId: string, { viewer = MEMBER, day = today(), isEmailVerified = true }: Ask = {}) {
+  return fetch(`${origin}/organizations/${ORGANIZATION_ID}/budget/receipts/${receiptId}/read`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Viewer': viewer,
+      'X-Email-Verified': String(isEmailVerified),
+    },
+    body: JSON.stringify({ today: day }),
+  })
+}
+
+describe('POST /receipts/:receiptId/read', () => {
+  test('answers what the receipt says, then the same again for nothing', async () => {
+    const receipt = await stored()
+
+    claude = createScriptedClaudeClient({ answers: [answer()] })
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await ask(receipt.id)
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ status: 'success', data: { fields: FIELDS } })
+    }
+
+    expect(claude.requests).toHaveLength(1)
+  })
+
+  test('refuses a read past the member’s daily cap with a 429 saying when it has room', async () => {
+    const receipt = await stored()
+
+    for (let index = 0; index < MAX_DAILY_RECEIPT_READS_PER_MEMBER; index++) {
+      fake.insertReceipt({
+        organizationId: ORGANIZATION_ID,
+        userId: MEMBER,
+        readAt: new Date(Date.now() - HOUR_MS - index * 1000).toISOString(),
+        readFields: JSON.stringify(FIELDS),
+      })
+    }
+
+    const response = await ask(receipt.id)
+
+    expect(response.status).toBe(429)
+    expect(await response.json()).toMatchObject({ code: ERROR_CODE_RECEIPT_READS_CAPPED })
+    expect(Math.abs(Number(response.headers.get('retry-after')) - (23 * 3600 - 49))).toBeLessThanOrEqual(5)
+    expect(claude.requests).toHaveLength(0)
+  })
+
+  test('answers a refusal with a 503 and lets the receipt go, to be asked again', async () => {
+    const receipt = await stored()
+
+    claude = createScriptedClaudeClient({ answers: [answer('refusal'), answer()] })
+
+    const refused = await ask(receipt.id)
+
+    expect(refused.status).toBe(503)
+    expect(await refused.json()).toMatchObject({ code: ERROR_CODE_SERVICE_UNAVAILABLE })
+    expect(fake.receipts.get(receipt.id)?.readAt).toBeNull()
+    expect((await ask(receipt.id)).status).toBe(200)
+  })
+
+  test('refuses a caller whose address is not confirmed, before anything is claimed', async () => {
+    const receipt = await stored()
+    const response = await ask(receipt.id, { isEmailVerified: false })
+
+    expect(response.status).toBe(403)
+    expect(await response.json()).toMatchObject({ code: ERROR_CODE_EMAIL_NOT_VERIFIED })
+    expect(fake.receipts.get(receipt.id)?.readAt).toBeNull()
+    expect(claude.requests).toHaveLength(0)
+  })
+
+  test('refuses a member whose conversations staff suspended, before anything is claimed, and reads once lifted', async () => {
+    const receipt = await stored()
+
+    for (const suspended of [MEMBER, fake.id(ORGANIZATION_ID)]) {
+      fake.suspended.add(suspended)
+
+      const response = await ask(receipt.id)
+
+      expect(response.status).toBe(403)
+      expect(await response.json()).toMatchObject({ code: ERROR_CODE_CONVERSATIONS_SUSPENDED })
+      expect(fake.receipts.get(receipt.id)?.readAt).toBeNull()
+
+      fake.suspended.clear()
+    }
+
+    claude = createScriptedClaudeClient({ answers: [answer()] })
+
+    expect((await ask(receipt.id)).status).toBe(200)
+  })
+
+  test('refuses another member’s receipt, and a member of another organization', async () => {
+    const receipt = await stored()
+
+    expect((await ask(receipt.id, { viewer: OTHER })).status).toBe(403)
+    expect((await ask(receipt.id, { viewer: OUTSIDER })).status).toBe(403)
+    expect((await ask(newId())).status).toBe(404)
+    expect(claude.requests).toHaveLength(0)
+  })
+
+  test('refuses a today that is not a day, or more than one away from the server’s', async () => {
+    const receipt = await stored()
+    const [year, month, date] = today().split('-').map(Number) as [number, number, number]
+    const far = new Date(Date.UTC(year, month - 1, date + 2)).toISOString().slice(0, 10)
+
+    for (const day of ['2026-02-30', 'tomorrow', 20261027, far]) {
+      expect((await ask(receipt.id, { day })).status).toBe(400)
+    }
+
+    expect(claude.requests).toHaveLength(0)
   })
 })

@@ -1221,6 +1221,15 @@ milestones that build it: read it before changing any of it.
   (`toBudgetBill`, `useBudget`), and amounts and days are written through `utils/budget/`
   (`formatBudgetAmount`, `formatBudgetDay`), a currency's digits coming from `CURRENCIES`, never
   `Intl`. `bun run seed:budget <email>` fills an organization of the emulators to look at it
+- A bill opens at `/$organizationSlug/budget/$billId` (`BillDialog`), over the Bills tab unless its
+  address names another, and a new one in a plain dialog (`NewBillDialog`). An address naming no
+  bill as it opens throws `notFound()` (`BillBouncer`), and one deleted while open goes back to the
+  page. Whatever opens a bill passes `state: { isFromBudgetPage: true }`, so closing steps back
+- The page uploads a receipt through `useBillReceiptDraft`, the moment it is attached, a photo
+  fitted within 2000 pixels as a JPEG first (`fitBillReceiptPhoto`), and a save waits for it. A
+  refused save reads the bills again from the server (`useReloadBills`) to tell a bill somebody
+  saved meanwhile, which the dialog then shows, from one deleted, a receipt to attach again, or the
+  organization's `MAX_BILLS`
 
 ## Email conventions
 

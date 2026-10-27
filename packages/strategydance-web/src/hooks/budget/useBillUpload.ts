@@ -72,8 +72,10 @@ function useBillUpload(onRead: (read: BillUploadRead) => void) {
     } catch (error) {
       if (controller.signal.aborted) return
 
-      console.error('A receipt could not be read', error)
       failure = readBillReceiptReadFailure(error)
+
+      // A cap or a refusal of the reader is expected, and its notice says so
+      if (failure === 'failed') console.error('A receipt could not be read', error)
     }
 
     await sleep(Math.max(0, findingAt + FINDING_STEP_MIN_MS - Date.now()))

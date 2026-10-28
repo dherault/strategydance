@@ -48,8 +48,9 @@ type AddBillInput = {
 }
 
 /*
-  Adds a bill for an agent, as the page's New bill does, any member adding any bill: its fields
-  checked first, then its receipt's bytes, so a refused call writes nothing, then the organization's
+  Adds a bill for an agent, as the page's New bill does, any member adding any bill: a call its key
+  answered answered again at once, then its receipt's bytes checked, then its fields, so a refused
+  call writes nothing, then the organization's
   2000 bills and the payer, a member, the caller unless named. A receipt is stored before the bill,
   which takes it. The answer carries the budget's status with the bill counted, so the agent hears
   that it tipped a period over
@@ -59,13 +60,14 @@ async function addBill(
   input: AddBillInput,
   call: ModuleCall | null,
 ): Promise<BudgetWriteResult<WrittenBill>> {
-  const receipt = input.receipt === undefined ? null : await readAgentBillReceipt(caller, input.receipt)
-
-  if (receipt && receipt.outcome !== 'read' && receipt.outcome !== 'named') return receipt
-
+  // A call its key answered reads nothing, a receipt's bytes included
   const answered = await answerFromModuleCall(caller, call)
 
   if (answered) return answered
+
+  const receipt = input.receipt === undefined ? null : await readAgentBillReceipt(caller, input.receipt)
+
+  if (receipt && receipt.outcome !== 'read' && receipt.outcome !== 'named') return receipt
 
   const read = await readBudgetState(caller)
 

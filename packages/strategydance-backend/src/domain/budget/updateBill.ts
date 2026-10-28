@@ -65,6 +65,11 @@ async function updateBill(
   input: UpdateBillInput,
   call: ModuleCall | null,
 ): Promise<BudgetWriteResult<WrittenBill>> {
+  // A call its key answered reads nothing, a receipt's bytes included
+  const answered = await answerFromModuleCall(caller, call)
+
+  if (answered) return answered
+
   const earlierReceiptId =
     input.receipt && 'earlierReceiptId' in input.receipt ? toCanonicalUuid(input.receipt.earlierReceiptId) : null
   const receipt =
@@ -73,10 +78,6 @@ async function updateBill(
       : await readAgentBillReceipt(caller, input.receipt)
 
   if (receipt && receipt.outcome !== 'read' && receipt.outcome !== 'named') return receipt
-
-  const answered = await answerFromModuleCall(caller, call)
-
-  if (answered) return answered
 
   const billId = toCanonicalUuid(input.id)
   // The receipt the save gives the bill: null to detach it, undefined to keep the bill's own

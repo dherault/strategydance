@@ -1,11 +1,9 @@
 import type { BetaMessageParam, BetaMessageStreamParams } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { type BillRecurrence, Currency, MAX_BILL_RECEIPT_TEXT_LENGTH } from 'strategydance-core'
+import { BILL_RECURRENCES, Currency, MAX_BILL_RECEIPT_TEXT_LENGTH } from 'strategydance-core'
 
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
 import BILL_RECEIPT_READ_PROMPT from '~domain/budget/billReceiptReadPrompt'
 import { BILL_RECEIPT_READ_MAX_TOKENS, BILL_RECEIPT_READ_MODEL } from '~domain/budget/billReceiptReadSettings'
-
-const BILL_RECURRENCES = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY'] as const satisfies readonly BillRecurrence[]
 
 type BillReceiptReadInput = {
   // The receipt as stored: its name, one of `BILL_RECEIPT_CONTENT_TYPES`, and its bytes

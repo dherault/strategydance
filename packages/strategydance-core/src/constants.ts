@@ -1,5 +1,5 @@
 import { type Currency, Locale } from './enums'
-import type { BudgetPeriod, ModuleDefinition, ModuleName, OrganizationImageKind } from './types'
+import type { BillRecurrence, BudgetPeriod, ModuleDefinition, ModuleName, OrganizationImageKind } from './types'
 
 /*
   Bound through a local rather than exported straight off the call.
@@ -850,6 +850,15 @@ export const BUDGET_PERIOD_MONTHS = {
   QUARTERLY: 3,
   YEARLY: 12,
 } as const satisfies Record<BudgetPeriod, number>
+
+// How often a recurring bill can be paid again, in the schema's order, which `schema.test.ts` holds
+// to its `BillRecurrence`
+export const BILL_RECURRENCES = [
+  'WEEKLY',
+  'MONTHLY',
+  'QUARTERLY',
+  'YEARLY',
+] as const satisfies readonly BillRecurrence[]
 
 /*
   The receipts a bill keeps, which the upload reads off their first bytes rather than off the

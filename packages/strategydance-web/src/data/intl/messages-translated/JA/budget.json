@@ -1,8 +1,11 @@
 {
   "budget.addBill": "請求書を追加",
   "budget.adjustBudget": "予算を調整",
+  "budget.amountDecimals": "{count, plural, =0 {{currency}には小数点以下を入力できません。} one {{currency}の小数点以下は最大1桁までです。} other {{currency}の小数点以下は最大#桁までです。}}",
+  "budget.amountGrouped": "桁区切り記号を含めずに金額を入力してください。",
   "budget.amountInvalid": "0より大きい金額を入力してください。",
   "budget.amountLabel": "{period, select, MONTHLY {月} QUARTERLY {四半期} other {年}}あたりの金額",
+  "budget.amountTooLarge": "金額が大きすぎます。",
   "budget.attachReceipt": "領収書を添付",
   "budget.barLabel": "予算の{percent}",
   "budget.barLabelWithExpected": "予算の{percent}（支払い予定分を含むと{percentWithExpected}）",

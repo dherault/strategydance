@@ -718,7 +718,25 @@ const budgetMessages = defineMessages({
     id: 'budget.amountInvalid',
     defaultMessage: 'Enter an amount above 0.',
     description:
-      'Error under the amount of the budget when it is empty, zero, or not a plain number in its currency, such as one with too many decimals.',
+      'Error under the amount of the budget or of a bill when it is empty, zero, or not a plain number, such as one with a sign or a currency symbol.',
+  },
+  amountGrouped: {
+    id: 'budget.amountGrouped',
+    defaultMessage: 'Write the amount without thousands separators.',
+    description:
+      'Error under the amount of the budget or of a bill when it holds thousands separators, such as 1,500.00 or 1.500,00, which the page refuses rather than guess which country wrote them. A decimal point or a decimal comma alone is fine.',
+  },
+  amountDecimals: {
+    id: 'budget.amountDecimals',
+    defaultMessage:
+      '{count, plural, =0 {{currency} takes no decimals.} one {{currency} takes one decimal at most.} other {{currency} takes # decimals at most.}}',
+    description:
+      'Error under the amount of the budget or of a bill when it has more decimals than its currency. {currency} is a currency code, such as JPY, and {count} how many decimals it takes: 0 for the yen, 2 for most.',
+  },
+  amountTooLarge: {
+    id: 'budget.amountTooLarge',
+    defaultMessage: 'This amount is too large.',
+    description: 'Error under the amount of the budget or of a bill when it is past the largest amount the app keeps.',
   },
   currencyLabel: {
     id: 'budget.currencyLabel',

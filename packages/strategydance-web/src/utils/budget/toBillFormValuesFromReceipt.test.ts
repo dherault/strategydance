@@ -4,7 +4,7 @@ import type { BillReceiptFields } from 'strategydance-core'
 
 import toBillFormValuesFromReceipt from '~utils/budget/toBillFormValuesFromReceipt'
 
-const DEFAULTS = { currency: 'EUR' as const, today: '2026-10-27', viewerId: 'alex' }
+const DEFAULTS = { currency: 'EUR' as const, today: '2026-10-27', viewerId: 'alex', locale: 'en' }
 const RECEIPT_ID = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6'
 
 const FIELDS: BillReceiptFields = {

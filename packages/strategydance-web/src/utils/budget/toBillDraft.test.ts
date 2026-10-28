@@ -5,7 +5,7 @@ import type { Bill } from '~types'
 import toBillDraft from '~utils/budget/toBillDraft'
 import toBillFormValues from '~utils/budget/toBillFormValues'
 
-const DEFAULTS = { currency: 'EUR' as const, today: '2026-10-19', viewerId: 'alex' }
+const DEFAULTS = { currency: 'EUR' as const, today: '2026-10-19', viewerId: 'alex', locale: 'en' }
 
 const BILL = {
   id: '6f1c2b0e9a4d4c3b8e7f5a6b7c8d9e0f',

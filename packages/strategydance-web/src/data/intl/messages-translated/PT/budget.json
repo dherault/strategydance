@@ -1,8 +1,11 @@
 {
   "budget.addBill": "Adicionar fatura",
   "budget.adjustBudget": "Ajustar orçamento",
+  "budget.amountDecimals": "{count, plural, =0 {{currency} não aceita casas decimais.} one {{currency} aceita no máximo uma casa decimal.} other {{currency} aceita no máximo # casas decimais.}}",
+  "budget.amountGrouped": "Digite o valor sem separadores de milhar.",
   "budget.amountInvalid": "Insira um valor maior que 0.",
   "budget.amountLabel": "Valor por {period, select, MONTHLY {mês} QUARTERLY {trimestre} other {ano}}",
+  "budget.amountTooLarge": "Este valor é alto demais.",
   "budget.attachReceipt": "Anexar um recibo",
   "budget.barLabel": "{percent} do orçamento",
   "budget.barLabelWithExpected": "{percent} do orçamento, {percentWithExpected} com despesas previstas",

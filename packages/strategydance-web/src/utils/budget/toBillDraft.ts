@@ -1,7 +1,6 @@
-import { parseMoney } from 'strategydance-core'
-
 import type { BillDraft } from '~types'
 
+import { readAmountMinor } from '~utils/budget/readAmountInput'
 import type { BillFormValues } from '~utils/budget/toBillFormValues'
 
 // Any line break, which a paste can bring into a field of one line
@@ -14,7 +13,7 @@ const LINE_BREAKS = /[\r\n\u2028\u2029]+/g
   its checks would refuse, which they do before it gets here
 */
 function toBillDraft(values: BillFormValues): BillDraft | null {
-  const amountMinor = parseMoney(values.amount.trim(), values.currency)
+  const amountMinor = readAmountMinor(values.amount, values.currency)
 
   if (amountMinor === null || values.paidOn === null) return null
 

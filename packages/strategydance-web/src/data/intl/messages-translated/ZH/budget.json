@@ -1,8 +1,11 @@
 {
   "budget.addBill": "添加账单",
   "budget.adjustBudget": "调整预算",
+  "budget.amountDecimals": "{count, plural, =0 {{currency} 不能包含小数。} other {{currency} 最多保留 # 位小数。}}",
+  "budget.amountGrouped": "请输入不带千位分隔符的金额。",
   "budget.amountInvalid": "请输入大于 0 的金额。",
   "budget.amountLabel": "每{period, select, MONTHLY {月} QUARTERLY {季度} other {年}}金额",
+  "budget.amountTooLarge": "此金额过大。",
   "budget.attachReceipt": "添加收据",
   "budget.barLabel": "预算的 {percent}",
   "budget.barLabelWithExpected": "预算的 {percent}，包含预计账单为 {percentWithExpected}",

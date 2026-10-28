@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useId, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useIntl } from 'react-intl'
-import { type Currency, formatMoneyAmount, isCurrency, parseMoney } from 'strategydance-core'
+import { type Currency, CURRENCIES, isCurrency } from 'strategydance-core'
 import { OrganizationRole } from 'strategydance-database/web'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import {
@@ -22,8 +22,10 @@ import useSetBudget from '~hooks/budget/useSetBudget'
 import useLocalDate from '~hooks/common/useLocalDate'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import formatAmountInput from '~utils/budget/formatAmountInput'
 import formatBudgetDay from '~utils/budget/formatBudgetDay'
 import getLatestExchangeRateDay from '~utils/budget/getLatestExchangeRateDay'
+import readAmountInput, { AMOUNT_INPUT_ERRORS, readAmountMinor } from '~utils/budget/readAmountInput'
 
 import CurrencySelect from '~components/budget/CurrencySelect'
 import Spinner from '~components/common/Spinner'
@@ -40,16 +42,20 @@ const PERIOD_MESSAGES = {
 }
 
 // zod carries a key of the budget catalogue rather than a sentence, formatted in the reader's
-// language at render. The amount is checked in its currency, whose digits it may not pass
+// language at render. The amount is read as `readAmountInput` reads it, in its currency, whose
+// digits it may not pass
 const budgetFormSchema = z
   .object({
     period: z.enum(BUDGET_PERIODS),
     amount: z.string(),
     currency: z.custom<Currency>(isCurrency),
   })
-  .refine(({ amount, currency }) => (parseMoney(amount.trim(), currency) ?? 0) > 0, {
-    message: 'amountInvalid',
-    path: ['amount'],
+  .superRefine(({ amount, currency }, context) => {
+    const read = readAmountInput(amount, currency)
+
+    if (read.outcome !== 'amount') {
+      context.addIssue({ code: 'custom', message: AMOUNT_INPUT_ERRORS[read.outcome], path: ['amount'] })
+    }
   })
 
 type BudgetFormValues = z.infer<typeof budgetFormSchema>
@@ -82,7 +88,7 @@ function BudgetDialogForm({ onClose }: Props) {
     resolver: zodResolver(budgetFormSchema),
     defaultValues: {
       period: limit?.period ?? 'MONTHLY',
-      amount: limit ? formatMoneyAmount(limit.amountMinor, settings.currency) : '',
+      amount: limit ? formatAmountInput(limit.amountMinor, settings.currency, locale) : '',
       currency: settings.currency,
     },
   })
@@ -90,15 +96,19 @@ function BudgetDialogForm({ onClose }: Props) {
   const currency = useWatch({ control: form.control, name: 'currency' })
   const { isDirty, isSubmitting } = form.formState
 
+  // An amount's error names its currency and the decimals it takes, which the others ignore
   function formatError(key: string) {
-    return formatMessage(budgetMessages[key as keyof typeof budgetMessages])
+    return formatMessage(budgetMessages[key as keyof typeof budgetMessages], {
+      currency,
+      count: CURRENCIES[currency].exponent,
+    })
   }
 
   async function save(values: BudgetFormValues) {
     try {
       await setBudget({
         currency: values.currency,
-        limit: { amountMinor: parseMoney(values.amount.trim(), values.currency)!, period: values.period },
+        limit: { amountMinor: readAmountMinor(values.amount, values.currency)!, period: values.period },
       })
 
       toast.success(formatMessage(budgetMessages.budgetSaved))

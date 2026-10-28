@@ -21,12 +21,15 @@ const EMPTY_BILLS: Bill[] = []
   As `useTasks` does, the first read is an ordinary query, which `BudgetWait` waits on, and the
   subscription beside it writes what the server pushes into the same cache entry. A first read that
   fails is not an organization with no bill: `hasFailed` says so, and it does not retry on mount,
-  for the reason `useOrganizationTeam` gives
+  for the reason `useOrganizationTeam` gives.
+
+  A conversation's thread reads them only once it draws a row that deleted a bill, `isEnabled` false
+  until then, which neither reads nor subscribes
 */
-function useBills(): DataSource<Bill[]> & { hasFailed: boolean } {
+function useBills({ isEnabled = true }: { isEnabled?: boolean } = {}): DataSource<Bill[]> & { hasFailed: boolean } {
   const { organization } = useCurrentOrganization()
 
-  const organizationId = organization?.id ?? null
+  const organizationId = isEnabled ? (organization?.id ?? null) : null
 
   const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey: ['GetBills', organizationId],

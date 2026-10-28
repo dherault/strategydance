@@ -186,6 +186,8 @@
   "conversation.question.writeOwn": "Escreva sua própria resposta",
   "conversation.redoDocumentEdit": "Refazer",
   "conversation.redoDocumentEditError": "Não foi possível aplicar esta alteração novamente.",
+  "conversation.restoreBill": "Restaurar",
+  "conversation.restoreBillError": "Não foi possível restaurar a conta.",
   "conversation.restoreDocument": "Restaurar",
   "conversation.restoreDocumentError": "Não foi possível restaurar o conhecimento.",
   "conversation.restoreError": "Não foi possível restaurar a conversa.",

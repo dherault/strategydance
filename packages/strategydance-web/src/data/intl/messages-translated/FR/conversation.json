@@ -186,6 +186,8 @@
   "conversation.question.writeOwn": "Écrivez votre propre réponse",
   "conversation.redoDocumentEdit": "Rétablir",
   "conversation.redoDocumentEditError": "Impossible de réappliquer cette modification.",
+  "conversation.restoreBill": "Restaurer",
+  "conversation.restoreBillError": "La facture n'a pas pu être restaurée.",
   "conversation.restoreDocument": "Restaurer",
   "conversation.restoreDocumentError": "La connaissance n'a pas pu être restaurée.",
   "conversation.restoreError": "Impossible de restaurer la conversation.",

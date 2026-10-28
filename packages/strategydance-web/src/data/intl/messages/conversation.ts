@@ -1086,6 +1086,18 @@ const conversationMessages = defineMessages({
     description:
       "Notification when bringing back a task on the team's board that the AI deleted failed, for instance once a day has passed since the delete.",
   },
+  restoreBill: {
+    id: 'conversation.restoreBill',
+    defaultMessage: 'Restore',
+    description:
+      "Button on the line saying the AI deleted a bill, something the company pays, from the organization's budget, which brings the bill back. Offered for a day after the delete.",
+  },
+  restoreBillError: {
+    id: 'conversation.restoreBillError',
+    defaultMessage: 'The bill could not be brought back.',
+    description:
+      "Notification when bringing back a bill in the organization's budget that the AI deleted failed, for instance once a day has passed since the delete.",
+  },
   undoDocumentEdit: {
     id: 'conversation.undoDocumentEdit',
     defaultMessage: 'Undo',

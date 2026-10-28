@@ -186,6 +186,8 @@
   "conversation.question.writeOwn": "回答を自由に入力",
   "conversation.redoDocumentEdit": "やり直す",
   "conversation.redoDocumentEditError": "この変更をやり直せませんでした。",
+  "conversation.restoreBill": "復元",
+  "conversation.restoreBillError": "請求書を復元できませんでした。",
   "conversation.restoreDocument": "復元",
   "conversation.restoreDocumentError": "ナレッジを復元できませんでした。",
   "conversation.restoreError": "会話を復元できませんでした。",

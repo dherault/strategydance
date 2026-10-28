@@ -186,6 +186,8 @@
   "conversation.question.writeOwn": "Eigene Antwort schreiben",
   "conversation.redoDocumentEdit": "Wiederholen",
   "conversation.redoDocumentEditError": "Diese Änderung konnte nicht erneut vorgenommen werden.",
+  "conversation.restoreBill": "Wiederherstellen",
+  "conversation.restoreBillError": "Die Rechnung konnte nicht wiederhergestellt werden.",
   "conversation.restoreDocument": "Wiederherstellen",
   "conversation.restoreDocumentError": "Das Wissen konnte nicht wiederhergestellt werden.",
   "conversation.restoreError": "Die Unterhaltung konnte nicht wiederhergestellt werden.",

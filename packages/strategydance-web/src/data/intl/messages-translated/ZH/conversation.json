@@ -186,6 +186,8 @@
   "conversation.question.writeOwn": "输入你自己的回答",
   "conversation.redoDocumentEdit": "重做",
   "conversation.redoDocumentEditError": "无法重做此更改。",
+  "conversation.restoreBill": "恢复",
+  "conversation.restoreBillError": "无法恢复该账单。",
   "conversation.restoreDocument": "恢复",
   "conversation.restoreDocumentError": "无法恢复该知识。",
   "conversation.restoreError": "无法恢复该对话。",

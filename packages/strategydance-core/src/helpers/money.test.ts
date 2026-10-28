@@ -70,6 +70,12 @@ describe('formatMoneyAmount', () => {
     expect(formatMoneyAmount(MAX_MONEY_MINOR, 'USD')).toBe('10000000000000.00')
   })
 
+  it('writes a sum past 2^53 whole, as a year of a large weekly bill comes to', () => {
+    expect(formatMoneyAmount(52 * MAX_MONEY_MINOR, 'USD')).toBe('520000000000000.00')
+    expect(formatMoneyAmount(1.6e22, 'IDR')).toBe('160000000000000000000.00')
+    expect(formatMoneyAmount(-52 * MAX_MONEY_MINOR, 'JPY')).toBe('-52000000000000000')
+  })
+
   it('throws on a fraction of a minor unit', () => {
     expect(() => formatMoneyAmount(12.5, 'USD')).toThrow(RangeError)
     expect(() => formatMoneyAmount(Number.NaN, 'USD')).toThrow(RangeError)

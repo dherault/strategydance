@@ -813,7 +813,7 @@ optional and 16 union parameters (`buildConversationTools.test.ts`), each run by
 [Module conventions](#module-conventions) says, after them and not strict: Knowledge's, the Tasks
 module's, the Budget module's and the Subagents module's, in `CONVERSATION_MODULES`' order. Past some
 10000 tokens of definitions Claude's tool search (`defer_loading`) takes over, and the list held
-16017 from M33, some 21000 once budget.md's M10 added the Budget module's seven, which David chose
+16017 from M33, some 21000 once budget-milestones.md's M10 added the Budget module's seven, which David chose
 to send as the others are. Tool search needs its own tool in the list, which changes it as a
 module's tools do, so only a `tool_addition` would join a module without costing conversations
 their earlier reasoning once: a module added later weighs it (conversations.md § Modules). An integration adds none: integrations
@@ -1092,7 +1092,7 @@ Back closes the viewer.
 A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
 agent uses in its own process and a member can add to an agent of their own: Knowledge and Tasks,
 then Subagents, which Strategy Dance's agents alone reach, and Budget, which external agents and,
-since budget.md's M10, Strategy Dance's agents reach. `MODULES` in strategydance-core lists each
+since budget-milestones.md's M10, Strategy Dance's agents reach. `MODULES` in strategydance-core lists each
 one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served to external agents.
 [conversations.md](documents/conversations.md) § Modules says what each does and why.
 
@@ -1194,8 +1194,9 @@ one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served to ex
 ## Budget conventions
 
 The Budget compares what a company spends, its bills, with what an administrator means it to spend,
-its budget. [budget.md](documents/budget.md) says what each part does and why, and gives the
-milestones that build it: read it before changing any of it.
+its budget. [budget.md](documents/budget.md) says what each part does and why, and
+[budget-milestones.md](documents/budget-milestones.md) how each was built: read the first before
+changing any of it.
 
 - Money is a whole number of a currency's minor units: `Int64` in the schema, a string in the SDK, a
   number in code, within `MAX_MONEY_MINOR`. A day is `YYYY-MM-DD`. strategydance-core computes what

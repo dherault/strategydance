@@ -11,7 +11,7 @@ import {
   EmptyTitle,
 } from 'strategydance-design-system/components/ui/Empty'
 
-import NewBillDialog from '~components/budget/NewBillDialog'
+import BillUploadDialog from '~components/budget/BillUploadDialog'
 
 import budgetMessages from '~data/intl/messages/budget'
 
@@ -29,7 +29,7 @@ function BudgetBillsEmpty() {
         <EmptyDescription>{formatMessage(budgetMessages.billsEmptyText)}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <NewBillDialog>
+        <BillUploadDialog>
           <DialogTrigger asChild>
             <Button
               size="sm"
@@ -38,7 +38,7 @@ function BudgetBillsEmpty() {
               {formatMessage(budgetMessages.newBill)}
             </Button>
           </DialogTrigger>
-        </NewBillDialog>
+        </BillUploadDialog>
       </EmptyContent>
     </Empty>
   )

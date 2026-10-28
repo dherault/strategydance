@@ -8,7 +8,7 @@
 | M4 | The chart | design-system, root | | #256 |
 | M5 | The page and its Expenses tab | web, backend | M2, M3, M4 | #257 |
 | M6 | The Bills tab and the bill dialog | web, design-system, root | M5 | #259 |
-| M7 | Reading receipts | backend, database, core, web | M6 | |
+| M7 | Reading receipts | backend, database, core, web | M6 | #260 |
 | M8 | The Budget module | database, core, backend, root | M2, M3 | |
 | M9 | The Budget module for external agents | backend, web, root | M8 | |
 | M10 | Budget in conversations | backend, web, root | M8 | |
@@ -121,8 +121,9 @@ enum BillReceiptStatus { UPLOADING READY }
   - `id`, `organization`, and `user`, the member who uploaded it.
   - `status: BillReceiptStatus`.
   - `name`, `contentType` and `size`.
-  - `readAt`, when the receipt reader read it, which its daily caps count. M7 adds it.
-  - `readFields`, the JSON text of what the read found, so asking again pays for nothing. M7 adds it.
+  - `readAt`, when the receipt reader claimed it, which its daily caps count, under an index on
+    `["organizationId", "readAt"]`.
+  - `readFields`, the JSON text of what the read found, so asking again pays for nothing.
   - `createdAt`.
 - **`ExchangeRateYear`**: keyed by `["currency", "year"]`.
   - `rates: String` is the JSON text of an object from each ECB day of that year, `YYYY-MM-DD`, to
@@ -322,17 +323,23 @@ which fills the bill dialog with the answer for the member to check. The module 
 
 - **The request.** It is built as `buildConversationTaggingRequest` builds its own, by
   `buildBillReceiptReadRequest` in `domain/budget/`:
-  - `claude-haiku-5-5` (`BILL_RECEIPT_READ_MODEL`);
-  - `max_tokens` 1024;
+  - `claude-haiku-5-5` (`BILL_RECEIPT_READ_MODEL`), which thinks adaptively, its thinking counting
+    toward its `max_tokens`;
+  - `max_tokens` 1024, which the claude-api skill gives a short answer at low effort on Haiku 5.5;
   - `output_config: { effort: 'low', format: { type: 'json_schema', schema } }`;
-  - no tools.
+  - no tools, betas or fallbacks, which the API offers none of for Haiku.
 
-  The file goes in whole as a base64 block, since one request reads it once: a `document` for a PDF,
-  an `image` for a photo, and a `document` with a text source for text, cut at
-  `MAX_BILL_RECEIPT_TEXT_LENGTH` (50,000 characters).
-- **The prompt** is the prototype's: "Extract the expense from this receipt or invoice." It adds
-  today's date, so a date without a year resolves, and the organization's name, so the model tells
-  the seller from the buyer. The schema asks for:
+  The file goes in whole as a base64 block, since one request reads it once, built by
+  `buildConversationAttachmentBlock`: a `document` for a PDF, an `image` for a photo, and a
+  `document` with a text source for text, cut at `MAX_BILL_RECEIPT_TEXT_LENGTH` (50,000 characters).
+  A photo past Claude's 5 MB, counted on its base64 (`MAX_BILL_RECEIPT_READ_IMAGE_SIZE`), is refused
+  with a 413 before anything is claimed: the page fits a photo far below it, so only an upload made
+  outside the page reaches it.
+- **The prompt** is the prototype's: "Extract the expense from this receipt or invoice." A text block
+  after the file adds today's date, so a date without a year resolves, the organization's name, so
+  the model tells the seller from the buyer, and the file's name, which the prototype quoted too.
+  Today is the page's, sent in the body as `{ today }`, refused more than a day off the server's
+  UTC date. The schema, its nullable fields an `anyOf` with null, asks for:
   - `name`, a short label for the expense;
   - `description`, one short line, or empty;
   - `company`, the seller;
@@ -345,16 +352,31 @@ which fills the bill dialog with the answer for the member to check. The module 
   - the name at 80 characters, the description at 140 and the company at 60;
   - an amount that `parseMoney` refuses, or that is 0 or less, left empty;
   - a currency outside `Currency` left as the bill dialog's default;
-  - a malformed date replaced by today.
+  - a malformed date, or one a bill cannot be paid on (`FIRST_BILL_DAY` to `BILL_DAYS_AHEAD` days
+    ahead, in core), replaced by today.
+
+  The page drops an amount the bill dialog's currency cannot hold, when the receipt named none
+  (`toBillFormValuesFromReceipt`).
 - **Spend is bounded three ways:**
-  - **Once per receipt.** `ClaimBillReceiptRead` sets `readAt` only where it is null.
-    - A read that answered keeps its fields in `readFields`, and asking again answers them for
-      nothing.
-    - One whose request failed before Claude answered clears `readAt` again (`ReleaseBillReceiptRead`)
-      and answers 503, so the dialog can offer to try again.
+  - **Once per receipt.** `ClaimBillReceiptRead` sets `readAt` only where it is null, or where a
+    claim over two minutes old stored nothing (`BILL_RECEIPT_READ_CLAIM_MS`), which only a backend
+    that stopped mid-read leaves. The wait for a place, Storage's read and the request all fall
+    within 60 seconds of the claim, Storage's read a stream the deadline destroys, since a download
+    takes no signal, so a read is over, its bytes let go and its claim let go or kept, before
+    another can take it over.
+    A second claim meanwhile is answered 409.
+    - A read that answered keeps its fields in `readFields` (`RecordBillReceiptRead`), and asking
+      again answers them for nothing. A write that fails is tried three times rather than let go,
+      which would pay for the read again, and the member is answered with the fields all the same.
+    - One whose request failed, or that Claude answered with nothing the bill dialog takes, a
+      refusal or an answer cut at its length included, clears `readAt` again
+      (`ReleaseBillReceiptRead`) and answers 503, so the dialog can offer to try again.
   - **Daily caps.** `MAX_DAILY_RECEIPT_READS_PER_MEMBER` (50) and `MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION`
-    (200), in strategydance-core, are counted over 24 hours on `readAt`.
-    - The claim counts them in its one query step, after the membership's lock.
+    (200), in strategydance-core, are counted over 24 hours on `readAt`, every receipt but the one
+    asked for.
+    - The claim counts them in its one query step, after the membership's lock, reading the lock's
+      response. They are read before it too (`readReachedReceiptReadCap`, on `GetBillReceiptReads`),
+      so a read at a cap writes nothing, and again once it is refused, for the `Retry-After`.
     - The route answers 429 with `ERROR_CODE_RECEIPT_READS_CAPPED` and a `Retry-After`, through
       `respondUsageCapped`.
     - They are lifted in development through `IS_USAGE_CAPPED` and the claim's optional
@@ -362,12 +384,18 @@ which fills the bill dialog with the answer for the member to check. The module 
   - **Who may read.** The route mounts `verifiedEmailMiddleware`, then
     `conversationsSuspensionMiddleware`, after the membership, as every route that spends on Claude
     for a member does. A suspension stops this spend too.
+  - **Reads that fail.** A read let go counts toward no cap, so a file Claude refuses each time could
+    be asked about without end: `billReceiptReaderRateLimitMiddleware` holds a member to 30 asks in
+    ten minutes, in the instance's memory.
+  - **Memory.** A receipt's bytes are held by two reads at a time in an instance, the heap collected
+    after each, as an upload's read-back is, since a receipt of 10 MiB is some 40 MiB in flight.
 - **What it costs.** Haiku 5.5 is priced in `CLAUDE_MODEL_PRICES` at $0.10 a million input tokens,
   so a receipt of a few pages costs a fraction of a cent. The route logs each read's model, usage
-  and price with `priceConversationUsage`'s helpers, since no run ledger holds it.
+  and price (`priceClaudeMessage`), since no run ledger holds it.
   - `report:usage` does not count it yet. A later pull request adds it, if the logs say it matters.
 - **Under `CONVERSATION_AGENT=placeholder`**, `createPlaceholderClaudeClient` answers this schema
-  with stand-in fields made from the file's name, in a branch of its own beside the tagging one.
+  with stand-in fields made from the file's name, in a branch of its own beside the tagging one: a
+  name, "Placeholder company" and 42.00, the currency and the day left to the bill dialog.
 
 ### The Budget module
 
@@ -1103,49 +1131,76 @@ The four checks pass.
 The reader of Reading a receipt, and the upload dialog that fills a bill from it.
 
 **The backend:**
-- `POST /receipts/:receiptId/read` in `routes/budget.ts`, with `verifiedEmailMiddleware` and
-  `conversationsSuspensionMiddleware`, as Reading a receipt says.
-- In `domain/budget/`: `buildBillReceiptReadRequest`, `readBillReceiptFields` and
+- `POST /receipts/:receiptId/read` in `routes/budget.ts`, with `express.json`, App Check, the token,
+  `billReceiptReaderRateLimitMiddleware`, the parameters' and body's check, the membership,
+  `verifiedEmailMiddleware` and `conversationsSuspensionMiddleware`, as Reading a receipt says. It
+  answers 200 `{ fields }`, 403 for an outsider or another member's receipt, 404, 413, 409 while
+  another read goes, 429 through `respondUsageCapped`, which takes a `receiptReads` kind, and 503.
+- In `domain/budget/`: `billReceiptReadSettings`, `billReceiptReadPrompt`,
+  `buildBillReceiptReadRequest`, `readBillReceiptFields`, `readReachedReceiptReadCap` and
   `requestBillReceiptRead`.
-- On the database: `BillReceipt`'s `readAt` and `readFields`, then `ClaimBillReceiptRead`,
-  `RecordBillReceiptRead` and `ReleaseBillReceiptRead`.
-- In core: `MAX_DAILY_RECEIPT_READS_PER_MEMBER`, `MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION` and
-  `ERROR_CODE_RECEIPT_READS_CAPPED`.
-- The placeholder's branch.
-- The comment on Haiku's price in `CLAUDE_MODEL_PRICES`, which says only the tagging request names
-  it, names the reader too.
-- `check:budget` gains the claim's conditions: the caps at their bound, a second claim refused, a
-  release clearing it.
+- On the database: `BillReceipt`'s `readAt` and `readFields`, an index on `["organizationId",
+  "readAt"]`, then `GetBillReceiptForReader`, which reads the organization's name the prompt quotes,
+  `GetBillReceiptReads`, `ClaimBillReceiptRead`, `RecordBillReceiptRead` and
+  `ReleaseBillReceiptRead`. `schema.test.ts` holds the claim's and the read's counts to core's caps.
+- In core: `MAX_DAILY_RECEIPT_READS_PER_MEMBER`, `MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION`,
+  `ERROR_CODE_RECEIPT_READS_CAPPED`, the `BillReceiptFields` and `BillReceiptReadData` shapes,
+  `isCalendarDay`, and `FIRST_BILL_DAY` and `BILL_DAYS_AHEAD`, which the bill dialog read from its
+  own constants before.
+- The placeholder's branch, and `priceClaudeMessage` beside the ledger's prices.
+- The comment on Haiku's price in `CLAUDE_MODEL_PRICES` names the reader beside the tagging.
+- `check:budget` gains the claim's conditions: the caps at their bound, reads past 24 hours and the
+  receipt asked for left uncounted, the caps lifted, a second claim refused, a release clearing it,
+  a record once only, and a stale claim taken over while a fresh one is not.
+- `probe:claude` gains a check of the request against Claude, reading a text receipt into its
+  schema. It is not run in M7's verification: the probe runs every check, and David runs it.
 
-**The upload dialog**, `BillUploadDialog`, which "New bill" opens:
+**The upload dialog**, `BillUploadDialog`, which "New bill" opens, in the toolbar and in the empty
+state, in place of M6's `NewBillDialog`:
+- **One dialog**, the upload (`BillUploadPanel`) and then the bill's form in its place, 480 px wide,
+  then 560. The focus goes to the dialog when the form takes over, and back to "New bill" when it
+  closes.
 - **Its title** is "New bill".
 - **Its description** is "Upload the receipt or invoice. Strategy Dance fills in the bill for you.",
   then, while it reads, "Strategy Dance is reading the receipt. You can check everything before it
   is saved.".
-- **A dropzone** offers "Drop a receipt here", "PDF, text file or photo", and "Choose file", then
-  "Enter it manually" below it, which opens the bill dialog empty.
-- **Three steps**, each with a dot, a spinner or a check:
+- **A dropzone**, the design system's `ImageDropzone` with the upload icon, offers "Drop a receipt
+  here", "PDF, text file or photo", and "Choose file", drawn as a button on the zone, which is the one
+  control. "Enter it manually" below it opens the bill dialog empty.
+- **Three steps** (`BillUploadSteps`), each with a dot, a spinner or a check, announced as they
+  change:
   - "Uploading {file}", done when the upload completes, with its progress;
-  - "Reading the document", once the read is asked;
+  - "Reading the document", from the ask, for 700 ms;
   - "Finding company, amount and date", until the answer lands, held at least 600 ms so it never
     flashes.
-- **On the answer**, the bill dialog opens with the fields filled and the receipt attached, under an
-  info `Alert` with the sparkles icon: "Filled in from {file}. Check each field before saving."
-- **When it fails:**
+- **The upload** goes through the bill dialog's `useBillReceiptDraft`, its photo fitting, naming,
+  progress and toasts with it, which tells what it holds once settled (`readHeld`). The read is
+  `useReadBillReceipt`, and `useBillUpload` runs the steps.
+- **On the answer**, the bill dialog opens with the fields filled (`toBillFormValuesFromReceipt`) and
+  the receipt attached, under an info `Alert` with the sparkles icon (`BillReadNotice`): "Filled in
+  from {file}. Check each field before saving."
+- **When it fails** (`readBillReceiptReadFailure`):
   - **A read refused at its cap** opens the bill dialog with the receipt attached and the fields
     empty, saying "Strategy Dance has read as many receipts as it can today. Fill in the bill
     yourself.".
-  - **A read that failed** toasts "Could not read {file}", and offers to try again or to enter it
-    manually.
+  - **An address not confirmed**, and **a suspended member**, do the same, as David chose on
+    2026-10-27, saying "Confirm your email address so Strategy Dance can read receipts. Fill in the
+    bill yourself." and "Strategy Dance cannot read receipts for you right now. Fill in the bill
+    yourself.".
+  - **A read that failed** toasts "Could not read {file}", and the dialog says so with "Try again",
+    which asks again with no upload, and "Enter it manually", which keeps the receipt attached.
   - **A file of another type** toasts "Upload a PDF, text file or photo".
 
 **Tests:**
-- the request's bytes, model and schema;
-- an answer clamped, an amount "1,500.00" left empty;
-- a refusal or a `max_tokens` stop answered as a failed read and released;
+- the request's bytes, model and schema, a PDF, a photo and a text cut at 50,000 characters;
+- an answer clamped, an amount "1,500.00" left empty, a day past a bill's left for today;
+- a refusal, a `max_tokens` stop and a failed request answered as a failed read and released;
 - a second read answered from `readFields` with no request;
+- a read under way answered busy, and one claimed over two minutes ago taken over;
 - the caps' 429 with `Retry-After`;
-- an unverified address and a suspended member refused before anything is claimed.
+- an unverified address and a suspended member refused before anything is claimed;
+- the placeholder's answer read through `readBillReceiptFields`;
+- the bill dialog's values from what was read, and the failures sorted by their codes.
 
 **CLAUDE.md**, Budget conventions:
 - the reader's caps and why each receipt is read once;
@@ -1153,9 +1208,13 @@ The reader of Reading a receipt, and the upload dialog that fills a bill from it
 - that the placeholder answers its schema.
 
 **Verify:**
-- Under `CONVERSATION_AGENT=placeholder`, the whole flow in a browser.
-- Then against Claude, with a real invoice PDF, a phone photo of a paper receipt, and a text receipt.
-  This costs a cent or so.
+- `check:budget` passed against a scratch suite on the branch's schema.
+- Under `CONVERSATION_AGENT=placeholder`, the whole flow in a browser at 1280 and 390 px: a PDF read
+  into a bill and added, "Enter it manually", a file of another type, a failed read tried again and
+  entered by hand, the cap, an unconfirmed address and a suspension, each made with `page.route`,
+  and the focus back on "New bill".
+- Then against Claude, with an invoice PDF, a photo of a paper receipt, and a text receipt. This
+  costs a cent or so.
 - The four checks pass.
 
 ### M8: The Budget module

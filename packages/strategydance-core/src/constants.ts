@@ -217,6 +217,10 @@ export const ERROR_CODE_MEMBER_DAILY_SPEND_REACHED = 'MEMBER_DAILY_SPEND_REACHED
 export const ERROR_CODE_ACCOUNT_DAILY_SPEND_REACHED = 'ACCOUNT_DAILY_SPEND_REACHED' // 429
 export const ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED = 'ORGANIZATION_DAILY_SPEND_REACHED' // 429
 
+// A 429 once the receipt reader has read as many receipts in 24 hours as the member's or the
+// organization's cap allows, answered with a `Retry-After` as the caps' are
+export const ERROR_CODE_RECEIPT_READS_CAPPED = 'RECEIPT_READS_CAPPED' // 429
+
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500
 
 // The server cannot take the request now, and the same request later can succeed, so the reader
@@ -868,3 +872,19 @@ export const MAX_BILL_RECEIPT_TEXT_LENGTH = 50000
 
 // How long a receipt's file name may be, in characters, on one line, as a conversation's file's
 export const MAX_BILL_RECEIPT_NAME_LENGTH = 200
+
+/*
+  How many receipts the receipt reader reads in 24 hours, counted over the 24 hours before each read
+  as the conversations' caps are: per member in each organization and per organization. A read that
+  failed counts for nothing, and a receipt is read once, so these bound what reading costs, a
+  fraction of a cent a receipt. `ClaimBillReceiptRead` writes them out: change them together
+*/
+export const MAX_DAILY_RECEIPT_READS_PER_MEMBER = 50
+export const MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION = 200
+
+/*
+  The days a bill can be paid on: from the ECB's first year, from which every rate is known, to ten
+  years ahead, a day short of the database's ten years, so no time zone takes a day picked past them
+*/
+export const FIRST_BILL_DAY = '1999-01-01'
+export const BILL_DAYS_AHEAD = 3652

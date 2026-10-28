@@ -65,6 +65,6 @@ function toBillFormValues(bill: Bill | null, { currency, today, viewerId }: Bill
   }
 }
 
-export { type BillFormValues }
+export { type BillFormDefaults, type BillFormValues }
 
 export default toBillFormValues

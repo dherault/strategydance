@@ -5,6 +5,7 @@ import type { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages
 import type { ClaudeClient } from '~types'
 
 import createClaudeMessage from '~domain/agent/createClaudeMessage'
+import { BILL_RECEIPT_READ_SCHEMA } from '~domain/budget/buildBillReceiptReadRequest'
 
 // The progress lines it goes through, one after the other
 const PLACEHOLDER_STEPS = ['Reading your message', 'Thinking it over', 'Weighing what to say', 'Writing a reply']
@@ -23,14 +24,23 @@ type Options = {
   developer what the real model costs: it goes through a few progress lines, two seconds each, long
   enough to restart the backend in the middle of a run, then answers one text block saying so. A
   run's request, its claim, lease and steps, the transcript, the thread and the run's end all work
-  with it as they do with the model. A request that asks for an answer held to a schema, as the one
-  that tags a conversation does, is answered at once with the strategy aspect. A count is the
+  with it as they do with the model. A request that asks for an answer held to a schema is answered
+  at once in a branch of its own: the receipt reader's with stand-in fields made from the file's
+  name, any other, as the one that tags a conversation, with the strategy aspect. A count is the
   request's JSON length over four, which is all the full-conversation measurement needs of it, an
   image and a PDF counted at a fixed allowance instead
 */
 function createPlaceholderClaudeClient({ stepDurationMs = 2000 }: Options = {}): ClaudeClient {
   return {
     async stream(body, { signal, onProgress }) {
+      if (body.output_config?.format?.schema === BILL_RECEIPT_READ_SCHEMA) {
+        return createClaudeMessage({
+          content: [{ type: 'text', text: JSON.stringify(readPlaceholderReceipt(body.messages)), citations: null }],
+          model: body.model,
+          usage: { inputTokens: PLACEHOLDER_PDF_TOKENS, outputTokens: 60 },
+        })
+      }
+
       if (body.output_config?.format) {
         return createClaudeMessage({
           content: [{ type: 'text', text: JSON.stringify({ aspects: ['STRATEGY'] }), citations: null }],
@@ -82,6 +92,31 @@ function createPlaceholderClaudeClient({ stepDurationMs = 2000 }: Options = {}):
 
       return Math.ceil(JSON.stringify({ ...body, messages }).length / 4) + files
     },
+  }
+}
+
+/*
+  The fields the placeholder reads in a receipt, from the file's name the request quotes: the name
+  without its extension, its dashes and underscores made spaces, as the expense's name, and stand-ins
+  for the rest, the currency and the day left for the bill dialog to fill
+*/
+function readPlaceholderReceipt(messages: BetaMessageParam[]) {
+  const content = messages[0]?.content
+  const text = Array.isArray(content) ? content.map(block => (block.type === 'text' ? block.text : '')).join('\n') : ''
+  const fileName = /^The file's name: (.*)$/m.exec(text)?.[1] ?? ''
+  const name = fileName
+    .replace(/\.[^.]+$/, '')
+    .replace(/[-_]+/g, ' ')
+    .trim()
+
+  return {
+    name: name ? name.charAt(0).toUpperCase() + name.slice(1) : 'Receipt',
+    description: 'Read by the placeholder',
+    company: 'Placeholder company',
+    amount: '42.00',
+    currency: null,
+    paidOn: null,
+    recurrence: null,
   }
 }
 

@@ -437,6 +437,86 @@ const budgetMessages = defineMessages({
     description:
       'Notification when a bill is saved with a receipt uploaded over two days ago, which has to be attached again.',
   },
+  uploadDescription: {
+    id: 'budget.uploadDescription',
+    defaultMessage: 'Upload the receipt or invoice. Strategy Dance fills in the bill for you.',
+    description: 'Line under the title of the dialog where a new bill starts, before its receipt is uploaded.',
+  },
+  uploadReadingDescription: {
+    id: 'budget.uploadReadingDescription',
+    defaultMessage: 'Strategy Dance is reading the receipt. You can check everything before it is saved.',
+    description: "Line under the title of the new bill's dialog while its receipt is uploaded and read.",
+  },
+  uploadReceipt: {
+    id: 'budget.uploadReceipt',
+    defaultMessage: 'Upload a receipt',
+    description: 'What a screen reader calls the zone where the receipt a new bill is read from is dropped or chosen.',
+  },
+  uploadDrop: {
+    id: 'budget.uploadDrop',
+    defaultMessage: 'Drop a receipt here',
+    description: 'Title of the zone where the receipt or invoice a new bill is read from is dropped.',
+  },
+  uploadChooseFile: {
+    id: 'budget.uploadChooseFile',
+    defaultMessage: 'Choose file',
+    description: 'Button in the zone where a receipt is dropped, which opens the file picker instead.',
+  },
+  enterManually: {
+    id: 'budget.enterManually',
+    defaultMessage: 'Enter it manually',
+    description: "Button under the receipt's upload, which opens the new bill's form to type it in instead.",
+  },
+  uploadStepUploading: {
+    id: 'budget.uploadStepUploading',
+    defaultMessage: 'Uploading {file}',
+    description: "First step shown while a receipt is read into a new bill. {file} is the file's name.",
+  },
+  uploadStepReading: {
+    id: 'budget.uploadStepReading',
+    defaultMessage: 'Reading the document',
+    description: 'Second step shown while a receipt is read into a new bill.',
+  },
+  uploadStepFinding: {
+    id: 'budget.uploadStepFinding',
+    defaultMessage: 'Finding company, amount and date',
+    description: 'Third step shown while a receipt is read into a new bill, until its fields are found.',
+  },
+  uploadUnsupported: {
+    id: 'budget.uploadUnsupported',
+    defaultMessage: 'Upload a PDF, text file or photo',
+    description: 'Notification when the file given for a new bill to be read from is of another kind.',
+  },
+  receiptReadFailed: {
+    id: 'budget.receiptReadFailed',
+    defaultMessage: 'Could not read {file}',
+    description:
+      "Notification, and the message in the dialog, when Strategy Dance could not read a receipt into a new bill. {file} is the file's name.",
+  },
+  receiptFilled: {
+    id: 'budget.receiptFilled',
+    defaultMessage: 'Filled in from {file}. Check each field before saving.',
+    description:
+      "Note above a new bill's fields once Strategy Dance filled them in from its receipt. {file} is the receipt's name.",
+  },
+  receiptReadsCapped: {
+    id: 'budget.receiptReadsCapped',
+    defaultMessage: 'Strategy Dance has read as many receipts as it can today. Fill in the bill yourself.',
+    description:
+      "Note above a new bill's empty fields, its receipt attached, when Strategy Dance read as many receipts today as it may.",
+  },
+  receiptReadUnverified: {
+    id: 'budget.receiptReadUnverified',
+    defaultMessage: 'Confirm your email address so Strategy Dance can read receipts. Fill in the bill yourself.',
+    description:
+      "Note above a new bill's empty fields, its receipt attached, when the reader's email address is not confirmed yet.",
+  },
+  receiptReadSuspended: {
+    id: 'budget.receiptReadSuspended',
+    defaultMessage: 'Strategy Dance cannot read receipts for you right now. Fill in the bill yourself.',
+    description:
+      "Note above a new bill's empty fields, its receipt attached, when Strategy Dance's staff stopped it working for the reader.",
+  },
   addBill: {
     id: 'budget.addBill',
     defaultMessage: 'Add bill',

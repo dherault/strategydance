@@ -14,10 +14,12 @@ const {
   CONVERSATION_TAGGING_MODEL,
 } = await import('~domain/agent/conversationRequestSettings')
 const { SUBAGENT_REQUEST_SETTINGS } = await import('~domain/agent/subagentRequestSettings')
+const { BILL_RECEIPT_READ_MODEL } = await import('~domain/budget/billReceiptReadSettings')
 const { chargeUnsettledRequests, parseConversationRunUsage, reserveConversationRequest, settleConversationRequest } =
   await import('./conversationRunUsage')
 const {
   default: priceConversationUsage,
+  priceClaudeMessage,
   priceConversationRequest,
   priceConversationUsageBound,
   priceCutRequestBound,
@@ -59,6 +61,7 @@ describe('CLAUDE_MODEL_PRICES', () => {
       CONVERSATION_REQUEST_SETTINGS.model,
       SUBAGENT_REQUEST_SETTINGS.model,
       CONVERSATION_TAGGING_MODEL,
+      BILL_RECEIPT_READ_MODEL,
       // What `measure:subagents` runs a subagent on besides
       'claude-sonnet-5-5',
       // The fallback the tests' declined attempts name
@@ -69,6 +72,23 @@ describe('CLAUDE_MODEL_PRICES', () => {
     for (const model of [...named, ...fallbacks]) expect(CLAUDE_MODEL_PRICES[model]).toBeDefined()
     for (const model of named.filter(model => model.endsWith('-5-5')))
       expect(CLAUDE_FALLBACK_MODELS[model]).toBeDefined()
+  })
+})
+
+describe('priceClaudeMessage', () => {
+  test('prices an answer from its usage at its model’s list prices', () => {
+    const message = {
+      model: 'claude-haiku-5-5',
+      usage: {
+        input_tokens: 3000,
+        cache_read_input_tokens: 1000,
+        cache_creation_input_tokens: null,
+        output_tokens: 200,
+      },
+    } as BetaMessage
+
+    // 3000 at 0.1, 1000 at 0.01 and 200 at 0.5 microdollars a token
+    expect(priceClaudeMessage(message)).toBeCloseTo(410)
   })
 })
 

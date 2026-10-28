@@ -28,6 +28,8 @@ import readConversationTagging from '~domain/agent/readConversationTagging'
 import readSubagentRequestSettings from '~domain/agent/subagentRequestSettings'
 import SUBAGENT_SYSTEM_PROMPT from '~domain/agent/subagentSystemPrompt'
 import CONVERSATION_SYSTEM_PROMPT from '~domain/agent/systemPrompt'
+import buildBillReceiptReadRequest from '~domain/budget/buildBillReceiptReadRequest'
+import readBillReceiptFields from '~domain/budget/readBillReceiptFields'
 import { priceAttemptWorstCase } from '~domain/conversations/priceConversationUsage'
 
 /*
@@ -49,7 +51,8 @@ import { priceAttemptWorstCase } from '~domain/conversations/priceConversationUs
   add to every request, and has Claude call a module's tool and the integration call tool, neither
   strict, the second with its arguments as an object; sends the
   request that tags a conversation with its aspects, its answer held to a schema, and reads it as the
-  worker does; and sends the first request and the replay straight to each model
+  worker does; sends the receipt reader's request with a text receipt, and reads it as the route
+  does; and sends the first request and the replay straight to each model
   a refusal may fall back to, which the cost limit's price table has to list. For the cost limit
   besides: sends the replay again without `fallbacks`, which has to read the cache all the same, and
   has Claude search the web a few times over, to measure what a search brings back past a reading
@@ -888,6 +891,45 @@ await check('The tagging request is accepted, counted, and answers one to three 
   )
 
   return aspects.join(', ')
+})
+
+/* ---
+  THE RECEIPT READER'S REQUEST
+--- */
+
+await check("The receipt reader's request is accepted, and reads a text receipt into its schema", async () => {
+  const today = new Date().toISOString().slice(0, 10)
+  const receipt = [
+    'NORTHWIND CLOUD LTD',
+    '12 Harbour Street, Dublin',
+    '',
+    'Invoice INV-20431, issued 3 October',
+    'Billed to: Acme Studio',
+    '',
+    'Team plan, monthly subscription, renews on the 3rd   EUR 89.00',
+    'VAT 23%                                               EUR 20.47',
+    'Total paid                                            EUR 109.47',
+  ].join('\n')
+  const request = buildBillReceiptReadRequest({
+    file: { name: 'northwind-invoice.txt', contentType: 'text/plain', bytes: new TextEncoder().encode(receipt) },
+    today,
+    organizationName: 'Acme Studio',
+  })
+  const message = await client.beta.messages.stream(request).finalMessage()
+  const answer = message.content.map(block => (block.type === 'text' ? block.text : '')).join('')
+
+  finding("The receipt read's usage", message.usage)
+  finding("The receipt read's answer", answer)
+  assert(message.stop_reason === 'end_turn', `it stopped on ${message.stop_reason}`)
+
+  const fields = readBillReceiptFields(message, { today })
+
+  assert(fields, 'it answered nothing its schema holds')
+  finding('The receipt read names the seller, not the buyer', /northwind/i.test(fields.company))
+  finding('The receipt read finds the total and its currency', fields.amount === '109.47' && fields.currency === 'EUR')
+  finding('The receipt read finds a monthly subscription', fields.recurrence === 'MONTHLY')
+
+  return JSON.stringify(fields)
 })
 
 /* ---

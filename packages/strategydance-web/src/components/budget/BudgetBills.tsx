@@ -13,11 +13,11 @@ import useLocalDate from '~hooks/common/useLocalDate'
 import filterBills from '~utils/budget/filterBills'
 import sortBillsByLastPayment from '~utils/budget/sortBillsByLastPayment'
 
+import BillUploadDialog from '~components/budget/BillUploadDialog'
 import BudgetBillsEmpty from '~components/budget/BudgetBillsEmpty'
 import BudgetBillsFilters from '~components/budget/BudgetBillsFilters'
 import BudgetBillsNoMatch from '~components/budget/BudgetBillsNoMatch'
 import BudgetBillsTable from '~components/budget/BudgetBillsTable'
-import NewBillDialog from '~components/budget/NewBillDialog'
 import PageToolbar from '~components/layout/PageToolbar'
 
 import budgetMessages from '~data/intl/messages/budget'
@@ -50,11 +50,11 @@ function BudgetBills() {
     <div className="flex flex-col gap-4">
       <PageToolbar
         actions={
-          <NewBillDialog>
+          <BillUploadDialog>
             <DialogTrigger asChild>
               <Button icon={<PlusIcon />}>{formatMessage(budgetMessages.newBill)}</Button>
             </DialogTrigger>
-          </NewBillDialog>
+          </BillUploadDialog>
         }
       >
         <BudgetBillsFilters

@@ -1,11 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Trash2Icon } from 'lucide-react'
-import { useId, useState } from 'react'
+import { type ReactNode, useId, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useIntl } from 'react-intl'
 import {
+  BILL_DAYS_AHEAD,
+  type BillReceiptData,
+  type BillReceiptFields,
   type BillRecurrence,
   type Currency,
+  FIRST_BILL_DAY,
   MAX_BILL_COMPANY_LENGTH,
   MAX_BILL_DESCRIPTION_LENGTH,
   MAX_BILL_NAME_LENGTH,
@@ -43,6 +47,7 @@ import formatBudgetDay from '~utils/budget/formatBudgetDay'
 import listBillCompanies from '~utils/budget/listBillCompanies'
 import toBillDraft from '~utils/budget/toBillDraft'
 import toBillFormValues, { type BillFormValues } from '~utils/budget/toBillFormValues'
+import toBillFormValuesFromReceipt from '~utils/budget/toBillFormValuesFromReceipt'
 import createId from '~utils/common/createId'
 import getLocalDate from '~utils/date/getLocalDate'
 
@@ -57,13 +62,6 @@ import { FormField, FormInputField } from '~components/ui/FormField'
 import budgetMessages from '~data/intl/messages/budget'
 
 const BILL_RECURRENCES = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY'] as const satisfies readonly BillRecurrence[]
-
-// The first day a bill can be paid, the ECB's first, from which every rate is known
-const FIRST_BILL_DAY = '1999-01-01'
-
-// How far ahead a bill can be paid, a day short of the database's ten years, so no time zone
-// takes a day picked past them
-const BILL_DAYS_AHEAD = 3652
 
 // zod carries a key of the budget catalogue rather than a sentence, formatted in the reader's
 // language at render. The amount is checked in its currency, whose digits it may not pass, and
@@ -94,9 +92,22 @@ const billFormSchema = z
     path: ['endsOn'],
   })
 
+/*
+  What a new bill starts from once its receipt went up through the upload dialog: the receipt,
+  attached, what the receipt reader found in it, or null when it read nothing, and the notice that
+  says so above the fields
+*/
+type BillFormDraft = {
+  receipt: BillReceiptData
+  fields: BillReceiptFields | null
+  notice: ReactNode
+}
+
 type Props = {
   // The bill to change, or null for a new one
   bill: Bill | null
+  // A new bill's start, from its receipt
+  draft?: BillFormDraft | null
   onClose: () => void
 }
 
@@ -106,9 +117,10 @@ type Props = {
   when, and its receipt, which goes up as soon as it is attached. A save waits for that upload.
   Saved over a save somebody made meanwhile, it says so and shows the bill as it now is, on which a
   save goes through. Its errors show once it was submitted. Its fields scroll between its header
-  and its actions, which stay in view, as the design has it
+  and its actions, which stay in view, as the design has it. A new bill can start from its receipt,
+  filled in with what the receipt reader found, under a notice saying where it came from
 */
-function BillDialogForm({ bill, onClose }: Props) {
+function BillDialogForm({ bill, draft = null, onClose }: Props) {
   const { formatMessage, locale } = useIntl()
   const nameId = useId()
   const descriptionId = useId()
@@ -135,9 +147,12 @@ function BillDialogForm({ bill, onClose }: Props) {
   const defaults = { currency: settings.currency, today, viewerId: viewer?.uid ?? '' }
   const form = useForm<BillFormValues>({
     resolver: zodResolver(billFormSchema),
-    defaultValues: toBillFormValues(bill, defaults),
+    defaultValues:
+      !bill && draft
+        ? toBillFormValuesFromReceipt(draft.fields, draft.receipt.id, defaults)
+        : toBillFormValues(bill, defaults),
   })
-  const receipt = useBillReceiptDraft(bill?.receipt ?? null, receiptId =>
+  const receipt = useBillReceiptDraft(bill?.receipt ?? draft?.receipt ?? null, receiptId =>
     form.setValue('receiptId', receiptId, { shouldDirty: true }),
   )
   const [name, company, amount, currency, paidOn, payerId, isRecurring] = useWatch({
@@ -215,6 +230,7 @@ function BillDialogForm({ bill, onClose }: Props) {
       </DialogHeader>
       <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-6 pt-0.5 pb-6">
         {isStale ? <Alert variant="warning">{formatMessage(budgetMessages.billStale)}</Alert> : null}
+        {!bill && draft ? draft.notice : null}
         <FormInputField
           control={form.control}
           name="name"
@@ -428,5 +444,7 @@ function BillDialogForm({ bill, onClose }: Props) {
     </form>
   )
 }
+
+export { type BillFormDraft }
 
 export default BillDialogForm

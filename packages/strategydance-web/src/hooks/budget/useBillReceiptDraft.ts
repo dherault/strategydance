@@ -195,7 +195,13 @@ function useBillReceiptDraft(initial: BillReceiptData | null, onChange: (receipt
     return true
   }
 
-  return { draft, attach, remove, reset, settle }
+  // The receipt held now, stored or none, which a caller reads once `settle` says its upload is done,
+  // since `draft` is only what the last render drew
+  function readHeld() {
+    return heldRef.current
+  }
+
+  return { draft, attach, remove, reset, settle, readHeld }
 }
 
 export { type BillReceiptDraft }

@@ -72,10 +72,10 @@ export type UsageCountKind = 'conversations' | 'runs' | 'subagents'
 export type UsageCapKind = UsageCountKind | 'spend'
 export type UsageCapScope = 'member' | 'account' | 'organization'
 
-// A daily cap a start reached, its value as the start is held to it, in microdollars for a spend
-// ceiling, and how long until it has room
+// A daily cap a start reached, or the receipt reader's (`receiptReads`), its value as the start is
+// held to it, in microdollars for a spend ceiling, and how long until it has room
 export type ReachedUsageCap = {
-  kind: UsageCapKind
+  kind: UsageCapKind | 'receiptReads'
   scope: UsageCapScope
   max: number
   retryAfterMs: number

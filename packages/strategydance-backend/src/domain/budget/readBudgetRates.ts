@@ -12,7 +12,7 @@ import { dataConnect } from '~firebase'
 async function readBudgetRates(currencies: readonly Currency[], years: readonly number[], currency: Currency) {
   const converted = [...new Set([...currencies, currency])].filter(other => other !== 'EUR')
 
-  if (currencies.every(other => other === currency) || converted.length === 0) {
+  if (currencies.every(other => other === currency)) {
     return { rates: buildExchangeRateTable([]), ratesDate: null }
   }
 

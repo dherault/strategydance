@@ -46,7 +46,7 @@ export const daySchema = z.iso.date()
 export const monthSchema = z
   .string()
   .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'A month is YYYY-MM')
-  .refine(month => month >= '1999-01' && month <= '2100-12', 'A month is from 1999-01')
+  .refine(month => month >= '1999-01' && month <= '2100-12', 'A month is from 1999-01 to 2100-12')
 export const payerSchema = z.union([
   z.literal('me'),
   z

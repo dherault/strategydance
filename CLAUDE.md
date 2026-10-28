@@ -120,9 +120,10 @@ A [Bun](https://bun.com) workspaces monorepo. Packages live under `packages/`.
 | `bun run send:conversation <email> [--conversation <id>] [--file <path>]… [--organization <id or slug>] <text>` | Sends a message to a conversation, a new one unless one is named, through `dev:backend`, as that account, uploading each file, a path from the repository's root, first, and prints the conversation's address |
 | `bun run measure:subagents [--configurations <name,…>] [--briefs <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]` | Prices short briefs run as subagents on each model and effort weighed, from a throwaway account of the emulators, a dollar a subagent and fifteen in all at most, and prints the table David chooses `SUBAGENT_REQUEST_SETTINGS` from. `--briefs long` runs one made to run long instead: `--configurations opus-medium --max-subagent 3 --max-total 3`. It costs money unless run under `CONVERSATION_AGENT=placeholder` |
 | `bun run launch:subagent <email> --conversation <id> [--count <n>] [--file <attachment id>]… <brief>` | Launches up to 10 subagents of that account's conversation, as the Subagents module does, in its own process, and prints each transcript and report. A promotion runs in the process that freed the slot, so launch an account's subagents from one script at a time. Emulators only, and it costs money unless run under `CONVERSATION_AGENT=placeholder` |
-| `bun run mcp:knowledge <email> [--organization <id or slug>]` / `mcp:tasks` | Serves the Knowledge or the Tasks module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. See [Module conventions](#module-conventions) |
+| `bun run mcp:knowledge <email> [--organization <id or slug>]` / `mcp:tasks` / `mcp:budget` | Serves the Knowledge, the Tasks or the Budget module over stdio as that account of the emulators, with every scope, for an MCP client on this machine: `claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>`. See [Module conventions](#module-conventions) |
 | `bun run check:directories [--count <n>] [--inactive <n>] [--name <name>]… [--dry-run] [--publish]` | Runs the directories' daily check into this checkout's two files, or with `--publish` into the rolling pull request on GitHub. About $0.10 a directory. See [directories.md](documents/directories.md) |
 | `bun run check:budget` | Checks the Budget's operations against the emulators: the budget's, the bills' and the receipts' conditions, and the sweep's prunes. CI runs no emulator, so run it after changing one |
+| `bun run check:budget-module` | Checks the Budget module's operations against the emulators, as `check:budget` checks the page's. Run it after changing one |
 | `bun run seed:budget <email> [--organization <id or slug>]` | Writes the Claude Design prototype's $2,500 monthly budget and 19 bills, dated around today, into the account's organization, in the emulators only. A second run moves the same bills to the new today |
 | `bun run sync:exchange-rates [--production]` | Syncs the ECB's exchange rates from Frankfurter, as the daily sweep does: into the emulators, which need it once, or with `--production` into the project. The first run backfills every year since 1999 |
 | `bun run probe:claude` | Sends Claude's API the conversations agent's request and checks what only the real model can confirm, exiting non-zero on a failed check. It costs money: run it after an Anthropic SDK bump, a change of model, price or top output rate, or of a module's tools, never in CI. Its key is the `anthropic-api-key` secret, read with Application Default Credentials, or `ANTHROPIC_API_KEY` when set |
@@ -1086,7 +1087,8 @@ Back closes the viewer.
 
 A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
 agent uses in its own process and a member can add to an agent of their own: Knowledge and Tasks,
-then Subagents, which Strategy Dance's agents alone reach. `MODULES` in strategydance-core lists
+then Subagents, which Strategy Dance's agents alone reach, and Budget, which only `mcp:budget` serves
+until budget.md's M9 and M10 give it to agents. `MODULES` in strategydance-core lists
 each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served to external agents.
 [conversations.md](documents/conversations.md) § Modules says what each does and why.
 
@@ -1147,9 +1149,12 @@ each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served 
   module's server and Bun refuses an import the mock does not hold: a new module's fake joins it.
   The Subagents module's tools import `domain/subagents/` inside their handler (`await import`), so
   no other module loads the conversation runtime, and its tests run against
-  `createConversationDatabaseFake`; a module whose domain needs the runtime does the same. `bun run
-  check:knowledge-module`, `check:tasks-module` and `check:subagents-module`, in the backend's
-  package, check the operations against the emulators: an operation changed is changed in both
+  `createConversationDatabaseFake`; a module whose domain needs the runtime does the same. The
+  tests mock `~firebase` without its bucket, so the Budget module imports its receipt writer
+  (`writeAgentBillReceipt`) inside a call, and only one carrying a receipt: a module reaching the
+  bucket does the same. `bun run check:knowledge-module`, `check:tasks-module`,
+  `check:subagents-module` and `check:budget-module`, in the backend's package, check the operations
+  against the emulators: an operation changed is changed in both
 - An external agent reaches a module at `https://api.strategydance.com/mcp/<name>`, each module its
   own OAuth resource, once a member allowed it on the consent page. Its caller comes from the access
   token, read by `createAgentConnectionTokenVerifier` at every call: `kind: 'external'`, the token's
@@ -1165,8 +1170,9 @@ each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served 
   served to nobody, as Subagents is, is refused as an address no module has. It also takes
   `requireModuleWriteScope` on every write, its searches on the allowance, the agents button on its
   page (`ModuleAgentsButton`) and its endpoint in `check:oauth`
-- `bun run mcp:knowledge <email>` and `mcp:tasks` serve a module over stdio against the emulators,
-  through `serveModule.ts`, whose logger writes to stderr, stdout being the protocol's. The local
+- `bun run mcp:knowledge <email>`, `mcp:tasks` and `mcp:budget` serve a module over stdio against
+  the emulators, Storage's included, where the Budget module writes receipts, through
+  `serveModule.ts`, whose logger writes to stderr, stdout being the protocol's. The local
   backend serves them over HTTP too, as its own issuer: `claude mcp add --transport http
   strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge`, the same for tasks, then
   `/mcp` in Claude Code to sign in
@@ -1215,6 +1221,11 @@ milestones that build it: read it before changing any of it.
 - `bun run check:budget` checks the operations against the emulators, and the domain's tests run
   against `createBudgetDatabaseFake`, built on the modules' fake base: an operation changed is
   changed in both
+- Agents never change the budget itself, which stays an administrator's, on the page. The Budget
+  module reads it and adds, saves, deletes and restores bills as the member it acts as could,
+  through `…ForAgent` operations held to the page's checks, which `check:budget-module` checks, each
+  named in `GetBills`' refreshes. A receipt an agent hands over is 700 KiB at most once decoded
+  (`MAX_AGENT_BILL_RECEIPT_SIZE`), checked as an upload's bytes are before anything is written
 - The page, `/$organizationSlug/budget`, computes through `useBudgetSummary`, on `useLocalDate`'s
   today, so every part of it counts from the same bills, rates and day, and reads the rates of the
   years `listExchangeRateYears` names. An `Int64String` becomes a number where it is read

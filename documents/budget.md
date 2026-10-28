@@ -428,9 +428,9 @@ Its tools, in their frozen order:
 | --- | --- | --- | --- |
 | `read_budget` | `{ month? }`, `YYYY-MM`, this month by default | the budget (amount, period, currency) or null; today; the rates' date; for the month, its quarter and its year: spent, expected, limit, left and projected left; the status at today; `missingRates` | read |
 | `list_bills` | `{ query?, paidFrom?, paidTo?, paidBy?, recurring?, active?, limit?, cursor? }` | up to 50 bills, by last payment, newest first. Each has its fields, its last and next payments converted, its payer, whether it has a receipt, and its address. Also `total` and `nextCursor` | read |
-| `read_bill` | `{ id }` | one bill, with its receipt's name, type and size, its payments this year (count and total), who created it and when, who saved it last and when, and `version` | read |
+| `read_bill` | `{ id }` | one bill, with its receipt's name, type and size, its earlier receipts, its payments this year (count and total), who created it and when, who saved it last and when, and `version` | read |
 | `add_bill` | `{ name, description?, company, amount, currency, paidOn?, recurrence?, endsOn?, paidBy?, receipt? }` | the bill, and the budget's status after it | write |
-| `update_bill` | `{ id, version?, …any field of add_bill, receipt? }`, where `receipt: null` removes it | the bill, and the status after it | write |
+| `update_bill` | `{ id, version?, …any field of add_bill, receipt? }`, where `receipt: null` removes it and `receipt: { earlierReceiptId }` takes back an earlier one | the bill, and the status after it | write |
 | `delete_bill` | `{ id }` | the bill deleted, restorable for a day | write, destructive |
 | `restore_bill` | `{ id }` | the bill | write |
 
@@ -454,6 +454,9 @@ Its tools, in their frozen order:
     conversation calling, or, for a subagent, one its brief lists. Judged on its row, its type and
     the pages its upload counted, up to a receipt's 10 MiB, and copied in the bucket, never read
     again. Any other caller is refused one.
+  - `{ earlierReceiptId }`, for `update_bill` alone: one of the bill's earlier receipts, which an edit
+    replaced or removed and `read_bill` lists, taken back. Any other id is refused, naming
+    `read_bill`.
 - **A write with a receipt** checks its bytes as an upload's are, before anything is written, then
   writes the receipt's row (`ReserveBillReceiptForAgent`) and file, then the bill. So a retry that
   its key answers leaves a receipt nothing holds, which the sweep prunes.

@@ -91,6 +91,17 @@ export const receiptSchema = z.union([
   }),
 ])
 
+// What an update takes as a receipt: any an add takes, or one of the bill's earlier receipts
+export const updateReceiptSchema = z.union([
+  ...receiptSchema.options,
+  z.object({
+    earlierReceiptId: z
+      .string()
+      .regex(UUID_PATTERN, 'A receipt id is a UUID')
+      .describe("One of the bill's earlierReceipts, which read_bill lists, taken back as its receipt"),
+  }),
+])
+
 // A payment as a bill's answer gives it: its day and its amount in the budget's currency
 const paymentSchema = z.object({ day: z.string(), convertedAmount: z.string().nullable() })
 

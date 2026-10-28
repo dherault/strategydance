@@ -139,6 +139,32 @@ describe('update_bill', () => {
     expect(replacement.formerBillId).toBe(bill.id)
   })
 
+  it("takes back one of the bill's earlier receipts by its id, and refuses any other", async () => {
+    const kit = await book.connect()
+    const kept = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'other', name: 'March.pdf' })
+    const current = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'member' })
+    const elsewhere = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'member' })
+    const bill = book.add({ receiptId: current.id })
+    const other = book.add({ receiptId: null })
+
+    kept.formerBillId = bill.id
+    elsewhere.formerBillId = other.id
+
+    expect((await kit.answer('read_bill', { id: bill.id })).earlierReceipts).toEqual([
+      { id: kept.id, name: 'March.pdf', contentType: 'application/pdf', size: 1000 },
+    ])
+    expect(await kit.refusal('update_bill', { id: bill.id, receipt: { earlierReceiptId: elsewhere.id } })).toBe(
+      "That id is none of the bill's earlier receipts. Read the bill: read_bill lists them under earlierReceipts.",
+    )
+    expect(await kit.answer('update_bill', { id: bill.id, receipt: { earlierReceiptId: kept.id } })).toMatchObject({
+      hasReceipt: true,
+    })
+    expect(fake.bills.get(bill.id)!.receiptId).toBe(kept.id)
+    expect((await kit.answer('read_bill', { id: bill.id })).earlierReceipts).toEqual([
+      { id: current.id, name: 'Invoice.pdf', contentType: 'application/pdf', size: 1000 },
+    ])
+  })
+
   it('takes its end off with its recurrence, and refuses a currency its amount does not fit', async () => {
     const kit = await book.connect()
     const bill = book.add({ amountMinor: 1234, recurrence: 'MONTHLY', paidOn: '2026-01-01', endsOn: '2026-12-31' })

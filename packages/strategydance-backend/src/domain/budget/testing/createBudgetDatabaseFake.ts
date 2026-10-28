@@ -614,6 +614,16 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
                   receipt: receipt
                     ? { id: receipt.id, name: receipt.name, contentType: receipt.contentType, size: receipt.size }
                     : null,
+                  earlierReceipts: [...receipts.values()]
+                    .filter(earlier => earlier.formerBillId === bill.id && !isHeld(earlier.id))
+                    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+                    .slice(0, 50)
+                    .map(earlier => ({
+                      id: earlier.id,
+                      name: earlier.name,
+                      contentType: earlier.contentType,
+                      size: earlier.size,
+                    })),
                   createdById: bill.createdById,
                   createdBy: bill.createdById === null ? null : { displayName: nameOf(bill.createdById) },
                   createdAt: bill.createdAt,

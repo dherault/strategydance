@@ -586,6 +586,12 @@ async function checkUpdating() {
     (await readReceiptRow(own))?.formerBillId === withReceipt,
   )
   check(
+    'a bill read lists it among its earlier receipts',
+    (await getBillForAgent(dataConnect, { ...caller(), id: withReceipt })).data.bills[0]?.earlierReceipts.some(
+      ({ id }) => id === own,
+    ) ?? false,
+  )
+  check(
     'the bill takes it back, however old and whoever uploaded it',
     (await isAccepted(update(withReceipt, { receiptId: own }))) && (await readBillRow(withReceipt))?.receiptId === own,
   )

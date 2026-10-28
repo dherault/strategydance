@@ -3430,7 +3430,8 @@ query GetBudgetForAgent($organizationId: UUID!, $userId: String!, $membershipCre
 }
 
 # One bill by its id, deleted or not, so a restore can tell a bill deleted from one never there, with
-# its receipt's name, type and size, who paid it and who created it, and the budget's currency, which
+# its receipt's name, type and size, its earlier receipts, who paid it, who created it and who saved
+# it last, and the budget's currency, which
 # its payments are converted into. With the member's time zone, from which the module tells their
 # today
 query GetBillForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!, $id: UUID!)
@@ -3483,6 +3484,18 @@ query GetBillForAgent($organizationId: UUID!, $userId: String!, $membershipCreat
       displayName
     }
     receipt {
+      id
+      name
+      contentType
+      size
+    }
+    # The receipts it held before an edit replaced or removed them, newest first, which an update
+    # can take back
+    earlierReceipts: billReceipts_on_formerBill(
+      where: { _not: { bill_on_receipt: { id: { isNull: false } } } }
+      orderBy: [{ createdAt: DESC }]
+      limit: 50
+    ) {
       id
       name
       contentType

@@ -23,6 +23,8 @@ import toModuleBill from '~domain/budget/toModuleBill'
 export type ReadBillAnswer = ModuleBill & {
   budgetCurrency: Currency
   receipt: { name: string; contentType: string; size: number } | null
+  // What an edit replaced or removed, newest first, which `update_bill` takes back by id
+  earlierReceipts: { id: string; name: string; contentType: string; size: number }[]
   paymentsThisYear: { count: number; total: string; convertedTotal: string | null }
   createdBy: `member:${string}` | null
   createdByName: string | null
@@ -77,6 +79,12 @@ async function readBill(
       receipt: row.receipt
         ? { name: row.receipt.name, contentType: row.receipt.contentType, size: row.receipt.size }
         : null,
+      earlierReceipts: row.earlierReceipts.map(receipt => ({
+        id: toCanonicalUuid(receipt.id),
+        name: receipt.name,
+        contentType: receipt.contentType,
+        size: receipt.size,
+      })),
       paymentsThisYear: {
         count: payments.length,
         total: formatMoneyAmount(bill.amountMinor * payments.length, bill.currency),

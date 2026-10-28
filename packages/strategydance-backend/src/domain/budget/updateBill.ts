@@ -2,10 +2,11 @@ import { type BillRecurrence, type Currency, formatMoneyAmount } from 'strategyd
 import {
   BillRecurrence as DatabaseBillRecurrence,
   Currency as DatabaseCurrency,
+  getBillForAgent,
   updateBillForAgent,
 } from 'strategydance-database/backend'
 
-import type { AgentBill, AgentBillReceipt, BudgetWriteResult, ModuleCall, ModuleCaller } from '~types'
+import type { AgentBill, AgentBillUpdateReceipt, BudgetWriteResult, ModuleCall, ModuleCaller } from '~types'
 
 import { BILL_UPDATE_ATTEMPTS } from '~constants'
 
@@ -44,15 +45,16 @@ type UpdateBillInput = {
   recurrence?: BillRecurrence | null
   endsOn?: string | null
   paidBy?: string
-  // Null detaches the bill's receipt
-  receipt?: AgentBillReceipt | null
+  // Null detaches the bill's receipt, which is kept among its earlier receipts
+  receipt?: AgentBillUpdateReceipt | null
 }
 
 /*
   Saves a bill for an agent, any member saving any bill: the fields given laid over the bill as it is
   read, the rest kept. A currency changed without an amount keeps the amount as written, which the new
   currency has to take, a recurrence taken off takes the end with it, and `receipt: null` detaches
-  the receipt, which the sweep then prunes.
+  the receipt, which the bill keeps among its earlier receipts, as it keeps one a new receipt
+  replaces, and `receipt: { earlierReceiptId }` takes one of those back.
 
   The save is held to the bill's `updatedAt` as read. When a member saved in between, it reads the
   bill again and lays its fields over that, three times at most, unless `version` holds it to the bill
@@ -64,7 +66,12 @@ async function updateBill(
   input: UpdateBillInput,
   call: ModuleCall | null,
 ): Promise<BudgetWriteResult<WrittenBill>> {
-  const receipt = input.receipt == null ? null : await readAgentBillReceipt(caller, input.receipt)
+  const earlierReceiptId =
+    input.receipt && 'earlierReceiptId' in input.receipt ? toCanonicalUuid(input.receipt.earlierReceiptId) : null
+  const receipt =
+    input.receipt == null || 'earlierReceiptId' in input.receipt
+      ? null
+      : await readAgentBillReceipt(caller, input.receipt)
 
   if (receipt && receipt.outcome !== 'read' && receipt.outcome !== 'named') return receipt
 
@@ -73,8 +80,13 @@ async function updateBill(
   if (answered) return answered
 
   const billId = toCanonicalUuid(input.id)
+
+  if (earlierReceiptId && (await readEarlierReceiptIds(caller, billId))?.includes(earlierReceiptId) === false) {
+    return { outcome: 'earlierReceiptNotFound' }
+  }
+
   // The receipt the save gives the bill: null to detach it, undefined to keep the bill's own
-  let receiptId: string | null | undefined = input.receipt === null ? null : undefined
+  let receiptId: string | null | undefined = input.receipt === null ? null : (earlierReceiptId ?? undefined)
 
   for (let attempt = 0; attempt < BILL_UPDATE_ATTEMPTS; attempt++) {
     if (attempt > 0) {
@@ -192,6 +204,20 @@ async function updateBill(
   }
 
   return { outcome: 'busy' }
+}
+
+// The ids of a live bill's earlier receipts, which an edit replaced or removed, or null for a bill
+// the caller cannot read live, which the save then refuses as it refuses any
+async function readEarlierReceiptIds(caller: ModuleCaller, billId: string) {
+  const { data } = await getBillForAgent(dataConnect, {
+    organizationId: caller.organizationId,
+    userId: caller.userId,
+    membershipCreatedAt: caller.membershipCreatedAt,
+    id: billId,
+  })
+  const [bill] = data.bills
+
+  return bill && !bill.deletedAt ? bill.earlierReceipts.map(receipt => toCanonicalUuid(receipt.id)) : null
 }
 
 export default updateBill

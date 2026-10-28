@@ -736,21 +736,31 @@ describe('the Budget module for external agents', () => {
       'restore_bill',
     ])
 
-    const challenged = await send(callTool('add_bill', NOTION), { token: readOnly.access_token, path: BUDGET_PATH })
+    const bill = fake.insertBill({ organizationId: ORGANIZATION_ID, paidById: MEMBER })
 
-    expect(challenged.status).toBe(403)
-    expect(challenged.body.error).toBe('insufficient_scope')
-    expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
-    expect(challenged.headers.get('www-authenticate')).toContain('scope="budget:write"')
-    expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${BUDGET_RESOURCE_METADATA}"`)
-    expect(billsOfOrganization()).toEqual([])
+    for (const [name, args] of [
+      ['add_bill', NOTION],
+      ['update_bill', { id: bill.id, name: 'Renamed' }],
+      ['delete_bill', { id: bill.id }],
+      ['restore_bill', { id: bill.id }],
+    ] as const) {
+      const challenged = await send(callTool(name, args), { token: readOnly.access_token, path: BUDGET_PATH })
+
+      expect(challenged.status).toBe(403)
+      expect(challenged.body.error).toBe('insufficient_scope')
+      expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
+      expect(challenged.headers.get('www-authenticate')).toContain('scope="budget:write"')
+      expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${BUDGET_RESOURCE_METADATA}"`)
+    }
+
+    expect(billsOfOrganization()).toEqual([expect.objectContaining({ id: bill.id, name: bill.name, deletedAt: null })])
 
     const readWrite = await connect({ scopes: READ_WRITE, resource: BUDGET })
     const written = await send(callTool('add_bill', NOTION), { token: readWrite.access_token, path: BUDGET_PATH })
 
     expect(written.status).toBe(200)
     expect(written.body.result.isError).toBeFalsy()
-    expect(billsOfOrganization()).toHaveLength(1)
+    expect(billsOfOrganization()).toHaveLength(2)
   })
 
   test("takes the largest receipt an agent may hand over within the endpoint's body, and refuses a larger one with a sentence", async () => {

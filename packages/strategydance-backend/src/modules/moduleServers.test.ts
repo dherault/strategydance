@@ -92,4 +92,16 @@ describe('MODULE_SERVERS', () => {
       'restore_task',
     ])
   })
+
+  it('lists the seven tools of the Budget module, reads first', async () => {
+    expect(await listToolNames('budget')).toEqual([
+      'read_budget',
+      'list_bills',
+      'read_bill',
+      'add_bill',
+      'update_bill',
+      'delete_bill',
+      'restore_bill',
+    ])
+  })
 })

@@ -32,6 +32,7 @@ const DatabaseBillRecurrence = {
   QUARTERLY: 'QUARTERLY',
   YEARLY: 'YEARLY',
 } as const
+const DatabaseBudgetPeriod = { MONTHLY: 'MONTHLY', QUARTERLY: 'QUARTERLY', YEARLY: 'YEARLY' } as const
 
 export type FakeBillReceipt = {
   id: string
@@ -329,6 +330,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
   base.sdk.BillReceiptStatus = BillReceiptStatus
   base.sdk.Currency = DatabaseCurrency
   base.sdk.BillRecurrence = DatabaseBillRecurrence
+  base.sdk.BudgetPeriod = DatabaseBudgetPeriod
 
   base.addOperations({
     ReserveBillReceipt: variables => {

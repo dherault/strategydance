@@ -52,6 +52,30 @@ const moduleMessages = defineMessages({
     description:
       "Tooltip and accessible name of the icon button on the Tasks page that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to the team's task board. To tackle a task is to take it up and work on it.",
   },
+  budgetName: {
+    id: 'module.budgetName',
+    defaultMessage: 'Budget',
+    description:
+      "The name of the module that lets an agent use the organization's budget: what the company means to spend, and its bills.",
+  },
+  budgetReadAccess: {
+    id: 'module.budgetReadAccess',
+    defaultMessage: 'Read the budget and the bills, with their receipts.',
+    description:
+      'What an agent allowed to read the Budget module can do. The budget is what the company means to spend; the bills are what it spends, each with its receipt.',
+  },
+  budgetWriteAccess: {
+    id: 'module.budgetWriteAccess',
+    defaultMessage: 'Add, change and delete bills.',
+    description:
+      'What an agent allowed to write in the Budget module can do, beside reading. It never changes the budget itself, which administrators set.',
+  },
+  budgetAgentsButton: {
+    id: 'module.budgetAgentsButton',
+    defaultMessage: 'Allow your agents to read and write your budget',
+    description:
+      "Tooltip and accessible name of the icon button on the Budget page that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to the organization's budget and bills.",
+  },
   subagentsName: {
     id: 'module.subagentsName',
     defaultMessage: 'Subagents',

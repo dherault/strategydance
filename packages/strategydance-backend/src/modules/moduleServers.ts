@@ -3,6 +3,7 @@ import type { ModuleName } from 'strategydance-core'
 
 import type { ModuleCaller } from '~types'
 
+import createBudgetServer from '~modules/budget/createBudgetServer'
 import createKnowledgeServer from '~modules/knowledge/createKnowledgeServer'
 import createSubagentsServer from '~modules/subagents/createSubagentsServer'
 import createTasksServer from '~modules/tasks/createTasksServer'
@@ -11,6 +12,7 @@ import createTasksServer from '~modules/tasks/createTasksServer'
 const MODULE_SERVERS: Record<ModuleName, (caller: ModuleCaller) => McpServer> = {
   knowledge: createKnowledgeServer,
   tasks: createTasksServer,
+  budget: createBudgetServer,
   subagents: createSubagentsServer,
 }
 

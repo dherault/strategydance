@@ -698,6 +698,14 @@ export const MODULES = [
     title: 'Strategy Dance Tasks',
     scopes: { read: 'tasks:read', write: 'tasks:write' },
   },
+  // Served to no external agent until its write tools are challenged and its searches counted, and
+  // Strategy Dance's agent's once its tools join a conversation's
+  {
+    name: 'budget',
+    path: '/mcp/budget',
+    title: 'Strategy Dance Budget',
+    scopes: { read: 'budget:read', write: 'budget:write' },
+  },
   // Strategy Dance's own agents' alone, served to no external agent: its address is reserved until a
   // later plan serves it, and the authorization server refuses it meanwhile
   {

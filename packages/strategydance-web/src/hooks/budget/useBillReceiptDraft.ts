@@ -121,6 +121,10 @@ function useBillReceiptDraft(initial: BillReceiptData | null, onChange: (receipt
         },
       })
 
+      // Replaced, removed, taken back or closed in the moment the upload answered, which takes
+      // nothing back from whatever took its place
+      if (signal.aborted) return false
+
       heldRef.current = { status: 'ready', receipt }
       setDraft(heldRef.current)
       onChange(receipt.id)

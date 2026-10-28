@@ -95,6 +95,14 @@ describe('add_bill', () => {
     expect(fake.bills.size).toBe(0)
   })
 
+  it('refuses a name or a company on more than one line, a line separator included, writing nothing', async () => {
+    const kit = await book.connect()
+
+    expect(await kit.refusal('add_bill', { ...NOTION, name: 'Notion\nPlus' })).toContain('A name is one line')
+    expect(await kit.refusal('add_bill', { ...NOTION, company: 'Notion\u2028Labs' })).toContain('A company is one line')
+    expect(fake.bills.size).toBe(0)
+  })
+
   it('refuses an end on a bill that does not recur, or before its first payment', async () => {
     const kit = await book.connect()
 

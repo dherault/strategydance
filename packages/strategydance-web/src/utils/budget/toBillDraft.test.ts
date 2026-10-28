@@ -49,6 +49,18 @@ describe('toBillDraft', () => {
     })
   })
 
+  it('puts a name and a company pasted on several lines on one, the description kept as written', () => {
+    expect(
+      toBillDraft({
+        ...toBillFormValues(null, DEFAULTS),
+        name: 'Figma\u2028Professional\u00A0',
+        description: 'Design\nseats',
+        company: 'Figma\r\nInc',
+        amount: '45',
+      }),
+    ).toMatchObject({ name: 'Figma Professional', description: 'Design\nseats', company: 'Figma Inc' })
+  })
+
   it('keeps the recurrence and the end only while the bill recurs', () => {
     const values = { ...toBillFormValues(BILL, DEFAULTS) }
 

@@ -85,7 +85,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
 // The operations' bound on a first payment, ten years after the database's clock: 87672 hours
 const BILL_HOURS_AHEAD = 87672
 
-// A name or a company: one line with no space at either end, as the operations' pattern holds it
+// A name or a company: one line with no space at either end, as the operations' pattern holds it,
+// JavaScript's `\S` and `.` refusing what their RE2 classes name: any Unicode space and line break
 const ONE_LINE_PATTERN = /^\S(.*\S)?$/
 
 /*

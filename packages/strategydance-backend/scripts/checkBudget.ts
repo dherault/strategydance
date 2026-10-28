@@ -428,6 +428,10 @@ async function checkBillFields() {
     ['an empty name', { name: '' }, nameOrCompany],
     ['a name with a space at its end', { name: 'Figma ' }, nameOrCompany],
     ['a name on two lines', { name: 'Fig\nma' }, nameOrCompany],
+    ['a name split by a carriage return', { name: 'Fig\rma' }, nameOrCompany],
+    ['a name split by a line separator', { name: 'Fig\u2028ma' }, nameOrCompany],
+    ['a name ending in a no-break space', { name: 'Figma\u00A0' }, nameOrCompany],
+    ['a company opening on an ideographic space', { company: '\u3000Figma' }, nameOrCompany],
     ['a name of 81 characters', { name: 'a'.repeat(81) }, nameOrCompany],
     ['a company of 61 characters', { company: 'a'.repeat(61) }, nameOrCompany],
     ['an empty company', { company: '' }, nameOrCompany],
@@ -448,6 +452,12 @@ async function checkBillFields() {
     )
   }
 
+  check(
+    'a name and a company with a no-break space between their words are taken',
+    await isAccepted(
+      runAs(userIds.member, 'CreateBill', newBill({ name: 'Figma\u00A0Pro', company: 'Figma\u202FInc' })),
+    ),
+  )
   check(
     'a bill paid on 1999-01-01, ending on its first payment, a name of 80 characters and a description of 140 is taken',
     await isAccepted(

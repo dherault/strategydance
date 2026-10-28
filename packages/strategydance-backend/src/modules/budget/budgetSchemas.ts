@@ -28,7 +28,7 @@ function oneLineSchema(field: string, maxLength: number) {
     .trim()
     .min(1)
     .max(maxLength)
-    .regex(/^[^\r\n]*$/, `A ${field} is one line`)
+    .regex(/^[^\r\n\u2028\u2029]*$/, `A ${field} is one line`)
     .refine(hasNoNul, `A ${field} holds no U+0000`)
 }
 

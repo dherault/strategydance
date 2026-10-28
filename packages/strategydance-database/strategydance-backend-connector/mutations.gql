@@ -9132,7 +9132,7 @@ mutation CreateBillForAgent(
       message: "An idempotency key is 1 to 200 characters"
     )
     @check(
-      expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.company) <= 60 && vars.company.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.description) <= 140"
+      expr: "size(vars.name) <= 80 && vars.name.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.company) <= 60 && vars.company.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.description) <= 140"
       message: "A bill's name and company are one line of at most 80 and 60 characters, with no space at either end, and its description at most 140 characters"
     )
     @check(
@@ -9269,7 +9269,7 @@ mutation UpdateBillForAgent(
           optional: true
         )
         @check(
-          expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.company) <= 60 && vars.company.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.description) <= 140"
+          expr: "size(vars.name) <= 80 && vars.name.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.company) <= 60 && vars.company.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.description) <= 140"
           message: "A bill's name and company are one line of at most 80 and 60 characters, with no space at either end, and its description at most 140 characters"
           optional: true
         )

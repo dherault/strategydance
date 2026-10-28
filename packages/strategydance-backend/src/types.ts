@@ -563,6 +563,8 @@ export type BudgetRefusal =
   | { outcome: 'earlierReceiptNotFound' }
   /** A restore of a bill not deleted, or of one deleted over a day ago */
   | { outcome: 'notDeleted' }
+  /** A restore of no bill at all: an id never one, or a bill the sweep removed past its day */
+  | { outcome: 'notRestorable' }
   | { outcome: 'goneForGood' }
   /** An idempotency key sent before with another call */
   | { outcome: 'keyConflict' }

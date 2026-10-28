@@ -42,6 +42,8 @@ function toSentence(refusal: BudgetRefusal) {
       return 'Another bill took that receipt meanwhile. Send the receipt again with this call, and it is stored anew.'
     case 'earlierReceiptNotFound':
       return "That id is none of the bill's earlier receipts. Read the bill: read_bill lists them under earlierReceipts."
+    case 'notRestorable':
+      return 'No bill has that id: it was never one, or it was deleted over a day ago and is gone for good.'
     case 'notDeleted':
       return 'The bill is not deleted, so there is nothing to restore.'
     case 'goneForGood':

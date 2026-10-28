@@ -67,6 +67,13 @@ describe('delete_bill and restore_bill', () => {
     expect(await kit.refusal('restore_bill', { id: live.id })).toBe(
       'The bill is not deleted, so there is nothing to restore.',
     )
+
+    // Once the sweep removed it, its id is no bill's
+    fake.bills.delete(bill.id)
+
+    expect(await kit.refusal('restore_bill', { id: bill.id })).toBe(
+      'No bill has that id: it was never one, or it was deleted over a day ago and is gone for good.',
+    )
   })
 
   it('refuses a restore past the 2000 bills an organization keeps', async () => {

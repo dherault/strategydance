@@ -28,7 +28,8 @@ const answerSchema = z.object({
   fails the request for the others. Answers each currency's rates by day, that year's days alone:
   Frankfurter opens a series on the last ECB day on or before its first date, so a year's answer
   opens on the year before's last day, which that year's own answer holds. A currency the ECB
-  published nothing for that year, as the króna in 2010, has no entry.
+  published nothing for that year, as the króna in 2010, has no entry, which the sync writes as an
+  empty row.
 
   Throws on a status outside 2xx, an answer it cannot read whole, or a request past 20 seconds, its
   answer read whole within them, so a year is never written from part of an answer. So does a past

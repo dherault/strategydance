@@ -15,16 +15,22 @@ import requestExchangeRateYear, { SYNCED_CURRENCIES } from '~domain/budget/reque
 
 /*
   Keeps `ExchangeRateYear` current with the ECB's daily rates, as the worker's daily sweep asks: from
-  the latest year stored, or 1999 while a currency it syncs has no row at all, as one added to the
-  list since, to today's, one request to Frankfurter a year and one row a currency, written whole
-  over what was there. A currency is backfilled once it has no row, never again: one the ECB stopped
-  publishing keeps its rows and is not fetched back to 1999 every day. The first run backfills since 1999 in some 28
-  requests and 800 writes, and a daily run makes one request and 29 writes.
+  the least advanced currency's latest year stored, or 1999 for one with no row at all, as one added
+  to the list since, to today's, one request to Frankfurter a year and one row a currency, written
+  whole over what was there. The first run backfills since 1999 in some 28 requests and 800 writes,
+  and a daily run makes one request and 29 writes.
 
-  The latest year stored is always fetched again, and years go oldest first, so a year a run wrote
-  partly, or before the ECB's last day of it, is finished by the next, and an older year is never
-  fetched again once a later one is stored. A failed request or write throws, leaving the years
-  after it for the next run. Today is the UTC date. Answers the years written and the latest day
+  Every currency gets its row for every year whose answer holds a day of its own, empty when the ECB
+  published nothing of it that year, as the króna from 2009 to 2017, or since it stopped publishing
+  one, as it stopped the rouble, the kuna and the lev. So a currency's latest year says how far it
+  was fetched: a backfill a failure cut short carries on where it stopped, and a currency the ECB
+  dropped moves on with empty rows rather than being fetched back every day.
+
+  Each currency's latest year is always fetched again, and years go oldest first, so a year a run
+  wrote partly, or before the ECB's last day of it, is finished by the next, and an older year is
+  never fetched again once a later one is stored for every currency. A failed request or write
+  throws, leaving the years after it for the next run. Today is the UTC date. Answers the years
+  written and the latest day
 */
 async function syncExchangeRates({
   fetch = globalThis.fetch,
@@ -36,10 +42,13 @@ async function syncExchangeRates({
   currencies?: readonly Currency[]
 } = {}) {
   const { data } = await getExchangeRateYearKeys(dataConnect)
-  const stored = new Set<string>(data.exchangeRateYears.map(({ currency }) => currency))
-  const latestYear = data.exchangeRateYears[0]?.year
-  const isMissingCurrency = currencies.some(currency => !stored.has(currency))
-  const firstYear = latestYear === undefined || isMissingCurrency ? EXCHANGE_RATES_FIRST_YEAR : latestYear
+  const latestYears = new Map<string, number>()
+
+  for (const { currency, year } of data.exchangeRateYears) {
+    latestYears.set(currency, Math.max(year, latestYears.get(currency) ?? year))
+  }
+
+  const firstYear = Math.min(...currencies.map(currency => latestYears.get(currency) ?? EXCHANGE_RATES_FIRST_YEAR))
   const currentYear = Number(today.slice(0, 4))
   const years: number[] = []
   let latestDay: string | null = null
@@ -47,7 +56,12 @@ async function syncExchangeRates({
   for (let year = firstYear; year <= currentYear; year++) {
     const ratesByCurrency = await requestExchangeRateYear(fetch, year, year === currentYear, currencies)
 
-    for (const [currency, rates] of ratesByCurrency) {
+    // A year under way with no day of its own yet, as on January 1, writes nothing
+    if (!ratesByCurrency.size) continue
+
+    for (const currency of currencies) {
+      const rates = ratesByCurrency.get(currency) ?? {}
+
       await upsertExchangeRateYear(dataConnect, {
         currency: DatabaseCurrency[currency],
         year,
@@ -57,7 +71,7 @@ async function syncExchangeRates({
       for (const day of Object.keys(rates)) if (latestDay === null || day > latestDay) latestDay = day
     }
 
-    if (ratesByCurrency.size) years.push(year)
+    years.push(year)
   }
 
   logger.info(

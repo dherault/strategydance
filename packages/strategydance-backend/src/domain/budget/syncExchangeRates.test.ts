@@ -258,14 +258,41 @@ describe('syncExchangeRates', () => {
     expect(readRates('JPY', 1999)['1999-01-04']).toBe(133.73)
   })
 
-  test('never fetches back a currency the ECB stopped publishing, which keeps its rows', async () => {
-    rows.set('JPY:1999', { currency: 'JPY', year: 1999, rates: '{}' })
+  test('fills a currency the ECB stopped publishing with empty rows, so it moves on with the others', async () => {
+    storeYear(1999, {})
+
+    // 2000's answer holds the dollar alone, as once the ECB stops publishing the yen
+    const dollarOnly = Object.fromEntries(
+      Object.entries(FRANKFURTER_2000.rates).map(([day, { USD }]) => [day, { USD }]),
+    )
+    const first = createFrankfurter({ '2000-01-01..': { ...FRANKFURTER_2000, rates: dollarOnly } })
+
+    await sync({ fetch: first.fetch, today: '2000-01-04' })
+
+    expect(readRates('JPY', 2000)).toEqual({})
+
+    const { fetch, requests } = createFrankfurter({ '2000-01-01..': { ...FRANKFURTER_2000, rates: dollarOnly } })
+
+    await sync({ fetch, today: '2000-01-04' })
+
+    expect(requests.map(({ range }) => range)).toEqual(['2000-01-01..'])
+  })
+
+  test('carries on a backfill a failure cut short, from the year its currency reached', async () => {
+    rows.set('USD:1999', { currency: 'USD', year: 1999, rates: '{}' })
     rows.set('USD:2000', { currency: 'USD', year: 2000, rates: '{}' })
+
+    const failing = createFrankfurter({ '2000-01-01..': new Response('Unavailable', { status: 503 }) })
+
+    await expect(sync({ fetch: failing.fetch, today: '2000-01-04' })).rejects.toThrow('503')
+    expect(rows.has('JPY:1999')).toBe(true)
+    expect(rows.has('JPY:2000')).toBe(false)
 
     const { fetch, requests } = createFrankfurter()
 
     await sync({ fetch, today: '2000-01-04' })
 
-    expect(requests.map(({ range }) => range)).toEqual(['2000-01-01..'])
+    expect(requests.map(({ range }) => range)).toEqual(['1999-01-01..1999-12-31', '2000-01-01..'])
+    expect(readRates('JPY', 2000)).toEqual({ '2000-01-03': 102.75, '2000-01-04': 105.88 })
   })
 })

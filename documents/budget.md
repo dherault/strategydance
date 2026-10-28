@@ -158,16 +158,19 @@ removal keeps the bills they paid and the receipts they uploaded.
 ### Exchange rates
 
 **`syncExchangeRates`, in the backend's `domain/budget/`, keeps the table current.**
-1. It reads every currency and year stored (`GetExchangeRateYearKeys`), and starts from the latest
-   year, or from 1999 while a currency of `CURRENCIES` but EUR has no row at all, as one added to
-   the list since. A currency the ECB stopped publishing keeps its rows, so it is never fetched back
-   to 1999 every day.
+1. It reads every currency and year stored (`GetExchangeRateYearKeys`), and starts from the least
+   advanced currency's latest year, or from 1999 for a currency of `CURRENCIES` but EUR with no row
+   at all, as one added to the list since.
 2. For each year from there to the current one, it asks Frankfurter for that year's series, based on
    EUR: `/v1/<year>-01-01..<year>-12-31`, or `/v1/<year>-01-01..` for the current year. It names no
    `symbols`, so a currency the ECB stops publishing, as it stopped the rouble in 2022, the kuna in
    2023 and the lev in 2026, fails no request, and keeps the answer to the currencies of
    `CURRENCIES`.
-3. It writes one row per currency for that year, an upsert.
+3. It writes one row per currency for that year, an upsert, once the answer holds a day of that
+   year: an empty one for a currency the ECB published nothing of, as the króna from 2009 to 2017,
+   or one it stopped publishing. So a currency's latest year says how far it was fetched: a backfill
+   a failure cut short carries on where it stopped, and a currency the ECB dropped moves on with
+   empty rows rather than being fetched back every day.
 
 - **Each day is filed under its own year.** Frankfurter starts a series at the last ECB day on or
   before its first date, so a year's answer opens with the previous year's last day.

@@ -3220,10 +3220,10 @@ query GetIntegrationConnectionForMember($organizationId: UUID!, $userId: String!
 }
 
 # Every currency and year of exchange rates stored, without the rates, from which the daily sync
-# carries on: it fetches the latest year again, which a run before may have written only partly, or
-# before the ECB's last day of it, and every year after, from 1999 while a currency it syncs has no
-# row at all, as one added to the list since. As many rows as 29 currencies hold for every year
-# from 1999 to past 2060
+# carries on: from the least advanced currency's latest year, which a run before may have written
+# only partly, or before the ECB's last day of it, or from 1999 for a currency with no row at all,
+# as one added to the list since. As many rows as 29 currencies hold for every year from 1999 to
+# past 2060
 query GetExchangeRateYearKeys @auth(level: NO_ACCESS) {
   exchangeRateYears(orderBy: [{ year: DESC }, { currency: ASC }], limit: 2000) {
     currency

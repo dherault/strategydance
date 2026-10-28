@@ -7,6 +7,7 @@ import {
   countCalendarDays,
   countCalendarMonths,
   endOfMonth,
+  getCalendarDayInTimeZone,
   isCalendarDay,
   startOfMonth,
   startOfQuarter,
@@ -107,5 +108,21 @@ describe('isCalendarDay', () => {
     for (const day of ['2026-02-29', '2026-13-01', '2026-1-1', '27/10/2026', '2026-10-27T00:00:00Z', '']) {
       expect(isCalendarDay(day)).toBe(false)
     }
+  })
+})
+
+describe('getCalendarDayInTimeZone', () => {
+  it('reads the day where the zone already is, ahead of UTC or behind it', () => {
+    const instant = new Date('2026-10-31T12:30:00Z')
+
+    expect(getCalendarDayInTimeZone(instant, 'UTC')).toBe('2026-10-31')
+    expect(getCalendarDayInTimeZone(instant, 'Pacific/Auckland')).toBe('2026-11-01')
+    expect(getCalendarDayInTimeZone(new Date('2027-01-01T03:00:00Z'), 'America/Los_Angeles')).toBe('2026-12-31')
+  })
+
+  it('follows a clock change, as an offset would not', () => {
+    expect(getCalendarDayInTimeZone(new Date('2026-03-28T23:30:00Z'), 'Europe/Paris')).toBe('2026-03-29')
+    expect(getCalendarDayInTimeZone(new Date('2026-10-24T22:30:00Z'), 'Europe/Paris')).toBe('2026-10-25')
+    expect(getCalendarDayInTimeZone(new Date('2026-10-25T22:30:00Z'), 'Europe/Paris')).toBe('2026-10-25')
   })
 })

@@ -120,6 +120,28 @@ export function startOfQuarter(day: string) {
   return formatCalendarDay(year, month - ((month - 1) % 3), 1)
 }
 
+// One formatter per zone, since building one is the slow part
+const zoneFormatters = new Map<string, Intl.DateTimeFormat>()
+
+/*
+  The day an instant falls on in a time zone, an IANA identifier the caller has checked: what
+  somebody in that zone calls today. Read through `Intl` rather than an offset, which a clock change
+  moves
+*/
+export function getCalendarDayInTimeZone(instant: Date | number, timeZone: string) {
+  let formatter = zoneFormatters.get(timeZone)
+
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
+    zoneFormatters.set(timeZone, formatter)
+  }
+
+  const parts = formatter.formatToParts(instant)
+  const read = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value ?? ''
+
+  return `${read('year')}-${read('month')}-${read('day')}`
+}
+
 // Earlier first, as `Array.prototype.sort` takes it: a `YYYY-MM-DD` string compares as its day
 export function compareDays(a: string, b: string) {
   if (a < b) return -1

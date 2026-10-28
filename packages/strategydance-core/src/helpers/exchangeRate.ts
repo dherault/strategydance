@@ -1,7 +1,8 @@
 import { CURRENCIES } from '../constants'
 import type { Currency } from '../enums'
-import type { ExchangeRateTable, ExchangeRateYearRow } from '../types'
+import type { BillSchedule, ExchangeRateTable, ExchangeRateYearRow } from '../types'
 
+import { getLastBillPayment } from './bill'
 import { compareDays } from './calendarDay'
 
 const CALENDAR_DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
@@ -95,4 +96,19 @@ export function convertMoney(amountMinor: number, from: Currency, to: Currency, 
   const value = ((amountMinor * toRate) / fromRate) * 10 ** (CURRENCIES[to].exponent - CURRENCIES[from].exponent)
 
   return value < 0 ? -Math.round(-value) || 0 : Math.round(value)
+}
+
+/*
+  The years whose exchange rates the Budget page and the module read: this year and last year,
+  which the page's stats, chart and panels count, and the year of each bill's last payment, at
+  whose rate a bill is converted. A payment after the rates stored converts at the latest, so next
+  year, which December's "next month" reaches into, needs none of its own
+*/
+export function listExchangeRateYears(bills: readonly BillSchedule[], today: string) {
+  const year = Number(today.slice(0, 4))
+  const years = new Set([year - 1, year])
+
+  for (const bill of bills) years.add(Number(getLastBillPayment(bill, today).slice(0, 4)))
+
+  return [...years].sort((a, b) => a - b)
 }

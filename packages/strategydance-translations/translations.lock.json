@@ -5041,6 +5041,22 @@
         "hash": "61e08abb9909c947",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.budgetAgentsButton": {
+        "hash": "e5efb6bd3148bcbb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.budgetName": {
+        "hash": "9481e311e334cb7c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.budgetReadAccess": {
+        "hash": "b408e965a5135c2a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.budgetWriteAccess": {
+        "hash": "eef9835ba3732ba7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.connectedAgentsEmptyDescription": {
         "hash": "8d1ef939004b3bdf",
         "locales": "DE,ES,FR,JA,PT,ZH"

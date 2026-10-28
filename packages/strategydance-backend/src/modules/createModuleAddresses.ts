@@ -15,7 +15,7 @@ import { dataConnect } from '~firebase'
   the server, which lives one request. Strategy Dance's agent links with `doc:` and `task:` instead,
   so its results carry none
 */
-function createModuleAddresses(caller: ModuleCaller, section: 'knowledge' | 'tasks') {
+function createModuleAddresses(caller: ModuleCaller, section: 'knowledge' | 'tasks' | 'budget') {
   let segment: Promise<string> | null = null
 
   return async (id: string) => {

@@ -4,7 +4,15 @@ import type {
   BetaTool,
   MessageCountTokensParams,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import type { ModuleScope } from 'strategydance-core'
+import type {
+  BillRecurrence,
+  BudgetLimit,
+  BudgetPeriod,
+  BudgetScope,
+  BudgetBill,
+  Currency,
+  ModuleScope,
+} from 'strategydance-core'
 import type { CompanyAspect, GetConversationCallsData, TaskStatus } from 'strategydance-database/backend'
 import type {
   Directory,
@@ -434,6 +442,139 @@ export type TasksWriteResult<Result> =
 export type TasksToolContext = {
   caller: ModuleCaller
   toAddress: (taskId: string) => Promise<string | undefined>
+}
+
+/* ---
+  BUDGET MODULE
+--- */
+
+// A live bill as the Budget module reads it: core's shape, which the computations take, with what the
+// module answers beside its numbers, and the `updatedAt` an update is guarded on
+export type AgentBill = BudgetBill & {
+  description: string
+  // Null once the payer's account went
+  paidById: string | null
+  paidByName: string | null
+  receiptId: string | null
+  updatedAt: string
+}
+
+// The budget and the live bills as every tool of the Budget module reads them: the limit, or null
+// without a budget, the currency every conversion is in, US dollars without one, the members, and the
+// member's today, in their time zone
+export type BudgetState = {
+  budget: BudgetLimit | null
+  currency: Currency
+  bills: AgentBill[]
+  members: BoardMember[]
+  today: string
+}
+
+// A payment of a bill: its day, and its amount converted into the budget's currency, null when a
+// rate is missing
+export type ModuleBillPayment = {
+  day: string
+  convertedAmount: string | null
+}
+
+// A bill as the Budget module answers it: its own amount as typed, in its own currency, and its last
+// and next payments converted into the budget's
+export type ModuleBill = {
+  id: string
+  name: string
+  description: string
+  company: string
+  amount: string
+  currency: Currency
+  paidOn: string
+  recurrence: BillRecurrence | null
+  endsOn: string | null
+  paidBy: `member:${string}` | null
+  paidByName: string | null
+  hasReceipt: boolean
+  lastPayment: ModuleBillPayment
+  nextPayment: ModuleBillPayment | null
+  isActive: boolean
+  url?: string
+}
+
+// Where spending stands against the budget, as core's `BudgetStatus` says, its amounts as decimal
+// strings in the budget's currency
+export type ModuleBudgetStatus = {
+  level: 'over' | 'warn'
+  scope: BudgetScope
+  by: string
+  limit: string
+  expected: string
+}
+
+// The budget itself, as `read_budget` answers it
+export type ModuleBudget = {
+  amount: string
+  period: BudgetPeriod
+  currency: Currency
+}
+
+// A receipt an agent hands the Budget module: a file in base64, a text, or, for Strategy Dance's own
+// agent from M10, a file the member sent in the conversation
+export type AgentBillReceipt =
+  | { name: string; contentType: string; base64: string }
+  | { name: string; text: string }
+  | { attachmentId: string }
+
+/*
+  Why the Budget module refused a call, which its tool words for the model: each is something the
+  model can act on, by telling the member, reading the bill again, or changing what it sent
+*/
+export type BudgetRefusal =
+  /** The caller is no longer the member the module was built for */
+  | { outcome: 'notMember' }
+  /** The caller's connection may read but not write */
+  | { outcome: 'readOnly' }
+  /** A delete from a parent's reaction to its subagents' reports, which deletes nothing */
+  | { outcome: 'fromReaction' }
+  /** No live bill by that id */
+  | { outcome: 'notFound' }
+  /** A bill paid by somebody who is not a member of the organization */
+  | { outcome: 'payerNotMember' }
+  /** A bill whose payer's account went, saved without naming another */
+  | { outcome: 'payerRequired' }
+  /** The organization keeps as many bills as it may */
+  | { outcome: 'full' }
+  /** The bill changed since the version the agent read */
+  | { outcome: 'changed' }
+  /** An update other saves kept landing before, every time it was read again */
+  | { outcome: 'busy' }
+  /** A field the bill cannot take: an amount, a day or an end, with why */
+  | { outcome: 'invalidField'; reason: string }
+  /** A receipt that is not what it says, or past what an agent may hand over, with why */
+  | { outcome: 'invalidReceipt'; reason: string }
+  /** A conversation's file named, which only Strategy Dance's own agent may name, from M10 */
+  | { outcome: 'attachmentUnavailable' }
+  /** A receipt the bill can no longer take, which another bill took meanwhile */
+  | { outcome: 'receiptTaken' }
+  /** A restore of a bill not deleted, or of one deleted over a day ago */
+  | { outcome: 'notDeleted' }
+  | { outcome: 'goneForGood' }
+  /** An idempotency key sent before with another call */
+  | { outcome: 'keyConflict' }
+  /** A cursor no list gave */
+  | { outcome: 'invalidCursor' }
+  /** An external agent's query past the member's search allowance, until the next one fits */
+  | { outcome: 'tooManySearches'; retryAfterMs: number }
+
+// What a write of the Budget module answers: its result, or the one stored under its key when the
+// call was sent before, or why it was refused
+export type BudgetWriteResult<Result> =
+  | { outcome: 'written'; result: Result }
+  | { outcome: 'answered'; result: unknown }
+  | BudgetRefusal
+
+// What each of the Budget module's tools is registered with: who calls it, and the web address of a
+// bill for an external caller, whose results carry them, undefined for Strategy Dance's agent
+export type BudgetToolContext = {
+  caller: ModuleCaller
+  toAddress: (billId: string) => Promise<string | undefined>
 }
 
 /* ---

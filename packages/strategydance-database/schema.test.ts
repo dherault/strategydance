@@ -7,6 +7,7 @@ import {
   MAX_BILL_COMPANY_LENGTH,
   MAX_BILL_DESCRIPTION_LENGTH,
   MAX_BILL_NAME_LENGTH,
+  MAX_AGENT_BILL_RECEIPT_SIZE,
   MAX_BILL_RECEIPT_NAME_LENGTH,
   MAX_BILL_RECEIPT_SIZE,
   MAX_BILLS,
@@ -97,9 +98,14 @@ function readNumbers(operation: string, pattern: RegExp) {
   operations write out again, since they cannot import them: this fails when the two stop agreeing
 */
 describe('the bills', () => {
-  for (const name of ['CreateBill', 'UpdateBill']) {
+  for (const [name, source] of [
+    ['CreateBill', webMutations],
+    ['UpdateBill', webMutations],
+    ['CreateBillForAgent', backendMutations],
+    ['UpdateBillForAgent', backendMutations],
+  ] as const) {
     it(`${name} holds a bill to the lengths and amount strategydance-core does`, () => {
-      const operation = readOperation(webMutations, name)
+      const operation = readOperation(source, name)
 
       expect(readNumbers(operation, /size\(vars\.name\) <= (\d+)/g)).toEqual([MAX_BILL_NAME_LENGTH])
       expect(readNumbers(operation, /size\(vars\.company\) <= (\d+)/g)).toEqual([MAX_BILL_COMPANY_LENGTH])
@@ -108,9 +114,14 @@ describe('the bills', () => {
     })
   }
 
-  for (const name of ['CreateBill', 'RestoreBill']) {
+  for (const [name, source] of [
+    ['CreateBill', webMutations],
+    ['RestoreBill', webMutations],
+    ['CreateBillForAgent', backendMutations],
+    ['RestoreBillForAgent', backendMutations],
+  ] as const) {
     it(`${name} counts the live bills up to strategydance-core's cap`, () => {
-      const operation = readOperation(webMutations, name)
+      const operation = readOperation(source, name)
 
       expect(readNumbers(operation, /size\(this\) < (\d+)/g)).toEqual([MAX_BILLS])
       expect(readNumbers(operation, /limit: (\d+)/g)).toContain(MAX_BILLS)
@@ -121,19 +132,36 @@ describe('the bills', () => {
     expect(readNumbers(readOperation(webQueries, 'GetBills'), /limit: (\d+)/g)).toEqual([MAX_BILLS])
   })
 
+  it('GetBudgetForAgent reads as many bills as an organization keeps', () => {
+    expect(readNumbers(readOperation(backendQueries, 'GetBudgetForAgent'), /limit: (\d+)/g)).toContain(MAX_BILLS)
+  })
+
   it('SetBudget holds an amount to the most strategydance-core takes', () => {
     expect(readNumbers(readOperation(webMutations, 'SetBudget'), /vars\.amountMinor <= (\d+)/g)).toEqual([
       MAX_MONEY_MINOR,
     ])
   })
 
-  it("ReserveBillReceipt takes the receipts' name, size and types strategydance-core does", () => {
-    const operation = readOperation(backendMutations, 'ReserveBillReceipt')
-    const types = /vars\.contentType in \[([^\]]*)\]/.exec(operation)?.[1]
+  for (const [name, size] of [
+    ['ReserveBillReceipt', MAX_BILL_RECEIPT_SIZE],
+    ['ReserveBillReceiptForAgent', MAX_AGENT_BILL_RECEIPT_SIZE],
+  ] as const) {
+    it(`${name} takes the receipts' name, size and types strategydance-core does`, () => {
+      const operation = readOperation(backendMutations, name)
+      const types = /vars\.contentType in \[([^\]]*)\]/.exec(operation)?.[1]
 
-    expect(readNumbers(operation, /size\(vars\.name\) <= (\d+)/g)).toEqual([MAX_BILL_RECEIPT_NAME_LENGTH])
-    expect(readNumbers(operation, /vars\.size <= (\d+)/g)).toEqual([MAX_BILL_RECEIPT_SIZE])
-    expect(types?.split(',').map(type => type.trim().replaceAll("'", ''))).toEqual(BILL_RECEIPT_CONTENT_TYPES)
+      expect(readNumbers(operation, /size\(vars\.name\) <= (\d+)/g)).toEqual([MAX_BILL_RECEIPT_NAME_LENGTH])
+      expect(readNumbers(operation, /vars\.size <= (\d+)/g)).toEqual([size])
+      expect(types?.split(',').map(type => type.trim().replaceAll("'", ''))).toEqual(BILL_RECEIPT_CONTENT_TYPES)
+    })
+  }
+
+  it("names the Budget module's bill writes in GetBills' refreshes", () => {
+    const query = readOperation(webQueries, 'GetBills')
+
+    for (const name of ['CreateBillForAgent', 'UpdateBillForAgent', 'DeleteBillForAgent', 'RestoreBillForAgent']) {
+      expect(query).toContain(`operation: "${name}"`)
+    }
   })
 
   it("ClaimBillReceiptRead and GetBillReceiptReads count to the reader's caps", () => {

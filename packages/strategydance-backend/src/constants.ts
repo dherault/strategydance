@@ -374,6 +374,15 @@ export const MAX_LOOP_TASKS_NAMED = 20
 export const MAX_TASKS_INDEXED = 20
 export const TASK_UPDATE_ATTEMPTS = 3
 
+/*
+  The Budget module's bounds. A list answers at most 50 bills and 40000 characters of JSON a page,
+  short of the 50000 characters a tool result is cut at. An update lost to another save is read again
+  and reapplied, three times at most
+*/
+export const BILL_LIST_PAGE_SIZE = 50
+export const BILL_LIST_PAGE_LENGTH = 40000
+export const BILL_UPDATE_ATTEMPTS = 3
+
 /* ---
   OAUTH
 

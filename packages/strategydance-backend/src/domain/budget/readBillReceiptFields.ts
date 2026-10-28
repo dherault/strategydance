@@ -5,6 +5,7 @@ import {
   type BillReceiptFields,
   type BillRecurrence,
   Currency,
+  CURRENCIES,
   FIRST_BILL_DAY,
   isCalendarDay,
   isCurrency,
@@ -77,10 +78,20 @@ function toOneLine(text: string, maxLength: number) {
 
 // US dollars stand in for a currency of two decimals, the bill dialog checking it again in its own
 function readAmount(amount: string | null, currency: Currency | null) {
-  const trimmed = amount?.trim() ?? ''
-  const minor = parseMoney(trimmed, currency ?? Currency.USD)
+  const known = currency ?? Currency.USD
+  const trimmed = dropZeroDecimals(amount?.trim() ?? '', CURRENCIES[known].exponent)
+  const minor = parseMoney(trimmed, known)
 
   return minor !== null && minor > 0 ? trimmed : null
+}
+
+// An amount without the zeros past a currency's decimals: "1500.00" with none is "1500"
+function dropZeroDecimals(amount: string, exponent: number) {
+  const match = /^(\d+)\.(\d+)$/.exec(amount)
+
+  if (!match || match[2]!.length <= exponent || !/^0+$/.test(match[2]!.slice(exponent))) return amount
+
+  return exponent === 0 ? match[1]! : `${match[1]}.${match[2]!.slice(0, exponent)}`
 }
 
 function readDay(day: string | null, today: string) {

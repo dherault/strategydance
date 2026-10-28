@@ -10,7 +10,7 @@
 | M6 | The Bills tab and the bill dialog | web, design-system, root | M5 | #259 |
 | M7 | Reading receipts | backend, database, core, web | M6 | #260 |
 | M8 | The Budget module | database, core, backend, root | M2, M3 | #262 |
-| M9 | The Budget module for external agents | backend, web, root | M8 | |
+| M9 | The Budget module for external agents | backend, web, root | M8 | #263 |
 | M10 | Budget in conversations | backend, web, root | M8 | |
 
 What a company spends, against what it means to spend:

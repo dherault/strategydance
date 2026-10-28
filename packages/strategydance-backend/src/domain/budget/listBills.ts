@@ -1,11 +1,9 @@
 import {
-  addCalendarDays,
-  BILL_DAYS_AHEAD,
   type Currency,
   FIRST_BILL_DAY,
   getLastBillPayment,
+  hasBillPaymentWithin,
   isBillActive,
-  listBillPayments,
   listExchangeRateYears,
 } from 'strategydance-core'
 import { z } from 'zod'
@@ -23,11 +21,16 @@ import readBudgetState from '~domain/budget/readBudgetState'
 import toModuleBill from '~domain/budget/toModuleBill'
 import recordModuleSearch from '~domain/modules/recordModuleSearch'
 
-// What a cursor holds: the last bill's last payment and its id, which the next page starts after
+// What a cursor holds: the last bill's last payment and its id, which the next page starts after,
+// and the today the first page was ordered on, so a page read past midnight orders as it did
 const cursorSchema = z.object({
   day: z.iso.date(),
   id: z.string().regex(UUID_PATTERN),
+  today: z.iso.date().optional(),
 })
+
+// A day after any a bill pays on, where a stretch named by its start alone ends
+const LAST_CALENDAR_DAY = '9999-12-31'
 
 // Room kept in a page's budget for its cursor, which is written once the page is cut
 const CURSOR_ROOM = 200
@@ -66,8 +69,9 @@ type PlacedBill = { bill: AgentBill; day: string }
 
   A query matches every word of it, whatever its case, in a bill's name, description or company.
   `paidFrom` and `paidTo` keep the bills with a payment between them, either end alone reaching back
-  to 1999 or ahead ten years; `active` the subscriptions with a payment still to come, or, false,
-  every other bill. An external agent's query draws on the member's search allowance first, each
+  to 1999 or on without end, each bill answered from its last payment rather than by listing them;
+  `active` the subscriptions with a payment still to come, however far ahead, or, false, every other
+  bill. Every page orders on the first page's today, which its cursor keeps. An external agent's query draws on the member's search allowance first, each
   page of it, as `list_tasks`' does, and is refused past it. The query is never logged
 */
 async function listBills(
@@ -89,19 +93,20 @@ async function listBills(
 
   if (read.outcome !== 'read') return read
 
-  const { bills, currency, today } = read.state
+  const { bills, currency } = read.state
+  const today = after?.today ?? read.state.today
   const words = query?.toLowerCase().split(/\s+/).filter(Boolean) ?? []
   const payerId = paidBy === undefined ? undefined : parseBillPayer(paidBy, caller)
   const isDated = paidFrom !== undefined || paidTo !== undefined
   const from = paidFrom ?? FIRST_BILL_DAY
-  const to = paidTo ?? addCalendarDays(today, BILL_DAYS_AHEAD)
+  const to = paidTo ?? LAST_CALENDAR_DAY
   const listed = bills
     .filter(bill => {
       const text = `${bill.name}\n${bill.description}\n${bill.company}`.toLowerCase()
 
       return (
         words.every(word => text.includes(word))
-        && (!isDated || listBillPayments(bill, from, to).length > 0)
+        && (!isDated || hasBillPaymentWithin(bill, from, to))
         && (payerId === undefined || bill.paidById === payerId)
         && (recurring === undefined || (bill.recurrence !== null) === recurring)
         && (active === undefined || isBillActive(bill, today) === active)
@@ -140,7 +145,8 @@ async function listBills(
     page: {
       ...frame,
       bills: page,
-      ...(last && remaining.length > page.length && { nextCursor: encodeCursor({ day: last.day, id: last.bill.id }) }),
+      ...(last
+        && remaining.length > page.length && { nextCursor: encodeCursor({ day: last.day, id: last.bill.id, today }) }),
     },
   }
 }

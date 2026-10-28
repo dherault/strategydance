@@ -304,8 +304,10 @@ no file is ever without its row.
 
 **The daily sweep prunes what nothing holds:**
 - `pruneDeletedBills` deletes the bills deleted over a day ago.
-- `pruneBillReceipts` then deletes the receipts no bill holds that were created over two days ago,
-  first the file, then the row. That covers:
+- `pruneBillReceipts` then deletes the receipts no bill holds that were created over three days ago
+  (`BILL_RECEIPT_PRUNE_DAYS`), first the file, then the row. A save takes one only within two days
+  (`BILL_RECEIPT_ATTACHABLE_DAYS`), so a save in flight as its two days run out commits before any
+  sweep reads the receipt as held by nothing. That covers:
   - a receipt uploaded and never saved;
   - one replaced or removed in an edit;
   - one whose bill was just pruned.

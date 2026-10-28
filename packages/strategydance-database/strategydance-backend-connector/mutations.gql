@@ -9073,14 +9073,14 @@ mutation PruneDeletedBills @auth(level: NO_ACCESS) {
 }
 
 # Deletes the rows of receipts the sweep read, once their files are gone. Only those still held by no
-# bill and over two days old, as it read them, so a row is never deleted on its id alone. Deleting
+# bill and over three days old, as it read them, so a row is never deleted on its id alone. Deleting
 # one twice deletes nothing
 mutation DeleteBillReceipts($ids: [UUID!]!) @auth(level: NO_ACCESS) {
   billReceipt_deleteMany(
     where: {
       _and: [
         { id: { in: $ids } }
-        { createdAt: { lt_time: { now: true, sub: { days: 2 } } } }
+        { createdAt: { lt_time: { now: true, sub: { days: 3 } } } }
         { _not: { bill_on_receipt: { id: { isNull: false } } } }
       ]
     }

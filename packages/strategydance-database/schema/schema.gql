@@ -1699,9 +1699,9 @@ type Bill @table @index(fields: ["organizationId", "deletedAt"]) {
 # `organizations/`.
 #
 # Its row is written before its file and nothing moves the file, so no file is ever without its
-# row. One no bill holds, deleted bills included, is deleted by the daily sweep two days after its
-# upload, its file first, then its row: an upload never saved, one an edit replaced or removed, and
-# one whose bill was pruned
+# row. A bill's save takes one no bill holds within two days of its upload, and the daily sweep
+# deletes one no bill holds, deleted bills included, three days after it, its file first, then its
+# row: an upload never saved, one an edit replaced or removed, and one whose bill was pruned
 type BillReceipt @table @index(fields: ["createdAt"]) @index(fields: ["organizationId", "readAt"]) {
   # Made by the page, so an upload sent again stores the file once, and the object's name in Storage
   id: UUID! @default(expr: "uuidV4()")

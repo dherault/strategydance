@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'bun:test'
 
 import {
+  BILL_RECEIPT_ATTACHABLE_DAYS,
   BILL_RECEIPT_CONTENT_TYPES,
+  BILL_RECEIPT_PRUNE_DAYS,
   BUDGET_PERIOD_MONTHS,
   Currency,
   MAX_BILL_COMPANY_LENGTH,
@@ -141,6 +143,28 @@ describe('the bills', () => {
       MAX_MONEY_MINOR,
     ])
   })
+
+  for (const [name, source] of [
+    ['CreateBill', webMutations],
+    ['UpdateBill', webMutations],
+    ['CreateBillForAgent', backendMutations],
+    ['UpdateBillForAgent', backendMutations],
+  ] as const) {
+    it(`${name} takes a receipt nothing holds within strategydance-core's days of its upload`, () => {
+      expect(readNumbers(readOperation(source, name), /sub: \{ days: (\d+) \}/g)).toEqual([
+        BILL_RECEIPT_ATTACHABLE_DAYS,
+      ])
+    })
+  }
+
+  for (const name of ['GetPrunableBillReceipts', 'DeleteBillReceipts']) {
+    it(`${name} prunes a receipt nothing holds a day after a save could last take it`, () => {
+      const operation = readOperation(name === 'DeleteBillReceipts' ? backendMutations : backendQueries, name)
+
+      expect(readNumbers(operation, /sub: \{ days: (\d+) \}/g)).toEqual([BILL_RECEIPT_PRUNE_DAYS])
+      expect(BILL_RECEIPT_PRUNE_DAYS).toBe(BILL_RECEIPT_ATTACHABLE_DAYS + 1)
+    })
+  }
 
   for (const [name, size] of [
     ['ReserveBillReceipt', MAX_BILL_RECEIPT_SIZE],

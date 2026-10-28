@@ -15,8 +15,8 @@ const BATCH_SIZE = 100
 const MAX_DURATION_MS = 3 * 60 * 1000
 
 /*
-  The daily sweep's prune of bills' receipts no bill holds, deleted bills included, two days after
-  their upload: one never saved, one an edit replaced or removed, and one whose bill the sweep pruned
+  The daily sweep's prune of bills' receipts no bill holds, deleted bills included, three days after
+  their upload, a day after the last save that could take one: one never saved, one an edit replaced or removed, and one whose bill the sweep pruned
   just before. A batch at a time, each file deleted before its row, so no file is ever without its
   row; a receipt whose file could not be deleted keeps its row for the next sweep
 */

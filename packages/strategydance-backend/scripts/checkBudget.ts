@@ -1021,12 +1021,13 @@ async function checkRemovedMember() {
 }
 
 async function checkPrunes() {
-  const prunable = await insertReceipt({ createdAt: hoursAgo(49) })
-  const uploading = await insertReceipt({ status: 'UPLOADING', createdAt: hoursAgo(49) })
-  const recent = await insertReceipt({ createdAt: hoursAgo(47) })
-  const held = await insertReceipt({ createdAt: hoursAgo(49) })
-  const ofDeleted = await insertReceipt({ createdAt: hoursAgo(49) })
-  const ofPruned = await insertReceipt({ createdAt: hoursAgo(49) })
+  const prunable = await insertReceipt({ createdAt: hoursAgo(73) })
+  const uploading = await insertReceipt({ status: 'UPLOADING', createdAt: hoursAgo(73) })
+  // Past the two days a save takes it in, a day short of the sweep's three
+  const recent = await insertReceipt({ createdAt: hoursAgo(49) })
+  const held = await insertReceipt({ createdAt: hoursAgo(73) })
+  const ofDeleted = await insertReceipt({ createdAt: hoursAgo(73) })
+  const ofPruned = await insertReceipt({ createdAt: hoursAgo(73) })
 
   await insertBill({ receiptId: held })
   await insertBill({ receiptId: ofDeleted, deletedAt: hoursAgo(1) })
@@ -1038,11 +1039,11 @@ async function checkPrunes() {
   const before = await listed()
 
   check(
-    'the sweep lists a receipt nothing holds two days old, ready or uploading',
+    'the sweep lists a receipt nothing holds three days old, ready or uploading',
     before.has(prunable) && before.has(uploading),
   )
   check(
-    'it leaves a younger receipt, one a bill holds, and one a deleted bill holds',
+    "it leaves one past a save's two days but under three, one a bill holds, and one a deleted bill holds",
     !before.has(recent) && !before.has(held) && !before.has(ofDeleted) && !before.has(ofPruned),
   )
 

@@ -673,7 +673,7 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   its Undo window and prunes what expires: conversations deleted over a day ago, claimed first, so a
   restore refuses them, and deleted with their files and module call results, one whose files could
   not all go staying claimed for the next sweep; files never sent; the board's deleted tasks;
-  deleted bills, then the receipts no bill holds two days after their upload; deleted documents and
+  deleted bills, then the receipts no bill holds three days after their upload; deleted documents and
   MCP servers; revisions over 30 days old; and the expired Connects, searches,
   run spends, call results and the authorization server's requests and tokens. Each step runs
   whatever failed before it (`runSweepSteps`), and the route answers 500 naming the failures.
@@ -1218,10 +1218,11 @@ milestones that build it: read it before changing any of it.
   (`routes/budget.ts`), through `billReceiptStorage`, which the tests replace with
   `createAttachmentStorageFake`. Nothing moves a file, so none is ever without its row
 - A save takes a receipt that is `READY`, in the organization, the caller's, held by no bill and
-  uploaded within two days, or one the bill holds already. The sweep prunes deleted bills a day
-  after, then the receipts no bill holds, deleted bills included, two days after their upload, each
-  file before its row (`pruneDeletedBills`, `pruneBillReceipts`). An upload never carries on a
-  reservation over a day old, so it never writes a file the sweep may be deleting
+  uploaded within two days (`BILL_RECEIPT_ATTACHABLE_DAYS`), or one the bill holds already. The
+  sweep prunes deleted bills a day after, then the receipts no bill holds, deleted bills included,
+  three days after their upload (`BILL_RECEIPT_PRUNE_DAYS`), a day past the last save that could
+  take one, each file before its row (`pruneDeletedBills`, `pruneBillReceipts`). An upload never
+  carries on a reservation over a day old, so it never writes a file the sweep may be deleting
 - `bun run check:budget` checks the operations against the emulators, and the domain's tests run
   against `createBudgetDatabaseFake`, built on the modules' fake base: an operation changed is
   changed in both

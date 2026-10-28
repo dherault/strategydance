@@ -21,9 +21,9 @@ import isOperationRefusal from '~domain/modules/isOperationRefusal'
 
 /*
   How old a reservation an upload sent again may carry on. The daily sweep deletes a receipt no bill
-  holds two days after its upload, its file first, then its row, so an upload writing a file into a
+  holds three days after its upload, its file first, then its row, so an upload writing a file into a
   reservation that old could do so between the two and leave a file without its row. A day leaves
-  the sweep a day to itself, and a retry comes within seconds
+  the sweep two days to itself, and a retry comes within seconds
 */
 const MAX_RESUMED_RESERVATION_AGE_MS = 24 * 60 * 60 * 1000
 

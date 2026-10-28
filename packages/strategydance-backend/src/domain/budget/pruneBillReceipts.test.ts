@@ -44,9 +44,9 @@ beforeEach(() => {
 })
 
 describe('pruneBillReceipts', () => {
-  test('deletes a receipt no bill holds two days after its upload, its file before its row', async () => {
-    const old = upload(49)
-    const recent = upload(47)
+  test('deletes a receipt no bill holds three days after its upload, its file before its row', async () => {
+    const old = upload(73)
+    const recent = upload(71)
     let isFileGoneBeforeRow = false
 
     fake.beforeOperation = async name => {
@@ -84,7 +84,7 @@ describe('pruneBillReceipts', () => {
   })
 
   test('keeps a receipt whose file could not be deleted, for the next sweep', async () => {
-    const old = upload(49)
+    const old = upload(73)
 
     storage.failures.delete = [new Error('Storage is down')]
 
@@ -95,7 +95,7 @@ describe('pruneBillReceipts', () => {
   })
 
   test('goes through more receipts than one batch holds', async () => {
-    for (let index = 0; index < 150; index++) upload(72)
+    for (let index = 0; index < 150; index++) upload(96)
 
     expect(await pruneBillReceipts()).toEqual({ deleted: 150, kept: 0 })
     expect(storage.objects.size).toBe(0)

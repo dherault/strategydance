@@ -3314,15 +3314,15 @@ query GetBillReceiptReads($organizationId: UUID!, $userId: String!, $receiptId: 
   }
 }
 
-# The daily sweep's: a hundred receipts that no bill holds, deleted bills included, uploaded over two
+# The daily sweep's: a hundred receipts that no bill holds, deleted bills included, uploaded over three
 # days ago, whatever their status, whose files it deletes before their rows (`DeleteBillReceipts`).
-# A bill's save takes no receipt that old unless it holds it already, so none of these is taken
-# meanwhile
+# A bill's save takes no receipt over two days old unless it holds it already, so none of these is
+# taken meanwhile, a save in flight as its two days ran out included
 query GetPrunableBillReceipts @auth(level: NO_ACCESS) {
   billReceipts(
     where: {
       _and: [
-        { createdAt: { lt_time: { now: true, sub: { days: 2 } } } }
+        { createdAt: { lt_time: { now: true, sub: { days: 3 } } } }
         { _not: { bill_on_receipt: { id: { isNull: false } } } }
       ]
     }

@@ -1,5 +1,7 @@
 import {
+  BILL_RECEIPT_ATTACHABLE_DAYS,
   BILL_RECEIPT_CONTENT_TYPES,
+  BILL_RECEIPT_PRUNE_DAYS,
   type BillRecurrence,
   type BudgetPeriod,
   type Currency,
@@ -116,10 +118,10 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
     return [...bills.values()].some(bill => bill.receiptId === receiptId)
   }
 
-  // Whether the sweep deletes a receipt: no bill holds it, deleted bills included, and it is over two
-  // days old
+  // Whether the sweep deletes a receipt: no bill holds it, deleted bills included, and it is over
+  // three days old
   function isPrunable(receipt: FakeBillReceipt) {
-    return !isHeld(receipt.id) && Date.parse(receipt.createdAt) < Date.now() - 2 * DAY_MS
+    return !isHeld(receipt.id) && Date.parse(receipt.createdAt) < Date.now() - BILL_RECEIPT_PRUNE_DAYS * DAY_MS
   }
 
   // A receipt written straight into its table, as an upload would have stored it
@@ -287,7 +289,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
     return (
       receipt.status === BillReceiptStatus.READY
       && receipt.userId === variables.userId
-      && Date.parse(receipt.createdAt) > Date.now() - 2 * DAY_MS
+      && Date.parse(receipt.createdAt) > Date.now() - BILL_RECEIPT_ATTACHABLE_DAYS * DAY_MS
       && !isHeld(receipt.id)
     )
   }

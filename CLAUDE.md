@@ -1154,9 +1154,9 @@ one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served to ex
   The Subagents module's tools import `domain/subagents/` inside their handler (`await import`), so
   no other module loads the conversation runtime, and its tests run against
   `createConversationDatabaseFake`; a module whose domain needs the runtime does the same. The
-  tests mock `~firebase` without its bucket, so the Budget module imports what stores a receipt
-  inside a call, and only one carrying a receipt (`storeAgentBillReceipt`): a module reaching the
-  bucket does the same. `bun run check:knowledge-module`, `check:tasks-module`,
+  tests mock `~firebase` without its bucket, so the Budget module imports what reaches it only inside
+  a call carrying a receipt: `storeAgentBillReceipt`, whose own imports are types alone, loads the
+  writer, or the reader and the copier, there. A module reaching the bucket does the same. `bun run check:knowledge-module`, `check:tasks-module`,
   `check:subagents-module` and `check:budget-module`, in the backend's package, check the operations
   against the emulators: an operation changed is changed in both
 - An external agent reaches a module at `https://api.strategydance.com/mcp/<name>`, each module its

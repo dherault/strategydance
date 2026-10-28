@@ -21,13 +21,7 @@ const budgetMessages = defineMessages({
   tabsLabel: {
     id: 'budget.tabsLabel',
     defaultMessage: 'Budget views',
-    description:
-      'What a screen reader calls the row of tabs at the top of the Budget page: Revenue, Expenses and Bills.',
-  },
-  revenueTab: {
-    id: 'budget.revenueTab',
-    defaultMessage: 'Revenue',
-    description: 'Tab of the Budget page about what the company earns, which is not available yet.',
+    description: 'What a screen reader calls the row of tabs at the top of the Budget page: Expenses and Bills.',
   },
   expensesTab: {
     id: 'budget.expensesTab',
@@ -40,16 +34,6 @@ const budgetMessages = defineMessages({
     defaultMessage: 'Bills',
     description:
       "Tab of the Budget page listing the company's bills, each a payment made once or repeating, such as a subscription. A count of the bills follows it.",
-  },
-  revenueTitle: {
-    id: 'budget.revenueTitle',
-    defaultMessage: 'Revenue is coming soon',
-    description: 'Title of the Revenue tab of the Budget page, which the app does not offer yet.',
-  },
-  revenueText: {
-    id: 'budget.revenueText',
-    defaultMessage: 'You will see what the company earns here, next to what it spends.',
-    description: 'Line under "Revenue is coming soon", on the Revenue tab of the Budget page.',
   },
   billsEmptyTitle: {
     id: 'budget.billsEmptyTitle',

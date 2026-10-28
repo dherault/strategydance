@@ -49,4 +49,49 @@ describe('uploadBillReceipt', () => {
     expect(storage.objects.size).toBe(0)
     expect(fake.receipts.get(receiptId)?.status).toBe('UPLOADING')
   })
+
+  test('answers a body ended short of its declared size as incomplete, not as a conflict', async () => {
+    const result = await uploadBillReceipt({
+      organizationId: ORGANIZATION_ID,
+      userId: MEMBER,
+      receiptId: crypto.randomUUID().replaceAll('-', ''),
+      name: 'Receipt.txt',
+      contentType: 'text/plain',
+      size: 100,
+      body: Readable.from([Buffer.from('Total 12.00')]),
+    })
+
+    expect(result.outcome).toBe('incomplete')
+    expect(storage.objects.size).toBe(0)
+  })
+
+  test('fails the upload of a client that goes away mid-way rather than wait on it', async () => {
+    const receiptId = crypto.randomUUID().replaceAll('-', '')
+    // Some bytes, then the connection gone, as a request a browser closed mid-upload leaves it
+    const body = new Readable({ read() {} })
+
+    body.push(Buffer.from('Total '))
+    setTimeout(() => body.destroy(new Error('aborted')), 10)
+
+    const upload = uploadBillReceipt({
+      organizationId: ORGANIZATION_ID,
+      userId: MEMBER,
+      receiptId,
+      name: 'Receipt.txt',
+      contentType: 'text/plain',
+      size: 100,
+      body,
+    })
+    const outcome = await Promise.race([
+      upload.then(
+        () => 'settled',
+        () => 'failed',
+      ),
+      Bun.sleep(2000).then(() => 'waiting'),
+    ])
+
+    expect(outcome).toBe('failed')
+    expect(storage.objects.size).toBe(0)
+    expect(fake.receipts.get(receiptId)?.status).toBe('UPLOADING')
+  })
 })

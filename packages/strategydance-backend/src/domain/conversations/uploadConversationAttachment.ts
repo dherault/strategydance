@@ -1,4 +1,4 @@
-import type { Readable } from 'node:stream'
+import { pipeline, type Readable } from 'node:stream'
 
 import Anthropic from '@anthropic-ai/sdk'
 import type { ConversationAttachmentData } from 'strategydance-core'
@@ -55,6 +55,8 @@ type UploadConversationAttachmentResult =
   | { outcome: 'tooMany' }
   | { outcome: 'unsupported'; reason: string }
   | { outcome: 'tooLarge'; reason: string }
+  // The body ended short of its `Content-Length`
+  | { outcome: 'incomplete'; reason: string }
 
 type UploadContextAttachment = {
   userId: string
@@ -191,7 +193,9 @@ async function storeObject(
 
   try {
     const written = await conversationAttachmentStorage.write(name, input.contentType, () =>
-      input.body.pipe(createAttachmentUploadCheck({ contentType: input.contentType, size: input.size })),
+      // A pipeline rather than `pipe`, so a client that goes away mid-upload fails the check, and
+      // the write with it, rather than leave it waiting on bytes that never come
+      pipeline(input.body, createAttachmentUploadCheck({ contentType: input.contentType, size: input.size }), () => {}),
     )
 
     if (written.outcome === 'exists') {
@@ -206,7 +210,7 @@ async function storeObject(
 
     if (error.reason === 'unsupported') return { outcome: 'unsupported', reason: error.message }
 
-    return { outcome: error.reason === 'tooLarge' ? 'tooLarge' : 'conflict', reason: error.message }
+    return { outcome: error.reason, reason: error.message }
   }
 }
 

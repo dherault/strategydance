@@ -138,6 +138,7 @@ function createBudgetRouter() {
           return
         case 'unsupported':
         case 'tooLarge':
+        case 'incomplete':
           respondReceiptRefusal(response, result)
 
           return

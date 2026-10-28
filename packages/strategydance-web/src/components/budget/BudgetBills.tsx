@@ -25,7 +25,9 @@ import budgetMessages from '~data/intl/messages/budget'
 /*
   The Bills tab: its search and its filter by payer over the organization's bills, by their last
   payment, newest first, and the button that adds one. The filters live here, so they last while a bill is open over the tab, and
-  go once another tab is chosen
+  go once another tab is chosen. One New bill dialog holds the tab, its empty state's button and its
+  toolbar's both opening it, so a form open as the first bill is added, or the last deleted, by
+  somebody else stays open as the tab swaps one for the other
 */
 function BudgetBills() {
   const { formatMessage } = useIntl()
@@ -37,8 +39,6 @@ function BudgetBills() {
   const [query, setQuery] = useState('')
   const [payerId, setPayerId] = useState<string | null>(null)
 
-  if (!bills.length) return <BudgetBillsEmpty />
-
   const shownBills = filterBills(sortBillsByLastPayment(bills, today), { query, payerId })
 
   function clearFilters() {
@@ -46,37 +46,45 @@ function BudgetBills() {
     setPayerId(null)
   }
 
+  if (!bills.length) {
+    return (
+      <BillUploadDialog>
+        <BudgetBillsEmpty />
+      </BillUploadDialog>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-4">
-      <PageToolbar
-        actions={
-          <BillUploadDialog>
+    <BillUploadDialog>
+      <div className="flex flex-col gap-4">
+        <PageToolbar
+          actions={
             <DialogTrigger asChild>
               <Button icon={<PlusIcon />}>{formatMessage(budgetMessages.newBill)}</Button>
             </DialogTrigger>
-          </BillUploadDialog>
-        }
-      >
-        <BudgetBillsFilters
-          query={query}
-          payerId={payerId}
-          payers={payers}
-          onQueryChange={setQuery}
-          onPayerChange={setPayerId}
-        />
-      </PageToolbar>
-      {shownBills.length ? (
-        <BudgetBillsTable
-          bills={shownBills}
-          payers={payers}
-          currency={settings.currency}
-          today={today}
-          rates={rates}
-        />
-      ) : (
-        <BudgetBillsNoMatch onClear={clearFilters} />
-      )}
-    </div>
+          }
+        >
+          <BudgetBillsFilters
+            query={query}
+            payerId={payerId}
+            payers={payers}
+            onQueryChange={setQuery}
+            onPayerChange={setPayerId}
+          />
+        </PageToolbar>
+        {shownBills.length ? (
+          <BudgetBillsTable
+            bills={shownBills}
+            payers={payers}
+            currency={settings.currency}
+            today={today}
+            rates={rates}
+          />
+        ) : (
+          <BudgetBillsNoMatch onClear={clearFilters} />
+        )}
+      </div>
+    </BillUploadDialog>
   )
 }
 

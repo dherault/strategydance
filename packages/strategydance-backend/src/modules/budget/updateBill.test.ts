@@ -58,6 +58,31 @@ describe('update_bill', () => {
     expect(fake.bills.get(bill.id)).toMatchObject({ company: 'Figma Inc.', amountMinor: 1800 })
   })
 
+  it("reads the bill again when a member's save moves a payer or a receipt the call kept, rather than refuse it", async () => {
+    const kit = await book.connect()
+    const receipt = fake.insertReceipt({
+      organizationId: ORGANIZATION_ID,
+      userId: 'other',
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    })
+    const bill = book.add({ paidById: 'former', receiptId: receipt.id, amountMinor: 1500 })
+    let hasSaved = false
+
+    fake.beforeOperation = async name => {
+      if (name !== 'UpdateBillForAgent' || hasSaved) return
+
+      hasSaved = true
+      fake.changeBill(bill.id, { paidById: 'member', receiptId: null })
+    }
+
+    expect(await kit.answer('update_bill', { id: bill.id, amount: '18.00' })).toMatchObject({
+      amount: '18.00',
+      paidBy: 'member:member',
+      hasReceipt: false,
+    })
+    expect(fake.bills.get(bill.id)).toMatchObject({ amountMinor: 1800, paidById: 'member', receiptId: null })
+  })
+
   it('refuses a change held to a version a member saved over, writing nothing', async () => {
     const kit = await book.connect()
     const bill = book.add({ name: 'Figma', amountMinor: 1500 })

@@ -173,11 +173,19 @@ async function updateBill(
 
       if (answeredMeanwhile) return answeredMeanwhile
       if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
-      if (isOperationRefusal(error, PAYER_REFUSAL)) return { outcome: 'payerNotMember' }
-      if (isOperationRefusal(error, RECEIPT_REFUSAL) || isOperationRefusal(error, RECEIPT_TAKEN_REFUSAL)) {
-        return { outcome: 'receiptTaken' }
-      }
-      if (!isOperationRefusal(error, CHANGED_REFUSAL)) throw error
+
+      const isPayerRefused = isOperationRefusal(error, PAYER_REFUSAL)
+      const isReceiptRefused =
+        isOperationRefusal(error, RECEIPT_REFUSAL) || isOperationRefusal(error, RECEIPT_TAKEN_REFUSAL)
+      // The operation checks the payer and the receipt before the `updatedAt` it is held to, so a
+      // payer or a receipt the call kept from its read, which a member's save moved since, is refused
+      // as the bill having changed
+      const isKeptFieldRefused =
+        (isPayerRefused && input.paidBy === undefined) || (isReceiptRefused && input.receipt === undefined)
+
+      if (isPayerRefused && !isKeptFieldRefused) return { outcome: 'payerNotMember' }
+      if (isReceiptRefused && !isKeptFieldRefused) return { outcome: 'receiptTaken' }
+      if (!isKeptFieldRefused && !isOperationRefusal(error, CHANGED_REFUSAL)) throw error
       // Saved or deleted by somebody else since the read: a version held to the read refuses it
       if (input.version !== undefined) return { outcome: 'changed' }
     }

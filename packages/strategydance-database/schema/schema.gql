@@ -1702,9 +1702,11 @@ type Bill @table @index(fields: ["organizationId", "deletedAt"]) {
 # `organizations/`.
 #
 # Its row is written before its file and nothing moves the file, so no file is ever without its
-# row. A bill's save takes one no bill holds within two days of its upload, and the daily sweep
-# deletes one no bill holds, deleted bills included, three days after it, its file first, then its
-# row: an upload never saved, one an edit replaced or removed, and one whose bill was pruned
+# row. A bill's save takes one no bill holds within two days of its upload. One an edit replaced or
+# removed stays its bill's, `formerBill`, as an earlier receipt the bill can take back, until the
+# bill is pruned. The daily sweep deletes one no bill holds nor keeps, deleted bills included, three
+# days after its upload, its file first, then its row: an upload never saved, and the earlier
+# receipts of a bill pruned
 type BillReceipt @table @index(fields: ["createdAt"]) @index(fields: ["organizationId", "readAt"]) {
   # Made by the page, so an upload sent again stores the file once, and the object's name in Storage
   id: UUID! @default(expr: "uuidV4()")
@@ -1714,6 +1716,11 @@ type BillReceipt @table @index(fields: ["createdAt"]) @index(fields: ["organizat
   # organization. Optional, set to null when the account goes, so the receipt stays with its bill and
   # the sweep still finds its file once no bill holds it
   user: User
+  # The bill that held it when it was last saved, which every save of a bill writes on the receipt
+  # it holds, kept or let go, so one an edit replaced or removed is kept as that bill's earlier
+  # receipt, which it can take back. Optional, set to null when the bill is pruned, after which the
+  # sweep takes the receipt with the bill's other earlier ones
+  formerBill: Bill
   status: BillReceiptStatus!
   # Its name as the member's device gave it, on one line of at most 200 characters
   # (`MAX_BILL_RECEIPT_NAME_LENGTH`)

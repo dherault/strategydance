@@ -41,6 +41,9 @@ export type FakeBillReceipt = {
   organizationId: string
   // Null once its uploader's account went
   userId: string | null
+  // The bill that held it when that bill was last saved, which keeps it as an earlier receipt once
+  // let go, null once that bill is pruned
+  formerBillId: string | null
   status: (typeof BillReceiptStatus)[keyof typeof BillReceiptStatus]
   name: string
   contentType: string
@@ -121,16 +124,21 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
     return [...bills.values()].some(bill => bill.receiptId === receiptId)
   }
 
-  // Whether the sweep deletes a receipt: no bill holds it, deleted bills included, and it is over
-  // three days old
+  // Whether the sweep deletes a receipt: no bill holds it nor keeps it as an earlier receipt, deleted
+  // bills included, and it is over three days old
   function isPrunable(receipt: FakeBillReceipt) {
-    return !isHeld(receipt.id) && Date.parse(receipt.createdAt) < Date.now() - BILL_RECEIPT_PRUNE_DAYS * DAY_MS
+    return (
+      !isHeld(receipt.id)
+      && receipt.formerBillId === null
+      && Date.parse(receipt.createdAt) < Date.now() - BILL_RECEIPT_PRUNE_DAYS * DAY_MS
+    )
   }
 
   // A receipt written straight into its table, as an upload would have stored it
   function insertReceipt(fields: Partial<FakeBillReceipt> & { organizationId: string; userId: string | null }) {
     const receipt: FakeBillReceipt = {
       id: id(crypto.randomUUID()),
+      formerBillId: null,
       status: BillReceiptStatus.READY,
       name: 'Invoice.pdf',
       contentType: 'application/pdf',
@@ -281,7 +289,8 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
   }
 
   // Whether a receipt is one a bill may take: `READY`, the caller's, under two days old and held by
-  // no bill, as `CreateBill` takes one, or, for an update, the bill's own already
+  // no bill, as `CreateBill` takes one, or, for an update, the bill's own already, or one of its
+  // earlier receipts no bill holds
   function isAttachable(variables: AnyVariables, billId?: string) {
     if (variables.receiptId == null) return true
 
@@ -289,6 +298,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
 
     if (!receipt || receipt.organizationId !== id(variables.organizationId)) return false
     if (billId !== undefined && bills.get(billId)?.receiptId === receipt.id) return true
+    if (billId !== undefined && receipt.formerBillId === billId && !isHeld(receipt.id)) return true
 
     return (
       receipt.status === BillReceiptStatus.READY
@@ -516,6 +526,11 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
         if (bill.deletedAt !== null && Date.parse(bill.deletedAt) < Date.now() - DAY_MS) {
           bills.delete(bill.id)
           deleted++
+
+          // Its earlier receipts' reference to it is set to null, as the database does
+          for (const receipt of receipts.values()) {
+            if (receipt.formerBillId === bill.id) receipt.formerBillId = null
+          }
         }
       }
 
@@ -686,6 +701,12 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
       }
 
       storeResult(variables)
+
+      // The receipt it held is marked as its own before the save, kept as an earlier one if let go
+      const held = bill.receiptId === null ? undefined : receipts.get(bill.receiptId)
+
+      if (held) held.formerBillId = billId
+
       writeBillVariables(bill, variables)
       bill.updatedById = String(variables.userId)
       bill.updatedAt = stamp()

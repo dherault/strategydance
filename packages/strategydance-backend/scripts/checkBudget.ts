@@ -258,8 +258,8 @@ async function insertBill(fields: Variables = {}) {
 }
 
 async function readReceiptRow(id: string) {
-  const data = await read<{ billReceipt: { status: string } | null }>(
-    `query ReadReceipt($id: UUID!) { billReceipt(id: $id) { status } }`,
+  const data = await read<{ billReceipt: { status: string; formerBillId: string | null } | null }>(
+    `query ReadReceipt($id: UUID!) { billReceipt(id: $id) { status formerBillId } }`,
     { id },
   )
 
@@ -818,18 +818,34 @@ async function checkReceiptsOfBills() {
   )
   check('the bill holds the fresh one', (await readBillRow(holder))?.receiptId === fresh)
 
+  check(
+    "the replaced receipt is kept as the bill's earlier receipt",
+    (await readReceiptRow(old))?.formerBillId === holder,
+  )
+  check(
+    'the sweep leaves it, over three days old and held by nothing',
+    !(await getPrunableBillReceipts(dataConnect)).data.billReceipts.some(({ id }) => id === old),
+  )
+  check('another bill does not take it', await isRefused(attach(old), again))
+
   const replaced = await readBill(holder)
 
   check(
-    'the replaced receipt, over two days old and held by nothing now, is not taken back',
+    'the bill takes it back, however old and whoever uploaded it',
     replaced !== undefined
-      && (await isRefused(runAs(userIds.member, 'UpdateBill', savedBill(replaced, { receiptId: old })), again)),
+      && (await isAccepted(runAs(userIds.member, 'UpdateBill', savedBill(replaced, { receiptId: old })))),
   )
+  check(
+    'the receipt it took the place of is kept in turn',
+    (await readBillRow(holder))?.receiptId === old && (await readReceiptRow(fresh))?.formerBillId === holder,
+  )
+
+  const restored = await readBill(holder)
   // By the unique reference, which Data Connect reports before the receipt's check in one statement
   const taken =
-    replaced === undefined
+    restored === undefined
       ? null
-      : await refusal(runAs(userIds.member, 'UpdateBill', savedBill(replaced, { receiptId: own })))
+      : await refusal(runAs(userIds.member, 'UpdateBill', savedBill(restored, { receiptId: own })))
 
   check(
     "a save taking another bill's receipt is refused",
@@ -837,10 +853,21 @@ async function checkReceiptsOfBills() {
   )
   check(
     'a save removes its receipt',
-    replaced !== undefined
-      && (await isAccepted(runAs(userIds.member, 'UpdateBill', savedBill(replaced, { receiptId: null })))),
+    restored !== undefined
+      && (await isAccepted(runAs(userIds.member, 'UpdateBill', savedBill(restored, { receiptId: null })))),
   )
-  check('the bill holds none', (await readBillRow(holder))?.receiptId === null)
+  check(
+    'the bill holds none, and keeps the one removed',
+    (await readBillRow(holder))?.receiptId === null && (await readReceiptRow(old))?.formerBillId === holder,
+  )
+
+  const other = await readBill(ownBill.id)
+
+  check(
+    "a save taking another bill's earlier receipt is refused",
+    other !== undefined
+      && (await isRefused(runAs(userIds.member, 'UpdateBill', savedBill(other, { receiptId: old })), again)),
+  )
 }
 
 async function checkSaving() {
@@ -1064,6 +1091,9 @@ async function checkPrunes() {
 
   const pruned = await insertBill({ receiptId: ofPruned, deletedAt: hoursAgo(25) })
   const kept = await insertBill({ deletedAt: hoursAgo(1) })
+  // Earlier receipts of a bill still there, and of the bill the sweep prunes
+  const earlier = await insertReceipt({ createdAt: hoursAgo(73), formerBillId: kept })
+  const earlierOfPruned = await insertReceipt({ createdAt: hoursAgo(73), formerBillId: pruned })
 
   const listed = async () => new Set((await getPrunableBillReceipts(dataConnect)).data.billReceipts.map(({ id }) => id))
   const before = await listed()
@@ -1073,17 +1103,27 @@ async function checkPrunes() {
     before.has(prunable) && before.has(uploading),
   )
   check(
-    "it leaves one past a save's two days but under three, one a bill holds, and one a deleted bill holds",
-    !before.has(recent) && !before.has(held) && !before.has(ofDeleted) && !before.has(ofPruned),
+    "it leaves one past a save's two days but under three, one a bill holds, one a deleted bill holds, and a bill's earlier ones",
+    !before.has(recent)
+      && !before.has(held)
+      && !before.has(ofDeleted)
+      && !before.has(ofPruned)
+      && !before.has(earlier)
+      && !before.has(earlierOfPruned),
   )
 
   await pruneDeletedBills(dataConnect)
 
   check('the sweep prunes a bill deleted over a day ago', (await readBillRow(pruned)) === null)
   check('it keeps one deleted since', (await readBillRow(kept)) !== null)
-  check('its receipt, held by nothing now, is listed next', (await listed()).has(ofPruned))
+  check(
+    'its receipt and its earlier ones, kept by nothing now, are listed next',
+    (await listed()).has(ofPruned) && (await listed()).has(earlierOfPruned) && !(await listed()).has(earlier),
+  )
 
-  await deleteBillReceipts(dataConnect, { ids: [prunable, uploading, ofPruned, recent, held, ofDeleted] })
+  await deleteBillReceipts(dataConnect, {
+    ids: [prunable, uploading, ofPruned, earlierOfPruned, recent, held, ofDeleted, earlier],
+  })
 
   check(
     'it deletes the rows of those it listed',
@@ -1092,10 +1132,11 @@ async function checkPrunes() {
       && (await readReceiptRow(ofPruned)) === null,
   )
   check(
-    'and never one younger or held, named or not',
+    'and never one younger, held or kept, named or not',
     (await readReceiptRow(recent)) !== null
       && (await readReceiptRow(held)) !== null
-      && (await readReceiptRow(ofDeleted)) !== null,
+      && (await readReceiptRow(ofDeleted)) !== null
+      && (await readReceiptRow(earlier)) !== null,
   )
 }
 

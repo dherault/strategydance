@@ -116,21 +116,27 @@ describe('update_bill', () => {
     })
   })
 
-  it('detaches the receipt on null, and replaces it with a new one', async () => {
+  it('detaches the receipt on null, and replaces it with a new one, keeping each as an earlier receipt', async () => {
     const kit = await book.connect()
     const receipt = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'member' })
     const bill = book.add({ receiptId: receipt.id })
 
     expect((await kit.answer('update_bill', { id: bill.id, receipt: null })).hasReceipt).toBe(false)
     expect(fake.bills.get(bill.id)!.receiptId).toBeNull()
+    expect(fake.receipts.get(receipt.id)!.formerBillId).toBe(bill.id)
 
     const replaced = await kit.answer('update_bill', {
       id: bill.id,
       receipt: { name: 'Invoice.txt', text: 'Figma, $15.00' },
     })
+    const replacement = fake.receipts.get(fake.bills.get(bill.id)!.receiptId!)!
 
     expect(replaced.hasReceipt).toBe(true)
-    expect(fake.receipts.get(fake.bills.get(bill.id)!.receiptId!)!.name).toBe('Invoice.txt')
+    expect(replacement.name).toBe('Invoice.txt')
+
+    await kit.answer('update_bill', { id: bill.id, receipt: null })
+
+    expect(replacement.formerBillId).toBe(bill.id)
   })
 
   it('takes its end off with its recurrence, and refuses a currency its amount does not fit', async () => {

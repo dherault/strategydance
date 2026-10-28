@@ -1219,11 +1219,14 @@ milestones that build it: read it before changing any of it.
   (`routes/budget.ts`), through `billReceiptStorage`, which the tests replace with
   `createAttachmentStorageFake`. Nothing moves a file, so none is ever without its row
 - A save takes a receipt that is `READY`, in the organization, the caller's, held by no bill and
-  uploaded within two days (`BILL_RECEIPT_ATTACHABLE_DAYS`), or one the bill holds already. The
-  sweep prunes deleted bills a day after, then the receipts no bill holds, deleted bills included,
-  three days after their upload (`BILL_RECEIPT_PRUNE_DAYS`), a day past the last save that could
-  take one, each file before its row (`pruneDeletedBills`, `pruneBillReceipts`). An upload never
-  carries on a reservation over a day old, so it never writes a file the sweep may be deleting
+  uploaded within two days (`BILL_RECEIPT_ATTACHABLE_DAYS`), or one the bill holds already, or one
+  of its earlier receipts. Every save first marks the receipt the bill holds with the bill
+  (`formerBill`), so one it replaces or removes is kept as the bill's earlier receipt: a new way to
+  save a bill marks it too. The sweep prunes deleted bills a day after, nulling their earlier
+  receipts' `formerBill`, then the receipts no bill holds nor keeps, deleted bills included, three
+  days after their upload (`BILL_RECEIPT_PRUNE_DAYS`), a day past the last save that could take
+  one, each file before its row (`pruneDeletedBills`, `pruneBillReceipts`). An upload never carries
+  on a reservation over a day old, so it never writes a file the sweep may be deleting
 - `bun run check:budget` checks the operations against the emulators, and the domain's tests run
   against `createBudgetDatabaseFake`, built on the modules' fake base: an operation changed is
   changed in both

@@ -83,6 +83,22 @@ describe('pruneBillReceipts', () => {
     expect(fake.receipts.has(held.id)).toBe(true)
   })
 
+  test("keeps a bill's earlier receipts while the bill lasts, and takes them with it", async () => {
+    const bill = fake.insertBill({ organizationId: ORGANIZATION_ID, receiptId: upload(100).id })
+    const earlier = upload(100)
+
+    earlier.formerBillId = bill.id
+
+    expect(await pruneBillReceipts()).toEqual({ deleted: 0, kept: 0 })
+
+    bill.deletedAt = new Date(Date.now() - 25 * HOUR_MS).toISOString()
+
+    expect(await pruneDeletedBills()).toEqual({ deleted: 1 })
+    expect(await pruneBillReceipts()).toEqual({ deleted: 2, kept: 0 })
+    expect(fake.receipts.has(earlier.id)).toBe(false)
+    expect(storage.objects.has(objectName(earlier.id))).toBe(false)
+  })
+
   test('keeps a receipt whose file could not be deleted, for the next sweep', async () => {
     const old = upload(73)
 

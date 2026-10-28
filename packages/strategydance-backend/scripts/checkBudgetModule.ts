@@ -253,10 +253,9 @@ async function readBillRow(id: string) {
 }
 
 async function readReceiptRow(id: string) {
-  const data = await read<{ billReceipt: { status: string; userId: string | null } | null }>(
-    `query ReadReceipt($id: UUID!) { billReceipt(id: $id) { status userId } }`,
-    { id },
-  )
+  const data = await read<{
+    billReceipt: { status: string; userId: string | null; formerBillId: string | null } | null
+  }>(`query ReadReceipt($id: UUID!) { billReceipt(id: $id) { status userId formerBillId } }`, { id })
 
   return data.billReceipt
 }
@@ -581,6 +580,19 @@ async function checkUpdating() {
     'a save with no receipt detaches it',
     (await isAccepted(update(withReceipt, { receiptId: null })))
       && (await readBillRow(withReceipt))?.receiptId === null,
+  )
+  check(
+    "the receipt let go is kept as the bill's earlier receipt",
+    (await readReceiptRow(own))?.formerBillId === withReceipt,
+  )
+  check(
+    'the bill takes it back, however old and whoever uploaded it',
+    (await isAccepted(update(withReceipt, { receiptId: own }))) && (await readBillRow(withReceipt))?.receiptId === own,
+  )
+  check(
+    "another bill does not take a bill's earlier receipt",
+    (await isAccepted(update(withReceipt, { receiptId: null })))
+      && (await isRefused(update(await insertBill(), { receiptId: own }), 'The receipt can no longer be attached')),
   )
 
   const taken = await insertReceipt()

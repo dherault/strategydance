@@ -2173,7 +2173,8 @@ mutation CreateBill(
 # The checks read the bill as it was before this save, which the `updatedAt` match then holds the
 # row to, so a bill keeps what it had already: the payer, even one who has left the organization, and
 # the receipt, whoever uploaded it and however long ago. A new payer is a member, and a new receipt
-# one `CreateBill` would take. The checks on the variables are optional under the membership, so
+# one `CreateBill` would take, or one of the bill's earlier receipts. A receipt the save replaces or
+# removes is kept as an earlier receipt of the bill (`formerBill`) until the bill is pruned. The checks on the variables are optional under the membership, so
 # somebody who is no member is told so (CLAUDE.md § The database). A receipt another bill holds is
 # refused by the unique reference before the receipt's check, since the operation runs as one SQL
 # statement, where a constraint a later step breaks is reported first
@@ -2246,6 +2247,7 @@ mutation UpdateBill(
           {
             _or: [
               { bill_on_receipt: { id: { eq: $id } } }
+              { _and: [{ formerBillId: { eq: $id } }, { _not: { bill_on_receipt: { id: { isNull: false } } } }] }
               {
                 _and: [
                   { status: { eq: READY } }
@@ -2267,6 +2269,13 @@ mutation UpdateBill(
       id
     }
   }
+  # Marks the receipt the bill holds, as the statement reads it before this save, as the bill's own,
+  # so should the save let it go, it is kept as one of the bill's earlier receipts rather than
+  # pruned. It filters on the bill alone, never on `$receiptId`, whose filter a null would drop
+  billReceipt_updateMany(
+    where: { organizationId: { eq: $organizationId }, bill_on_receipt: { id: { eq: $id } } }
+    data: { formerBillId: $id }
+  )
   bill_updateMany(
     where: {
       id: { eq: $id }

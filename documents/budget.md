@@ -121,6 +121,8 @@ enum BillReceiptStatus { UPLOADING READY }
   - An index on `["organizationId", "deletedAt"]`.
 - **`BillReceipt`**:
   - `id`, `organization`, and `user`, the member who uploaded it.
+  - `formerBill: Bill`, the bill that held it when that bill was last saved, which keeps it as an
+    earlier receipt once an edit replaces or removes it, null once that bill is pruned.
   - `status: BillReceiptStatus`.
   - `name`, `contentType` and `size`.
   - `readAt`, when the receipt reader claimed it, which its daily caps count, under an index on
@@ -296,23 +298,30 @@ Deleting the organization deletes that prefix with the rest. `routes/budget.ts`,
 **A bill names its receipt by id.** `CreateBill` and `UpdateBill` refuse a receipt that is any of:
 - not `READY`;
 - in another organization;
-- uploaded by another member, unless it is the bill's own already;
-- uploaded over two days ago, unless it is the bill's own already;
+- uploaded by another member, unless it is the bill's own already, or one of its earlier receipts;
+- uploaded over two days ago, unless it is the bill's own already, or one of its earlier receipts;
 - held by another bill, which the receipt's unique reference also refuses. `UpdateBill` runs as one
   SQL statement, so it reports that refusal before its own check's.
+
+**An edit loses no receipt.** A receipt is evidence of a payment, which a company keeps for years, and
+an edit that replaced or removed one used to leave it to the next sweep, beyond any undo. Every save
+of a bill, the page's and an agent's, first marks the receipt the bill holds with the bill
+(`formerBill`), in the same statement, so one the save lets go is kept as the bill's earlier
+receipt. The bill's dialog lists its earlier receipts and takes one back, and so does
+`update_bill`. They go with the bill, once the sweep prunes it.
 
 **Nothing moves a file.** A receipt is stored where it stays, and its row exists before its file, so
 no file is ever without its row.
 
 **The daily sweep prunes what nothing holds:**
-- `pruneDeletedBills` deletes the bills deleted over a day ago.
-- `pruneBillReceipts` then deletes the receipts no bill holds that were created over three days ago
-  (`BILL_RECEIPT_PRUNE_DAYS`), first the file, then the row. A save takes one only within two days
-  (`BILL_RECEIPT_ATTACHABLE_DAYS`), so a save in flight as its two days run out commits before any
-  sweep reads the receipt as held by nothing. That covers:
+- `pruneDeletedBills` deletes the bills deleted over a day ago, which sets their earlier receipts'
+  `formerBill` to null.
+- `pruneBillReceipts` then deletes the receipts no bill holds nor keeps that were created over three
+  days ago (`BILL_RECEIPT_PRUNE_DAYS`), first the file, then the row. A save takes one only within
+  two days (`BILL_RECEIPT_ATTACHABLE_DAYS`), so a save in flight as its two days run out commits
+  before any sweep reads the receipt as held by nothing. That covers:
   - a receipt uploaded and never saved;
-  - one replaced or removed in an edit;
-  - one whose bill was just pruned.
+  - the receipt and the earlier receipts of a bill just pruned.
 - A bill's dialog left open past two days on a receipt nothing holds yet is refused on save, saying
   to attach it again.
 

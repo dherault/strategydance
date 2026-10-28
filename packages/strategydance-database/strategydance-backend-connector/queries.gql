@@ -3323,14 +3323,17 @@ query GetBillReceiptReads($organizationId: UUID!, $userId: String!, $receiptId: 
 # bills included, uploaded over three days ago, whatever their status, whose files it deletes before
 # their rows (`DeleteBillReceipts`). A bill's save takes no receipt over two days old unless it holds
 # it already or keeps it, so none of these is taken meanwhile, a save in flight as its two days ran
-# out included
-query GetPrunableBillReceipts @auth(level: NO_ACCESS) {
+# out included. `$skippedIds` are those whose files this sweep failed to delete, which it reads past,
+# so a hundred that keep failing never hold back the rest. Required, since a filter on a list left
+# out matches every row
+query GetPrunableBillReceipts($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
   billReceipts(
     where: {
       _and: [
         { createdAt: { lt_time: { now: true, sub: { days: 3 } } } }
         { _not: { bill_on_receipt: { id: { isNull: false } } } }
         { formerBillId: { isNull: true } }
+        { _not: { id: { in: $skippedIds } } }
       ]
     }
     orderBy: [{ createdAt: ASC }]

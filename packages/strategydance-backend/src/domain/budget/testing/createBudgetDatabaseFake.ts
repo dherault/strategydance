@@ -539,9 +539,9 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
       return { bill_deleteMany: deleted }
     },
 
-    GetPrunableBillReceipts: () => ({
+    GetPrunableBillReceipts: variables => ({
       billReceipts: [...receipts.values()]
-        .filter(isPrunable)
+        .filter(receipt => isPrunable(receipt) && !(variables.skippedIds as string[]).includes(receipt.id))
         .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
         .slice(0, 100)
         .map(receipt => ({ id: receipt.id, organizationId: receipt.organizationId })),

@@ -828,7 +828,7 @@ async function checkReceiptsOfBills() {
   )
   check(
     'the sweep leaves it, over three days old and held by nothing',
-    !(await getPrunableBillReceipts(dataConnect)).data.billReceipts.some(({ id }) => id === old),
+    !(await getPrunableBillReceipts(dataConnect, { skippedIds: [] })).data.billReceipts.some(({ id }) => id === old),
   )
   check('another bill does not take it', await isRefused(attach(old), again))
 
@@ -1100,12 +1100,21 @@ async function checkPrunes() {
   const earlier = await insertReceipt({ createdAt: hoursAgo(73), formerBillId: kept })
   const earlierOfPruned = await insertReceipt({ createdAt: hoursAgo(73), formerBillId: pruned })
 
-  const listed = async () => new Set((await getPrunableBillReceipts(dataConnect)).data.billReceipts.map(({ id }) => id))
+  const listed = async (skippedIds: string[] = []) =>
+    new Set((await getPrunableBillReceipts(dataConnect, { skippedIds })).data.billReceipts.map(({ id }) => id))
   const before = await listed()
 
   check(
     'the sweep lists a receipt nothing holds three days old, ready or uploading',
     before.has(prunable) && before.has(uploading),
+  )
+  check(
+    'it reads past those whose files it failed to delete',
+    await (async () => {
+      const after = await listed([prunable])
+
+      return !after.has(prunable) && after.has(uploading)
+    })(),
   )
   check(
     "it leaves one past a save's two days but under three, one a bill holds, one a deleted bill holds, and a bill's earlier ones",

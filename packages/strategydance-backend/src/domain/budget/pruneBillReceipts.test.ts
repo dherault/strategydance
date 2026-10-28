@@ -99,15 +99,27 @@ describe('pruneBillReceipts', () => {
     expect(storage.objects.has(objectName(earlier.id))).toBe(false)
   })
 
-  test('keeps a receipt whose file could not be deleted, for the next sweep', async () => {
+  test('keeps a receipt whose file could not be deleted for the next sweep, and says so', async () => {
     const old = upload(73)
 
     storage.failures.delete = [new Error('Storage is down')]
 
-    expect(await pruneBillReceipts()).toEqual({ deleted: 0, kept: 1 })
+    await expect(pruneBillReceipts()).rejects.toThrow("1 bills' receipts kept")
     expect(fake.receipts.has(old.id)).toBe(true)
     expect(await pruneBillReceipts()).toEqual({ deleted: 1, kept: 0 })
     expect(fake.receipts.has(old.id)).toBe(false)
+  })
+
+  test('prunes past a hundred whose files keep failing, the oldest, rather than stop at them', async () => {
+    for (let index = 0; index < 100; index++) upload(200 - index * 0.01)
+
+    const newer = upload(80)
+
+    storage.failures.delete = Array.from({ length: 100 }, () => new Error('Retention hold'))
+
+    await expect(pruneBillReceipts()).rejects.toThrow("100 bills' receipts kept")
+    expect(fake.receipts.has(newer.id)).toBe(false)
+    expect(storage.objects.has(objectName(newer.id))).toBe(false)
   })
 
   test('goes through more receipts than one batch holds', async () => {

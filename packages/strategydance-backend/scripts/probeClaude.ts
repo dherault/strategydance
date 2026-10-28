@@ -779,7 +779,10 @@ await check(
 
     finding("The subagent's request's usage", message.usage)
     assert(message.stop_reason !== 'refusal', 'the request was refused')
-    assert(!names.includes('delete_task') && !names.includes('launch_subagent'), 'it sends a tool it never gets')
+    assert(
+      !names.includes('delete_task') && !names.includes('delete_bill') && !names.includes('launch_subagent'),
+      'it sends a tool it never gets',
+    )
     assert(
       !names.includes('ask_user') && names.includes('call_integration_tool'),
       'it sends ask_user, or not the integration tools',

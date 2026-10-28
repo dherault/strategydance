@@ -208,6 +208,7 @@ describe('runConversation, for a subagent', () => {
 
     expect(toolNames).not.toContain('delete_task')
     expect(toolNames).not.toContain('delete_document')
+    expect(toolNames).not.toContain('delete_bill')
     expect(toolNames).not.toContain('launch_subagent')
     expect(kit.readThread(subagent)[1]).toMatchObject({ toolName: 'delete_task', toolStatus: 'FAILED' })
     expect(fake.modules.tasks.get(task.id)?.deletedAt ?? null).toBeNull()

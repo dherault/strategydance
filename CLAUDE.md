@@ -1087,8 +1087,8 @@ Back closes the viewer.
 
 A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
 agent uses in its own process and a member can add to an agent of their own: Knowledge and Tasks,
-then Subagents, which Strategy Dance's agents alone reach, and Budget, which only `mcp:budget` serves
-until budget.md's M9 and M10 give it to agents. `MODULES` in strategydance-core lists
+then Subagents, which Strategy Dance's agents alone reach, and Budget, which external agents reach
+and Strategy Dance's agent reaches from budget.md's M10. `MODULES` in strategydance-core lists
 each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served to external agents.
 [conversations.md](documents/conversations.md) § Modules says what each does and why.
 
@@ -1174,8 +1174,8 @@ each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served 
   the emulators, Storage's included, where the Budget module writes receipts, through
   `serveModule.ts`, whose logger writes to stderr, stdout being the protocol's. The local
   backend serves them over HTTP too, as its own issuer: `claude mcp add --transport http
-  strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge`, the same for tasks, then
-  `/mcp` in Claude Code to sign in
+  strategydance-knowledge-http-local http://localhost:3003/mcp/knowledge`, the same for tasks and
+  budget, then `/mcp` in Claude Code to sign in
 - Run once by hand, after the release that added each, in the backend's package: `bun run
   backfill:document-text --production`, `backfill:task-text --production` and
   `backfill:task-done-at --production`

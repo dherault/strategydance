@@ -19,15 +19,17 @@ import BudgetLoadFailed from '~components/budget/BudgetLoadFailed'
 import BudgetRevenue from '~components/budget/BudgetRevenue'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
+import ModuleAgentsButton from '~components/module/ModuleAgentsButton'
 
 import budgetMessages from '~data/intl/messages/budget'
 import navigationMessages from '~data/intl/messages/navigation'
 
 /*
-  The Budget page: its header, with the budget's settings on the Expenses tab, then its three tabs,
-  Revenue, Expenses and Bills, the one open kept in the address, Expenses when it names none, or
-  Bills under a bill's dialog. While a read has failed the settings are not offered, since a budget
-  read as none would be set over the real one
+  The Budget page: its header, with the budget's settings on the Expenses tab and the agents button
+  on every tab, then its three tabs, Revenue, Expenses and Bills, the one open kept in the address,
+  Expenses when it names none, or Bills under a bill's dialog. While a read has failed the settings
+  are not offered, since a budget read as none would be set over the real one, but the agents
+  button, which reads nothing, still is
 */
 function BudgetPage() {
   const { formatMessage } = useIntl()
@@ -66,19 +68,22 @@ function BudgetPage() {
         title={formatMessage(navigationMessages.budget)}
         lead={formatMessage(budgetMessages.lead)}
         actions={
-          view === 'expenses' && !hasFailed ? (
-            <BudgetDialog>
-              <Tooltip content={settingsLabel}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    icon={<SlidersHorizontalIcon />}
-                    aria-label={settingsLabel}
-                  />
-                </DialogTrigger>
-              </Tooltip>
-            </BudgetDialog>
-          ) : undefined
+          <>
+            {view === 'expenses' && !hasFailed ? (
+              <BudgetDialog>
+                <Tooltip content={settingsLabel}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      icon={<SlidersHorizontalIcon />}
+                      aria-label={settingsLabel}
+                    />
+                  </DialogTrigger>
+                </Tooltip>
+              </BudgetDialog>
+            ) : null}
+            <ModuleAgentsButton module="budget" />
+          </>
         }
       />
       <div className="@container flex flex-col gap-8">

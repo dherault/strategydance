@@ -698,7 +698,6 @@ export const MODULES = [
     title: 'Strategy Dance Tasks',
     scopes: { read: 'tasks:read', write: 'tasks:write' },
   },
-  // Served to no external agent until its write tools are challenged and its searches counted, and
   // Strategy Dance's agent's once its tools join a conversation's
   {
     name: 'budget',
@@ -719,13 +718,13 @@ export const MODULES = [
 /*
   The modules the public backend serves to external agents, each at its own address under its
   `/mcp` path, behind the bearer check, with its protected resource metadata at the app's root:
-  Knowledge and Tasks, in `MODULES`' order. The authorization server reads them alone, its
+  Knowledge, Tasks and Budget, in `MODULES`' order. The authorization server reads them alone, its
   resources and `scopes_supported`, and so does the consent page, so a client asking for a module
   served to nobody is refused as for an address no module has, and no consent makes a connection
   that no endpoint serves. A module added to `MODULES` later joins them by its name here, once its
   write tools are challenged and its searches counted
 */
-export const SERVED_MODULE_NAMES: readonly ModuleName[] = ['knowledge', 'tasks']
+export const SERVED_MODULE_NAMES: readonly ModuleName[] = ['knowledge', 'tasks', 'budget']
 
 export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.includes(module.name))
 

@@ -164,6 +164,7 @@
   "budget.searchBills": "搜索账单",
   "budget.searchCurrencies": "搜索币种",
   "budget.setBudget": "设置预算",
+  "budget.showOlderReceipts": "显示更早的收据",
   "budget.spendingIn": "{year} 年支出",
   "budget.spentSince": "自 {date} 起已支出",
   "budget.spentSoFar": "{year} 年至今支出",

@@ -164,6 +164,7 @@
   "budget.searchBills": "請求書を検索",
   "budget.searchCurrencies": "通貨を検索",
   "budget.setBudget": "予算を設定",
+  "budget.showOlderReceipts": "過去の領収書を表示",
   "budget.spendingIn": "{year}年の支出",
   "budget.spentSince": "{date}以降の支出",
   "budget.spentSoFar": "{year}年のこれまでの支出",

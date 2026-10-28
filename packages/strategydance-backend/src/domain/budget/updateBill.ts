@@ -2,7 +2,6 @@ import { type BillRecurrence, type Currency, formatMoneyAmount } from 'strategyd
 import {
   BillRecurrence as DatabaseBillRecurrence,
   Currency as DatabaseCurrency,
-  getBillForAgent,
   updateBillForAgent,
 } from 'strategydance-database/backend'
 
@@ -80,11 +79,6 @@ async function updateBill(
   if (answered) return answered
 
   const billId = toCanonicalUuid(input.id)
-
-  if (earlierReceiptId && (await readEarlierReceiptIds(caller, billId))?.includes(earlierReceiptId) === false) {
-    return { outcome: 'earlierReceiptNotFound' }
-  }
-
   // The receipt the save gives the bill: null to detach it, undefined to keep the bill's own
   let receiptId: string | null | undefined = input.receipt === null ? null : (earlierReceiptId ?? undefined)
 
@@ -196,7 +190,10 @@ async function updateBill(
         (isPayerRefused && input.paidBy === undefined) || (isReceiptRefused && input.receipt === undefined)
 
       if (isPayerRefused && !isKeptFieldRefused) return { outcome: 'payerNotMember' }
-      if (isReceiptRefused && !isKeptFieldRefused) return { outcome: 'receiptTaken' }
+      // An earlier receipt is held to the bill's by the operation's own check, however old it is
+      if (isReceiptRefused && !isKeptFieldRefused) {
+        return { outcome: earlierReceiptId ? 'earlierReceiptNotFound' : 'receiptTaken' }
+      }
       if (!isKeptFieldRefused && !isOperationRefusal(error, CHANGED_REFUSAL)) throw error
       // Saved or deleted by somebody else since the read: a version held to the read refuses it
       if (input.version !== undefined) return { outcome: 'changed' }
@@ -204,20 +201,6 @@ async function updateBill(
   }
 
   return { outcome: 'busy' }
-}
-
-// The ids of a live bill's earlier receipts, which an edit replaced or removed, or null for a bill
-// the caller cannot read live, which the save then refuses as it refuses any
-async function readEarlierReceiptIds(caller: ModuleCaller, billId: string) {
-  const { data } = await getBillForAgent(dataConnect, {
-    organizationId: caller.organizationId,
-    userId: caller.userId,
-    membershipCreatedAt: caller.membershipCreatedAt,
-    id: billId,
-  })
-  const [bill] = data.bills
-
-  return bill && !bill.deletedAt ? bill.earlierReceipts.map(receipt => toCanonicalUuid(receipt.id)) : null
 }
 
 export default updateBill

@@ -1,4 +1,5 @@
 import { EyeIcon, FileTextIcon, ImageIcon, RotateCcwIcon } from 'lucide-react'
+import { useState } from 'react'
 import { useIntl } from 'react-intl'
 import type { BillReceiptData } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
@@ -14,6 +15,9 @@ import BillReceiptDialog from '~components/budget/BillReceiptDialog'
 
 import budgetMessages from '~data/intl/messages/budget'
 
+// How many earlier receipts show at first, and how many more each "Show older receipts" reads
+const EARLIER_RECEIPTS_PAGE = 5
+
 type Props = {
   billId: string
   // The receipt the dialog holds now, which is no longer among the earlier ones once taken back
@@ -27,12 +31,15 @@ type Props = {
 /*
   The receipts a bill held before an edit replaced or removed them, which it keeps until it is
   pruned, newest first, under its own receipt in its dialog: each with View and Use again, which
-  puts it back as the bill's receipt once the bill is saved. Nothing while the bill has none
+  puts it back as the bill's receipt once the bill is saved. The newest five, then five more each
+  time the reader asks for older ones, however many it keeps. Nothing while the bill has none
 */
 function BillEarlierReceipts({ billId, heldId, billName, details, onTakeBack }: Props) {
   const intl = useIntl()
   const { formatMessage } = intl
-  const receipts = useBillEarlierReceipts(billId).filter(receipt => receipt.id !== heldId)
+  const [count, setCount] = useState(EARLIER_RECEIPTS_PAGE)
+  const earlier = useBillEarlierReceipts(billId, count)
+  const receipts = earlier.receipts.filter(receipt => receipt.id !== heldId)
 
   if (!receipts.length) return null
 
@@ -90,6 +97,16 @@ function BillEarlierReceipts({ billId, heldId, billName, details, onTakeBack }: 
           </li>
         ))}
       </ul>
+      {earlier.hasOlder ? (
+        <Button
+          variant="transparent"
+          size="sm"
+          className="self-start"
+          onClick={() => setCount(count + EARLIER_RECEIPTS_PAGE)}
+        >
+          {formatMessage(budgetMessages.showOlderReceipts)}
+        </Button>
+      ) : null}
     </div>
   )
 }

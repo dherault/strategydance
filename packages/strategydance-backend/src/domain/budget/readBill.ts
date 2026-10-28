@@ -23,7 +23,8 @@ import toModuleBill from '~domain/budget/toModuleBill'
 export type ReadBillAnswer = ModuleBill & {
   budgetCurrency: Currency
   receipt: { name: string; contentType: string; size: number } | null
-  // What an edit replaced or removed, newest first, which `update_bill` takes back by id
+  // What an edit replaced or removed, the 50 newest, which `update_bill` takes back by id, any of
+  // the bill's however old
   earlierReceipts: { id: string; name: string; contentType: string; size: number }[]
   paymentsThisYear: { count: number; total: string; convertedTotal: string | null }
   createdBy: `member:${string}` | null

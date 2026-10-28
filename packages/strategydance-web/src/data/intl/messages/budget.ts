@@ -434,6 +434,12 @@ const budgetMessages = defineMessages({
     description:
       "Accessible name of the icon button that opens one of a bill's earlier receipts. {name} is the receipt's file name, such as invoice-march.pdf.",
   },
+  showOlderReceipts: {
+    id: 'budget.showOlderReceipts',
+    defaultMessage: 'Show older receipts',
+    description:
+      "Button under the list of a bill's earlier receipts, in its dialog, which shows the older ones the list does not show yet.",
+  },
   useReceiptAgain: {
     id: 'budget.useReceiptAgain',
     defaultMessage: 'Use again',

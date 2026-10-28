@@ -1153,6 +1153,10 @@
         "hash": "2337521fdf352566",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.showOlderReceipts": {
+        "hash": "9e63c10988e6633e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.spendingIn": {
         "hash": "97b0006ce4dea767",
         "locales": "DE,ES,FR,JA,PT,ZH"

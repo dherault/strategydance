@@ -164,6 +164,7 @@
   "budget.searchBills": "Buscar facturas",
   "budget.searchCurrencies": "Buscar monedas",
   "budget.setBudget": "Establecer presupuesto",
+  "budget.showOlderReceipts": "Mostrar recibos más antiguos",
   "budget.spendingIn": "Gastos en {year}",
   "budget.spentSince": "Gastado desde {date}",
   "budget.spentSoFar": "Gastado en {year} hasta ahora",

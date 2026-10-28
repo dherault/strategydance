@@ -143,7 +143,8 @@ describe('update_bill', () => {
     const kit = await book.connect()
     const kept = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'other', name: 'March.pdf' })
     const current = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'member' })
-    const elsewhere = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'member' })
+    // Another member's, which no bill of the caller's takes but as its own earlier receipt
+    const elsewhere = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'other' })
     const bill = book.add({ receiptId: current.id })
     const other = book.add({ receiptId: null })
 

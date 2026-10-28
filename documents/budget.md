@@ -158,16 +158,22 @@ removal keeps the bills they paid and the receipts they uploaded.
 ### Exchange rates
 
 **`syncExchangeRates`, in the backend's `domain/budget/`, keeps the table current.**
-1. It reads the latest year stored, or starts from 1999 when there is none.
+1. It reads every currency and year stored (`GetExchangeRateYearKeys`), and starts from the latest
+   year, or from 1999 while a currency of `CURRENCIES` but EUR has no row at all, as one added to
+   the list since. A currency the ECB stopped publishing keeps its rows, so it is never fetched back
+   to 1999 every day.
 2. For each year from there to the current one, it asks Frankfurter for that year's series, based on
-   EUR, for every currency of `CURRENCIES` but EUR: `/v1/<year>-01-01..<year>-12-31?symbols=…`, or
-   `/v1/<year>-01-01..` for the current year.
+   EUR: `/v1/<year>-01-01..<year>-12-31`, or `/v1/<year>-01-01..` for the current year. It names no
+   `symbols`, so a currency the ECB stops publishing, as it stopped the rouble in 2022, the kuna in
+   2023 and the lev in 2026, fails no request, and keeps the answer to the currencies of
+   `CURRENCIES`.
 3. It writes one row per currency for that year, an upsert.
 
 - **Each day is filed under its own year.** Frankfurter starts a series at the last ECB day on or
   before its first date, so a year's answer opens with the previous year's last day.
 - **It is idempotent.** The current year's rows are written again each day, and an older year is
-  never fetched again once a later one is stored.
+  never fetched again once a later one is stored. So a closed year's answer that stops before
+  December 20, which the ECB reached every year, is refused rather than written short for good.
 - **The first run backfills since 1999** in about 28 requests and 800 upserts. A daily run makes one
   request and 29 upserts.
 - **It runs as a step of the worker's daily `/internal/sweep`**, through `runSweepSteps`, so a day

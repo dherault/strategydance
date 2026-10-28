@@ -1,6 +1,7 @@
+import type { Currency } from 'strategydance-core'
 import {
   Currency as DatabaseCurrency,
-  getLatestExchangeRateYear,
+  getExchangeRateYearKeys,
   upsertExchangeRateYear,
 } from 'strategydance-database/backend'
 
@@ -10,12 +11,14 @@ import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
 
-import requestExchangeRateYear from '~domain/budget/requestExchangeRateYear'
+import requestExchangeRateYear, { SYNCED_CURRENCIES } from '~domain/budget/requestExchangeRateYear'
 
 /*
   Keeps `ExchangeRateYear` current with the ECB's daily rates, as the worker's daily sweep asks: from
-  the latest year stored, or 1999 when none is, to today's, one request to Frankfurter a year and one
-  row a currency, written whole over what was there. The first run backfills since 1999 in some 28
+  the latest year stored, or 1999 while a currency it syncs has no row at all, as one added to the
+  list since, to today's, one request to Frankfurter a year and one row a currency, written whole
+  over what was there. A currency is backfilled once it has no row, never again: one the ECB stopped
+  publishing keeps its rows and is not fetched back to 1999 every day. The first run backfills since 1999 in some 28
   requests and 800 writes, and a daily run makes one request and 29 writes.
 
   The latest year stored is always fetched again, and years go oldest first, so a year a run wrote
@@ -26,17 +29,23 @@ import requestExchangeRateYear from '~domain/budget/requestExchangeRateYear'
 async function syncExchangeRates({
   fetch = globalThis.fetch,
   today = new Date().toISOString().slice(0, 10),
+  currencies = SYNCED_CURRENCIES,
 }: {
   fetch?: Parameters<typeof requestExchangeRateYear>[0]
   today?: string
+  currencies?: readonly Currency[]
 } = {}) {
-  const { data } = await getLatestExchangeRateYear(dataConnect)
+  const { data } = await getExchangeRateYearKeys(dataConnect)
+  const stored = new Set<string>(data.exchangeRateYears.map(({ currency }) => currency))
+  const latestYear = data.exchangeRateYears[0]?.year
+  const isMissingCurrency = currencies.some(currency => !stored.has(currency))
+  const firstYear = latestYear === undefined || isMissingCurrency ? EXCHANGE_RATES_FIRST_YEAR : latestYear
   const currentYear = Number(today.slice(0, 4))
   const years: number[] = []
   let latestDay: string | null = null
 
-  for (let year = data.exchangeRateYears[0]?.year ?? EXCHANGE_RATES_FIRST_YEAR; year <= currentYear; year++) {
-    const ratesByCurrency = await requestExchangeRateYear(fetch, year, year === currentYear)
+  for (let year = firstYear; year <= currentYear; year++) {
+    const ratesByCurrency = await requestExchangeRateYear(fetch, year, year === currentYear, currencies)
 
     for (const [currency, rates] of ratesByCurrency) {
       await upsertExchangeRateYear(dataConnect, {

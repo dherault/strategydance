@@ -14,12 +14,11 @@ type Row = { currency: string; year: number; rates: string }
 // `ExchangeRateYear`, keyed as the table is, by currency and year
 const rows = new Map<string, Row>()
 
-const getLatestExchangeRateYear = mock(async (_dataConnect: unknown) => ({
+const getExchangeRateYearKeys = mock(async (_dataConnect: unknown) => ({
   data: {
     exchangeRateYears: [...rows.values()]
-      .sort((a, b) => b.year - a.year)
-      .slice(0, 1)
-      .map(({ year }) => ({ year })),
+      .sort((a, b) => b.year - a.year || a.currency.localeCompare(b.currency))
+      .map(({ currency, year }) => ({ currency, year })),
   },
 }))
 
@@ -35,11 +34,18 @@ mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {},
 
 mock.module('strategydance-database/backend', () => ({
   Currency: Object.fromEntries(Object.keys(CURRENCIES).map(currency => [currency, currency])),
-  getLatestExchangeRateYear,
+  getExchangeRateYearKeys,
   upsertExchangeRateYear,
 }))
 
 const { default: syncExchangeRates } = await import('./syncExchangeRates')
+
+// The fixtures' currencies, which the sync is held to, as it is to every one the Budget takes
+const CURRENCIES_SYNCED = ['JPY', 'USD'] as const
+
+function sync(options: Omit<Parameters<typeof syncExchangeRates>[0] & {}, 'currencies'>) {
+  return syncExchangeRates({ ...options, currencies: CURRENCIES_SYNCED })
+}
 
 // Frankfurter as the fixtures answer it, by the range asked for, recording each request
 function createFrankfurter(answers: Record<string, unknown> = {}) {
@@ -57,9 +63,8 @@ function createFrankfurter(answers: Record<string, unknown> = {}) {
     const range = pathname.replace('/v1/', '')
 
     requests.push({ range, signal: init.signal })
-    expect(searchParams.get('symbols')?.split(',')).toEqual(
-      Object.keys(CURRENCIES).filter(currency => currency !== 'EUR'),
-    )
+    // Every currency, so one the ECB stopped publishing fails the request for none
+    expect(searchParams.has('symbols')).toBe(false)
 
     const answer = byRange[range]
 
@@ -95,7 +100,7 @@ describe('syncExchangeRates', () => {
   test('backfills from 1999, whose first day is January 4, to the year under way', async () => {
     const { fetch, requests } = createFrankfurter()
 
-    expect(await syncExchangeRates({ fetch, today: '2000-01-04' })).toEqual({
+    expect(await sync({ fetch, today: '2000-01-04' })).toEqual({
       years: [1999, 2000],
       latestDay: '2000-01-04',
     })
@@ -109,18 +114,18 @@ describe('syncExchangeRates', () => {
   test('sends each request with a deadline', async () => {
     const { fetch, requests } = createFrankfurter()
 
-    await syncExchangeRates({ fetch, today: '2000-01-04' })
+    await sync({ fetch, today: '2000-01-04' })
 
     for (const { signal } of requests) expect(signal).toBeInstanceOf(AbortSignal)
   })
 
   test('fetches the year under way alone once it is stored', async () => {
-    await syncExchangeRates({ fetch: createFrankfurter().fetch, today: '2000-01-04' })
+    await sync({ fetch: createFrankfurter().fetch, today: '2000-01-04' })
     upsertExchangeRateYear.mockClear()
 
     const { fetch, requests } = createFrankfurter()
 
-    expect(await syncExchangeRates({ fetch, today: '2000-01-04' })).toEqual({ years: [2000], latestDay: '2000-01-04' })
+    expect(await sync({ fetch, today: '2000-01-04' })).toEqual({ years: [2000], latestDay: '2000-01-04' })
     expect(requests.map(({ range }) => range)).toEqual(['2000-01-01..'])
     expect(upsertExchangeRateYear.mock.calls.map(([, { year }]) => year)).toEqual([2000, 2000])
   })
@@ -130,7 +135,7 @@ describe('syncExchangeRates', () => {
 
     const { fetch, requests } = createFrankfurter()
 
-    expect(await syncExchangeRates({ fetch, today: '2026-01-02' })).toEqual({
+    expect(await sync({ fetch, today: '2026-01-02' })).toEqual({
       years: [2025, 2026],
       latestDay: '2026-01-02',
     })
@@ -141,7 +146,7 @@ describe('syncExchangeRates', () => {
   test("files the day a year's answer opens on under its own year", async () => {
     storeYear(2025, {})
 
-    await syncExchangeRates({ fetch: createFrankfurter().fetch, today: '2026-01-02' })
+    await sync({ fetch: createFrankfurter().fetch, today: '2026-01-02' })
 
     expect(readRates('USD', 2026)).toEqual({ '2026-01-02': 1.1721 })
     expect(readRates('USD', 2025)['2025-12-31']).toBe(1.175)
@@ -154,7 +159,7 @@ describe('syncExchangeRates', () => {
       '2026-01-01..': { ...FRANKFURTER_2026, rates: { '2025-12-31': FRANKFURTER_2026.rates['2025-12-31'] } },
     })
 
-    expect(await syncExchangeRates({ fetch, today: '2026-01-01' })).toEqual({ years: [2025], latestDay: '2025-12-31' })
+    expect(await sync({ fetch, today: '2026-01-01' })).toEqual({ years: [2025], latestDay: '2025-12-31' })
     expect(rows.has('USD:2026')).toBe(false)
   })
 
@@ -163,7 +168,7 @@ describe('syncExchangeRates', () => {
 
     const { fetch } = createFrankfurter({ '2026-01-01..': { ...FRANKFURTER_2026, base: 'USD' } })
 
-    await expect(syncExchangeRates({ fetch, today: '2026-01-02' })).rejects.toThrow('Frankfurter')
+    await expect(sync({ fetch, today: '2026-01-02' })).rejects.toThrow('Frankfurter')
     expect(upsertExchangeRateYear).not.toHaveBeenCalled()
   })
 
@@ -174,7 +179,7 @@ describe('syncExchangeRates', () => {
       '2026-01-01..': { ...FRANKFURTER_2026, rates: { '2026-01-02': { JPY: 183.94, USD: rate } } },
     })
 
-    await expect(syncExchangeRates({ fetch, today: '2026-01-02' })).rejects.toThrow('Frankfurter')
+    await expect(sync({ fetch, today: '2026-01-02' })).rejects.toThrow('Frankfurter')
     expect(upsertExchangeRateYear).not.toHaveBeenCalled()
   })
 
@@ -185,7 +190,7 @@ describe('syncExchangeRates', () => {
       '2026-01-01..': new DOMException('The operation timed out.', 'TimeoutError'),
     })
 
-    await expect(syncExchangeRates({ fetch, today: '2026-01-02' })).rejects.toThrow('timed out')
+    await expect(sync({ fetch, today: '2026-01-02' })).rejects.toThrow('timed out')
     expect(upsertExchangeRateYear).not.toHaveBeenCalled()
   })
 
@@ -194,18 +199,18 @@ describe('syncExchangeRates', () => {
 
     const { fetch } = createFrankfurter({ '2026-01-01..': new Response('Unavailable', { status: 503 }) })
 
-    await expect(syncExchangeRates({ fetch, today: '2026-01-02' })).rejects.toThrow('Frankfurter answered 503')
+    await expect(sync({ fetch, today: '2026-01-02' })).rejects.toThrow('Frankfurter answered 503')
   })
 
   test('finishes a run that failed partway, from the latest year stored', async () => {
     const failing = createFrankfurter({ '2000-01-01..': new Response('Unavailable', { status: 503 }) })
 
-    await expect(syncExchangeRates({ fetch: failing.fetch, today: '2000-01-04' })).rejects.toThrow('503')
+    await expect(sync({ fetch: failing.fetch, today: '2000-01-04' })).rejects.toThrow('503')
     expect([...rows.keys()].sort()).toEqual(['JPY:1999', 'USD:1999'])
 
     const { fetch, requests } = createFrankfurter()
 
-    expect(await syncExchangeRates({ fetch, today: '2000-01-04' })).toEqual({
+    expect(await sync({ fetch, today: '2000-01-04' })).toEqual({
       years: [1999, 2000],
       latestDay: '2000-01-04',
     })
@@ -226,10 +231,41 @@ describe('syncExchangeRates', () => {
     async ({ today, range, rates, year }) => {
       const { fetch, requests } = createFrankfurter({ [range]: { ...FRANKFURTER_2000, rates } })
 
-      await expect(syncExchangeRates({ fetch, today })).rejects.toThrow(`Frankfurter answered no day of ${year}`)
+      await expect(sync({ fetch, today })).rejects.toThrow(`Frankfurter answered no day of ${year}`)
       expect(requests.at(-1)?.range).toBe(range)
       // The latest year stored stays before it, so the next run fetches it again
       expect([...rows.values()].every(row => row.year < year)).toBe(true)
     },
   )
+
+  test('stops at a past year whose days end before December 20, cut short, writing nothing of it', async () => {
+    const { fetch } = createFrankfurter({
+      '1999-01-01..1999-12-31': { ...FRANKFURTER_1999, rates: { '1999-01-04': FRANKFURTER_1999.rates['1999-01-04'] } },
+    })
+
+    await expect(sync({ fetch, today: '2000-01-04' })).rejects.toThrow('stop at 1999-01-04, short of its end')
+    expect(rows.size).toBe(0)
+  })
+
+  test('backfills from 1999 once a currency it syncs has no row at all, as one added since', async () => {
+    rows.set('USD:2000', { currency: 'USD', year: 2000, rates: '{}' })
+
+    const { fetch, requests } = createFrankfurter()
+
+    await sync({ fetch, today: '2000-01-04' })
+
+    expect(requests.map(({ range }) => range)).toEqual(['1999-01-01..1999-12-31', '2000-01-01..'])
+    expect(readRates('JPY', 1999)['1999-01-04']).toBe(133.73)
+  })
+
+  test('never fetches back a currency the ECB stopped publishing, which keeps its rows', async () => {
+    rows.set('JPY:1999', { currency: 'JPY', year: 1999, rates: '{}' })
+    rows.set('USD:2000', { currency: 'USD', year: 2000, rates: '{}' })
+
+    const { fetch, requests } = createFrankfurter()
+
+    await sync({ fetch, today: '2000-01-04' })
+
+    expect(requests.map(({ range }) => range)).toEqual(['2000-01-01..'])
+  })
 })

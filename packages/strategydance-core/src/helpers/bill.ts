@@ -10,6 +10,9 @@ const MAX_BILL_PAYMENTS = 3000
 // How far into the future a bill's next payment is looked for
 const NEXT_BILL_PAYMENT_MONTHS = 24
 
+// A day after any a bill pays on, which a bill that never ends stops at for an answer
+const LAST_CALENDAR_DAY = '9999-12-31'
+
 /*
   The day of a recurring bill's payment at an index, the first being 0. Each is counted from
   `paidOn`, never from the payment before, so a bill paid on January 31 pays February 28, then
@@ -96,7 +99,28 @@ export function getNextBillPayment(bill: BillSchedule, today: string) {
   return getBillPaymentDay(bill, findLastBillPaymentIndex(bill, today) + 1)
 }
 
-// Whether a bill recurs and still has a payment to come: a subscription that has not ended
+/*
+  Whether a bill recurs and still has a payment to come, however far ahead: a subscription that has
+  not ended, one starting years from now included, where `getNextBillPayment` looks two years ahead
+*/
 export function isBillActive(bill: BillSchedule, today: string) {
-  return bill.recurrence !== null && getNextBillPayment(bill, today) !== null
+  if (bill.recurrence === null) return false
+
+  const last = getLastBillPaymentWithin(bill, bill.endsOn ?? LAST_CALENDAR_DAY)
+
+  return last !== null && last > today
+}
+
+/*
+  Whether a bill is paid at least once within `[from, to]`, both included, worked out from its last
+  payment on or before `to` rather than by listing its payments, so a weekly bill of decades costs
+  as much as one of a month
+*/
+export function hasBillPaymentWithin(bill: BillSchedule, from: string, to: string) {
+  if (from > to) return false
+  if (bill.recurrence === null) return from <= bill.paidOn && bill.paidOn <= to
+
+  const last = getLastBillPaymentWithin(bill, to)
+
+  return last !== null && last >= from
 }

@@ -1,8 +1,8 @@
+import { listExchangeRateYears } from 'strategydance-core'
+
 import useBills from '~hooks/budget/useBills'
 import useBudget from '~hooks/budget/useBudget'
 import useExchangeRates from '~hooks/budget/useExchangeRates'
-
-import listExchangeRateYears from '~utils/budget/listExchangeRateYears'
 
 /*
   The exchange rates the Budget page converts with on `today`: the budget's currency and every

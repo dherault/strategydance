@@ -698,7 +698,6 @@ export const MODULES = [
     title: 'Strategy Dance Tasks',
     scopes: { read: 'tasks:read', write: 'tasks:write' },
   },
-  // Strategy Dance's agent's once its tools join a conversation's
   {
     name: 'budget',
     path: '/mcp/budget',

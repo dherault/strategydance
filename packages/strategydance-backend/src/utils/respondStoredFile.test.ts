@@ -2,18 +2,18 @@ import { describe, expect, test } from 'bun:test'
 import type { AddressInfo } from 'node:net'
 import { Readable } from 'node:stream'
 
-import express from 'express'
+import express, { type Response } from 'express'
 
 import respondStoredFile from './respondStoredFile'
 
 const FILE = { name: 'Receipt.txt', contentType: 'text/plain', size: 1000 }
 
 // A server answering every request from the stream it is handed, once the route's lookup is over
-async function serve(stream: Readable, lookup: Promise<unknown> = Promise.resolve()) {
+async function serve(stream: Readable, lookup: (response: Response) => Promise<unknown> = async () => {}) {
   const app = express()
 
   app.get('/', async (_request, response) => {
-    await lookup
+    await lookup(response)
     respondStoredFile(response, stream, FILE)
   })
 
@@ -49,16 +49,19 @@ describe('respondStoredFile', () => {
 
   test('destroys the bucket stream of a reader gone while the route looked the file up', async () => {
     const stream = new Readable({ read() {} })
-    const { promise: lookup, resolve: finishLookup } = Promise.withResolvers()
-    const { server, url } = await serve(stream, lookup)
+    const started = Promise.withResolvers<void>()
+    // A lookup that ends only once the server saw the reader go
+    const { server, url } = await serve(stream, response => {
+      started.resolve()
+
+      return new Promise(resolve => response.once('close', resolve))
+    })
     const controller = new AbortController()
     const request = fetch(url, { signal: controller.signal }).catch(() => null)
 
-    await Bun.sleep(50)
+    await started.promise
     controller.abort()
     await request
-    await Bun.sleep(50)
-    finishLookup(null)
 
     for (let attempt = 0; attempt < 50 && !stream.destroyed; attempt++) await Bun.sleep(20)
 

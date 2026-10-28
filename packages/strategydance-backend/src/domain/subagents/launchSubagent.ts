@@ -27,6 +27,7 @@ import deriveUuid from '~utils/deriveUuid'
 import logger from '~utils/logger'
 
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
+import buildConversationFileNames from '~domain/agent/buildConversationFileNames'
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRuns from '~domain/conversations/finalizeDeadConversationRuns'
 import readReachedUsageCap from '~domain/conversations/readReachedUsageCap'
@@ -115,7 +116,8 @@ export type LaunchSubagentResult =
 /*
   Launches a subagent of one of the caller's conversations, its parent: a conversation of its own,
   hidden from the member, whose first entry is its brief, the files it hands over before the
-  brief's text, each by its id in the Files API, and whose first run, queued, carries it out. Then
+  brief's text, named with their ids, as a member's message names them, then each by its id in the
+  Files API, and whose first run, queued, carries it out. Then
   the run is sent on its way, as a send's is. Each round reads where things stand first:
 
   - the subagent at the id the launch derives exists: the launch went through already, and is
@@ -296,6 +298,8 @@ async function launchSubagent(input: LaunchSubagentInput): Promise<LaunchSubagen
     }
 
     const content: ConversationContentBlock[] = [
+      // Named first, as a member's entry names its files, so the subagent can hand one on by its id
+      ...(files.length ? [buildConversationFileNames(files)] : []),
       ...files.map(file => buildConversationAttachmentBlock(file, { fileId: file.claudeFileId })),
       // As stored, without U+0000, so the transcript and its measure hold what the thread draws
       { type: 'text', text },

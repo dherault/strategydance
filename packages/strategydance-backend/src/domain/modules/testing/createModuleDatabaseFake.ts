@@ -1,3 +1,4 @@
+import createBudgetDatabaseFake from '~domain/budget/testing/createBudgetDatabaseFake'
 import createKnowledgeDatabaseFake from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
 import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDatabaseFakeBase'
 import createOAuthDatabaseFake from '~domain/oauth/testing/createOAuthDatabaseFake'
@@ -11,7 +12,9 @@ import createTasksDatabaseFake from '~domain/tasks/testing/createTasksDatabaseFa
   external agent's token is verified against the memberships its calls are
 */
 function createModuleDatabaseFake() {
-  return createOAuthDatabaseFake(createTasksDatabaseFake(createKnowledgeDatabaseFake(createModuleDatabaseFakeBase())))
+  return createOAuthDatabaseFake(
+    createBudgetDatabaseFake(createTasksDatabaseFake(createKnowledgeDatabaseFake(createModuleDatabaseFakeBase()))),
+  )
 }
 
 export type ModuleDatabaseFake = ReturnType<typeof createModuleDatabaseFake>

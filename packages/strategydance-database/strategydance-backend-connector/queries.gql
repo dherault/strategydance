@@ -3333,3 +3333,160 @@ query GetPrunableBillReceipts @auth(level: NO_ACCESS) {
     organizationId
   }
 }
+
+# The Budget module's operations follow, named `…ForAgent`: what an agent reads and writes of an
+# organization's bills through it. Each takes the member the backend verified, `$userId`, and the
+# `createdAt` of the membership it read, `$membershipCreatedAt`, so a member removed, or removed and
+# invited back, stops every agent acting as them at its next call. Each read answers that membership
+# beside its rows, so such a caller is refused rather than shown no bills. Bills carry no AI
+# permission, as tasks do not: an agent acting as a member reads and changes any bill, as the member
+# could, and never the budget itself, which stays an administrator's, on the page
+
+# The budget and every live bill, as `GetBudget` and `GetBills` read them, which the module computes
+# from as the page does: up to 2000 bills (`MAX_BILLS` in strategydance-core), so nothing is left out
+# of a sum. With the member's time zone, from which the module tells their today, and the members, up
+# to 100 (`MAX_TEAM_SIZE`), by when they joined, so an agent can name a payer and is refused one who
+# is not a member before anything is written
+query GetBudgetForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
+@auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+    user {
+      timezone
+    }
+  }
+  budgets(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    currency
+    amountMinor
+    period
+  }
+  members: userOrganizations(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ createdAt: ASC }, { userId: ASC }]
+    limit: 100
+  ) {
+    userId
+    user {
+      displayName
+    }
+  }
+  bills(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 2000
+  ) {
+    id
+    name
+    description
+    company
+    amountMinor
+    currency
+    paidOn
+    recurrence
+    endsOn
+    paidById
+    paidBy {
+      displayName
+    }
+    receiptId
+    # An update is guarded on it, and `update_bill`'s `version` is it
+    updatedAt
+  }
+}
+
+# One bill by its id, deleted or not, so a restore can tell a bill deleted from one never there, with
+# its receipt's name, type and size, who paid it and who created it, and the budget's currency, which
+# its payments are converted into. With the member's time zone, from which the module tells their
+# today
+query GetBillForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!, $id: UUID!)
+@auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+    user {
+      timezone
+    }
+  }
+  budgets(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    currency
+  }
+  bills(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    id
+    name
+    description
+    company
+    amountMinor
+    currency
+    paidOn
+    recurrence
+    endsOn
+    paidById
+    paidBy {
+      displayName
+    }
+    receipt {
+      id
+      name
+      contentType
+      size
+    }
+    createdById
+    createdBy {
+      displayName
+    }
+    createdAt
+    updatedAt
+    deletedAt
+  }
+}

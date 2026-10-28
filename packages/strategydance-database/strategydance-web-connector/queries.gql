@@ -3342,8 +3342,8 @@ query GetBudget($organizationId: UUID!)
 # and its payer's name and pictures, since a payer who left the organization is no longer among the
 # team the page reads. Outsiders read nothing.
 #
-# A live query: each `@refresh` names a mutation that changes a bill the page shows. Removing a
-# member empties theirs, and deleting the organization empties everybody's. The daily sweep's prune
+# A live query: each `@refresh` names a mutation that changes a bill the page shows, the Budget
+# module's included, which the backend runs for an agent. Removing a member empties theirs, and deleting the organization empties everybody's. The daily sweep's prune
 # takes only bills deleted already, which nobody reads
 query GetBills($organizationId: UUID!)
 @auth(level: USER)
@@ -3368,6 +3368,30 @@ query GetBills($organizationId: UUID!)
 @refresh(
   onMutationExecuted: {
     operation: "RestoreBill"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateBillForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateBillForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteBillForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreBillForAgent"
     condition: "mutation.variables.organizationId == request.variables.organizationId"
   }
 )

@@ -10,6 +10,11 @@ describe('listChangedBillFields', () => {
     expect(listChangedBillFields(READ, { ...READ })).toEqual([])
     expect(
       listChangedBillFields(READ, { ...READ, amount: '18.00', isRecurring: true, receiptId: 'a1b2', endsOn: null }),
-    ).toEqual(['amount', 'isRecurring', 'receiptId'])
+    ).toEqual(['amount', 'currency', 'isRecurring', 'receiptId'])
+  })
+
+  it('names the amount and the currency together when either changed', () => {
+    expect(listChangedBillFields(READ, { ...READ, amount: '18.00' })).toEqual(['amount', 'currency'])
+    expect(listChangedBillFields(READ, { ...READ, currency: 'USD' })).toEqual(['amount', 'currency'])
   })
 })

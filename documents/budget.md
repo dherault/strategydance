@@ -422,8 +422,13 @@ Its tools, in their frozen order:
 | `restore_bill` | `{ id }` | the bill | write |
 
 - **Amounts** are decimal strings in the bill's currency, and conversions are in the budget's.
-- **`paidOn`** defaults to the member's today.
-- **`paidBy`** is `member:<id>`, as a task's assignee is, and defaults to the caller.
+  - A bill answers its last and next payments as `{ day, convertedAmount }`, converted into
+    `budgetCurrency`, null where a rate is missing.
+  - `read_budget` names `ratesDate`, the latest ECB day among the rates it read, null when every
+    amount is in the budget's currency already and nothing converts.
+- **`paidOn`** defaults to the member's today, from `User.timezone` through core's
+  `getCalendarDayInTimeZone`, or the UTC date.
+- **`paidBy`** is `member:<id>`, as a task's assignee is, or `"me"`, and defaults to the caller.
 - **`query`** matches every word, case-insensitively, against the name, the description and the
   company.
 - **`paidFrom` and `paidTo`** keep the bills with a payment between them.
@@ -433,8 +438,9 @@ Its tools, in their frozen order:
     (`MAX_AGENT_BILL_RECEIPT_SIZE`), under the modules' endpoint's 1 MiB body.
   - `{ name, text }`: 50,000 characters at most, kept as a `text/plain` receipt.
   - `{ attachmentId }`: for Strategy Dance's agent alone (M10), a file the member sent in the
-    conversation calling, or in its parent's brief for a subagent.
-- **A write with a receipt** first writes the receipt's row and file, then the bill. So a retry that
+    conversation calling, or in its parent's brief for a subagent. Refused until then.
+- **A write with a receipt** checks its bytes as an upload's are, before anything is written, then
+  writes the receipt's row (`ReserveBillReceiptForAgent`) and file, then the bill. So a retry that
   its key answers leaves a receipt nothing holds, which the sweep prunes.
 - **What every module's tool keeps:**
   - an idempotency key per write, under `com.strategydance/idempotencyKey`;
@@ -446,7 +452,10 @@ Its tools, in their frozen order:
 - **An external agent's `list_bills` with a query draws on the member's search allowance**
   (`recordModuleSearch`), as `list_tasks` does.
 - **`update_bill` writes the fields it is given** on the `updatedAt` it read. When a member saved in
-  between, it reads the bill again and applies its fields again, as the Tasks module's update does.
+  between, it reads the bill again and applies its fields again, as the Tasks module's update does,
+  unless it carries the `version` `read_bill` gave, the bill's `updatedAt`, when it is refused for the
+  agent to read the bill again. A currency changed without an amount keeps the amount as written,
+  which the new currency has to take, and a recurrence set to null ends the bill's end too.
 - **`delete_bill` is withheld from subagents and refused to a reaction**, as the other deletes are.
 
 ## Conventions for every milestone
@@ -1223,47 +1232,74 @@ The budget as Strategy Dance's fourth module, as The Budget module says. Nothing
 yet, and Claude Code reaches it locally over stdio.
 
 **The frame:**
-- `MODULES` gains `budget`, and `MODULE_SERVERS` its `createBudgetServer`.
-- `moduleServers.test.ts` checks its tool names against the other modules'.
+- `MODULES` gains `budget`, served to no external agent yet, and `MODULE_SERVERS` its
+  `createBudgetServer`.
+- `moduleServers.test.ts` checks its tool names against the other modules', and lists its seven.
 - `createModuleAddresses` takes `'budget'`, a bill's address being `/{organization}/budget/{id}`.
+- The web's `module` catalogue words it, in the words M9 was to give it: `getModuleMessages` is typed
+  over every `ModuleName`, so a module in `MODULES` fails the typecheck until it is worded.
+
+**In core:**
+- `MAX_AGENT_BILL_RECEIPT_SIZE`, 700 KiB, a base64 of some 933 KiB under the endpoint's 1 MiB body.
+- `getCalendarDayInTimeZone`, the member's today.
+- `listExchangeRateYears`, moved from the web, so the module reads its rates for the page's years,
+  adding a month's own year and the year before it.
 
 **`src/modules/budget/`:**
-- the seven tools, one file each;
+- the seven tools, one file each, under `tools/`;
 - `budgetModule.ts`, `budgetTools.ts`, `budgetSchemas.ts`, `readBudgetWriteCall.ts`,
-  `toBudgetRefusal.ts` and `toBudgetWriteResult.ts`, as the Tasks module's.
+  `toBudgetRefusal.ts`, `toBudgetWriteResult.ts` and `createBudgetServer.ts`, as the Tasks module's;
+- `testing/createBudgetTestBills.ts`, with the prototype's seed.
+- `delete_bill` refuses a parent's reaction to its subagents' reports through `isReactionCaller`, as
+  `delete_task` does, which `reactionDeletes.test.ts` checks.
 
-**`domain/budget/`:** `readBudget`, `listBills`, `readBill`, `addBill`, `updateBill`, `deleteBill`,
-`restoreBill` and `writeAgentBillReceipt`. The last writes a receipt's row and file from a base64 or
-a text receipt, sniffed as an upload is.
+**`domain/budget/`:** `readBudget`, `listBills`, `readBill`, `addBill`, `updateBill`, `deleteBill` and
+`restoreBill`, on shared pieces:
+- `readBudgetState`, the budget, the live bills, the members and today;
+- `readBudgetRates`;
+- `toModuleBill` and `toWrittenBill`, the bill as answered, with the status a write leaves;
+- `checkBillFields`, the amount, the days and the end checked before anything is written;
+- `readAgentBillReceipt`, a base64 or text receipt checked as an upload's bytes are;
+- `writeAgentBillReceipt`, which reserves the receipt, writes its file and completes it. A call
+  imports it only when it carries a receipt, since it reaches the bucket, which the modules' tests
+  do not load.
 
 **Backend-connector operations**, each matching the membership on `membershipCreatedAt`:
 - **Reads:**
-  - `GetBudgetForAgent`: the budget, every live bill, and the member's `timezone`;
-  - `GetBillForAgent`;
+  - `GetBudgetForAgent`: the budget, every live bill, the members and the member's `timezone`;
+  - `GetBillForAgent`, deleted or not, with the budget's currency;
   - `GetExchangeRatesForAgent`, from M2.
-- **Writes**, each an `@transaction` inserting its `ModuleCallResult` first under `@include(if:
+- **Writes**, each an `@transaction` inserting its `ModuleCallResult` under `@include(if:
   $isKeyed)`:
-  - `CreateBillForAgent`, `UpdateBillForAgent`, `DeleteBillForAgent` and `RestoreBillForAgent`, with
-    `CreateBill`'s, `UpdateBill`'s, `DeleteBill`'s and `RestoreBill`'s checks;
-  - `ReserveBillReceiptForAgent`.
-- `GetBills` names each write in its refreshes.
+  - `CreateBillForAgent` and `RestoreBillForAgent` count the 2000 bills under `CreateBill`'s lock on
+    the organization's row, the count and the membership reading its response;
+  - `UpdateBillForAgent` writes every field, the module laying the call's over the bill it read;
+  - `DeleteBillForAgent` refuses a bill gone already, where the page's succeeds;
+  - each holds a bill to the page's operation's checks, with its messages.
+- `ReserveBillReceiptForAgent` reserves an agent's receipt, 700 KiB at most. It writes no
+  `ModuleCallResult`: the bill's write holds the key.
+- `GetBills` names the four bill writes in its refreshes, and `schema.test.ts` holds the new limits
+  to core's.
 
 **Two scripts:**
 - **`bun run mcp:budget <email> [--organization <id or slug>]`**: `serveModule.ts` taking the
   module's name. Claude Code adds it with `claude mcp add strategydance-budget-local -- bun run
-  mcp:budget <email>`.
+  mcp:budget <email>`. The script now refuses to run without the Storage emulator too, which the
+  three `mcp:` scripts set, since a receipt would otherwise land in the production bucket.
 - **`bun run check:budget-module`**, under the backend's `scripts/`, checks the operations'
-  conditions against the emulators.
+  conditions against the emulators. It found that `UpdateBillForAgent` refuses a receipt another bill
+  holds with the receipt's check, not the unique reference, which the fake now does too.
 
-**`createBudgetDatabaseFake`** joins `createModuleDatabaseFake`'s chain, and the tests drive the
-module through `createModuleTestKit('budget', caller)`.
+**`createBudgetDatabaseFake`** keeps every field of a bill, the budgets, time zones and rates, and
+joins `createModuleDatabaseFake`'s chain. The tests drive the module through
+`createModuleTestKit('budget', caller)`.
 
 **Tests:**
 - **Membership and scope:**
   - a removed member's call refused, and one carrying the `createdAt` of a membership since ended;
   - a caller without the write scope refused by every write, nothing written.
-- **Idempotency:** a write called twice with one key applied once; one key with other arguments
-  refused.
+- **Idempotency:** a write called twice with one key applied once, and two at once making one; one
+  key with other arguments refused.
 - **`read_budget`:**
   - on the seed scenario, its month, quarter and year matching `summarizeBudgetPeriod`;
   - a past month with nothing expected, and a future one with nothing spent;
@@ -1272,31 +1308,35 @@ module through `createModuleTestKit('budget', caller)`.
   - a missing rate named.
 - **`add_bill`:**
   - an amount with too many decimals refused;
-  - a receipt of 701 KB refused;
-  - a base64 whose bytes are not its type refused;
-  - a text receipt stored as `text/plain`;
+  - a receipt of 701 KiB refused;
+  - a base64 whose bytes are not its type refused, and a PDF its parser cannot read;
+  - a text receipt stored as `text/plain`, and a PDF and a photo in base64;
   - the answer's status `over` when the bill tips the month.
-- **`update_bill`:** a member's save landing in between, the update reading again and reapplying;
-  `receipt: null` detaching.
+- **`update_bill`:** a member's save landing in between, the update reading again and reapplying; a
+  stale `version` refused; `receipt: null` detaching; a currency the amount does not fit refused.
 - **Delete and restore:** `delete_bill` then `restore_bill` within a day; a restore after a day
   refused.
 - **`list_bills`:**
-  - 2000 bills paged at 50 within 50000 characters;
+  - 2000 bills paged at 50 within 50000 characters, and a page of bills whose every character JSON
+    escapes cut short of 50;
   - a query from an external caller drawing on the search allowance, and one past it answered with
     `toTooManySearchesSentence`;
   - `active` leaving out ended subscriptions.
 
 **CLAUDE.md:**
-- Module conventions name the Budget module.
+- Module conventions name the Budget module, and why its receipt writer is imported inside a call.
 - Commands gain `mcp:budget` and `check:budget-module`.
 - Budget conventions say that agents never change the budget itself.
 
-**Verify:**
-- From Claude Code over stdio against the emulators:
-  - "what is left this quarter?";
-  - "add this invoice", with a PDF;
-  - "which subscriptions could we cut?".
-- `check:budget-module` passes, and the four checks pass.
+**Verified:**
+- `check:budget-module` and `check:budget` passed against a scratch suite on the branch's schema.
+- Over stdio against that suite, synced and seeded, through the SDK's client and then from Claude
+  Code (`claude -p` with the server in its MCP config):
+  - "what is left this quarter?", answered from `read_budget`;
+  - "add this invoice", with a PDF, which Claude Code read, then sent in base64 with the fields it
+    read, the receipt landing in the bucket;
+  - "which subscriptions could we cut?", answered from `list_bills` and `read_budget`.
+- The four checks pass.
 
 ### M9: The Budget module for external agents
 
@@ -1306,14 +1346,13 @@ and Tasks.
 **Serving it:**
 - `SERVED_MODULE_NAMES` gains `budget`, which mounts its endpoint and its protected resource
   metadata, and lets the authorization server and the consent page take it.
-- Every write tool registers `scopeChallenge: requireModuleWriteScope(budgetModule)`.
+- Every write tool registers `scopeChallenge: requireModuleWriteScope(budgetModule)`, from M8.
 - `list_bills`' query draws on the search allowance, from M8.
 
-**Wording.** The web's `module` catalogue, through `getModuleMessages`, words for members:
-- the module's name;
-- what read access lets an agent do: "read the budget and the bills, with their receipts";
-- what write access lets it do: "add, change and delete bills";
-- the agents button's tooltip: "Allow your agents to read and write your budget".
+**Wording.** The web's `module` catalogue words the module since M8, which `getModuleMessages`
+required of it: its name, what read and write access let an agent do, and the agents button's
+tooltip, "Allow your agents to read and write your budget". The consent page and Connected agents
+show it once it is served.
 
 **The button.** `ModuleAgentsButton module="budget"` goes in the page's header, after the settings
 button, on every tab.
@@ -1341,12 +1380,11 @@ Strategy Dance's own agent with the budget, as M16 and M17 gave it knowledge and
 
 **Joining the agent:**
 - `CONVERSATION_MODULES` gains `budget`, after `tasks`.
-- `delete_bill` joins `SUBAGENT_WITHHELD_TOOLS`.
-- `delete_bill` refuses a caller `isReactionCaller` says is a reaction, telling the agent to ask the
-  member.
+- `delete_bill` joins `SUBAGENT_WITHHELD_TOOLS`. It refuses a reaction since M8, as the other
+  deletes do.
 
 **Receipts from the conversation.** `add_bill` and `update_bill` take `{ attachmentId }` for a caller
-with a `launcher`:
+with a `launcher`, which they refuse to every caller until then (`attachmentUnavailable`):
 - a file the member sent in the conversation calling, or, for a subagent, one its brief names
   (`GetConversationBriefAttachments`);
 - copied in Storage to a new receipt of the organization, under a row written first.
@@ -1367,7 +1405,6 @@ fails every run.
 **Tests:**
 - the tool lists' pinned bytes moved, or the deferred declaration, whichever David picked;
 - a subagent's tools without `delete_bill`;
-- a reaction's `delete_bill` refused;
 - an attachment of another conversation refused;
 - an attachment from a subagent's brief taken;
 - the labels' test naming the seven tools.

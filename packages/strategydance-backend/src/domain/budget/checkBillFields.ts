@@ -28,6 +28,8 @@ type CheckBillFieldsResult = { outcome: 'checked'; amountMinor: number } | { out
 function checkBillFields(
   { amount, currency, paidOn, recurrence, endsOn }: BillFields,
   today: string,
+  // Whether the day is the bill's own, kept by an update, which its range is not checked again on
+  { isPaidOnKept = false }: { isPaidOnKept?: boolean } = {},
 ): CheckBillFieldsResult {
   const amountMinor = parseMoney(amount, currency)
 
@@ -45,7 +47,7 @@ function checkBillFields(
 
   const lastDay = addCalendarDays(today, BILL_DAYS_AHEAD)
 
-  if (paidOn < FIRST_BILL_DAY || paidOn > lastDay) {
+  if (!isPaidOnKept && (paidOn < FIRST_BILL_DAY || paidOn > lastDay)) {
     return { outcome: 'invalidField', reason: `A bill is first paid from ${FIRST_BILL_DAY} to ${lastDay}` }
   }
 

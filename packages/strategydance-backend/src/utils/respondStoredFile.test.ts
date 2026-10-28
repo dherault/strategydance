@@ -8,11 +8,14 @@ import respondStoredFile from './respondStoredFile'
 
 const FILE = { name: 'Receipt.txt', contentType: 'text/plain', size: 1000 }
 
-// A server answering every request from the stream it is handed
-async function serve(stream: Readable) {
+// A server answering every request from the stream it is handed, once the route's lookup is over
+async function serve(stream: Readable, lookup: Promise<unknown> = Promise.resolve()) {
   const app = express()
 
-  app.get('/', (_request, response) => respondStoredFile(response, stream, FILE))
+  app.get('/', async (_request, response) => {
+    await lookup
+    respondStoredFile(response, stream, FILE)
+  })
 
   const server = app.listen(0)
 
@@ -44,12 +47,33 @@ describe('respondStoredFile', () => {
     server.close()
   })
 
-  test('answers 404 for a file the bucket no longer holds, before any byte', async () => {
+  test('destroys the bucket stream of a reader gone while the route looked the file up', async () => {
     const stream = new Readable({ read() {} })
+    const { promise: lookup, resolve: finishLookup } = Promise.withResolvers()
+    const { server, url } = await serve(stream, lookup)
+    const controller = new AbortController()
+    const request = fetch(url, { signal: controller.signal }).catch(() => null)
+
+    await Bun.sleep(50)
+    controller.abort()
+    await request
+    await Bun.sleep(50)
+    finishLookup(null)
+
+    for (let attempt = 0; attempt < 50 && !stream.destroyed; attempt++) await Bun.sleep(20)
+
+    expect(stream.destroyed).toBe(true)
+    server.close()
+  })
+
+  test('answers 404 for a file the bucket no longer holds, before any byte', async () => {
+    // Failing as the answer first asks for bytes, so only once its listeners are on
+    const stream = new Readable({
+      read() {
+        this.destroy(new Error('No such object'))
+      },
+    })
     const { server, url } = await serve(stream)
-
-    setTimeout(() => stream.destroy(new Error('No such object')), 10)
-
     const response = await fetch(url)
 
     expect(response.status).toBe(404)

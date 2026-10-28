@@ -3490,3 +3490,50 @@ query GetBillForAgent($organizationId: UUID!, $userId: String!, $membershipCreat
     deletedAt
   }
 }
+
+# A file the member sent in a conversation, which Strategy Dance's agent hands the Budget module as a
+# bill's receipt by its id: the conversation calling, its launcher's, with its parent and its brief,
+# and the file, the member's, stored and sent, as `GetConversationBriefAttachments` reads a brief's
+# files for the page. A conversation's own files are its own; a subagent's are the files of its
+# parent's its brief lists, which the module checks. Its type, size and pages are the row's, written
+# once the upload checked the bytes, so the module judges the file as a receipt without reading it
+query GetConversationAttachmentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $conversationId: UUID!
+  $attachmentId: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  conversations(
+    where: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    limit: 1
+  ) {
+    parentId
+    deletedAt
+    briefs: conversationMessages_on_conversation(where: { position: { eq: 0 }, kind: { eq: BRIEF } }, limit: 1) {
+      attachmentIds
+    }
+  }
+  attachments: conversationAttachments(
+    where: {
+      id: { eq: $attachmentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      status: { eq: READY }
+      messageId: { isNull: false }
+    }
+    limit: 1
+  ) {
+    conversationId
+    name
+    contentType
+    size
+    pageCount
+  }
+}

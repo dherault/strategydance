@@ -871,7 +871,7 @@ export const BILL_RECEIPT_CONTENT_TYPES = [
   A receipt, in bytes, a PDF's pages and a text's characters: an invoice runs to a page or two, and
   whoever reads one, the receipt reader or an agent, reads it whole in one request, so a long one is
   cut at the text's length rather than refused. Written out again in `ReserveBillReceipt`'s checks,
-  which cannot import them: change them together
+  and `ReserveAttachmentBillReceiptForAgent`'s, which cannot import them: change them together
 */
 export const MAX_BILL_RECEIPT_SIZE = 10 * 1024 * 1024
 export const MAX_BILL_RECEIPT_PDF_PAGES = 20

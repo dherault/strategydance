@@ -278,6 +278,45 @@ describe('syncExchangeRates', () => {
     expect(requests.map(({ range }) => range)).toEqual(['2000-01-01..'])
   })
 
+  test('keeps a row a currency has when an answer leaves the currency out', async () => {
+    rows.set('USD:2025', { currency: 'USD', year: 2025, rates: '{"2025-01-02":1.0321}' })
+    rows.set('JPY:2025', { currency: 'JPY', year: 2025, rates: '{"2025-01-02":162.04}' })
+
+    const yenOnly = Object.fromEntries(Object.entries(FRANKFURTER_2025.rates).map(([day, { JPY }]) => [day, { JPY }]))
+
+    await sync({
+      fetch: createFrankfurter({ '2025-01-01..2025-12-31': { ...FRANKFURTER_2025, rates: yenOnly } }).fetch,
+      today: '2026-01-02',
+    })
+
+    expect(readRates('USD', 2025)).toEqual({ '2025-01-02': 1.0321 })
+    expect(readRates('JPY', 2025)['2025-12-31']).toBe(184.09)
+  })
+
+  test("ends a closed year on a day a currency asked for has a rate, not one only another's has", async () => {
+    const lateOther = {
+      ...FRANKFURTER_1999,
+      rates: { '1999-01-04': FRANKFURTER_1999.rates['1999-01-04'], '1999-12-30': { GBP: 0.62 } },
+    }
+    const { fetch } = createFrankfurter({ '1999-01-01..1999-12-31': lateOther })
+
+    await expect(sync({ fetch, today: '2000-01-04' })).rejects.toThrow('stop at 1999-01-04, short of its end')
+  })
+
+  test('syncs every currency the Budget takes but the euro by default, each with its row', async () => {
+    const expected = Object.keys(CURRENCIES).filter(currency => currency !== 'EUR')
+
+    await syncExchangeRates({ fetch: createFrankfurter().fetch, today: '2000-01-04' })
+
+    expect(
+      [...rows.values()]
+        .filter(({ year }) => year === 1999)
+        .map(({ currency }) => currency)
+        .sort(),
+    ).toEqual(expected.sort())
+    expect(readRates('GBP', 1999)).toEqual({})
+  })
+
   test('carries on a backfill a failure cut short, from the year its currency reached', async () => {
     rows.set('USD:1999', { currency: 'USD', year: 1999, rates: '{}' })
     rows.set('USD:2000', { currency: 'USD', year: 2000, rates: '{}' })

@@ -61,7 +61,9 @@ async function requestExchangeRateYear(
 
   for (const [day, rates] of Object.entries(answer.data.rates)) {
     if (!day.startsWith(`${year}-`)) continue
-    if (day > lastDay) lastDay = day
+    // A year's end is the last day one of the currencies asked for has a rate, never one that only
+    // a currency left out has
+    if (day > lastDay && currencies.some(currency => rates[currency] !== undefined)) lastDay = day
 
     for (const currency of currencies) {
       const rate = rates[currency]

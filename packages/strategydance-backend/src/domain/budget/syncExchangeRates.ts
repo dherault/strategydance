@@ -21,7 +21,8 @@ import requestExchangeRateYear, { SYNCED_CURRENCIES } from '~domain/budget/reque
   and a daily run makes one request and 29 writes.
 
   Every currency gets its row for every year whose answer holds a day of its own, empty when the ECB
-  published nothing of it that year, as the króna from 2009 to 2017, or since it stopped publishing
+  published nothing of it that year and it has none yet, a row it has never written over with
+  nothing, as the króna from 2009 to 2017, or since it stopped publishing
   one, as it stopped the rouble, the kuna and the lev. So a currency's latest year says how far it
   was fetched: a backfill a failure cut short carries on where it stopped, and a currency the ECB
   dropped moves on with empty rows rather than being fetched back every day.
@@ -43,6 +44,7 @@ async function syncExchangeRates({
 } = {}) {
   const { data } = await getExchangeRateYearKeys(dataConnect)
   const latestYears = new Map<string, number>()
+  const storedYears = new Set(data.exchangeRateYears.map(({ currency, year }) => `${currency}:${year}`))
 
   for (const { currency, year } of data.exchangeRateYears) {
     latestYears.set(currency, Math.max(year, latestYears.get(currency) ?? year))
@@ -60,6 +62,9 @@ async function syncExchangeRates({
     if (!ratesByCurrency.size) continue
 
     for (const currency of currencies) {
+      // A currency the answer leaves out keeps a row it has, never written over with nothing
+      if (!ratesByCurrency.has(currency) && storedYears.has(`${currency}:${year}`)) continue
+
       const rates = ratesByCurrency.get(currency) ?? {}
 
       await upsertExchangeRateYear(dataConnect, {

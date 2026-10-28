@@ -874,6 +874,14 @@ export const MAX_BILL_RECEIPT_TEXT_LENGTH = 50000
 export const MAX_BILL_RECEIPT_NAME_LENGTH = 200
 
 /*
+  A receipt an agent hands the Budget module, in bytes once decoded: its base64 is a third longer,
+  some 933 KiB at this size, which a call's body of 1 MiB at the modules' endpoint still carries
+  with its other arguments. A larger file goes through the page's upload. Written out again in
+  `ReserveBillReceiptForAgent`'s checks: change them together
+*/
+export const MAX_AGENT_BILL_RECEIPT_SIZE = 700 * 1024
+
+/*
   How many receipts the receipt reader reads in 24 hours, counted over the 24 hours before each read
   as the conversations' caps are: per member in each organization and per organization. A read that
   failed counts for nothing, and a receipt is read once, so these bound what reading costs, a

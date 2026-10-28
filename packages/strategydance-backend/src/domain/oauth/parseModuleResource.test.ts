@@ -13,6 +13,10 @@ describe('parseModuleResource', () => {
       module: expect.objectContaining({ name: 'tasks' }),
       resource: 'http://localhost:3003/mcp/tasks',
     })
+    expect(parseModuleResource('http://localhost:3003/mcp/budget')).toEqual({
+      module: expect.objectContaining({ name: 'budget' }),
+      resource: 'http://localhost:3003/mcp/budget',
+    })
   })
 
   test('refuses anything else', () => {
@@ -20,7 +24,7 @@ describe('parseModuleResource', () => {
       undefined,
       '',
       'not an address',
-      'http://localhost:3003/mcp/budget',
+      'http://localhost:3003/mcp/unknown',
       // A module served to no external agent
       'http://localhost:3003/mcp/subagents',
       'http://localhost:3003/mcp/knowledge/',

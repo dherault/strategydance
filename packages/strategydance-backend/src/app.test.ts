@@ -70,7 +70,7 @@ describe('createApp', () => {
   })
 
   test("the backend answers each module's endpoint and its protected resource metadata", async () => {
-    for (const path of ['/mcp/knowledge', '/mcp/tasks']) {
+    for (const path of ['/mcp/knowledge', '/mcp/tasks', '/mcp/budget']) {
       const metadata = await fetch(`${origins.backend}/.well-known/oauth-protected-resource${path}`)
 
       expect(metadata.status).toBe(200)
@@ -101,8 +101,10 @@ describe('createApp', () => {
     expect((await fetch(`${origins.worker}/oauth/authorize`)).status).toBe(404)
     expect((await fetch(`${origins.worker}/.well-known/oauth-protected-resource/mcp/knowledge`)).status).toBe(404)
     expect((await fetch(`${origins.worker}/.well-known/oauth-protected-resource/mcp/tasks`)).status).toBe(404)
+    expect((await fetch(`${origins.worker}/.well-known/oauth-protected-resource/mcp/budget`)).status).toBe(404)
     expect((await post(origins.worker, '/mcp/knowledge')).status).toBe(404)
     expect((await post(origins.worker, '/mcp/tasks')).status).toBe(404)
+    expect((await post(origins.worker, '/mcp/budget')).status).toBe(404)
     expect(
       (await post(origins.worker, `/organizations/${ORGANIZATION_ID}/conversations/${CONVERSATION_ID}/messages`))
         .status,

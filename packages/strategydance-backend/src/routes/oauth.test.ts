@@ -305,7 +305,7 @@ describe('GET /oauth/authorize', () => {
       [{ code_challenge_method: null }, 'invalid_request'],
       [{ code_challenge: null }, 'invalid_request'],
       [{ resource: null }, 'invalid_target'],
-      [{ resource: `${ISSUER}/mcp/budget` }, 'invalid_target'],
+      [{ resource: `${ISSUER}/mcp/unknown` }, 'invalid_target'],
       // A module served to no external agent, refused as one no module has
       [{ resource: `${ISSUER}/mcp/subagents`, scope: 'subagents:read' }, 'invalid_target'],
       [{ resource: `${KNOWLEDGE}/` }, 'invalid_target'],

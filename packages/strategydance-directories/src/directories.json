@@ -157,10 +157,14 @@
     "type": "WEBSITE",
     "rootUrl": "https://aiagentslist.com/",
     "submissionUrl": "https://aiagentslist.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI agents, agent-focused tools and MCP servers sorted by category and tag, where makers submit their AI products for editorial review.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS",
+      "MCP_SERVERS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -208,10 +212,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aicenter.ai/",
     "submissionUrl": "https://aicenter.ai/submit-tools",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category and tag, where makers submit their own AI products for a listing profile.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -839,10 +845,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.ainav.cn/",
     "submissionUrl": "https://www.ainav.cn/%e6%8f%90%e4%ba%a4%e7%bd%91%e7%ab%99",
-    "description": "",
-    "categories": [],
+    "description": "Chinese-language directory of AI tools from China and abroad, sorted by category such as chat, writing, image, video, audio, agents and coding, where makers can submit AI products.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -1230,10 +1239,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://appsmirror.com/",
     "submissionUrl": "https://appsmirror.com/submit-your-app-for-review",
-    "description": "",
-    "categories": [],
+    "description": "Online magazine that publishes reviews and news about iPhone, iPad, Android and web apps, where app developers submit their apps for review.",
+    "categories": [
+      "MOBILE_APPS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -1936,10 +1947,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://devresourc.es/",
     "submissionUrl": "https://devresourc.es/submit",
-    "description": "",
-    "categories": [],
+    "description": "Crowdsourced directory of developer resources such as APIs, tools, libraries, UI kits, icons and learning material, sorted by category, where users submit their own.",
+    "categories": [
+      "DEVELOPER_TOOLS",
+      "DESIGN"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -3349,10 +3363,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.linkcentre.com/",
     "submissionUrl": "https://www.linkcentre.com/addurl/",
-    "description": "",
-    "categories": [],
+    "description": "General web directory, running since 1996, that lists websites and businesses of all kinds in human-reviewed categories. Site owners submit their own sites.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -4127,10 +4143,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://library.phygital.plus/",
     "submissionUrl": "https://library.phygital.plus/tool-submission",
-    "description": "",
-    "categories": [],
+    "description": "Catalog of AI tools and neural networks for creators and game developers, with semantic search and filters and a form for submitting tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -5957,10 +5975,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://tooldirs.com/",
     "submissionUrl": "https://tooldirs.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of software tools, SaaS services and AI apps sorted by category, where makers submit their own products for listing.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -6043,10 +6063,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.toolpilot.ai/",
     "submissionUrl": "https://www.toolpilot.ai/pages/submit-your-ai-tool",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools grouped by category, with reviews and coupon codes, where makers submit their own AI products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -6329,10 +6351,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.verifiedtools.info/",
     "submissionUrl": "https://www.verifiedtools.info/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI and SaaS tools sorted by category and pricing, where makers submit their own products for a hand review.",
+    "categories": [
+      "AI_TOOLS",
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {

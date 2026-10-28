@@ -18,6 +18,7 @@ import {
   getBillForAgent,
   getBudgetForAgent,
   getConversationAttachmentForAgent,
+  getExchangeRatesForAgent,
   getModuleCallResult,
   launchSubagent,
   reserveAttachmentBillReceiptForAgent,
@@ -347,6 +348,34 @@ async function checkReads() {
   check('a bill read answers a deleted bill with when it went', bill.data.bills[0]?.deletedAt != null)
   check('a bill read answers nothing to a membership that ended', staleBill.data.bills.length === 0)
   check("a bill read answers nothing of another organization's bill", elsewhere.data.bills.length === 0)
+
+  // Years no sync writes, so the rows are this check's alone, written and removed here
+  const years = [2991, 2990]
+  const rows = [Currency.USD, Currency.GBP].flatMap(currency => years.map(year => ({ currency, year, rates: '{}' })))
+
+  await write(`mutation InsertRates($rows: [ExchangeRateYear_Data!]!) { exchangeRateYear_upsertMany(data: $rows) }`, {
+    rows,
+  })
+
+  try {
+    const { data: rates } = await getExchangeRatesForAgent(dataConnect, {
+      currencies: [Currency.USD, Currency.GBP],
+      years,
+    })
+
+    check(
+      'the rates read answers every year asked for, by currency, then year',
+      rates.exchangeRateYears.map(({ currency, year }) => `${currency} ${year}`).join(', ')
+        === 'GBP 2990, GBP 2991, USD 2990, USD 2991',
+    )
+  } finally {
+    await write(
+      `mutation DeleteRates($years: [Int!]!) { exchangeRateYear_deleteMany(where: { year: { in: $years } }) }`,
+      {
+        years,
+      },
+    )
+  }
 }
 
 async function checkIdempotency() {

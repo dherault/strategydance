@@ -130,6 +130,18 @@ describe('the bills', () => {
     })
   }
 
+  for (const [name, source] of [
+    ['GetExchangeRates', webQueries],
+    ['GetExchangeRatesForAgent', backendQueries],
+  ] as const) {
+    it(`${name} reads every year of every currency the ECB has published since 1999, and decades more`, () => {
+      const [limit] = readNumbers(readOperation(source, name), /limit: (\d+)/g)
+      const currencies = readEnumValues('Currency').filter(currency => currency !== 'EUR')
+
+      expect(limit).toBeGreaterThanOrEqual(currencies.length * (new Date().getUTCFullYear() + 30 - 1999 + 1))
+    })
+  }
+
   it('GetBills reads as many bills as an organization keeps', () => {
     expect(readNumbers(readOperation(webQueries, 'GetBills'), /limit: (\d+)/g)).toEqual([MAX_BILLS])
   })

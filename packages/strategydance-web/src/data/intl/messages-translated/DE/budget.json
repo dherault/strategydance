@@ -22,7 +22,7 @@
   "budget.billRestoreFailed": "Die Rechnung konnte nicht wiederhergestellt werden.",
   "budget.billSaveFailed": "Die Rechnung konnte nicht gespeichert werden. Versuche es erneut.",
   "budget.billSaved": "Rechnung gespeichert",
-  "budget.billStale": "Jemand hat diese Rechnung in der Zwischenzeit geändert. Prüfe sie und speichere dann erneut.",
+  "budget.billStale": "Jemand hat diese Rechnung in der Zwischenzeit geändert. Sie zeigt deren Änderungen, deine wurden beibehalten: Prüfe sie und speichere dann erneut.",
   "budget.billsEmptyText": "Lade einen Beleg oder eine Rechnung hoch, und Strategy Dance füllt die Details aus. Markiere Abonnements als wiederkehrend, um den nächsten Monat zu prognostizieren.",
   "budget.billsEmptyTitle": "Noch keine Rechnungen",
   "budget.billsFull": "Das Unternehmen speichert höchstens {count, number} Rechnungen. Lösche eine, um eine andere hinzuzufügen.",

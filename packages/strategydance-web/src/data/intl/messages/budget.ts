@@ -634,9 +634,10 @@ const budgetMessages = defineMessages({
   },
   billStale: {
     id: 'budget.billStale',
-    defaultMessage: 'Somebody changed this bill meanwhile. Check it, then save again.',
+    defaultMessage:
+      'Somebody changed this bill meanwhile. It shows their changes with yours kept over them: check it, then save again.',
     description:
-      "Warning in a bill's dialog when another member saved the bill while the reader was changing it: the dialog now shows the bill as they left it.",
+      "Warning in a bill's dialog when another member saved the bill while the reader was changing it: the dialog now shows the bill as they left it, with the fields the reader had changed kept as the reader typed them.",
   },
   loadFailed: {
     id: 'budget.loadFailed',

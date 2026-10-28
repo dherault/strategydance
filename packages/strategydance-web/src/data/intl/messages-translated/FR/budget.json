@@ -22,7 +22,7 @@
   "budget.billRestoreFailed": "Impossible de rétablir la facture.",
   "budget.billSaveFailed": "Impossible d'enregistrer la facture. Réessayez.",
   "budget.billSaved": "Facture enregistrée",
-  "budget.billStale": "Quelqu'un a modifié cette facture entre-temps. Vérifiez-la, puis enregistrez à nouveau.",
+  "budget.billStale": "Quelqu'un a modifié cette facture entre-temps. Elle affiche leurs modifications avec les vôtres conservées par-dessus : vérifiez-la, puis enregistrez à nouveau.",
   "budget.billsEmptyText": "Téléversez un reçu ou une facture et Strategy Dance renseigne les détails. Marquez les abonnements comme récurrents pour anticiper le mois prochain.",
   "budget.billsEmptyTitle": "Aucune facture pour l'instant",
   "budget.billsFull": "L'entreprise conserve au maximum {count, number} factures. Supprimez-en une pour en ajouter une autre.",

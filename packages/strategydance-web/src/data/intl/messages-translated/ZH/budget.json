@@ -22,7 +22,7 @@
   "budget.billRestoreFailed": "无法恢复该账单。",
   "budget.billSaveFailed": "无法保存账单。请重试。",
   "budget.billSaved": "账单已保存",
-  "budget.billStale": "在此期间有人修改了此账单。请核对后再保存。",
+  "budget.billStale": "在此期间有人修改了此账单。当前已显示对方的修改并保留了您的更改：请核对后再保存。",
   "budget.billsEmptyText": "上传收据或发票，Strategy Dance 会自动提取并填写详细信息。将订阅标记为定期账单，即可预测下月的支出情况。",
   "budget.billsEmptyTitle": "暂无账单",
   "budget.billsFull": "公司最多保留 {count, number} 笔账单。请删除一笔后再添加。",

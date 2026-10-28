@@ -22,7 +22,7 @@
   "budget.billRestoreFailed": "No se ha podido recuperar la factura.",
   "budget.billSaveFailed": "No se ha podido guardar la factura. Inténtalo de nuevo.",
   "budget.billSaved": "Factura guardada",
-  "budget.billStale": "Alguien ha modificado esta factura mientras tanto. Revísala y vuelve a guardarla.",
+  "budget.billStale": "Alguien ha modificado esta factura mientras tanto. Se muestran sus cambios manteniendo los tuyos: revísala y vuelve a guardarla.",
   "budget.billsEmptyText": "Sube un recibo o factura y Strategy Dance completará los detalles. Marca las suscripciones como recurrentes para proyectar el próximo mes.",
   "budget.billsEmptyTitle": "Aún no hay facturas",
   "budget.billsFull": "La empresa puede tener como máximo {count, number} facturas. Elimina una para añadir otra.",

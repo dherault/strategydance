@@ -9,6 +9,7 @@ import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import type { Bill, BillDraft } from '~types'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
 import useBills from '~hooks/budget/useBills'
 import useBudget from '~hooks/budget/useBudget'
 import useBudgetExchangeRates from '~hooks/budget/useBudgetExchangeRates'
@@ -16,6 +17,7 @@ import useReloadBills from '~hooks/budget/useReloadBills'
 import useLocalDate from '~hooks/common/useLocalDate'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import isBillAsDrafted from '~utils/budget/isBillAsDrafted'
 import isPushedOverBudget from '~utils/budget/isPushedOverBudget'
 import readBillSaveRefusal from '~utils/budget/readBillSaveRefusal'
 import toDatabaseCurrency from '~utils/budget/toDatabaseCurrency'
@@ -48,12 +50,14 @@ type BillSave = {
 
   A refused save reads the bills again from the server to tell why: a new bill found there was
   added after all, an edited one gone was deleted, and one whose `updatedAt` moved was saved by
-  somebody else meanwhile, which the dialog then shows. Anything else is a receipt that can no
+  somebody else meanwhile, which the dialog then shows, unless it says what this save wrote, saved by
+  the reader, a save that went through though its answer was lost. Anything else is a receipt that can no
   longer be attached, the organization holding every bill it may, or a failure, each said in a toast
 */
 function useSaveBill() {
   const { formatMessage } = useIntl()
   const { organization } = useCurrentOrganization()
+  const { data: viewer } = useAuthentication()
   const today = useLocalDate()
   const { data: bills } = useBills()
   const { data: settings } = useBudget()
@@ -92,7 +96,15 @@ function useSaveBill() {
       return { kind: 'gone' }
     }
 
-    if (current && current.updatedAt !== save.updatedAt) return { kind: 'stale', bill: current }
+    if (current && current.updatedAt !== save.updatedAt) {
+      if (current.updatedById === viewer?.uid && isBillAsDrafted(current, save.draft)) {
+        announce(save)
+
+        return { kind: 'saved' }
+      }
+
+      return { kind: 'stale', bill: current }
+    }
 
     const refusal = readBillSaveRefusal(error)
 

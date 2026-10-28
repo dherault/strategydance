@@ -45,6 +45,7 @@ import useLocalDate from '~hooks/common/useLocalDate'
 import { formatAmountPlaceholder } from '~utils/budget/formatAmountInput'
 import formatBudgetAmount from '~utils/budget/formatBudgetAmount'
 import listBillCompanies from '~utils/budget/listBillCompanies'
+import listChangedBillFields from '~utils/budget/listChangedBillFields'
 import readAmountInput, { AMOUNT_INPUT_ERRORS, readAmountMinor } from '~utils/budget/readAmountInput'
 import toBillDraft from '~utils/budget/toBillDraft'
 import toBillFormValues, { type BillFormValues } from '~utils/budget/toBillFormValues'
@@ -201,9 +202,19 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
       return
     }
 
+    // Somebody saved the bill meanwhile: the dialog shows it as they saved it, with what the reader
+    // changed since the dialog read it laid over, as an agent's update lays its fields, so neither
+    // change is lost, and the next save goes through on it
     if (outcome.kind === 'stale') {
+      const typed = form.getValues()
+      const changed = listChangedBillFields(form.formState.defaultValues as BillFormValues, typed)
+
       form.reset(toBillFormValues(outcome.bill, defaults))
-      receipt.reset(outcome.bill.receipt ?? null)
+
+      for (const field of changed) form.setValue(field, typed[field], { shouldDirty: true })
+
+      if (!changed.includes('receiptId')) receipt.reset(outcome.bill.receipt ?? null)
+
       setUpdatedAt(outcome.bill.updatedAt)
       setIsStale(true)
 

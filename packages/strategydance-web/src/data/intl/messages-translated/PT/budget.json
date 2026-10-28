@@ -22,7 +22,7 @@
   "budget.billRestoreFailed": "Não foi possível restaurar a fatura.",
   "budget.billSaveFailed": "Não foi possível salvar a fatura. Tente novamente.",
   "budget.billSaved": "Fatura salva",
-  "budget.billStale": "Alguém alterou esta fatura enquanto isso. Verifique-a e salve novamente.",
+  "budget.billStale": "Alguém alterou esta fatura enquanto isso. Ela mostra as alterações feitas com as suas mantidas por cima: confira e salve novamente.",
   "budget.billsEmptyText": "Envie um recibo ou fatura e o Strategy Dance preenche os detalhes. Marque assinaturas como recorrentes para projetar o próximo mês.",
   "budget.billsEmptyTitle": "Nenhuma conta ainda",
   "budget.billsFull": "A empresa mantém no máximo {count, number} faturas. Exclua uma para adicionar outra.",

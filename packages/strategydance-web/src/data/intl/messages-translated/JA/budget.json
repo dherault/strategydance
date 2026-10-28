@@ -22,7 +22,7 @@
   "budget.billRestoreFailed": "請求書を復元できませんでした。",
   "budget.billSaveFailed": "請求書を保存できませんでした。もう一度お試しください。",
   "budget.billSaved": "請求書を保存しました",
-  "budget.billStale": "他のユーザーがこの請求書を変更しました。内容を確認し、再度保存してください。",
+  "budget.billStale": "編集中に他のユーザーがこの請求書を変更しました。相手の変更内容にあなたの変更を反映した状態で表示しています。確認の上、再度保存してください。",
   "budget.billsEmptyText": "領収書や請求書をアップロードすると、Strategy Danceが詳細を自動入力します。サブスクリプションを定期的な支払いとして設定すれば、翌月の支出を予測できます。",
   "budget.billsEmptyTitle": "請求書はまだありません",
   "budget.billsFull": "登録できる請求書は最大{count, number}件です。新しく追加するには不要な請求書を削除してください。",

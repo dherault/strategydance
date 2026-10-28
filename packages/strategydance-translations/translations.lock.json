@@ -2867,6 +2867,14 @@
         "hash": "e1887fc295532aef",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.restoreBill": {
+        "hash": "1bd87635cff30a78",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.restoreBillError": {
+        "hash": "ac6a36c067974eec",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.restoreDocument": {
         "hash": "478a3856e52f4e69",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2908,7 +2916,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.retryDialog.kept": {
-        "hash": "766b35e41501b756",
+        "hash": "f660924fd1642135",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.retryDialog.someWorking": {
@@ -3115,6 +3123,14 @@
         "hash": "079c610b34e26d1c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.addBill.done": {
+        "hash": "438ad1a0130baf26",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.addBill.running": {
+        "hash": "e3888d566944198e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.callIntegration.done": {
         "hash": "bc98c869d8a7bb89",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3137,6 +3153,14 @@
       },
       "conversation.tool.createTask.running": {
         "hash": "e0314eb0be35cc25",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.deleteBill.done": {
+        "hash": "47912e7332ba2a56",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.deleteBill.running": {
+        "hash": "469a5fa07f32bf94",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.deleteKnowledge.done": {
@@ -3179,6 +3203,14 @@
         "hash": "1c0ddc7dfbf801f7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.listBills.done": {
+        "hash": "abc268d1a3dbaaf3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listBills.running": {
+        "hash": "8afd01717a9fd8ae",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.listIntegrations.done": {
         "hash": "4e7a158477b39678",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3211,6 +3243,22 @@
         "hash": "5c6b45cadb2d4e19",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.readBill.done": {
+        "hash": "35bebe34aae97be3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readBill.running": {
+        "hash": "077977cdc30a5c39",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readBudget.done": {
+        "hash": "32dca23cc073d54b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readBudget.running": {
+        "hash": "865bce6c615c840c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.readKnowledge.done": {
         "hash": "acd91b26f15c3ba0",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3233,6 +3281,14 @@
       },
       "conversation.tool.readTask.running": {
         "hash": "fdfccc7dd7005e16",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.restoreBill.done": {
+        "hash": "f4a2543b534cfdf7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.restoreBill.running": {
+        "hash": "008a5d0d6b077fd3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.restoreKnowledge.done": {
@@ -3281,6 +3337,14 @@
       },
       "conversation.tool.unlinkTasks.running": {
         "hash": "f4db31768ff26025",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.updateBill.done": {
+        "hash": "e3f2297492181cfa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.updateBill.running": {
+        "hash": "b4b92a4b5b79cfdd",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.updateKnowledge.done": {

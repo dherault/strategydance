@@ -2,19 +2,28 @@ import { randomUUID } from 'node:crypto'
 
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
-import { MAX_AGENT_BILL_RECEIPT_SIZE, MAX_BILLS } from 'strategydance-core'
+import { MAX_AGENT_BILL_RECEIPT_SIZE, MAX_BILL_RECEIPT_SIZE, MAX_BILLS } from 'strategydance-core'
 import {
   BillRecurrence,
+  claimQueuedConversationRun,
+  CompanyAspect,
   completeBillReceiptUpload,
   connectorConfig,
+  ConversationActor,
+  ConversationRunStatus,
   createBillForAgent,
   Currency,
   deleteBillForAgent,
+  finishConversationRun,
   getBillForAgent,
   getBudgetForAgent,
+  getConversationAttachmentForAgent,
   getModuleCallResult,
+  launchSubagent,
+  reserveAttachmentBillReceiptForAgent,
   reserveBillReceiptForAgent,
   restoreBillForAgent,
+  startConversation,
   updateBillForAgent,
 } from 'strategydance-database/backend'
 
@@ -29,8 +38,9 @@ import { dataConnect } from '~firebase'
     bun run check:budget-module
 
   It makes three throwaway organizations, one for the bills, one whose receipts are another's, and
-  one filled to its cap, with members, calls the backend connector's own operations as the module
-  calls them, removes everything it made, then exits non-zero naming each check that failed. The
+  one filled to its cap, with members, and a conversation with a subagent whose files Strategy
+  Dance's agent names as receipts, calls the backend connector's own operations as the module calls
+  them, removes everything it made, then exits non-zero naming each check that failed. The
   module's tests run against a fake of these operations: this is what says the fake's conditions are
   the SQL's.
 
@@ -673,6 +683,180 @@ async function checkReserving() {
   )
 }
 
+// A file of a conversation's, as an upload stores one, sent by a message or waiting in a draft
+async function insertFile(conversationId: string, messageId: string | null, fields: Variables = {}) {
+  const id = createId()
+
+  await write(
+    `mutation InsertFile($data: ConversationAttachment_Data!) { conversationAttachment_insert(data: $data) }`,
+    {
+      data: {
+        id,
+        userId: userIds.member,
+        organizationId,
+        conversationId,
+        messageId,
+        status: 'READY',
+        name: 'Invoice.pdf',
+        contentType: 'application/pdf',
+        size: 2000,
+        pageCount: 1,
+        tokenCount: 1594,
+        claudeFileId: `file_${id}`,
+        ...fields,
+      },
+    },
+  )
+
+  return id
+}
+
+async function checkAttachmentReceipts() {
+  const { membershipCreatedAt } = caller()
+  const parent = { conversationId: createId(), runId: createId(), messageId: createId() }
+  const fence = { organizationId, userId: userIds.member, conversationId: parent.conversationId, runId: parent.runId }
+
+  // A conversation of the member's whose run ended, as one is between messages
+  await startConversation(dataConnect, {
+    ...fence,
+    membershipCreatedAt,
+    messageId: parent.messageId,
+    title: 'Checked conversation',
+    text: 'Add this invoice',
+    preview: { kind: 'MEMBER_TEXT', text: 'Add this invoice' },
+    content: JSON.stringify([{ type: 'text', text: 'Add this invoice' }]),
+    aspects: [CompanyAspect.FINANCES],
+    aspectsSetBy: ConversationActor.MEMBER,
+    isUsageCapped: false,
+  })
+  await claimQueuedConversationRun(dataConnect, { ...fence, attempts: 0, membershipCreatedAt })
+  await finishConversationRun(dataConnect, {
+    ...fence,
+    attempts: 1,
+    membershipCreatedAt,
+    status: ConversationRunStatus.COMPLETED,
+  })
+
+  const sent = await insertFile(parent.conversationId, parent.messageId)
+  const kept = await insertFile(parent.conversationId, parent.messageId, { name: 'Kept.pdf' })
+  const drafted = await insertFile(parent.conversationId, null)
+  const others = await insertFile(parent.conversationId, parent.messageId, { userId: userIds.other })
+  const gif = await insertFile(parent.conversationId, parent.messageId, {
+    name: 'receipt.gif',
+    contentType: 'image/gif',
+  })
+  const subagent = { conversationId: createId(), runId: createId(), messageId: createId() }
+
+  await launchSubagent(dataConnect, {
+    organizationId,
+    userId: userIds.member,
+    membershipCreatedAt,
+    parentId: parent.conversationId,
+    anchorPosition: 0,
+    launchRunId: null,
+    launchToolUseId: null,
+    ...subagent,
+    title: 'Checked subagent',
+    text: 'Add the invoice as a bill',
+    content: JSON.stringify([{ type: 'text', text: 'Add the invoice as a bill' }]),
+    attachmentIds: [sent],
+    isUsageCapped: false,
+  })
+
+  const read = async (conversationId: string, attachmentId: string, fields: Variables = {}) =>
+    (await getConversationAttachmentForAgent(dataConnect, { ...caller(), conversationId, attachmentId, ...fields }))
+      .data
+  const own = await read(parent.conversationId, sent)
+  const fromSubagent = await read(subagent.conversationId, sent)
+
+  check(
+    'the read finds a file the member sent, its conversation the one calling, with its pages',
+    own.membership.length === 1
+      && own.conversations[0]?.parentId == null
+      && own.attachments[0]?.conversationId === parent.conversationId
+      && own.attachments[0]?.pageCount === 1,
+  )
+  check(
+    "it finds no file waiting in a draft, nor another member's",
+    (await read(parent.conversationId, drafted)).attachments.length === 0
+      && (await read(parent.conversationId, others)).attachments.length === 0,
+  )
+  check(
+    "a subagent's read names its parent and the files its brief lists",
+    fromSubagent.conversations[0]?.parentId === parent.conversationId
+      && JSON.stringify(fromSubagent.conversations[0]?.briefs[0]?.attachmentIds) === JSON.stringify([sent])
+      && fromSubagent.attachments[0]?.conversationId === parent.conversationId,
+  )
+  check(
+    "the parent's own conversation has no brief",
+    own.conversations[0]?.briefs.length === 0 && (await read(parent.conversationId, kept)).attachments.length === 1,
+  )
+  check(
+    'a caller whose membership ended reads no membership',
+    (await read(parent.conversationId, sent, { membershipCreatedAt: STALE })).membership.length === 0,
+  )
+
+  const reserve = (fields: Variables = {}) => {
+    const receiptId = createId()
+
+    return {
+      receiptId,
+      reserved: reserveAttachmentBillReceiptForAgent(dataConnect, {
+        ...caller(),
+        receiptId,
+        conversationId: parent.conversationId,
+        attachmentId: sent,
+        name: 'Invoice.pdf',
+        contentType: 'application/pdf',
+        size: 2000,
+        ...fields,
+      }),
+    }
+  }
+  const { receiptId, reserved } = reserve()
+  const notSent = 'not one the member sent'
+
+  check(
+    "a receipt is reserved from the member's sent file, uploading",
+    (await isAccepted(reserved)) && (await readReceiptRow(receiptId))?.status === 'UPLOADING',
+  )
+  check(
+    'once its copy is stored, a bill takes it',
+    (await isAccepted(completeBillReceiptUpload(dataConnect, { organizationId, userId: userIds.member, receiptId })))
+      && (await isAccepted(create({ receiptId }))),
+  )
+  check(
+    'a file waiting in a draft reserves nothing',
+    await isRefused(reserve({ attachmentId: drafted }).reserved, notSent),
+  )
+  check(
+    'a file of another conversation reserves nothing',
+    await isRefused(reserve({ conversationId: subagent.conversationId }).reserved, notSent),
+  )
+  check("another member's file reserves nothing", await isRefused(reserve({ attachmentId: others }).reserved, notSent))
+  check(
+    "a name, a type or a size other than the file's reserves nothing",
+    (await isRefused(reserve({ name: 'Other.pdf' }).reserved, notSent))
+      && (await isRefused(reserve({ contentType: 'text/plain' }).reserved, notSent))
+      && (await isRefused(reserve({ size: 2001 }).reserved, notSent)),
+  )
+  check(
+    'a GIF, which no receipt comes as, is refused',
+    await isRefused(
+      reserve({ attachmentId: gif, name: 'receipt.gif', contentType: 'image/gif' }).reserved,
+      'at most 10 MiB',
+    ),
+  )
+  check(
+    `a receipt past ${MAX_BILL_RECEIPT_SIZE} bytes is refused`,
+    await isRefused(reserve({ size: MAX_BILL_RECEIPT_SIZE + 1 }).reserved, 'at most 10 MiB'),
+  )
+  check(
+    'a caller whose membership ended reserves nothing',
+    await isRefused(reserve({ membershipCreatedAt: STALE }).reserved, 'no longer a member'),
+  )
+}
+
 try {
   await setUp()
   await checkReads()
@@ -682,6 +866,7 @@ try {
   await checkDeletingAndRestoring()
   await checkCap()
   await checkReserving()
+  await checkAttachmentReceipts()
 } finally {
   await tearDown()
 }

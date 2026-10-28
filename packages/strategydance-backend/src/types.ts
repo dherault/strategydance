@@ -516,7 +516,7 @@ export type ModuleBudget = {
 }
 
 // A receipt an agent hands the Budget module: a file in base64, a text, or, for Strategy Dance's own
-// agent from M10, a file the member sent in the conversation
+// agent, a file the member sent in the conversation calling, or one a subagent's brief hands it
 export type AgentBillReceipt =
   | { name: string; contentType: string; base64: string }
   | { name: string; text: string }
@@ -549,8 +549,10 @@ export type BudgetRefusal =
   | { outcome: 'invalidField'; reason: string }
   /** A receipt that is not what it says, or past what an agent may hand over, with why */
   | { outcome: 'invalidReceipt'; reason: string }
-  /** A conversation's file named, which only Strategy Dance's own agent may name, from M10 */
+  /** A conversation's file named by a caller with no run calling, which only Strategy Dance's own agent has */
   | { outcome: 'attachmentUnavailable' }
+  /** A conversation's file that is not the calling conversation's, nor one its brief hands it, or gone */
+  | { outcome: 'attachmentNotFound' }
   /** A receipt the bill can no longer take, which another bill took meanwhile */
   | { outcome: 'receiptTaken' }
   /** A restore of a bill not deleted, or of one deleted over a day ago */

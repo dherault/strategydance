@@ -800,9 +800,9 @@ A tool the agent calls is its own, a module's or an integration's. Every tool ta
 - whether it only reads, which a module's says with `readOnlyHint`: reads run four at a time, a
   write or an integration call alone, in Claude's order. A tool reads only when running it twice
   changes nothing
-- whether a subagent gets it: `isSubagentTool` withholds the deletes and the Subagents module's
-  tools, and `buildSubagentTools` withholds `ask_user`, so a new tool that deletes or reaches
-  subagents joins them
+- whether a subagent gets it: `isSubagentTool` withholds the deletes, `delete_document`,
+  `delete_task` and `delete_bill`, and the Subagents module's tools, and `buildSubagentTools`
+  withholds `ask_user`, so a new tool that deletes or reaches subagents joins them
 - its bytes pinned: the tool lists' tests move with it, the release costs every conversation its
   earlier reasoning once (`drop_block`), and `bun run probe:claude` runs after, since a list the API
   refuses fails every run
@@ -810,9 +810,13 @@ A tool the agent calls is its own, a module's or an integration's. Every tool ta
 The agent's own tools, in `CONVERSATION_TOOLS`, are strict, within a request's 20 strict tools, 24
 optional and 16 union parameters (`buildConversationTools.test.ts`), each run by a
 `ConversationToolRunner`. A module's are registered by its server, as
-[Module conventions](#module-conventions) says, after them and not strict. Past some 10000 tokens of
-definitions Claude's tool search (`defer_loading`) takes over, and the list held 16017 from M33, so
-a module added later weighs it (conversations.md § Modules). An integration adds none: integrations
+[Module conventions](#module-conventions) says, after them and not strict: Knowledge's, the Tasks
+module's, the Budget module's and the Subagents module's, in `CONVERSATION_MODULES`' order. Past some
+10000 tokens of definitions Claude's tool search (`defer_loading`) takes over, and the list held
+16017 from M33, some 21000 once budget.md's M10 added the Budget module's seven, which David chose
+to send as the others are. Tool search needs its own tool in the list, which changes it as a
+module's tools do, so only a `tool_addition` would join a module without costing conversations
+their earlier reasoning once: a module added later weighs it (conversations.md § Modules). An integration adds none: integrations
 reach the agent through three fixed tools, so the list never varies.
 
 ### The data
@@ -1087,9 +1091,9 @@ Back closes the viewer.
 
 A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
 agent uses in its own process and a member can add to an agent of their own: Knowledge and Tasks,
-then Subagents, which Strategy Dance's agents alone reach, and Budget, which external agents reach
-and Strategy Dance's agent reaches from budget.md's M10. `MODULES` in strategydance-core lists
-each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served to external agents.
+then Subagents, which Strategy Dance's agents alone reach, and Budget, which external agents and,
+since budget.md's M10, Strategy Dance's agents reach. `MODULES` in strategydance-core lists each
+one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served to external agents.
 [conversations.md](documents/conversations.md) § Modules says what each does and why.
 
 - A module's server lives in `src/modules/<name>/`, built by its `create<Name>Server(caller)`, one
@@ -1150,9 +1154,9 @@ each one's name, path, title and scopes, and `SERVED_MODULE_NAMES` those served 
   The Subagents module's tools import `domain/subagents/` inside their handler (`await import`), so
   no other module loads the conversation runtime, and its tests run against
   `createConversationDatabaseFake`; a module whose domain needs the runtime does the same. The
-  tests mock `~firebase` without its bucket, so the Budget module imports its receipt writer
-  (`writeAgentBillReceipt`) inside a call, and only one carrying a receipt: a module reaching the
-  bucket does the same. `bun run check:knowledge-module`, `check:tasks-module`,
+  tests mock `~firebase` without its bucket, so the Budget module imports what reaches it only inside
+  a call carrying a receipt: `storeAgentBillReceipt`, whose own imports are types alone, loads the
+  writer, or the reader and the copier, there. A module reaching the bucket does the same. `bun run check:knowledge-module`, `check:tasks-module`,
   `check:subagents-module` and `check:budget-module`, in the backend's package, check the operations
   against the emulators: an operation changed is changed in both
 - An external agent reaches a module at `https://api.strategydance.com/mcp/<name>`, each module its
@@ -1224,8 +1228,16 @@ milestones that build it: read it before changing any of it.
 - Agents never change the budget itself, which stays an administrator's, on the page. The Budget
   module reads it and adds, saves, deletes and restores bills as the member it acts as could,
   through `…ForAgent` operations held to the page's checks, which `check:budget-module` checks, each
-  named in `GetBills`' refreshes. A receipt an agent hands over is 700 KiB at most once decoded
-  (`MAX_AGENT_BILL_RECEIPT_SIZE`), checked as an upload's bytes are before anything is written
+  named in `GetBills`' refreshes. A receipt an agent hands over in base64 is 700 KiB at most once
+  decoded (`MAX_AGENT_BILL_RECEIPT_SIZE`), checked as an upload's bytes are before anything is
+  written
+- Strategy Dance's agent names a receipt by `{ attachmentId }`, a caller with a launcher alone: a
+  file the member sent in the conversation calling, or, for a subagent, one its brief lists, whose
+  first entry names its files with their ids. It is judged on its row, its type and the pages its
+  upload counted, never read again, then copied in the bucket under a receipt reserved first
+  (`ReserveAttachmentBillReceiptForAgent`, a receipt's 10 MiB), once the call's key has not answered
+  it. A new way to take a conversation's file into a module goes through the conversation's
+  launcher the same way
 - The page, `/$organizationSlug/budget`, computes through `useBudgetSummary`, on `useLocalDate`'s
   today, so every part of it counts from the same bills, rates and day, and reads the rates of the
   years `listExchangeRateYears` names. An `Int64String` becomes a number where it is read

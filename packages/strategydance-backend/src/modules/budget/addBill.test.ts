@@ -188,10 +188,11 @@ describe('add_bill', () => {
     expect(fake.receipts.size).toBe(0)
   })
 
-  it("refuses a conversation's file, which no connection has", async () => {
+  it("refuses a conversation's file from a caller no run connected", async () => {
     const kit = await book.connect()
+    const attachmentId = '7d4e2a9c1b8f4e3a9c6d5b4a3f2e1d0c'
 
-    expect(await kit.refusal('add_bill', { ...NOTION, receipt: { attachmentId: 'file_1' } })).toBe(
+    expect(await kit.refusal('add_bill', { ...NOTION, receipt: { attachmentId } })).toBe(
       'A receipt by attachmentId is a file the member sent in a conversation, which this connection has none of. Hand the receipt over as base64 or as text.',
     )
   })

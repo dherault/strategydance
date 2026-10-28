@@ -82,7 +82,12 @@ export const receiptSchema = z.union([
       .describe(`The receipt's text, ${MAX_BILL_RECEIPT_TEXT_LENGTH} characters at most, kept as text/plain`),
   }),
   z.object({
-    attachmentId: z.string().max(200).describe('A file the member sent in this conversation, by its id'),
+    attachmentId: z
+      .string()
+      .regex(UUID_PATTERN, 'An attachment id is a UUID')
+      .describe(
+        "For Strategy Dance's own agent: a file the member sent in this conversation, or one your brief hands you, by the id the line naming it gives, as name (attachment <id>)",
+      ),
   }),
 ])
 

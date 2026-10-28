@@ -13,6 +13,7 @@ import CONVERSATION_TOOLS, { ASK_USER_TOOL_NAME } from '~domain/agent/conversati
 const SUBAGENT_WITHHELD_TOOLS: readonly string[] = [
   'delete_document',
   'delete_task',
+  'delete_bill',
   'list_subagents',
   'read_subagent',
   'launch_subagent',

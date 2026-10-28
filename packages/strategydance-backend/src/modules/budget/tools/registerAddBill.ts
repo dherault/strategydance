@@ -55,7 +55,7 @@ function registerAddBill(server: McpServer, context: BudgetToolContext) {
     {
       title: 'Add a bill',
       description:
-        "Adds a bill to the organization's budget, as the Budget page's New bill does: what the company paid, or pays every week, month, quarter or year, with its receipt. To add one from a receipt or an invoice, read it yourself first, then send the fields you read and the receipt with them, a PDF or a photo in base64 or its text, which the bill keeps. Answers the bill, its payments converted into the budget's currency, and `status`: whether spending is over the budget, or would pass it, once the bill counts.",
+        "Adds a bill to the organization's budget, as the Budget page's New bill does: what the company paid, or pays every week, month, quarter or year, with its receipt. To add one from a receipt or an invoice, read it yourself first, then send the fields you read and the receipt with them, which the bill keeps: a file the member sent in a conversation with Strategy Dance by its attachmentId, or else a PDF or a photo in base64, or its text. Answers the bill, its payments converted into the budget's currency, and `status`: whether spending is over the budget, or would pass it, once the bill counts.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },

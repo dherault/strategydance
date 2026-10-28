@@ -6,7 +6,8 @@ import conversationMessages from '~data/intl/messages/conversation'
 type ToolStatus = Extract<ConversationPreview, { kind: 'TOOL_CALL' }>['toolStatus']
 
 // What each of the agent's tools is called while it runs, and once it is done: its own, then the
-// Knowledge module's, the Tasks module's, its integrations' and the Subagents module's
+// Knowledge module's, the Tasks module's, the Budget module's, its integrations' and the Subagents
+// module's
 const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageDescriptor }>([
   ['web_search', { running: conversationMessages.toolWebSearchRunning, done: conversationMessages.toolWebSearchDone }],
   [
@@ -66,6 +67,25 @@ const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageD
   [
     'restore_task',
     { running: conversationMessages.toolRestoreTaskRunning, done: conversationMessages.toolRestoreTaskDone },
+  ],
+  [
+    'read_budget',
+    { running: conversationMessages.toolReadBudgetRunning, done: conversationMessages.toolReadBudgetDone },
+  ],
+  ['list_bills', { running: conversationMessages.toolListBillsRunning, done: conversationMessages.toolListBillsDone }],
+  ['read_bill', { running: conversationMessages.toolReadBillRunning, done: conversationMessages.toolReadBillDone }],
+  ['add_bill', { running: conversationMessages.toolAddBillRunning, done: conversationMessages.toolAddBillDone }],
+  [
+    'update_bill',
+    { running: conversationMessages.toolUpdateBillRunning, done: conversationMessages.toolUpdateBillDone },
+  ],
+  [
+    'delete_bill',
+    { running: conversationMessages.toolDeleteBillRunning, done: conversationMessages.toolDeleteBillDone },
+  ],
+  [
+    'restore_bill',
+    { running: conversationMessages.toolRestoreBillRunning, done: conversationMessages.toolRestoreBillDone },
   ],
   [
     'list_integrations',

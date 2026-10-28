@@ -20,7 +20,7 @@ type MeasureSubagentLaunchInput = {
   parentId: string
   subagentId: string
   membershipCreatedAt: string
-  // The brief's entry, its files before its text
+  // The brief's entry, its files, named, before its text
   content: ConversationContentBlock[]
   // The files it hands over, each with what its upload counted
   files: { claudeFileId: string; tokenCount: number }[]

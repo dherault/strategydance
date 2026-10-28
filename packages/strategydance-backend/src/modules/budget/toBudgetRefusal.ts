@@ -36,6 +36,8 @@ function toSentence(refusal: BudgetRefusal) {
       return `${refusal.reason}. Nothing was written.`
     case 'attachmentUnavailable':
       return 'A receipt by attachmentId is a file the member sent in a conversation, which this connection has none of. Hand the receipt over as base64 or as text.'
+    case 'attachmentNotFound':
+      return 'No file the member sent in this conversation, nor one your brief hands you, has that id. Name a file by the id its line gives, as name (attachment <id>), or hand the receipt over as base64 or as text.'
     case 'receiptTaken':
       return 'Another bill took that receipt meanwhile. Send the receipt again with this call, and it is stored anew.'
     case 'notDeleted':

@@ -1196,8 +1196,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
     conversation it starts after its first file. From M33 the files follow a text block naming each,
     one line per file in their order, its name and its id, as `report.pdf (attachment <id>)`, as David
     chose on 2026-10-13: the model sees an image untitled and a document by its title alone, so
-    without it the agent could name no file to hand to a subagent (see Subagents). The count includes
-    it, and only entries sent from then on hold it, so the history keeps its bytes.
+    without it the agent could name no file to hand to a subagent (see Subagents), nor, from
+    budget.md's M10, to the Budget module as a bill's receipt. The count includes it, and only entries
+    sent from then on hold it, so the history keeps its bytes.
   - **The Files API is the workspace's**, and development and production read the same key: a file
     is named `strategydance-<environment>-<attachment id>`, never the member's name, and only
     production's sweep deletes files no row names, under its own prefix.
@@ -1381,6 +1382,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | The Knowledge module's | `search_documents`, `list_documents`, `read_document`, `create_document`, `update_document`, `set_document_aspects`, `delete_document` and `restore_document`, an MCP server's tools the worker reaches in process (see Modules) | M16 |
 | The Tasks module's | `list_tasks`, `read_task`, `create_task`, `update_task`, `add_task_dependency`, `remove_task_dependency`, `delete_task` and `restore_task`, a second MCP server's tools, reached as the Knowledge module's are (see Modules) | M17 |
 | The Subagents module's | `list_subagents`, `read_subagent`, `launch_subagent` and `stop_subagent`, a third MCP server's tools, reached as the other two modules' are, by a conversation's agent alone: a subagent gets none of them (see Modules and Subagents) | M33 |
+| The Budget module's | `read_budget`, `list_bills`, `read_bill`, `add_bill`, `update_bill`, `delete_bill` and `restore_bill`, a fourth MCP server's tools, listed after the Tasks module's, a subagent getting all but `delete_bill` (budget.md § The Budget module) | budget.md's M10 |
 | `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers. The prompt holds at most 1000 characters and each option 200 (`MAX_QUESTION_PROMPT_LENGTH`, `MAX_QUESTION_OPTION_LENGTH`), checked before anything is drawn: a call past either is refused with a result saying so, and nothing reaches the thread, so a question stays within the live tail's bound | M11 |
 | `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M29 |
 | `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M29 |
@@ -1396,8 +1398,11 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   "Opening a task" and "Opened a task", "Creating a task", "Updating a task", "Linking tasks",
   "Unlinking tasks", "Deleting a task", "Restoring a task", "Listing subagents" and "Listed
   subagents", "Reading a subagent" and "Read a subagent", "Launching a subagent" and "Launched a
-  subagent", "Stopping a subagent" and "Stopped a subagent", and "Searching the web". A module's tools
-  are labelled by their name, as the built-in ones are.
+  subagent", "Stopping a subagent" and "Stopped a subagent", "Checking the budget" and "Checked the
+  budget", "Listing bills" and "Listed bills", "Opening a bill" and "Opened a bill", "Adding a bill",
+  "Updating a bill", "Deleting a bill", "Restoring a bill", and "Searching the web". A module's tools
+  are labelled by their name, as the built-in ones are. A `delete_bill` row offers Restore, as a
+  `delete_task` row does (see Modules).
 - Integrations go through three fixed tools rather than one tool per server tool, so the tools list
   never changes with what an organization connects, which keeps the transcript valid and the cache
   warm. A module's tools are the reverse: Strategy Dance's own, the same for every organization and
@@ -1410,8 +1415,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 A module is one of Strategy Dance's capabilities served as an MCP server, which Strategy Dance's
 agent uses and which a member can add to an external agent of their own: claude.ai, ChatGPT, Claude
 Code, Cursor. Knowledge comes first, from M14, the team's tasks second, from M15, and Subagents
-third, from M32, which only Strategy Dance's own agents reach until a later plan serves it; budget,
-software solutions, directories and marketing tactics are the ones David has in mind next. A module
+third, from M32, which only Strategy Dance's own agents reach until a later plan serves it, and the
+budget fourth, from budget.md's M8, which Strategy Dance's agent reaches from its M10; software
+solutions, directories and marketing tactics are the ones David has in mind next. A module
 is the reverse of an integration (M27 to M29): an integration is another company's server, which the
 agent calls; a module is Strategy Dance's, which any agent a member connected may call as that
 member.
@@ -1733,8 +1739,9 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
   every result is, and `isError` as `is_error: true`.
 - **The thread** draws a module call as it draws a built-in one, the wrench and the "Tool" badge,
   labelled from the `conversation` catalogue (see Tools). A `delete_document` row offers Restore
-  while the document can still be restored, and a `delete_task` row while the task can, so a member
-  who sees a document or a task go they wanted kept needs no second request.
+  while the document can still be restored, a `delete_task` row while the task can, and from
+  budget.md's M10 a `delete_bill` row while the bill can, through the Bills tab's own restore, so a
+  member who sees a document, a task or a bill go they wanted kept needs no second request.
 - **Links to tasks.** The agent links a task as `[name](task:<id>)`, as it links a document with
   `doc:`. From M17 the design system's `Markdown` lets `task:` through beside `doc:`, and the thread
   draws such a link from the organization's live board, `GetTasks`, read once a reply holds one or a
@@ -1932,15 +1939,21 @@ authorization server from M18 and a consent page from M19:
   included. The Tasks module follows the same path: `bun run mcp:tasks <email>` from M15, the same
   stdio script taking the module's name, and `http://localhost:3003/mcp/tasks` from M21.
 
-**Later modules**, budget, software solutions, directories and marketing tactics, each add a folder
-under `src/modules/`, an entry in `MODULES`, their address, scopes and labels, and their tools to
-the agent's list, as the Tasks module does in M15, M17 and M21, which `drop_block` makes a one-time
-loss of earlier reasoning, as any tool is. Past some 10000 tokens of tool definitions, Claude's tool
-search (`defer_loading`) keeps them out of the context without touching the cached prefix, at the
-cost of a search step before a deferred tool's first use; Knowledge's and the Tasks module's take
-7381 (M17), and with the Subagents module's 9021, the whole list 16017 (M33). A tool declared deferred that nothing has used yet is also outside what a replay's
-thinking is checked against, so a module joining that way would cost no conversation its earlier
-reasoning.
+**Later modules**, software solutions, directories and marketing tactics, each add a folder under
+`src/modules/`, an entry in `MODULES`, their address, scopes and labels, and their tools to the
+agent's list, as the Tasks module does in M15, M17 and M21 and the Budget module in budget.md's M8
+and M10, which `drop_block` makes a one-time loss of earlier reasoning, as any tool is. Past some
+10000 tokens of tool definitions, Claude's tool search (`defer_loading`) keeps them out of the
+context without touching the cached prefix, at the cost of a search step before a deferred tool's
+first use; Knowledge's and the Tasks module's take 7381 (M17), with the Subagents module's 9021, the
+whole list 16017 (M33), and the Budget module's seven some 5000 more, which David chose on
+2026-10-28 to send as the others are (budget.md's M10). A tool declared deferred that nothing has
+used yet is outside what a replay's thinking is checked against, but tool search needs its own tool
+in the list, which is a change of the list like any other, so it would cost conversations their
+earlier reasoning once all the same. Only a deferred tool shown by a `tool_addition` block, which
+the beta `mid-conversation-tool-changes-2026-07-01` puts in a mid-conversation system message, joins
+without that loss, each conversation then caching the tool's definition apart, and Sonnet 5, Sonnet
+5.5's fallback, lacks the beta.
 Listing the modules in the MCP Registry, under the `com.strategydance` name a DNS record proves,
 waited until after launch, as David chose on 2026-10-18 in M37, since before M38 removed the gates
 a listing would have led people to a sign-in they could not pass. It is David's to take up once
@@ -2021,7 +2034,9 @@ way (see The orchestrator).
   says so, saying in its report whether the work is done.
 - **The brief** is its first `USER` entry: the launcher's text and the parent's files it names, by
   the ids the member's entries name them with (see Attachments § Its count), each as the Files API
-  reference the parent's transcript holds. A file sent before M33 is named by no entry, so the agent
+  reference the parent's transcript holds. From budget.md's M10 the files follow the same line a
+  member's entry names its files in, `report.pdf (attachment <id>)`, so the subagent can hand one to
+  the Budget module as a bill's receipt in turn; only briefs launched from then on hold it. A file sent before M33 is named by no entry, so the agent
   can hand it to none, and puts what the subagent needs of it in the brief instead. Nothing is
   uploaded again, and each subagent pays only for the files it was given, measured by their `tokenCount` as the parent's are.
   A launch names only files the conversation has sent, `READY` with their `message` set, never one

@@ -145,6 +145,7 @@ describe('the bills', () => {
   for (const [name, size] of [
     ['ReserveBillReceipt', MAX_BILL_RECEIPT_SIZE],
     ['ReserveBillReceiptForAgent', MAX_AGENT_BILL_RECEIPT_SIZE],
+    ['ReserveAttachmentBillReceiptForAgent', MAX_BILL_RECEIPT_SIZE],
   ] as const) {
     it(`${name} takes the receipts' name, size and types strategydance-core does`, () => {
       const operation = readOperation(backendMutations, name)

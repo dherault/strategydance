@@ -11,7 +11,7 @@
 | M7 | Reading receipts | backend, database, core, web | M6 | #260 |
 | M8 | The Budget module | database, core, backend, root | M2, M3 | #262 |
 | M9 | The Budget module for external agents | backend, web, root | M8 | #263 |
-| M10 | Budget in conversations | backend, web, root | M8 | |
+| M10 | Budget in conversations | backend, web, root | M8 | #264 |
 
 What a company spends, against what it means to spend:
 - **bills**, recurring or not, each with its receipt;
@@ -438,7 +438,9 @@ Its tools, in their frozen order:
     (`MAX_AGENT_BILL_RECEIPT_SIZE`), under the modules' endpoint's 1 MiB body.
   - `{ name, text }`: 50,000 characters at most, kept as a `text/plain` receipt.
   - `{ attachmentId }`: for Strategy Dance's agent alone (M10), a file the member sent in the
-    conversation calling, or in its parent's brief for a subagent. Refused until then.
+    conversation calling, or, for a subagent, one its brief lists. Judged on its row, its type and
+    the pages its upload counted, up to a receipt's 10 MiB, and copied in the bucket, never read
+    again. Any other caller is refused one.
 - **A write with a receipt** checks its bytes as an upload's are, before anything is written, then
   writes the receipt's row (`ReserveBillReceiptForAgent`) and file, then the bill. So a retry that
   its key answers leaves a receipt nothing holds, which the sweep prunes.
@@ -1396,51 +1398,93 @@ each module's token opening its own endpoint alone, `add_bill` as the member wit
 
 Strategy Dance's own agent with the budget, as M16 and M17 gave it knowledge and tasks.
 
-**Before anything else, measure what the tools weigh.**
-- The tool list is 16017 tokens since M33, past the 10000 from which Claude's tool search
-  (`defer_loading`) can keep tools out of the context.
-- Adding the module the usual way changes the pinned tools, which costs every conversation its
-  earlier reasoning once, through `drop_block`. Adding it deferred costs none, but adds a search step
-  before a tool is first used. conversations.md § Modules, Later modules, says so.
-- Count the Budget's tools with `countTokens`, and put both ways to David with their figures. Build
-  the one he picks.
+**Measured first, then put to David** on 2026-10-28:
+- **What the tools weigh.** The seven tools, converted as the worker sends them, are 12,391
+  characters. At the 2.2 to 3.0 characters a token the earlier modules counted, that is about 5,000
+  tokens, taking the list from 16,017 to some 21,000: about $0.001 a request read from the cache and
+  $0.025 a cache write at Opus 5.5's prices. `count_tokens` needs the Anthropic key, which gcloud
+  could not read that day, so `bun run probe:claude` counts them exactly once it can.
+- **What the spec missed.** A deferred tool nothing used is outside what a replay's thinking is
+  checked against, but Claude's tool search needs its own tool in the list, which changes the list
+  as the module's tools would. So tool search costs existing conversations their earlier reasoning
+  once too. Only a deferred tool shown by a `tool_addition` block (beta
+  `mid-conversation-tool-changes-2026-07-01`) joins without that loss, each conversation then
+  caching the definitions apart, and Sonnet 5, Sonnet 5.5's fallback, lacks the beta.
+- **David chose the usual way**, both prompts' paragraphs in the same release, and a Restore on a
+  `delete_bill` row, beyond the labels this milestone asked for.
 
 **Joining the agent:**
-- `CONVERSATION_MODULES` gains `budget`, after `tasks`.
+- `CONVERSATION_MODULES` is `['knowledge', 'tasks', 'budget', 'subagents']`, `MODULES`' order, so
+  the Budget's tools follow the Tasks module's.
 - `delete_bill` joins `SUBAGENT_WITHHELD_TOOLS`. It refuses a reaction since M8, as the other
   deletes do.
+- The tool lists' pins move: 32 tools for a conversation, 24 for a subagent, with their hashes.
 
-**Receipts from the conversation.** `add_bill` and `update_bill` take `{ attachmentId }` for a caller
-with a `launcher`, which they refuse to every caller until then (`attachmentUnavailable`):
-- a file the member sent in the conversation calling, or, for a subagent, one its brief names
-  (`GetConversationBriefAttachments`);
-- copied in Storage to a new receipt of the organization, under a row written first.
-- An external caller's `attachmentId` is refused.
+**The system prompts.** The agent's gains a paragraph after its tasks: read the budget before saying
+what is left, list the bills before adding one, add a bill from an invoice the member sends with the
+file as its receipt by its id, delete one only when asked, and never change the budget itself. The
+subagent's gains one too: add and change bills when the brief says so, hand a file of the brief over
+by its id, and delete none. Both name the bills among what others wrote.
 
-**Labels.** The tool labels, running and done, go in the `conversation` catalogue, through
-`getConversationToolLabel`, whose test names every tool:
-- `read_budget`: "Checking the budget", "Checked the budget";
-- and so on for the rest.
+**Receipts from the conversation.** `add_bill` and `update_bill` take `{ attachmentId }`, a UUID,
+from a caller with a `launcher`:
+- **Which file it names.** One the member sent in the conversation calling, or, for a subagent, one
+  of its parent's that its brief lists. A subagent's brief now opens with the line a member's entry
+  names its files in, `name (attachment <id>)`, so it can name one. Any other file, one waiting in a
+  draft, or one gone is `attachmentNotFound`. A caller with no launcher, an external agent's or a
+  measurement's, is still refused one (`attachmentUnavailable`).
+- **Judged on its row**, read through `GetConversationAttachmentForAgent`, which copies the filter
+  of the web's `GetConversationBriefAttachments`. A sent file passed its upload's checks, which
+  cover a receipt's but its pages: a GIF, which no receipt comes as, and a PDF past 20 pages, which
+  the row's `pageCount` gives, are refused without reading the file.
+- **Copied, never sent through the instance.** `ReserveAttachmentBillReceiptForAgent` reserves the
+  receipt, up to a receipt's 10 MiB, its check holding it to the member's own sent file of the same
+  name, type and size. Then the bucket copies the file under it, create-only, and
+  `completeBillReceiptUpload` makes it ready for the bill's write.
+- **Read once the key has not answered the call**, after the bill's checks, so a call answered from
+  its key reads nothing, and a refused one writes nothing. `storeAgentBillReceipt` imports the
+  writer, or the reader and the copier, inside the call, as the base64 path did.
 
-**The system prompt** gains a line, only if David wants one: the budget answers spending questions,
-and bills can be added from what the member sends. It is pinned by its hash, so changing it is a
-release that means to.
+**Labels.** The `conversation` catalogue words the seven, running and done: "Checking the budget",
+"Listing bills", "Opening a bill", "Adding a bill", "Updating a bill", "Deleting a bill" and
+"Restoring a bill". Retry's dialog says the bills a discarded subagent changed stay as they are.
 
-**After it lands,** `bun run probe:claude` runs with the new tools, since a list the API refuses
-fails every run.
+**Restore on a `delete_bill` row.** The row offers Restore while the organization's live bills lack
+the bill and its day has not passed, through `useRestoreDeletedBill`, the Bills tab's Undo made a
+hook of its own. A thread reads the bills only once it draws such a row (`useBills({ isEnabled })`).
 
 **Tests:**
-- the tool lists' pinned bytes moved, or the deferred declaration, whichever David picked;
-- a subagent's tools without `delete_bill`;
-- an attachment of another conversation refused;
-- an attachment from a subagent's brief taken;
-- the labels' test naming the seven tools.
+- the tool lists' pinned bytes moved, and a subagent's tools without `delete_bill`;
+- a file of another conversation of the member's, and one in a draft, refused, nothing written;
+- a file from a subagent's brief taken, and one of its parent's the brief does not list refused;
+- a GIF and a 21-page PDF refused on their rows, the bucket untouched;
+- an external caller's `attachmentId` refused, its file never read;
+- a call its key answered answered again without reading the file;
+- a file pruned before its copy refused, its reservation left for the sweep;
+- a copy's bytes equal to the file's, on `add_bill` and `update_bill`;
+- the brief's entry naming its files;
+- the labels' test naming the seven, and the deletes a thread reads including `delete_bill`.
 
-**CLAUDE.md:** Conversation conventions, A new tool, names the Budget's tools among a module's, and
-`delete_bill` among those withheld from subagents.
+**Checks.** `check:budget-module` gains the read and the reservation against the emulators: a sent
+file found and a subagent's brief listed, and a draft, another conversation, another member, a name,
+type or size other than the file's, a GIF, past 10 MiB and a stale membership refused.
 
-**Verify:**
-- In a browser against the emulators, a conversation asking "Are we over budget this month? Which
-  subscriptions could we cut?", as the prototype's thread does, then one sending a PDF with "add
-  this as a bill".
-- `probe:claude` passes, and the four checks pass.
+**CLAUDE.md:** A new tool names the Budget's tools among the modules' and `delete_bill` among those
+withheld from subagents, with the list's figure and why tool search would not have spared the
+reasoning; Module conventions say Strategy Dance's agents reach the module; Budget conventions say
+how a conversation's file becomes a receipt.
+
+**Verified:**
+- `check:budget-module` and `check:budget` passed against a scratch suite on the branch's schema.
+- In a browser against that suite, the backend's Claude client replaced by one scripting the calls
+  a model would make, every module call real:
+  - "Are we over budget this month? Which subscriptions could we cut?" on the seeded organization
+    drew "Checked the budget" and "Listed bills", answered from the bills;
+  - a PDF sent with "Add this as a bill" drew "Added a bill", its receipt copied byte for byte into
+    the organization's receipts and shown in the bill's dialog;
+  - a bill deleted from the thread offered Restore on its row, at desktop and phone widths, which
+    brought it back with its receipt and took the button away.
+- The four checks pass.
+- **Left for David**, once `gcloud auth login` lets the key be read: `bun run probe:claude`, which
+  sends the new list to the API and counts the tools exactly, and the two conversations on the real
+  model.

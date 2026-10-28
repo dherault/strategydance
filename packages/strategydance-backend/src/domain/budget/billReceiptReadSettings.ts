@@ -23,6 +23,14 @@ export const BILL_RECEIPT_READ_MAX_TOKENS = 1024
 export const BILL_RECEIPT_READ_TIMEOUT_MS = 60 * 1000
 
 /*
+  How long after its upload a receipt can be read: the upload dialog reads it at once, and a read's
+  claim, which the daily caps count for 24 hours, then always outlives them before the sweep can
+  delete its row, three days after the upload, and the count with it. Written out again in
+  `ClaimBillReceiptRead`: change them together
+*/
+export const BILL_RECEIPT_READABLE_MS = 24 * 60 * 60 * 1000
+
+/*
   How many of a text receipt's bytes a read takes from Storage: enough for the 50000 characters it
   sends (`MAX_BILL_RECEIPT_TEXT_LENGTH`), four bytes each at most in UTF-8, rather than the up to
   10 MiB a text receipt may hold, which a read holding it whole as characters would take hundreds of

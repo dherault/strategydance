@@ -8946,7 +8946,8 @@ mutation CompleteBillReceiptUpload($organizationId: UUID!, $userId: String!, $re
 }
 
 # Claims a receipt for the receipt reader, which reads each receipt once and only for the member who
-# uploaded it: sets `readAt` on the caller's `READY` receipt while it has none, or while a read that
+# uploaded it, within a day of its upload, so every read the caps count outlives their 24 hours
+# before the sweep can delete its row: sets `readAt` on the caller's `READY` receipt while it has none, or while a read that
 # claimed it over two minutes ago stored nothing, which only a backend that stopped mid-read leaves,
 # its request timing out after one. A second claim is refused, and the backend reads the row again to
 # tell a read under way from one done.
@@ -9011,6 +9012,7 @@ mutation ClaimBillReceiptRead(
           userId: { eq: $userId }
           organizationId: { eq: $organizationId }
           status: { eq: READY }
+          createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
         }
         {
           _or: [

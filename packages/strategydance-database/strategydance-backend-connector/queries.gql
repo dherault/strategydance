@@ -3266,8 +3266,8 @@ query GetBillReceiptForMember($organizationId: UUID!, $userId: String!, $receipt
 
 # A receipt by its id alone, for the receipt reader: whether the caller belongs to the organization
 # the route names, and its name, which the reader's request quotes so the model tells the seller from
-# the buyer, then the receipt with what a read found already. `$userId` is the uid the backend
-# verified
+# the buyer, then the receipt with what a read found already, and when it was uploaded, since a read
+# takes only a receipt uploaded within a day. `$userId` is the uid the backend verified
 query GetBillReceiptForReader($organizationId: UUID!, $userId: String!, $receiptId: UUID!) @auth(level: NO_ACCESS) {
   userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
     role
@@ -3282,8 +3282,8 @@ query GetBillReceiptForReader($organizationId: UUID!, $userId: String!, $receipt
     name
     contentType
     size
-    readAt
     readFields
+    createdAt
   }
 }
 

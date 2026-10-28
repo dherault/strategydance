@@ -230,6 +230,10 @@ function createBudgetRouter() {
           respondError(response, 413, ERROR_CODE_ATTACHMENT_TOO_LARGE, 'This photo is too large to be read')
 
           return
+        case 'expired':
+          respondError(response, 409, ERROR_CODE_CONFLICT, 'This receipt was uploaded too long ago to be read')
+
+          return
         case 'busy':
           respondError(response, 409, ERROR_CODE_CONFLICT, 'This receipt is being read already')
 

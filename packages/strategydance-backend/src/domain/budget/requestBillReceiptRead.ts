@@ -23,6 +23,7 @@ import logger from '~utils/logger'
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
 import {
   BILL_RECEIPT_READ_TIMEOUT_MS,
+  BILL_RECEIPT_READABLE_MS,
   MAX_BILL_RECEIPT_READ_IMAGE_SIZE,
   MAX_BILL_RECEIPT_TEXT_READ_BYTES,
 } from '~domain/budget/billReceiptReadSettings'
@@ -65,6 +66,8 @@ type RequestBillReceiptReadResult =
   | { outcome: 'missing' }
   // A photo past what Claude reads
   | { outcome: 'tooLarge' }
+  // Uploaded over a day ago, past when a receipt can be read
+  | { outcome: 'expired' }
   | { outcome: 'capped'; cap: ReachedUsageCap }
   // Another read of the same receipt is under way
   | { outcome: 'busy' }
@@ -105,6 +108,7 @@ async function requestBillReceiptRead({
 
   if (receipt.userId !== reference.userId) return { outcome: 'notUploader' }
   if (receipt.readFields) return readStored(reference.receiptId, receipt.readFields)
+  if (Date.parse(receipt.createdAt) <= Date.now() - BILL_RECEIPT_READABLE_MS) return { outcome: 'expired' }
 
   if (receipt.contentType.startsWith('image/') && receipt.size > MAX_BILL_RECEIPT_READ_IMAGE_SIZE) {
     return { outcome: 'tooLarge' }
@@ -232,9 +236,13 @@ async function claim(claimed: BillReceiptReadClaim): Promise<RequestBillReceiptR
       if (cap) return { outcome: 'capped', cap }
 
       if (isOperationRefusal(error, 'The receipt is being read')) {
-        // The other read may have finished meanwhile, which answers for nothing
+        // The other read may have finished meanwhile, which answers for nothing, or the sweep removed
+        // the receipt
         const { data } = await getBillReceiptForReader(dataConnect, reference)
-        const readFields = data.billReceipt?.readFields
+
+        if (!data.billReceipt) return { outcome: 'missing' }
+
+        const { readFields } = data.billReceipt
 
         return readFields ? readStored(reference.receiptId, readFields) : { outcome: 'busy' }
       }

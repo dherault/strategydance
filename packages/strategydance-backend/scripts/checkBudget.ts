@@ -601,8 +601,8 @@ async function checkReceiptReadOperations() {
   const { data } = await getBillReceiptForReader(dataConnect, reference(receiptId))
 
   check(
-    'the reader reads the receipt with its organization’s name',
-    data.userOrganization?.organization.name === 'Checked organization' && data.billReceipt?.readAt !== null,
+    'the reader reads the receipt with its organization’s name and when it was uploaded',
+    data.userOrganization?.organization.name === 'Checked organization' && data.billReceipt?.createdAt !== undefined,
   )
 
   await releaseBillReceiptRead(dataConnect, { ...reference(receiptId), readClaim: createId() })
@@ -664,6 +664,10 @@ async function checkReceiptReadOperations() {
   check(
     'one under two minutes old is not',
     await isRefused(claim(await insertReceipt({ readAt: minutesAgo(1) })), again),
+  )
+  check(
+    'nor one uploaded over a day ago, whose read the caps could lose to the sweep',
+    await isRefused(claim(await insertReceipt({ createdAt: hoursAgo(25) })), again),
   )
   check(
     'nor one whose fields are stored, however old',

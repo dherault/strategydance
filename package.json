@@ -34,6 +34,7 @@
     "seed:budget": "cd packages/strategydance-backend && bun run seed:budget",
     "mcp:knowledge": "cd packages/strategydance-backend && bun run --silent mcp:knowledge",
     "mcp:tasks": "cd packages/strategydance-backend && bun run --silent mcp:tasks",
+    "mcp:budget": "cd packages/strategydance-backend && bun run --silent mcp:budget",
     "generate:database": "cd packages/strategydance-database && bun run generate",
     "lint": "oxlint --deny-warnings --report-unused-disable-directives && oxfmt --check",
     "lint:fix": "oxlint --deny-warnings --report-unused-disable-directives --fix && oxfmt",

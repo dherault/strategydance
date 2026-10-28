@@ -17,8 +17,10 @@ import MODULE_SERVERS from '~modules/moduleServers'
 
     bun run mcp:knowledge <email> [--organization <id or slug>]
     bun run mcp:tasks <email> [--organization <id or slug>]
+    bun run mcp:budget <email> [--organization <id or slug>]
     claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>
     claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>
+    claude mcp add strategydance-budget-local -- bun run mcp:budget <email>
 
   It acts as the account with that address, which has to have signed in to the app once, in the
   organization named, or in the only one the account belongs to, with every scope of the module, as
@@ -27,12 +29,17 @@ import MODULE_SERVERS from '~modules/moduleServers'
   are.
 
   stdout is the protocol's, so everything else this process prints goes to stderr. Like
-  `sendConversationMessage.ts`, it refuses to run unless it points at the emulators, which the
-  package's scripts do
+  `sendConversationMessage.ts`, it refuses to run unless it points at the emulators, Storage's
+  included, where the Budget module writes the receipts an agent hands it, which the package's
+  scripts do
 */
-if (!process.env.FIREBASE_AUTH_EMULATOR_HOST || !process.env.DATA_CONNECT_EMULATOR_HOST) {
+if (
+  !process.env.FIREBASE_AUTH_EMULATOR_HOST
+  || !process.env.DATA_CONNECT_EMULATOR_HOST
+  || !process.env.FIREBASE_STORAGE_EMULATOR_HOST
+) {
   console.error(
-    'FIREBASE_AUTH_EMULATOR_HOST and DATA_CONNECT_EMULATOR_HOST are not set. This script only reads and writes the emulators: run `bun run mcp:knowledge` or `bun run mcp:tasks`',
+    'FIREBASE_AUTH_EMULATOR_HOST, DATA_CONNECT_EMULATOR_HOST and FIREBASE_STORAGE_EMULATOR_HOST are not all set. This script only reads and writes the emulators: run `bun run mcp:knowledge`, `bun run mcp:tasks` or `bun run mcp:budget`',
   )
   process.exit(1)
 }

@@ -38,7 +38,7 @@ type Props = {
   says what the month holds, as the design system's Chart story draws it
 */
 function BudgetSpendingChart({ months, monthlyLimit, currency, year }: Props) {
-  const { formatMessage, locale } = useIntl()
+  const { formatMessage, formatList, locale } = useIntl()
   const id = useId()
   const scale = 10 ** CURRENCIES[currency].exponent
   const monthFormat = new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' })
@@ -75,9 +75,10 @@ function BudgetSpendingChart({ months, monthlyLimit, currency, year }: Props) {
         margin={{ top: 16, right: 12, bottom: 0, left: 0 }}
         aria-label={formatMessage(budgetMessages.chartLabel, {
           year,
-          months: data
-            .map(month => `${month.name} ${formatBudgetAmount(month.spent + month.expected, currency, locale)}`)
-            .join(', '),
+          months: formatList(
+            data.map(month => `${month.name} ${formatBudgetAmount(month.spent + month.expected, currency, locale)}`),
+            { type: 'unit', style: 'short' },
+          ),
         })}
       >
         <defs>

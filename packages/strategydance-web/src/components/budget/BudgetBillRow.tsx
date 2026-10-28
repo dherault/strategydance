@@ -60,7 +60,8 @@ function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
   const repeatState = getBillRepeatState(bill, today)
   const converted =
     bill.currency === currency ? null : convertMoney(bill.amountMinor, bill.currency, currency, lastPayment, rates)
-  const payerName = payer ? (payer.name ?? formatMessage(budgetMessages.formerMember)) : null
+  // A payer's first name, as the table shows them, or the label of somebody gone, kept whole
+  const payerName = payer ? payer.name?.trim().split(/\s+/)[0] || formatMessage(budgetMessages.formerMember) : null
   const amount = formatBudgetAmount(bill.amountMinor, bill.currency, locale, { exact: true })
 
   function open() {
@@ -134,7 +135,7 @@ function BudgetBillRow({ bill, payer, currency, today, rates }: Props) {
         {payer && payerName ? (
           <span className="flex items-center gap-2">
             <BillPayerAvatar payer={payer} />
-            {payerName.split(' ')[0]}
+            {payerName}
           </span>
         ) : (
           '-'

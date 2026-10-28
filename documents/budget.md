@@ -1344,26 +1344,53 @@ The module served at `https://api.strategydance.com/mcp/budget`, as M20 and M21 
 and Tasks.
 
 **Serving it:**
-- `SERVED_MODULE_NAMES` gains `budget`, which mounts its endpoint and its protected resource
-  metadata, and lets the authorization server and the consent page take it.
-- Every write tool registers `scopeChallenge: requireModuleWriteScope(budgetModule)`, from M8.
-- `list_bills`' query draws on the search allowance, from M8.
+- `SERVED_MODULE_NAMES`, in strategydance-core, gains `budget` after `tasks`, which mounts its
+  endpoint and its protected resource metadata, and lets the authorization server and the consent
+  page take it. The authorization server's `scopes_supported` gains `budget:read` and
+  `budget:write`.
+- Nothing else in the backend changed: M8 had already given every write tool its `scopeChallenge:
+  requireModuleWriteScope(budgetModule)`, and `list_bills`' query its draw on the search allowance.
+- The tests that named `/mcp/budget` as an address no module has name `/mcp/unknown` instead.
 
 **Wording.** The web's `module` catalogue words the module since M8, which `getModuleMessages`
 required of it: its name, what read and write access let an agent do, and the agents button's
 tooltip, "Allow your agents to read and write your budget". The consent page and Connected agents
-show it once it is served.
+show it now that it is served, and no message changed.
 
 **The button.** `ModuleAgentsButton module="budget"` goes in the page's header, after the settings
-button, on every tab.
+button, on every tab, and while a read has failed, since it reads nothing.
 
-**Checks.** `check:oauth` reaches the budget's endpoint as it reaches the others.
+**Checks.** `check:oauth`'s Tasks endpoint check became `checkModuleEndpoint`, which takes what
+differs between the modules served beside Knowledge and runs for Tasks, then Budget: the metadata,
+each module's token opening its own endpoint alone, `add_bill` as the member with its address,
+`list_bills`' query drawing on the allowance, a read-only token's write challenged naming
+`budget:write`, and Disconnect stopping the Budget connection while the Knowledge one goes on.
 
-**Verify:**
-- `claude mcp add --transport http strategydance-budget-http-local
-  http://localhost:3003/mcp/budget`, then `/mcp` to sign in, and the three questions of M8.
-- The consent page and Connected agents word it.
-- `check:oauth` and the four checks pass.
+**Tests**, in `routes/modules.test.ts`, as the Tasks endpoint's:
+- the metadata, and no token and a Tasks token answered 401 naming the Budget module's metadata;
+- the seven tools, `add_bill`, `list_bills` and `read_bill` as the member, with the bill's address;
+- a read-only connection still listing the writes, `add_bill` answered 403 `insufficient_scope`,
+  nothing written;
+- a query past the member's allowance answered with the sentence;
+- the endpoint's 1 MiB body holding the largest receipt an agent may hand over: a 700 KiB photo in
+  base64, some 933 KiB, stored, and one of 701 KiB refused with the module's sentence rather than a
+  413.
+
+**Verified**, against a scratch emulator suite, the branch's backend on 3003 and its web on 5174:
+- `check:oauth`, Budget's twelve checks included, and `check:budget-module` passed.
+- The OAuth flow for real: a loopback client registered and authorized for `/mcp/budget`, the
+  consent page "Connect M9 Check Agent to Budget" with the module's read and write wording, Allow,
+  the exchange granting `budget:read budget:write`, and Connected agents listing "Budget · Read and
+  write".
+- From Claude Code over HTTP, with that access token in a scratch `--mcp-config`, since a
+  non-interactive session cannot sign in from `/mcp`, on an organization synced and seeded:
+  - "what is left this quarter?", answered from `read_budget`, its figures the page's;
+  - "add this invoice", with a PDF, which Claude Code read, then sent in base64 with the fields it
+    read, the receipt landing in the bucket;
+  - "which subscriptions could we cut?", answered from `list_bills` and `read_budget`.
+- The page at desktop and phone widths: the button after the settings on Expenses, alone on Revenue
+  and Bills, its dialog naming `/mcp/budget`, nothing wider than the phone.
+- The four checks pass.
 
 ### M10: Budget in conversations
 

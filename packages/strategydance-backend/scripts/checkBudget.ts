@@ -839,6 +839,7 @@ async function checkReceiptsOfBills() {
     'the receipt it took the place of is kept in turn',
     (await readBillRow(holder))?.receiptId === old && (await readReceiptRow(fresh))?.formerBillId === holder,
   )
+  check("the member's own fresh receipt a bill keeps is refused to another bill", await isRefused(attach(fresh), again))
 
   const restored = await readBill(holder)
   // By the unique reference, which Data Connect reports before the receipt's check in one statement

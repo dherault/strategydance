@@ -1218,9 +1218,9 @@ milestones that build it: read it before changing any of it.
   token: the backend alone writes it and serves it, to any member of the organization
   (`routes/budget.ts`), through `billReceiptStorage`, which the tests replace with
   `createAttachmentStorageFake`. Nothing moves a file, so none is ever without its row
-- A save takes a receipt that is `READY`, in the organization, the caller's, held by no bill and
-  uploaded within two days (`BILL_RECEIPT_ATTACHABLE_DAYS`), or one the bill holds already, or one
-  of its earlier receipts. Every save first marks the receipt the bill holds with the bill
+- A save takes a receipt that is `READY`, in the organization, the caller's, held nor kept by no
+  bill and uploaded within two days (`BILL_RECEIPT_ATTACHABLE_DAYS`), or one the bill holds already,
+  or one of its earlier receipts. Every save first marks the receipt the bill holds with the bill
   (`formerBill`), so one it replaces or removes is kept as the bill's earlier receipt: a new way to
   save a bill marks it too. The sweep prunes deleted bills a day after, nulling their earlier
   receipts' `formerBill`, then the receipts no bill holds nor keeps, deleted bills included, three

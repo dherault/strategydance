@@ -601,6 +601,16 @@ async function checkUpdating() {
       && (await isRefused(update(await insertBill(), { receiptId: own }), 'The receipt can no longer be attached')),
   )
 
+  // The member's own, fresh, which a bill keeps once a save let it go
+  const kept = await insertReceipt()
+
+  check(
+    "the member's own fresh receipt a bill keeps is refused to another bill",
+    (await isAccepted(update(withReceipt, { receiptId: kept })))
+      && (await isAccepted(update(withReceipt, { receiptId: null })))
+      && (await isRefused(create({ receiptId: kept }), 'The receipt can no longer be attached')),
+  )
+
   const taken = await insertReceipt()
 
   await insertBill({ receiptId: taken })

@@ -2073,7 +2073,7 @@ mutation SetBudget($organizationId: UUID!, $currency: Currency!, $amountMinor: I
 # when it recurs, on or after its first payment. Its payer is a member of the organization.
 #
 # Its receipt, when it has one, is `READY`, in the organization, uploaded by the caller, held by no
-# bill, and uploaded within two days, past which the daily sweep may be deleting a receipt nothing
+# bill nor kept by one as an earlier receipt, and uploaded within two days, past which the daily sweep may be deleting a receipt nothing
 # holds: a dialog left open that long is told to attach it again. The receipt's unique reference
 # refuses a second bill taking it at the same instant
 mutation CreateBill(
@@ -2135,6 +2135,7 @@ mutation CreateBill(
           { userId: { eq_expr: "auth.uid" } }
           { createdAt: { gt_time: { now: true, sub: { days: 2 } } } }
           { _not: { bill_on_receipt: { id: { isNull: false } } } }
+          { formerBillId: { isNull: true } }
         ]
       }
       limit: 1
@@ -2254,6 +2255,7 @@ mutation UpdateBill(
                   { userId: { eq_expr: "auth.uid" } }
                   { createdAt: { gt_time: { now: true, sub: { days: 2 } } } }
                   { _not: { bill_on_receipt: { id: { isNull: false } } } }
+                  { formerBillId: { isNull: true } }
                 ]
               }
             ]

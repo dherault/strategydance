@@ -301,7 +301,9 @@ Deleting the organization deletes that prefix with the rest. `routes/budget.ts`,
 - uploaded by another member, unless it is the bill's own already, or one of its earlier receipts;
 - uploaded over two days ago, unless it is the bill's own already, or one of its earlier receipts;
 - held by another bill, which the receipt's unique reference also refuses. `UpdateBill` runs as one
-  SQL statement, so it reports that refusal before its own check's.
+  SQL statement, so it reports that refusal before its own check's;
+- kept by another bill as an earlier receipt, however fresh and whoever uploaded it, so a bill's
+  history never moves to another.
 
 **An edit loses no receipt.** A receipt is evidence of a payment, which a company keeps for years, and
 an edit that replaced or removed one used to leave it to the next sweep, beyond any undo. Every save

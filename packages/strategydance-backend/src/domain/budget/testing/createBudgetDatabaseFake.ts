@@ -305,6 +305,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
       && receipt.userId === variables.userId
       && Date.parse(receipt.createdAt) > Date.now() - BILL_RECEIPT_ATTACHABLE_DAYS * DAY_MS
       && !isHeld(receipt.id)
+      && receipt.formerBillId === null
     )
   }
 

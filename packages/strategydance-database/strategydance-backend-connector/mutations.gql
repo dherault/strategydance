@@ -9215,8 +9215,9 @@ mutation CreateBillForAgent(
 # `updatedAt` it read, so a save another member made meanwhile refuses it, and the module reads the
 # bill again and lays its fields over that. A bill keeps its payer, even one who has left, and its
 # receipt, whoever uploaded it. The checks on the variables are optional under the membership, so a
-# caller who is no member is told so. A receipt another bill holds is refused by the unique reference
-# (`bill_receiptId_uidx`) before the receipt's check, since the operation runs as one SQL statement
+# caller who is no member is told so. A receipt another bill holds is refused by the receipt's check,
+# as the emulator answers it, or by the unique reference (`bill_receiptId_uidx`) where Postgres
+# reports that first, the operation running as one SQL statement: the module reads both alike
 mutation UpdateBillForAgent(
   $organizationId: UUID!
   $userId: String!

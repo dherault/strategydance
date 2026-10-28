@@ -646,13 +646,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
 
       if (!isPayer) refuse('A bill is paid by a member of its organization, or by whoever paid it')
 
-      // One statement, where the receipt's unique reference is reported before the receipt's check
-      const holder =
-        variables.receiptId == null
-          ? undefined
-          : [...bills.values()].find(other => other.receiptId === id(variables.receiptId))
-
-      if (holder && holder.id !== billId) refuse('violates SQL unique constraint: bill_receiptId_uidx')
+      // A receipt another bill holds is refused by this check, as the emulator answers it
       if (!isAttachable(variables, billId))
         refuse('The receipt can no longer be attached to this bill: attach it again')
 

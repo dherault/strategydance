@@ -442,6 +442,7 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
           details={receiptDetails}
           onAttach={receipt.attach}
           onRemove={receipt.remove}
+          isDisabled={isSubmitting || isDeleting}
         />
         {bill ? (
           <BillEarlierReceipts
@@ -450,6 +451,7 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
             billName={name.trim()}
             details={receiptDetails}
             onTakeBack={receipt.takeBack}
+            isDisabled={isSubmitting || isDeleting}
           />
         ) : null}
       </div>

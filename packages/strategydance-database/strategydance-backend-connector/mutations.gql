@@ -8957,10 +8957,15 @@ mutation CompleteBillReceiptUpload($organizationId: UUID!, $userId: String!, $re
 # hours before. The first step writes the caller's membership, so the member's count after it sees
 # every claim of theirs that committed before it; the organization's runs under no lock of its own,
 # which two members claiming at once can each pass by one. `$isUsageCapped` false lifts both, as the
-# development backend does; left out, they hold. `$userId` is the uid the backend verified
-mutation ClaimBillReceiptRead($organizationId: UUID!, $userId: String!, $receiptId: UUID!, $isUsageCapped: Boolean)
-@auth(level: NO_ACCESS)
-@transaction {
+# development backend does; left out, they hold. `$userId` is the uid the backend verified, and
+# `$readClaim` the id it made for this read, which its record or its release names
+mutation ClaimBillReceiptRead(
+  $organizationId: UUID!
+  $userId: String!
+  $receiptId: UUID!
+  $readClaim: UUID!
+  $isUsageCapped: Boolean
+) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
     data: { updatedAt_expr: "request.time" }
@@ -9015,22 +9020,26 @@ mutation ClaimBillReceiptRead($organizationId: UUID!, $userId: String!, $receipt
         }
       ]
     }
-    data: { readAt_expr: "request.time" }
+    data: { readAt_expr: "request.time", readClaim: $readClaim }
   ) @check(expr: "this == 1", message: "The receipt is being read, or was read already")
 }
 
 # Keeps what the receipt reader found in a receipt it claimed, the JSON text of strategydance-core's
 # `BillReceiptFields`, clamped to a bill's lengths, so asking again answers it for nothing. Refused
-# once the claim is gone or fields are stored, which the reader logs
-mutation RecordBillReceiptRead($organizationId: UUID!, $userId: String!, $receiptId: UUID!, $readFields: String!)
-@auth(level: NO_ACCESS)
-@transaction {
+# once the claim is gone, another read took it over, or fields are stored, which the reader logs
+mutation RecordBillReceiptRead(
+  $organizationId: UUID!
+  $userId: String!
+  $receiptId: UUID!
+  $readClaim: UUID!
+  $readFields: String!
+) @auth(level: NO_ACCESS) @transaction {
   billReceipt_updateMany(
     where: {
       id: { eq: $receiptId }
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
-      readAt: { isNull: false }
+      readClaim: { eq: $readClaim }
       readFields: { isNull: true }
     }
     data: { readFields: $readFields }
@@ -9041,16 +9050,18 @@ mutation RecordBillReceiptRead($organizationId: UUID!, $userId: String!, $receip
 
 # Lets go of a receipt the reader claimed, once its request failed before it read anything, so the
 # read counts toward no cap and the member can ask again. A receipt whose fields are stored keeps its
-# claim, and letting go twice changes nothing
-mutation ReleaseBillReceiptRead($organizationId: UUID!, $userId: String!, $receiptId: UUID!) @auth(level: NO_ACCESS) {
+# claim, and so does one another read took over since, and letting go twice changes nothing
+mutation ReleaseBillReceiptRead($organizationId: UUID!, $userId: String!, $receiptId: UUID!, $readClaim: UUID!)
+@auth(level: NO_ACCESS) {
   billReceipt_updateMany(
     where: {
       id: { eq: $receiptId }
       userId: { eq: $userId }
       organizationId: { eq: $organizationId }
+      readClaim: { eq: $readClaim }
       readFields: { isNull: true }
     }
-    data: { readAt: null }
+    data: { readAt: null, readClaim: null }
   )
 }
 

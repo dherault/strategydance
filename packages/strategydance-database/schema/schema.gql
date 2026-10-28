@@ -1724,6 +1724,10 @@ type BillReceipt @table @index(fields: ["createdAt"]) @index(fields: ["organizat
   # asks for it to be read and again once a read that failed lets go (`ClaimBillReceiptRead`,
   # `ReleaseBillReceiptRead`)
   readAt: Timestamp
+  # The claim's own id, which the backend makes for each read, so only the read that claimed the
+  # receipt keeps what it found or lets it go: a read held up past the two minutes after which another
+  # takes it over touches nothing of that read's. Null while `readAt` is
+  readClaim: UUID
   # What the read found, the JSON text of strategydance-core's `BillReceiptFields`, so asking again
   # answers it for nothing. A `String` rather than `Any`, which Postgres' `jsonb` would rewrite
   readFields: String

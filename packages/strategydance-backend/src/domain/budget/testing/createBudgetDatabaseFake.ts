@@ -43,8 +43,10 @@ export type FakeBillReceipt = {
   name: string
   contentType: string
   size: number
-  // When the receipt reader claimed it, and what its read found, as JSON text
+  // When the receipt reader claimed it, the id of the read that claimed it, and what its read found,
+  // as JSON text
   readAt: string | null
+  readClaim: string | null
   readFields: string | null
   createdAt: string
 }
@@ -129,6 +131,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
       contentType: 'application/pdf',
       size: 1000,
       readAt: null,
+      readClaim: null,
       readFields: null,
       createdAt: stamp(),
       ...fields,
@@ -453,6 +456,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
       }
 
       receipt.readAt = stamp()
+      receipt.readClaim = String(variables.readClaim)
 
       return { billReceipt_updateMany: 1 }
     },
@@ -461,7 +465,11 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
       const receipt = receipts.get(id(variables.receiptId))
       const readFields = String(variables.readFields)
 
-      if (!isOwnReceipt(receipt, variables) || receipt.readAt === null || receipt.readFields !== null) {
+      if (
+        !isOwnReceipt(receipt, variables)
+        || receipt.readClaim !== variables.readClaim
+        || receipt.readFields !== null
+      ) {
         refuse('The receipt is no longer being read')
       }
 
@@ -475,9 +483,16 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
     ReleaseBillReceiptRead: variables => {
       const receipt = receipts.get(id(variables.receiptId))
 
-      if (!isOwnReceipt(receipt, variables) || receipt.readFields !== null) return { billReceipt_updateMany: 0 }
+      if (
+        !isOwnReceipt(receipt, variables)
+        || receipt.readClaim !== variables.readClaim
+        || receipt.readFields !== null
+      ) {
+        return { billReceipt_updateMany: 0 }
+      }
 
       receipt.readAt = null
+      receipt.readClaim = null
 
       return { billReceipt_updateMany: 1 }
     },

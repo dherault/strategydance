@@ -170,6 +170,33 @@ describe('requestBillReceiptRead', () => {
     expect(await read(receipt.id, scripted.client)).toEqual({ outcome: 'read', fields: FIELDS })
   })
 
+  test('touches nothing of a read that took over its claim, once held up past two minutes', async () => {
+    const receipt = upload()
+    let isHeldUp = true
+
+    // The first read's request answers only once a second read took the receipt over
+    const scripted = createScriptedClaudeClient({ answers: [answer(FIELDS, 'refusal')] })
+    const stream = scripted.client.stream
+
+    scripted.client.stream = async (...args) => {
+      while (isHeldUp) await Bun.sleep(1)
+
+      return stream(...args)
+    }
+
+    const first = read(receipt.id, scripted.client)
+
+    while (fake.receipts.get(receipt.id)?.readAt === null) await Bun.sleep(1)
+
+    const taken = { readAt: new Date().toISOString(), readClaim: crypto.randomUUID() }
+
+    Object.assign(fake.receipts.get(receipt.id)!, taken)
+    isHeldUp = false
+
+    expect(await first).toEqual({ outcome: 'failed' })
+    expect(fake.receipts.get(receipt.id)).toMatchObject(taken)
+  })
+
   test('holds the member to 50 reads in 24 hours, saying when the next fits, with no request', async () => {
     const receipt = upload()
 

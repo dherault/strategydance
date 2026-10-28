@@ -554,8 +554,17 @@ function minutesAgo(minutes: number) {
 
 async function checkReceiptReadOperations() {
   const reference = (receiptId: string, userId = userIds.member) => ({ organizationId, userId, receiptId })
-  const claim = (receiptId: string, userId = userIds.member) =>
-    claimBillReceiptRead(dataConnect, reference(receiptId, userId))
+  // Each receipt's claim, once accepted, which its record and its release name, as the reader's do
+  const claims = new Map<string, string>()
+  const claim = async (receiptId: string, userId = userIds.member) => {
+    const readClaim = createId()
+    const result = await claimBillReceiptRead(dataConnect, { ...reference(receiptId, userId), readClaim })
+
+    claims.set(receiptId, readClaim)
+
+    return result
+  }
+  const claimed = (receiptId: string) => ({ ...reference(receiptId), readClaim: claims.get(receiptId) ?? createId() })
   const fields = JSON.stringify({ name: 'Figma Professional' })
   const again = 'being read, or was read already'
 
@@ -584,24 +593,35 @@ async function checkReceiptReadOperations() {
     data.userOrganization?.organization.name === 'Checked organization' && data.billReceipt?.readAt !== null,
   )
 
-  await releaseBillReceiptRead(dataConnect, reference(receiptId))
+  await releaseBillReceiptRead(dataConnect, { ...reference(receiptId), readClaim: createId() })
+
+  check('a release naming another claim lets nothing go', (await readReceiptRead(receiptId))?.readAt !== null)
+
+  await releaseBillReceiptRead(dataConnect, claimed(receiptId))
 
   check('a release clears the claim', (await readReceiptRead(receiptId))?.readAt === null)
   check('a receipt let go is claimed again', await isAccepted(claim(receiptId)))
   check(
+    'a record naming another claim is refused',
+    await isRefused(
+      recordBillReceiptRead(dataConnect, { ...reference(receiptId), readClaim: createId(), readFields: fields }),
+      'no longer being read',
+    ),
+  )
+  check(
     'what the read found is kept',
-    await isAccepted(recordBillReceiptRead(dataConnect, { ...reference(receiptId), readFields: fields })),
+    await isAccepted(recordBillReceiptRead(dataConnect, { ...claimed(receiptId), readFields: fields })),
   )
   check('it is stored with the receipt', (await readReceiptRead(receiptId))?.readFields === fields)
   check(
     'a second record is refused',
     await isRefused(
-      recordBillReceiptRead(dataConnect, { ...reference(receiptId), readFields: fields }),
+      recordBillReceiptRead(dataConnect, { ...claimed(receiptId), readFields: fields }),
       'no longer being read',
     ),
   )
 
-  await releaseBillReceiptRead(dataConnect, reference(receiptId))
+  await releaseBillReceiptRead(dataConnect, claimed(receiptId))
 
   check(
     'a release after the record keeps the claim, and a claim is refused',
@@ -614,14 +634,14 @@ async function checkReceiptReadOperations() {
   check(
     'a record past 2000 characters is refused',
     await isRefused(
-      recordBillReceiptRead(dataConnect, { ...reference(long), readFields: 'a'.repeat(2001) }),
+      recordBillReceiptRead(dataConnect, { ...claimed(long), readFields: 'a'.repeat(2001) }),
       'fits in 2000 characters',
     ),
   )
   check(
     'a record without a claim is refused',
     await isRefused(
-      recordBillReceiptRead(dataConnect, { ...reference(await insertReceipt()), readFields: fields }),
+      recordBillReceiptRead(dataConnect, { ...claimed(await insertReceipt()), readFields: fields }),
       'no longer being read',
     ),
   )
@@ -651,6 +671,7 @@ async function checkReceiptReadCaps() {
   ) =>
     claimBillReceiptRead(dataConnect, {
       ...reference(receiptId, userId),
+      readClaim: createId(),
       ...(isUsageCapped === undefined ? {} : { isUsageCapped }),
     })
   const newReceipt = (userId = userIds.member) => insertReceipt({ organizationId: readsOrganizationId, userId })

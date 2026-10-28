@@ -29,7 +29,8 @@ export type BucketStorage = {
   // An object's size, or null when there is none
   readSize(name: string): Promise<number | null>
   read(name: string): Promise<Uint8Array>
-  openRead(name: string): Readable
+  // A stream of an object's bytes, up to and including `end` when given, as an HTTP range reads them
+  openRead(name: string, options?: { end?: number }): Readable
   // Copies an object to another name, unless one is there
   copy(from: string, to: string): Promise<BucketObjectCopy>
   // Deletes an object, whether or not it is there
@@ -90,8 +91,8 @@ function createBucketStorage(): BucketStorage {
       return bytes
     },
 
-    openRead(name) {
-      return bucket.file(name).createReadStream()
+    openRead(name, { end } = {}) {
+      return bucket.file(name).createReadStream(end === undefined ? {} : { start: 0, end })
     },
 
     async copy(from, to) {

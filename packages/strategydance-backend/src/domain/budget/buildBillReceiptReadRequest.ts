@@ -74,13 +74,15 @@ function buildBillReceiptReadRequest({ file, today, organizationName }: BillRece
   }
 }
 
-// A text file's bytes to 50000 characters at most, as UTF-8, which its upload checked it is
+/*
+  A text file's bytes to 50000 characters at most, as UTF-8, which its upload checked it is. The read
+  may have cut the bytes inside a character, whose start a streaming decode holds back rather than
+  write as a replacement character
+*/
 function cutText(bytes: Uint8Array) {
-  const characters = Array.from(new TextDecoder().decode(bytes))
+  const characters = Array.from(new TextDecoder().decode(bytes, { stream: true }))
 
-  return characters.length > MAX_BILL_RECEIPT_TEXT_LENGTH
-    ? new TextEncoder().encode(characters.slice(0, MAX_BILL_RECEIPT_TEXT_LENGTH).join(''))
-    : bytes
+  return new TextEncoder().encode(characters.slice(0, MAX_BILL_RECEIPT_TEXT_LENGTH).join(''))
 }
 
 export default buildBillReceiptReadRequest

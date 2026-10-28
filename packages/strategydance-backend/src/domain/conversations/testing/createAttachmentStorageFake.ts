@@ -64,14 +64,14 @@ function createAttachmentStorageFake() {
       return object.bytes
     },
 
-    openRead(name) {
-      calls.push(`openRead ${name}`)
+    openRead(name, { end } = {}) {
+      calls.push(`openRead ${name}${end === undefined ? '' : ` to ${end}`}`)
 
       const object = objects.get(name)
 
       if (!object) throw Object.assign(new Error(`No such object: ${name}`), { code: 404 })
 
-      return Readable.from([Buffer.from(object.bytes)])
+      return Readable.from([Buffer.from(end === undefined ? object.bytes : object.bytes.subarray(0, end + 1))])
     },
 
     async copy(from, to) {

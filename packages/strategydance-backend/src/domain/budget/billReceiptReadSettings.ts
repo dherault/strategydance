@@ -1,3 +1,5 @@
+import { MAX_BILL_RECEIPT_TEXT_LENGTH } from 'strategydance-core'
+
 /* ---
   What the receipt reader's request sends (`buildBillReceiptReadRequest`), and how long a read may
   take, as documents/budget.md § Reading a receipt settles it
@@ -19,6 +21,14 @@ export const BILL_RECEIPT_READ_MAX_TOKENS = 1024
 
 // How long the request may take before the read gives up and lets the receipt go
 export const BILL_RECEIPT_READ_TIMEOUT_MS = 60 * 1000
+
+/*
+  How many of a text receipt's bytes a read takes from Storage: enough for the 50000 characters it
+  sends (`MAX_BILL_RECEIPT_TEXT_LENGTH`), four bytes each at most in UTF-8, rather than the up to
+  10 MiB a text receipt may hold, which a read holding it whole as characters would take hundreds of
+  MB for
+*/
+export const MAX_BILL_RECEIPT_TEXT_READ_BYTES = 4 * MAX_BILL_RECEIPT_TEXT_LENGTH
 
 /*
   How long after its claim a read that stored nothing can be claimed again, which only a backend

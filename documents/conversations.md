@@ -323,7 +323,7 @@ Browser ──reads, live queries, light writes──▶ Data Connect (web conne
                                     └──▶ Data Connect (backend connector) ──refresh──▶ Browser
 
 External agent ──OAuth: /oauth/*, the member's consent in the browser──▶ Backend
-External agent ──MCP over Streamable HTTP, bearer token──▶ Backend `/mcp/knowledge`, `/mcp/tasks`
+External agent ──MCP over Streamable HTTP, bearer token──▶ Backend `/mcp/knowledge`, `/mcp/tasks`, `/mcp/budget`
                                                              └──▶ the same modules, as that member
 ```
 

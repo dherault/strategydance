@@ -49,8 +49,9 @@ import uploadBillReceipt from '~domain/budget/uploadBillReceipt'
   organization from the path, and every one is a member's.
 
   Each runs App Check, the caller's token, the parameters' check, then the caller's membership,
-  with its metering between the token and the checks, and only then reads a body, so nobody outside
-  the organization gets a byte read. The receipt reader, which spends on Claude for its member, also
+  with its metering between the token and the checks, and only then reads a file, so nobody outside
+  the organization gets a byte of one read: the reader's route parses its 1 KB of JSON first, as a
+  route that parses its own body does. The receipt reader, which spends on Claude for its member, also
   asks for a confirmed address and a member whose conversations staff did not suspend, as every route
   that starts a conversation's run does
 */

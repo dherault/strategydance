@@ -307,8 +307,9 @@ Deleting the organization deletes that prefix with the rest. `routes/budget.ts`,
 an edit that replaced or removed one used to leave it to the next sweep, beyond any undo. Every save
 of a bill, the page's and an agent's, first marks the receipt the bill holds with the bill
 (`formerBill`), in the same statement, so one the save lets go is kept as the bill's earlier
-receipt. The bill's dialog lists its earlier receipts and takes one back, and so does
-`update_bill`. They go with the bill, once the sweep prunes it.
+receipt. The bill's dialog lists its earlier receipts under its own, each with View and Use again
+(`BillEarlierReceipts`, read by `GetBillEarlierReceipts` as the dialog opens), and `update_bill`
+takes one back too. They go with the bill, once the sweep prunes it.
 
 **Nothing moves a file.** A receipt is stored where it stays, and its row exists before its file, so
 no file is ever without its row.

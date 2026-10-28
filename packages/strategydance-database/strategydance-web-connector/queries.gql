@@ -3456,3 +3456,26 @@ query GetBills($organizationId: UUID!)
     updatedAt
   }
 }
+
+# A bill's earlier receipts, which an edit replaced or removed and the bill keeps until it is pruned,
+# newest first, for its dialog to show and take one back. Read as the dialog opens, not live: a save
+# that lets a receipt go closes the dialog. Outsiders read nothing
+query GetBillEarlierReceipts($organizationId: UUID!, $billId: UUID!) @auth(level: USER) {
+  billReceipts(
+    where: {
+      _and: [
+        { organizationId: { eq: $organizationId } }
+        { formerBillId: { eq: $billId } }
+        { _not: { bill_on_receipt: { id: { isNull: false } } } }
+        { organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } } }
+      ]
+    }
+    orderBy: [{ createdAt: DESC }]
+    limit: 50
+  ) {
+    id
+    name
+    contentType
+    size
+  }
+}

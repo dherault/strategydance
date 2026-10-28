@@ -422,6 +422,30 @@ const budgetMessages = defineMessages({
     description:
       "Tooltip and accessible name of the icon button that takes a bill's receipt off, after a second click to confirm.",
   },
+  earlierReceiptsLabel: {
+    id: 'budget.earlierReceiptsLabel',
+    defaultMessage: 'Earlier receipts',
+    description:
+      "Label above the list, in a bill's dialog, of the receipts the bill held before an edit replaced or removed them, which it keeps and can use again.",
+  },
+  viewEarlierReceipt: {
+    id: 'budget.viewEarlierReceipt',
+    defaultMessage: 'View {name}',
+    description:
+      "Accessible name of the icon button that opens one of a bill's earlier receipts. {name} is the receipt's file name, such as invoice-march.pdf.",
+  },
+  useReceiptAgain: {
+    id: 'budget.useReceiptAgain',
+    defaultMessage: 'Use again',
+    description:
+      "Tooltip of the icon button that puts one of a bill's earlier receipts back as the bill's receipt, once the bill is saved.",
+  },
+  useEarlierReceiptAgain: {
+    id: 'budget.useEarlierReceiptAgain',
+    defaultMessage: 'Use {name} again',
+    description:
+      "Accessible name of the icon button that puts one of a bill's earlier receipts back as the bill's receipt, once the bill is saved. {name} is the receipt's file name, such as invoice-march.pdf.",
+  },
   removeReceiptConfirm: {
     id: 'budget.removeReceiptConfirm',
     defaultMessage: 'Confirm removal of the receipt',

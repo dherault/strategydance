@@ -52,6 +52,7 @@ import createId from '~utils/common/createId'
 import BillCompanyField from '~components/budget/BillCompanyField'
 import BillDayField from '~components/budget/BillDayField'
 import BillDialogHistory from '~components/budget/BillDialogHistory'
+import BillEarlierReceipts from '~components/budget/BillEarlierReceipts'
 import BillPayerOption from '~components/budget/BillPayerOption'
 import BillReceiptField from '~components/budget/BillReceiptField'
 import CurrencySelect from '~components/budget/CurrencySelect'
@@ -413,6 +414,15 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
           onAttach={receipt.attach}
           onRemove={receipt.remove}
         />
+        {bill ? (
+          <BillEarlierReceipts
+            billId={bill.id}
+            heldId={receipt.draft.status === 'none' ? null : receipt.draft.receipt.id}
+            billName={name.trim()}
+            details={receiptDetails}
+            onTakeBack={receipt.takeBack}
+          />
+        ) : null}
       </div>
       <DialogFooter className="flex-row items-center justify-end border-t border-border px-6 py-4">
         {bill ? (

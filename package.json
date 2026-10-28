@@ -26,6 +26,7 @@
     "review": "bash scripts/codeRabbitReview.sh",
     "grant:administrator": "cd packages/strategydance-backend && bun run grant:administrator",
     "check:budget": "cd packages/strategydance-backend && bun run check:budget",
+    "check:budget-module": "cd packages/strategydance-backend && bun run check:budget-module",
     "check:directories": "cd packages/strategydance-backend && bun run check:directories",
     "probe:claude": "cd packages/strategydance-backend && bun run probe:claude",
     "send:conversation": "cd packages/strategydance-backend && bun run send:conversation",

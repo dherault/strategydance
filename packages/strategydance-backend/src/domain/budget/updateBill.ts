@@ -23,6 +23,7 @@ import checkBillFields from '~domain/budget/checkBillFields'
 import parseBillPayer from '~domain/budget/parseBillPayer'
 import readAgentBillReceipt from '~domain/budget/readAgentBillReceipt'
 import readBudgetState from '~domain/budget/readBudgetState'
+import storeAgentBillReceipt from '~domain/budget/storeAgentBillReceipt'
 import toWrittenBill, { type WrittenBill } from '~domain/budget/toWrittenBill'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
@@ -63,9 +64,9 @@ async function updateBill(
   input: UpdateBillInput,
   call: ModuleCall | null,
 ): Promise<BudgetWriteResult<WrittenBill>> {
-  const receipt = input.receipt == null ? null : await readAgentBillReceipt(input.receipt)
+  const receipt = input.receipt == null ? null : await readAgentBillReceipt(caller, input.receipt)
 
-  if (receipt && receipt.outcome !== 'read') return receipt
+  if (receipt && receipt.outcome !== 'read' && receipt.outcome !== 'named') return receipt
 
   const answered = await answerFromModuleCall(caller, call)
 
@@ -119,8 +120,7 @@ async function updateBill(
     if (!payer && paidById !== current.paidById) return { outcome: 'payerNotMember' }
 
     if (receipt && receiptId === undefined) {
-      const { default: writeAgentBillReceipt } = await import('~domain/budget/writeAgentBillReceipt')
-      const written = await writeAgentBillReceipt(caller, receipt.file)
+      const written = await storeAgentBillReceipt(caller, receipt)
 
       if (written.outcome !== 'written') return written
 

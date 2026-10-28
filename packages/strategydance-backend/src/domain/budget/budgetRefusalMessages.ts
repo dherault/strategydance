@@ -8,3 +8,5 @@ export const RECEIPT_TAKEN_REFUSAL = 'bill_receiptId_uidx'
 export const CHANGED_REFUSAL = 'The bill was deleted or changed elsewhere since it was read'
 export const NOT_FOUND_REFUSAL = 'No bill by that id in the organization'
 export const GONE_REFUSAL = 'The bill is gone for good'
+// A conversation's file reserved as a receipt that is no longer the member's sent file, as read
+export const ATTACHMENT_REFUSAL = 'The file is not one the member sent in the conversation'

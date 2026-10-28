@@ -1,8 +1,11 @@
 import {
+  BILL_RECEIPT_CONTENT_TYPES,
   CONVERSATION_ATTACHMENT_CONTENT_TYPES,
   CONVERSATION_SEARCH_WINDOW_MINUTES,
   MAX_ACTIVE_RUNS_PER_MEMBER,
   MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER,
+  MAX_BILL_RECEIPT_NAME_LENGTH,
+  MAX_BILL_RECEIPT_SIZE,
   MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
   MAX_CONVERSATION_ATTACHMENT_SIZE,
   MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
@@ -29,6 +32,7 @@ import { CONVERSATION_RUN_QUEUED_LEASE_MS } from '~constants'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 import toSortableInstant from '~utils/toSortableInstant'
 
+import { BillReceiptStatus } from '~domain/budget/testing/createBudgetDatabaseFake'
 import createIntegrationDatabaseFake from '~domain/integrations/testing/createIntegrationDatabaseFake'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
@@ -4981,6 +4985,100 @@ function createConversationDatabaseFake() {
             }
           : null,
       }
+    },
+
+    // The Budget module's read of a conversation's file it takes as a bill's receipt
+    GetConversationAttachmentForAgent: variables => {
+      const conversation = conversations.get(id(variables.conversationId))
+      const attachment = attachments.get(id(variables.attachmentId))
+      const isTheirs =
+        conversation
+        && conversation.userId === variables.userId
+        && conversation.organizationId === id(variables.organizationId)
+      const brief = isTheirs
+        ? [...messages.values()].find(
+            message => message.conversationId === conversation.id && message.position === 0 && message.kind === 'BRIEF',
+          )
+        : undefined
+
+      return {
+        membership: moduleMembership(variables),
+        conversations: isTheirs
+          ? [
+              {
+                parentId: conversation.parentId ?? null,
+                deletedAt: conversation.deletedAt,
+                briefs: brief ? [{ attachmentIds: brief.attachmentIds ?? null }] : [],
+              },
+            ]
+          : [],
+        attachments:
+          attachment
+          && attachment.userId === variables.userId
+          && attachment.organizationId === id(variables.organizationId)
+          && attachment.status === 'READY'
+          && attachment.messageId
+            ? [
+                {
+                  conversationId: attachment.conversationId,
+                  name: attachment.name,
+                  contentType: attachment.contentType,
+                  size: attachment.size,
+                  pageCount: attachment.pageCount,
+                },
+              ]
+            : [],
+      }
+    },
+
+    // The Budget module's reservation of a conversation's file as a bill's receipt, held to the
+    // member's sent file as read, into the budget's receipts
+    ReserveAttachmentBillReceiptForAgent: variables => {
+      const name = String(variables.name)
+      const attachment = attachments.get(id(variables.attachmentId))
+
+      if (!moduleMembership(variables).length) refuse('The caller is no longer a member of the organization')
+
+      if (
+        !(
+          [...name].length >= 1
+          && [...name].length <= MAX_BILL_RECEIPT_NAME_LENGTH
+          && !/[\r\n]/.test(name)
+          && variables.size >= 1
+          && variables.size <= MAX_BILL_RECEIPT_SIZE
+          && BILL_RECEIPT_CONTENT_TYPES.includes(variables.contentType)
+        )
+      ) {
+        refuse('A receipt has a name on one line of at most 200 characters, a type a bill takes, and at most 10 MiB')
+      }
+
+      if (
+        !attachment
+        || attachment.userId !== variables.userId
+        || attachment.organizationId !== id(variables.organizationId)
+        || attachment.conversationId !== id(variables.conversationId)
+        || attachment.status !== 'READY'
+        || !attachment.messageId
+        || attachment.name !== name
+        || attachment.contentType !== variables.contentType
+        || attachment.size !== variables.size
+      ) {
+        refuse('The file is not one the member sent in the conversation')
+      }
+
+      if (modules.receipts.has(id(variables.receiptId))) refuse('violates SQL unique constraint: bill_receipt_pkey')
+
+      modules.insertReceipt({
+        id: id(variables.receiptId),
+        organizationId: id(variables.organizationId),
+        userId: String(variables.userId),
+        status: BillReceiptStatus.UPLOADING,
+        name,
+        contentType: String(variables.contentType),
+        size: Number(variables.size),
+      })
+
+      return { billReceipt_insert: { id: id(variables.receiptId) } }
     },
 
     GetConversationSendAttachments: variables => {

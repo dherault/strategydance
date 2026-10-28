@@ -1,8 +1,9 @@
 import { MAX_AGENT_BILL_RECEIPT_SIZE } from 'strategydance-core'
 
-import type { AgentBillReceipt } from '~types'
+import type { AgentBillReceipt, ModuleCaller } from '~types'
 
 import sniffConversationAttachment from '~utils/sniffConversationAttachment'
+import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import checkBillReceiptBytes from '~domain/budget/checkBillReceiptBytes'
 
@@ -13,8 +14,14 @@ export type AgentBillReceiptFile = {
   bytes: Uint8Array
 }
 
-type ReadAgentBillReceiptResult =
+// What a call's receipt reads as: its bytes, checked, or the id of a conversation's file it names,
+// which `storeAgentBillReceipt` reads once the call's key has not answered it
+export type ReadAgentBillReceipt =
   | { outcome: 'read'; file: AgentBillReceiptFile }
+  | { outcome: 'named'; attachmentId: string }
+
+type ReadAgentBillReceiptResult =
+  | ReadAgentBillReceipt
   | { outcome: 'invalidReceipt'; reason: string }
   | { outcome: 'attachmentUnavailable' }
 
@@ -22,11 +29,19 @@ type ReadAgentBillReceiptResult =
   The bytes of a receipt an agent hands the Budget module, checked as an upload's are before anything
   is reserved, so a refused one writes nothing: at most `MAX_AGENT_BILL_RECEIPT_SIZE` once decoded,
   its first bytes the type it names, a PDF of 20 pages at most that its parser reads, and text in
-  UTF-8 with no NUL, kept as `text/plain`. A conversation's file is Strategy Dance's own agent's to
-  name, from M10, and refused until then
+  UTF-8 with no NUL, kept as `text/plain`. A conversation's file is named only by a caller a claimed
+  run connected, its launcher, which Strategy Dance's own agent alone has: an external agent, or a
+  measurement connecting with no run, is refused one
 */
-async function readAgentBillReceipt(receipt: AgentBillReceipt): Promise<ReadAgentBillReceiptResult> {
-  if ('attachmentId' in receipt) return { outcome: 'attachmentUnavailable' }
+async function readAgentBillReceipt(
+  caller: ModuleCaller,
+  receipt: AgentBillReceipt,
+): Promise<ReadAgentBillReceiptResult> {
+  if ('attachmentId' in receipt) {
+    if (!caller.launcher) return { outcome: 'attachmentUnavailable' }
+
+    return { outcome: 'named', attachmentId: toCanonicalUuid(receipt.attachmentId) }
+  }
 
   const isText = 'text' in receipt
   const contentType = isText ? 'text/plain' : receipt.contentType

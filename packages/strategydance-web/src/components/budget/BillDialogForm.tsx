@@ -221,7 +221,16 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
       return
     }
 
-    if (outcome.kind === 'receipt') receipt.remove()
+    // The receipt attached can no longer be: a bill goes back to its own, which the reader can replace
+    // again, and a new one to none
+    if (outcome.kind === 'receipt') {
+      if (bill?.receipt) {
+        receipt.reset(bill.receipt)
+        form.setValue('receiptId', bill.receipt.id, { shouldDirty: true })
+      } else {
+        receipt.remove()
+      }
+    }
   }
 
   function remove() {

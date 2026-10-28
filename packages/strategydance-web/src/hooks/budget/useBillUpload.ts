@@ -48,10 +48,22 @@ function useBillUpload(onRead: (read: BillUploadRead) => void) {
   const receipt = useBillReceiptDraft(null, () => {})
   const [state, setState] = useState<BillUploadState>({ status: 'choosing' })
   const controllerRef = useRef<AbortController | null>(null)
+  // Whether the dialog closed, after which no read starts, since each is paid for
+  const isClosedRef = useRef(false)
 
-  useEffect(() => () => controllerRef.current?.abort(), [])
+  // Set again on every mount, as a development remount undoes its cleanup
+  useEffect(() => {
+    isClosedRef.current = false
+
+    return () => {
+      isClosedRef.current = true
+      controllerRef.current?.abort()
+    }
+  }, [])
 
   async function read(stored: BillReceiptData) {
+    if (isClosedRef.current) return
+
     controllerRef.current?.abort()
 
     const controller = new AbortController()

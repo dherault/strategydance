@@ -239,12 +239,13 @@ type BillRow = {
   paidById: string | null
   receiptId: string | null
   deletedAt: string | null
+  updatedById: string | null
   updatedAt: string
 }
 
 async function readBillRow(id: string) {
   const data = await read<{ bill: BillRow | null }>(
-    `query ReadBill($id: UUID!) { bill(id: $id) { name amountMinor paidById receiptId deletedAt updatedAt } }`,
+    `query ReadBill($id: UUID!) { bill(id: $id) { name amountMinor paidById receiptId deletedAt updatedById updatedAt } }`,
     { id },
   )
 
@@ -456,12 +457,16 @@ async function checkCreating() {
         ...UNKEYED,
       })
 
-      const row = await read<{ bill: { name: string; createdById: string; recurrence: string } | null }>(
-        `query ReadCreated($id: UUID!) { bill(id: $id) { name createdById recurrence } }`,
-        { id },
-      )
+      const row = await read<{
+        bill: { name: string; createdById: string; updatedById: string; recurrence: string } | null
+      }>(`query ReadCreated($id: UUID!) { bill(id: $id) { name createdById updatedById recurrence } }`, { id })
 
-      return row.bill?.name === 'Notion' && row.bill.createdById === userIds.member && row.bill.recurrence === 'MONTHLY'
+      return (
+        row.bill?.name === 'Notion'
+        && row.bill.createdById === userIds.member
+        && row.bill.updatedById === userIds.member
+        && row.bill.recurrence === 'MONTHLY'
+      )
     })(),
   )
 
@@ -521,11 +526,15 @@ async function checkCreating() {
 }
 
 async function checkUpdating() {
-  const id = await insertBill({ name: 'Saved', paidById: userIds.leaver })
+  const id = await insertBill({ name: 'Saved', paidById: userIds.leaver, createdById: userIds.other })
 
   check(
     'a save on the updatedAt read goes through',
     await isAccepted(update(id, { name: 'Renamed', paidById: userIds.leaver })),
+  )
+  check(
+    'it names the member the agent acts as who saved the bill last',
+    (await readBillRow(id))?.updatedById === userIds.member,
   )
   check(
     'a save on an updatedAt another save moved is refused',

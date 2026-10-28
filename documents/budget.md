@@ -116,6 +116,8 @@ enum BillReceiptStatus { UPLOADING READY }
   - `paidBy: User`, which the bill keeps when that member leaves.
   - `receipt: BillReceipt`, unique, since a receipt belongs to one bill.
   - `createdBy: User`, and `createdAt`, `updatedAt` and `deletedAt`.
+  - `updatedBy: User`, who saved it last, the member an agent acts as included, written with
+    `updatedAt`. Its dialog says who added it and who last changed it, and `read_bill` answers both.
   - An index on `["organizationId", "deletedAt"]`.
 - **`BillReceipt`**:
   - `id`, `organization`, and `user`, the member who uploaded it.
@@ -417,7 +419,7 @@ Its tools, in their frozen order:
 | --- | --- | --- | --- |
 | `read_budget` | `{ month? }`, `YYYY-MM`, this month by default | the budget (amount, period, currency) or null; today; the rates' date; for the month, its quarter and its year: spent, expected, limit, left and projected left; the status at today; `missingRates` | read |
 | `list_bills` | `{ query?, paidFrom?, paidTo?, paidBy?, recurring?, active?, limit?, cursor? }` | up to 50 bills, by last payment, newest first. Each has its fields, its last and next payments converted, its payer, whether it has a receipt, and its address. Also `total` and `nextCursor` | read |
-| `read_bill` | `{ id }` | one bill, with its receipt's name, type and size, its payments this year (count and total), who created it and when, and `version` | read |
+| `read_bill` | `{ id }` | one bill, with its receipt's name, type and size, its payments this year (count and total), who created it and when, who saved it last and when, and `version` | read |
 | `add_bill` | `{ name, description?, company, amount, currency, paidOn?, recurrence?, endsOn?, paidBy?, receipt? }` | the bill, and the budget's status after it | write |
 | `update_bill` | `{ id, version?, …any field of add_bill, receipt? }`, where `receipt: null` removes it | the bill, and the status after it | write |
 | `delete_bill` | `{ id }` | the bill deleted, restorable for a day | write, destructive |

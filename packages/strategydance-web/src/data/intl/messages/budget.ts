@@ -246,6 +246,24 @@ const budgetMessages = defineMessages({
     description:
       'Line under the title of an existing bill\'s dialog: when it was added. {date} is a day with its year, such as "Oct 21, 2026".',
   },
+  billAddedOnBy: {
+    id: 'budget.billAddedOnBy',
+    defaultMessage: 'Added {date} by {name}',
+    description:
+      'Line under the title of an existing bill\'s dialog: when it was added and by whom. {date} is a day with its year, such as "Oct 21, 2026", and {name} a team member\'s name.',
+  },
+  billChangedOn: {
+    id: 'budget.billChangedOn',
+    defaultMessage: 'last changed {date}',
+    description:
+      'Second part of the line under the title of an existing bill\'s dialog, after "Added {date}" and joined to it as a list, as in "Added Oct 21, 2026 and last changed Oct 27, 2026": when the bill was last saved. {date} is a day with its year.',
+  },
+  billChangedOnBy: {
+    id: 'budget.billChangedOnBy',
+    defaultMessage: 'last changed {date} by {name}',
+    description:
+      'Second part of the line under the title of an existing bill\'s dialog, after "Added {date} by {name}" and joined to it as a list, as in "Added Oct 21, 2026 by Sam and last changed Oct 27, 2026 by Alex": when the bill was last saved and by whom. {date} is a day with its year, and {name} a team member\'s name.',
+  },
   nameLabel: {
     id: 'budget.nameLabel',
     defaultMessage: 'Name',

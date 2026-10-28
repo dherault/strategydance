@@ -39,6 +39,19 @@ describe('update_bill', () => {
     expect(fake.bills.get(bill.id)).toMatchObject({ name: 'Figma', description: 'Design', amountMinor: 1800 })
   })
 
+  it('names the member the agent acts as who saved the bill last, beside who added it', async () => {
+    const kit = await book.connect()
+    const bill = book.add({ name: 'Figma', createdById: 'other', updatedById: 'other' })
+
+    await kit.answer('update_bill', { id: bill.id, amount: '18.00' })
+
+    expect(fake.bills.get(bill.id)).toMatchObject({ createdById: 'other', updatedById: 'member' })
+    expect(await kit.answer('read_bill', { id: bill.id })).toMatchObject({
+      createdBy: 'member:other',
+      updatedBy: 'member:member',
+    })
+  })
+
   it("keeps both a member's save landing in between and its own, reading the bill again and applying its fields again", async () => {
     const kit = await book.connect()
     const bill = book.add({ name: 'Figma', company: 'Figma', amountMinor: 1500 })

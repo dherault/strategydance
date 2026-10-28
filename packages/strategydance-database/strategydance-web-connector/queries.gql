@@ -3443,7 +3443,15 @@ query GetBills($organizationId: UUID!)
       size
     }
     createdById
+    createdBy {
+      displayName
+    }
     createdAt
+    # Who saved it last, whom its dialog names beside who added it
+    updatedById
+    updatedBy {
+      displayName
+    }
     # The dialog saves on it, and is refused once another save moved it
     updatedAt
   }

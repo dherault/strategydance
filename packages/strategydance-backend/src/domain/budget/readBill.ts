@@ -18,7 +18,8 @@ import toAgentBill from '~domain/budget/toAgentBill'
 import toMemberToday from '~domain/budget/toMemberToday'
 import toModuleBill from '~domain/budget/toModuleBill'
 
-// A bill as `read_bill` answers it, with its receipt, this year's payments and who added it
+// A bill as `read_bill` answers it, with its receipt, this year's payments, who added it and who
+// saved it last
 export type ReadBillAnswer = ModuleBill & {
   budgetCurrency: Currency
   receipt: { name: string; contentType: string; size: number } | null
@@ -26,6 +27,8 @@ export type ReadBillAnswer = ModuleBill & {
   createdBy: `member:${string}` | null
   createdByName: string | null
   createdAt: string
+  updatedBy: `member:${string}` | null
+  updatedByName: string | null
   updatedAt: string
   version: string
 }
@@ -35,8 +38,8 @@ type ReadBillResult = { outcome: 'read'; bill: ReadBillAnswer } | BudgetRefusal
 /*
   One live bill, as the bill's dialog shows it: its fields, its receipt's name, type and size, every
   payment of this calendar year, those still ahead included, their count and total in the bill's
-  currency and in the budget's, who added it and when, and `version`, the `updatedAt` an update can
-  be held to, so it changes nothing a member saved since
+  currency and in the budget's, who added it and when, who saved it last and when, and `version`, the
+  `updatedAt` an update can be held to, so it changes nothing a member saved since
 */
 async function readBill(
   caller: ModuleCaller,
@@ -87,6 +90,8 @@ async function readBill(
       createdBy: row.createdById ? `member:${row.createdById}` : null,
       createdByName: row.createdBy?.displayName ?? null,
       createdAt: row.createdAt,
+      updatedBy: row.updatedById ? `member:${row.updatedById}` : null,
+      updatedByName: row.updatedBy?.displayName ?? null,
       updatedAt: row.updatedAt,
       version: row.updatedAt,
       ...(url && { url }),

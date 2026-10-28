@@ -1205,8 +1205,9 @@ milestones that build it: read it before changing any of it.
   with every variable: the amount and the period together, or both null to remove it, the currency
   kept
 - Any member adds, saves, deletes and restores any bill, as the board's tasks. `UpdateBill` writes
-  every field on the `updatedAt` the dialog read, refused once another save moved it, and a delete
-  and its Undo leave `updatedAt` alone. A restore takes a bill deleted within a day. `CreateBill` and
+  every field on the `updatedAt` the dialog read, refused once another save moved it, and names its
+  saver in `updatedBy`, an agent's write the member it acts as. A delete and its Undo leave both
+  alone. A restore takes a bill deleted within a day. `CreateBill` and
   `RestoreBill` hold `MAX_BILLS` under a lock on the organization's row, their count reading the
   lock's response. A bill keeps its payer once they leave, and a new payer is a member. A bill's
   limits are core's, written out again in its operations' checks, which `schema.test.ts` holds to

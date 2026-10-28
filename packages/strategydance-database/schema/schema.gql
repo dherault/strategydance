@@ -1685,6 +1685,9 @@ type Bill @table @index(fields: ["organizationId", "deletedAt"]) {
   # Who added it. Optional, set to null when the account goes, so deleting an account keeps its
   # team's bills
   createdBy: User
+  # Who saved its fields last, the member an agent acts as included: written with `updatedAt`, which
+  # a delete and its Undo leave, so they leave it too. Optional, set to null when the account goes
+  updatedBy: User
   deletedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   # Written by every save of its fields, so a save made on what another member's save replaced is

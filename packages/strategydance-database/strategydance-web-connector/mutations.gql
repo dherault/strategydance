@@ -2161,6 +2161,7 @@ mutation CreateBill(
       paidById: $paidById
       receiptId: $receiptId
       createdById_expr: "auth.uid"
+      updatedById_expr: "auth.uid"
     }
   )
 }
@@ -2284,6 +2285,7 @@ mutation UpdateBill(
       endsOn: $endsOn
       paidById: $paidById
       receiptId: $receiptId
+      updatedById_expr: "auth.uid"
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The bill was deleted or changed elsewhere since it was read")

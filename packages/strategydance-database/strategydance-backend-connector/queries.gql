@@ -3491,6 +3491,10 @@ query GetBillForAgent($organizationId: UUID!, $userId: String!, $membershipCreat
       displayName
     }
     createdAt
+    updatedById
+    updatedBy {
+      displayName
+    }
     updatedAt
     deletedAt
   }

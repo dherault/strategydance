@@ -164,6 +164,8 @@ type BillRow = {
   paidById: string | null
   paidBy: { displayName: string | null } | null
   receipt: { id: string; name: string; contentType: string; size: number } | null
+  createdById: string | null
+  updatedById: string | null
   updatedAt: string
 }
 
@@ -854,6 +856,24 @@ async function checkSaving() {
     return
   }
 
+  check(
+    'a bill added names who added it as who saved it last',
+    bill.createdById === userIds.member && bill.updatedById === userIds.member,
+  )
+
+  const changed = newBill()
+
+  await runAs(userIds.member, 'CreateBill', changed)
+
+  const changedBill = await readBill(changed.id)
+
+  check(
+    "another member's save names them as who saved it last, keeping who added it",
+    changedBill !== undefined
+      && (await isAccepted(runAs(userIds.other, 'UpdateBill', savedBill(changedBill, { name: 'Changed' }))))
+      && (await readBill(changed.id))?.createdById === userIds.member
+      && (await readBill(changed.id))?.updatedById === userIds.other,
+  )
   check(
     'a save with the updatedAt read is taken',
     await isAccepted(runAs(userIds.member, 'UpdateBill', savedBill(bill, { name: 'First' }))),

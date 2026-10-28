@@ -69,6 +69,8 @@ export type FakeBill = {
   receiptId: string | null
   createdById: string | null
   createdAt: string
+  // Who saved it last, the member an agent acts as included
+  updatedById: string | null
   updatedAt: string
   deletedAt: string | null
 }
@@ -164,6 +166,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
       receiptId: null,
       createdById: null,
       createdAt,
+      updatedById: null,
       updatedAt: createdAt,
       deletedAt: null,
       ...fields,
@@ -599,6 +602,8 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
                   createdById: bill.createdById,
                   createdBy: bill.createdById === null ? null : { displayName: nameOf(bill.createdById) },
                   createdAt: bill.createdAt,
+                  updatedById: bill.updatedById,
+                  updatedBy: bill.updatedById === null ? null : { displayName: nameOf(bill.updatedById) },
                   deletedAt: bill.deletedAt,
                 },
               ]
@@ -642,6 +647,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
         id: id(variables.id),
         organizationId: id(variables.organizationId),
         createdById: String(variables.userId),
+        updatedById: String(variables.userId),
       })
 
       writeBillVariables(bill, variables)
@@ -681,6 +687,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
 
       storeResult(variables)
       writeBillVariables(bill, variables)
+      bill.updatedById = String(variables.userId)
       bill.updatedAt = stamp()
 
       return { bill_updateMany: 1 }

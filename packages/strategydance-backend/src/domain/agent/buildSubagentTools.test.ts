@@ -69,7 +69,7 @@ describe('buildSubagentTools', () => {
       'restore_bill',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      'fa5437f92a86593c90576ad8685df4cb0aa8b06b887e015146db8590bbc6849f',
+      'f18f0f7ee5ecb9ce3d07da534f7a4eb35ec9afddd875852b3516af9ead272fed',
     )
   })
 

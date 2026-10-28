@@ -9217,6 +9217,7 @@ mutation CreateBillForAgent(
       paidById: $paidById
       receiptId: $receiptId
       createdById: $userId
+      updatedById: $userId
     }
   )
 }
@@ -9369,6 +9370,7 @@ mutation UpdateBillForAgent(
       endsOn: $endsOn
       paidById: $paidById
       receiptId: $receiptId
+      updatedById: $userId
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The bill was deleted or changed elsewhere since it was read")

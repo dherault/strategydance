@@ -529,8 +529,20 @@
         "hash": "f7d70794f77be0d5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.billAddedOnBy": {
+        "hash": "28b26e355e78f672",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.billAmountLabel": {
         "hash": "65498dd6f2440c2e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.billChangedOn": {
+        "hash": "ac2a5ae30ad45feb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.billChangedOnBy": {
+        "hash": "a077978a6c615dbe",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.billDeleteFailed": {

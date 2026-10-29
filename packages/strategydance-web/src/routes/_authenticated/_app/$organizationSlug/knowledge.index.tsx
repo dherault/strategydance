@@ -4,26 +4,26 @@ import type { MessageType } from '~types'
 
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
+import OrganizationDocuments from '~components/document/OrganizationDocuments'
+import OrganizationDocumentsWait from '~components/document/OrganizationDocumentsWait'
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
-import KnowledgeDocuments from '~components/knowledge/KnowledgeDocuments'
-import KnowledgeDocumentsWait from '~components/knowledge/KnowledgeDocumentsWait'
 
 // At module scope so the reference is stable across renders
 const KNOWLEDGE_MESSAGE_TYPES: MessageType[] = ['knowledge']
 
 // Every document of the current organization's knowledge
 export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/knowledge/')({
-  component: KnowledgeRoute,
+  component: DocumentsRoute,
 })
 
-function KnowledgeRoute() {
+function DocumentsRoute() {
   const { organization } = useCurrentOrganization()
 
   return (
     <IntlMessagesRegistration messageTypes={KNOWLEDGE_MESSAGE_TYPES}>
-      <KnowledgeDocumentsWait key={organization?.id ?? 'none'}>
-        <KnowledgeDocuments />
-      </KnowledgeDocumentsWait>
+      <OrganizationDocumentsWait key={organization?.id ?? 'none'}>
+        <OrganizationDocuments />
+      </OrganizationDocumentsWait>
     </IntlMessagesRegistration>
   )
 }

@@ -5,7 +5,7 @@ import type { ConversationMessageBody, ConversationThreadEntry } from '~types'
 // The tool whose row offers Restore, which the organization's documents say it can
 export const DELETE_DOCUMENT_TOOL_NAME = 'delete_document'
 
-// The messages whose words can link to knowledge
+// The messages whose words can link to documents
 const TEXT_KINDS: ReadonlySet<ConversationMessageKind> = new Set([
   ConversationMessageKind.AGENT_TEXT,
   ConversationMessageKind.MEMBER_TEXT,

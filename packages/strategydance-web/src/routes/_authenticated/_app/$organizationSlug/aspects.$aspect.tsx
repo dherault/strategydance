@@ -8,8 +8,8 @@ import parseAspectSlug from '~utils/company/parseAspectSlug'
 import toAspectSlug from '~utils/company/toAspectSlug'
 
 import AspectPage from '~components/company/AspectPage'
+import OrganizationDocumentsWait from '~components/document/OrganizationDocumentsWait'
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
-import KnowledgeDocumentsWait from '~components/knowledge/KnowledgeDocumentsWait'
 
 // At module scope so the reference is stable across renders
 const ASPECT_MESSAGE_TYPES: MessageType[] = ['aspect', 'knowledge']
@@ -42,9 +42,9 @@ function AspectRoute() {
 
   return (
     <IntlMessagesRegistration messageTypes={ASPECT_MESSAGE_TYPES}>
-      <KnowledgeDocumentsWait key={organization?.id ?? 'none'}>
+      <OrganizationDocumentsWait key={organization?.id ?? 'none'}>
         <AspectPage aspect={aspect} />
-      </KnowledgeDocumentsWait>
+      </OrganizationDocumentsWait>
     </IntlMessagesRegistration>
   )
 }

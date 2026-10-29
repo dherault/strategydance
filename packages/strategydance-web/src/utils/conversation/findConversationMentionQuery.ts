@@ -1,6 +1,6 @@
 import findConversationMentions from '~utils/conversation/findConversationMentions'
 
-// What is typed after an `@`, which the list of knowledge to mention matches titles against
+// What is typed after an `@`, which the list of documents to mention matches titles against
 export type ConversationMentionQuery = {
   // Where the `@` is
   at: number

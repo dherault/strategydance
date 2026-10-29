@@ -1,7 +1,7 @@
 import { useIntl } from 'react-intl'
 import type { CompanyAspect } from 'strategydance-database/web'
 
-import AspectKnowledge from '~components/knowledge/AspectKnowledge'
+import AspectDocuments from '~components/document/AspectDocuments'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
 
@@ -22,7 +22,7 @@ function AspectPage({ aspect }: Props) {
         eyebrow={formatMessage(aspectPunchlineMessages[aspect])}
         title={formatMessage(aspectMessages[aspect])}
       />
-      <AspectKnowledge aspect={aspect} />
+      <AspectDocuments aspect={aspect} />
     </ContainerLayout>
   )
 }

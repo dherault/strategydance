@@ -6,7 +6,7 @@ import conversationMessages from '~data/intl/messages/conversation'
 type ToolStatus = Extract<ConversationPreview, { kind: 'TOOL_CALL' }>['toolStatus']
 
 // What each of the agent's tools is called while it runs, and once it is done: its own, then the
-// Knowledge module's, the Tasks module's, the Budget module's, its integrations' and the Subagents
+// Documents module's, the Tasks module's, the Budget module's, its integrations' and the Subagents
 // module's
 const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageDescriptor }>([
   ['web_search', { running: conversationMessages.toolWebSearchRunning, done: conversationMessages.toolWebSearchDone }],

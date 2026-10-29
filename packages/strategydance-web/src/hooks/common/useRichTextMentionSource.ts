@@ -7,7 +7,7 @@ import type {
   RichTextMentionTarget,
 } from 'strategydance-design-system/lib/richText'
 
-import useOrganizationKnowledgeDocuments from '~hooks/knowledge/useOrganizationKnowledgeDocuments'
+import useOrganizationDocuments from '~hooks/document/useOrganizationDocuments'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 import useTasks from '~hooks/task/useTasks'
 
@@ -38,7 +38,7 @@ function useRichTextMentionSource({ self, openTask, canLeave = true }: Options =
   const organizationSlug = useCurrentOrganizationSlug()
   const router = useRouter()
   const navigate = useNavigate()
-  const documents = useOrganizationKnowledgeDocuments({ isEnabled: requested.has('document') })
+  const documents = useOrganizationDocuments({ isEnabled: requested.has('document') })
   const tasks = useTasks({ isEnabled: requested.has('task') })
 
   const isDocumentsRead = requested.has('document') && !documents.initialLoading && !documents.hasFailed

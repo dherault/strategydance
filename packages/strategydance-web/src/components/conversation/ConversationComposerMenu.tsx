@@ -22,7 +22,7 @@ const ACCEPTED_FILES = [...CONVERSATION_ATTACHMENT_CONTENT_TYPES, '.md', '.markd
 
 type Props = {
   // Writes an `@` in the field and gives it the focus
-  onMentionKnowledge: () => void
+  onMentionDocuments: () => void
   // Opening the file picker, which the field takes the focus back from once it closes
   onFilesOpen: () => void
   // Attaches the files the reader picked
@@ -33,7 +33,7 @@ type Props = {
 
 /*
   The "+" beside the message field: "Files and images", which opens the device's file picker, and
-  "Mention knowledge", which writes an `@` at the caret and opens the list of knowledge to mention.
+  "Mention a document", which writes an `@` at the caret and opens the list of documents to mention.
 
   The menu is not modal, so a pick can move the focus to the field while it closes, within the
   press itself, which is what has a phone raise its keyboard. Closing after a pick leaves the
@@ -42,7 +42,7 @@ type Props = {
   otherwise cover. The picker opens within the press too, which is the only time a browser lets a
   page open it
 */
-function ConversationComposerMenu({ onMentionKnowledge, onFilesOpen, onFilesPick, canAttachFiles }: Props) {
+function ConversationComposerMenu({ onMentionDocuments, onFilesOpen, onFilesPick, canAttachFiles }: Props) {
   const { formatMessage } = useIntl()
   const [isOpen, setIsOpen] = useState(false)
   const [isTooltipOpen, setIsTooltipOpen] = useState(false)
@@ -116,7 +116,7 @@ function ConversationComposerMenu({ onMentionKnowledge, onFilesOpen, onFilesPick
           <DropdownMenuItem
             onSelect={() => {
               isPickedRef.current = true
-              onMentionKnowledge()
+              onMentionDocuments()
             }}
           >
             <LightbulbIcon />

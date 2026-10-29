@@ -3,15 +3,15 @@ import { CompanyAspect } from 'strategydance-database/web'
 
 import type { MessageType } from '~types'
 
-import isKnowledgeDocumentId from '~utils/knowledge/isKnowledgeDocumentId'
+import isDocumentId from '~utils/document/isDocumentId'
 
+import DocumentPage from '~components/document/DocumentPage'
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
-import KnowledgeDocumentPage from '~components/knowledge/KnowledgeDocumentPage'
 
 // At module scope so the reference is stable across renders
 const KNOWLEDGE_MESSAGE_TYPES: MessageType[] = ['knowledge']
 
-type KnowledgeDocumentSearch = {
+type DocumentSearch = {
   // A draft at the id the document will have, opened by an "Add knowledge" button
   isNew?: true
   // The aspect the draft starts tagged with. Its value as the enum spells it, which TanStack writes
@@ -34,24 +34,24 @@ type KnowledgeDocumentSearch = {
   what this returns over the raw query rather than replacing it
 */
 export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/knowledge/$documentId')({
-  validateSearch: (search: Record<string, unknown>): KnowledgeDocumentSearch => ({
+  validateSearch: (search: Record<string, unknown>): DocumentSearch => ({
     isNew: search.isNew === true ? true : undefined,
     aspect: Object.values(CompanyAspect).find(aspect => aspect === search.aspect),
     history: search.history === true ? true : undefined,
   }),
   beforeLoad: ({ params }) => {
-    if (!isKnowledgeDocumentId(params.documentId)) throw notFound()
+    if (!isDocumentId(params.documentId)) throw notFound()
   },
-  component: KnowledgeDocumentRoute,
+  component: DocumentRoute,
 })
 
-function KnowledgeDocumentRoute() {
+function DocumentRoute() {
   const { documentId } = Route.useParams()
   const { isNew, aspect, history } = Route.useSearch()
 
   return (
     <IntlMessagesRegistration messageTypes={KNOWLEDGE_MESSAGE_TYPES}>
-      <KnowledgeDocumentPage
+      <DocumentPage
         key={documentId}
         documentId={documentId}
         isNew={isNew === true}

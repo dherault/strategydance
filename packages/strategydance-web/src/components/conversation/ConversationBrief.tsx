@@ -1,6 +1,6 @@
 import { useIntl } from 'react-intl'
 
-import type { KnowledgeDocumentSummary, Task } from '~types'
+import type { DocumentSummary, Task } from '~types'
 
 import useConversationBriefAttachments from '~hooks/conversation/useConversationBriefAttachments'
 
@@ -16,8 +16,8 @@ type Props = {
   text: string
   // The ids of the parent's files it hands over, in the order the subagent reads them
   attachmentIds: readonly string[]
-  // The organization's documents by id, which its links to knowledge draw, or null while not read
-  documents: ReadonlyMap<string, KnowledgeDocumentSummary> | null
+  // The organization's documents by id, which its links to documents draw, or null while not read
+  documents: ReadonlyMap<string, DocumentSummary> | null
   // The organization's board by task id, which its links to tasks draw, or null while not read
   tasks: ReadonlyMap<string, Task> | null
   // Small in a dock's window, which is narrow

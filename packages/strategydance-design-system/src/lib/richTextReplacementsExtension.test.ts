@@ -147,6 +147,17 @@ describe('RichTextReplacementsExtension', () => {
     expect(inline.read()).toBe('a->')
   })
 
+  it('leaves inline code alone once code is turned off after it', () => {
+    const editor = createView('a-', { isCode: true })
+
+    // As ⌘E does at the end of the code
+    editor.view.dispatch(editor.view.state.tr.setStoredMarks([]))
+    editor.type('>')
+
+    expect(editor.read()).toBe('a->')
+    expect(editor.view.state.doc.rangeHasMark(5, 6, schema.marks.code)).toBe(false)
+  })
+
   it('writes nothing while a composition is under way', () => {
     const editor = createView()
 

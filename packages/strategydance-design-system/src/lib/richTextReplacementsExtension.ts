@@ -34,10 +34,22 @@ function isCode(marks: readonly { type: { spec: { code?: boolean } } }[]) {
   return marks.some(mark => mark.type.spec.code)
 }
 
+// Whether any text from `from` to `to` is inline code, as a `-` typed before ⌘E turned code off is
+function isCodeBetween(state: EditorState, from: number, to: number) {
+  let isCodeFound = false
+
+  state.doc.nodesBetween(from, to, node => {
+    if (isCode(node.marks)) isCodeFound = true
+  })
+
+  return isCodeFound
+}
+
 /*
   The replacement typing `typed` over `from` to `to` makes, or null. A replacement just made
   reads as the text it replaced, so `<-` makes an arrow, and one more `-` turns it into the long
-  one, which Backspace then takes back to `<--`. Code is left alone, blocks and inline alike
+  one, which Backspace then takes back to `<--`. Code is left alone, blocks and inline alike, both
+  the text typed and the text it would replace
 */
 function replaceTypedText(state: EditorState, from: number, to: number, typed: string) {
   const $from = state.doc.resolve(from)
@@ -67,7 +79,7 @@ function replaceTypedText(state: EditorState, from: number, to: number, typed: s
       if (textBefore(from - head.length) === head) start = from - head.length
     }
 
-    if (start === null) continue
+    if (start === null || isCodeBetween(state, start, from)) continue
 
     const transform = state.tr.insertText(replacement, start, to)
 

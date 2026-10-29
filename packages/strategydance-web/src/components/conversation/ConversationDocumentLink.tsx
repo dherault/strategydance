@@ -54,7 +54,7 @@ function ConversationDocumentLink({ href, children, documents }: Props) {
 
   return (
     <Link
-      to="/$organizationSlug/knowledge/$documentId"
+      to="/$organizationSlug/documents/$documentId"
       params={{ organizationSlug, documentId: target.item.id }}
       className="font-medium text-primary no-underline hover:text-primary-800 hover:underline"
     >

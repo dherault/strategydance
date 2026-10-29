@@ -93,7 +93,7 @@ function createApp({ isWorker }: Options) {
     app.use('/organizations/:organizationId/budget', createBudgetRouter())
     app.use('/organizations/:organizationId/conversations', createConversationsRouter())
     app.use('/organizations/:organizationId/integrations', createIntegrationsRouter())
-    app.use('/organizations/:organizationId/knowledge', createDocumentsRouter())
+    app.use('/organizations/:organizationId/documents', createDocumentsRouter())
     app.use('/organizations', createOrganizationsRouter())
     app.use('/users', createUsersRouter())
   }

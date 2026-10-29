@@ -42,7 +42,7 @@ function createSource(overrides: Partial<RichTextMentionSource> = {}): RichTextM
     documents: new Map([[DOCUMENT_ID, 'Pricing plan']]),
     tasks: new Map(),
     request: () => {},
-    getHref: ({ kind, id }) => `/acme/${kind === 'document' ? 'knowledge' : 'tasks'}/${id}`,
+    getHref: ({ kind, id }) => `/acme/${kind === 'document' ? 'documents' : 'tasks'}/${id}`,
     open: () => {},
     ...overrides,
   }
@@ -279,7 +279,7 @@ describe('RichText', () => {
   it('draws a mention found in its list as a link with its live title, and one the list lacks struck through', () => {
     const markup = renderTask(MENTIONS, createSource())
 
-    expect(markup).toContain(`href="/acme/knowledge/${DOCUMENT_ID}"`)
+    expect(markup).toContain(`href="/acme/documents/${DOCUMENT_ID}"`)
     expect(readWords(markup)).toBe('Pricing planShip it (no longer on the team&#x27;s board)')
     expect(markup).not.toContain('target="_blank"')
     expect(markup).toContain('line-through')

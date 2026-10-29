@@ -48,7 +48,7 @@ function useRichTextMentionSource({ self, openTask, canLeave = true }: Options =
     const location =
       kind === 'document'
         ? router.buildLocation({
-            to: '/$organizationSlug/knowledge/$documentId',
+            to: '/$organizationSlug/documents/$documentId',
             params: { organizationSlug, documentId: id },
           })
         : router.buildLocation({ to: '/$organizationSlug/tasks/$taskId', params: { organizationSlug, taskId: id } })
@@ -58,7 +58,7 @@ function useRichTextMentionSource({ self, openTask, canLeave = true }: Options =
 
   function open({ kind, id }: RichTextMentionTarget) {
     if (kind === 'document') {
-      navigate({ to: '/$organizationSlug/knowledge/$documentId', params: { organizationSlug, documentId: id } })
+      navigate({ to: '/$organizationSlug/documents/$documentId', params: { organizationSlug, documentId: id } })
     } else if (openTask) {
       openTask(id)
     } else {

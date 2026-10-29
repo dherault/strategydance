@@ -42,7 +42,7 @@ function AddDocumentButton({ aspect, size = 'sm' }: Props) {
     }
 
     navigate({
-      to: '/$organizationSlug/knowledge/$documentId',
+      to: '/$organizationSlug/documents/$documentId',
       params: { organizationSlug, documentId: createId() },
       search: { isNew: true, aspect },
     })

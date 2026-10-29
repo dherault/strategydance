@@ -103,7 +103,7 @@ describe('the caller', () => {
     const external = await connect({ kind: 'external', idempotencyScope: 'connection:checked' })
     const found = await external.answer<{ documents: { url: string }[] }>('search_documents', { query: 'pricing' })
 
-    expect(found.documents[0]!.url).toBe(`http://localhost:5173/${ORGANIZATION_ID}/knowledge/${document.id}`)
+    expect(found.documents[0]!.url).toBe(`http://localhost:5173/${ORGANIZATION_ID}/documents/${document.id}`)
 
     fake.organizations.get(ORGANIZATION_ID)!.slug = 'strategy-dance-ad34'
 
@@ -115,8 +115,8 @@ describe('the caller', () => {
       content: '',
     })
 
-    expect(reading.url).toBe(`http://localhost:5173/strategy-dance-ad34/knowledge/${document.id}`)
-    expect(created.url).toStartWith('http://localhost:5173/strategy-dance-ad34/knowledge/')
+    expect(reading.url).toBe(`http://localhost:5173/strategy-dance-ad34/documents/${document.id}`)
+    expect(created.url).toStartWith('http://localhost:5173/strategy-dance-ad34/documents/')
   })
 
   it('answers an argument past its bound as a result the model can read, never a protocol error', async () => {

@@ -76,7 +76,7 @@ function DocumentBouncer({ organizationId, documentId, isEnabled, children }: Pr
           </EmptyHeader>
           <EmptyContent>
             <Link
-              to="/$organizationSlug/knowledge"
+              to="/$organizationSlug/documents"
               params={{ organizationSlug }}
               className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >

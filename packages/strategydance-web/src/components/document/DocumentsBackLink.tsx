@@ -14,7 +14,7 @@ function DocumentsBackLink() {
 
   return (
     <Link
-      to="/$organizationSlug/knowledge"
+      to="/$organizationSlug/documents"
       params={{ organizationSlug }}
       className={buttonVariants({ variant: 'transparent', size: 'sm' })}
     >

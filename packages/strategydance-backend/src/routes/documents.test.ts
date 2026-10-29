@@ -58,7 +58,7 @@ const documents = createTestDocuments(fake, ORGANIZATION_ID)
 
 const app = express()
 
-app.use('/organizations/:organizationId/knowledge', createDocumentsRouter())
+app.use('/organizations/:organizationId/documents', createDocumentsRouter())
 
 const server: Server = app.listen(0)
 
@@ -82,7 +82,7 @@ async function connectAgent(conversationId = CONVERSATION_ID, userId = MEMBER) {
 }
 
 async function call(method: string, path: string, body?: unknown, viewer: string | null = MEMBER) {
-  const response = await fetch(`${origin}/organizations/${ORGANIZATION_ID}/knowledge${path}`, {
+  const response = await fetch(`${origin}/organizations/${ORGANIZATION_ID}/documents${path}`, {
     method,
     headers: { 'content-type': 'application/json', ...(viewer && { 'x-viewer': viewer }) },
     body: body === undefined ? undefined : JSON.stringify(body),

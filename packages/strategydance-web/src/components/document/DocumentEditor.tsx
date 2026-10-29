@@ -163,7 +163,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
     onCreated: () => {
       setIsStored(true)
       navigate({
-        to: '/$organizationSlug/knowledge/$documentId',
+        to: '/$organizationSlug/documents/$documentId',
         params: { organizationSlug, documentId },
         search: {},
         replace: true,
@@ -326,7 +326,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
       return
     }
 
-    navigate({ to: '/$organizationSlug/knowledge', params: { organizationSlug } })
+    navigate({ to: '/$organizationSlug/documents', params: { organizationSlug } })
     toast(formatMessage(documentMessages.deleted, { title: deletedTitle }), {
       action: {
         label: formatMessage(documentMessages.undo),
@@ -353,7 +353,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
     if (!isHistoryRequested) return
 
     navigate({
-      to: '/$organizationSlug/knowledge/$documentId',
+      to: '/$organizationSlug/documents/$documentId',
       params: { organizationSlug, documentId },
       search: search => ({ ...search, history: undefined }),
       replace: true,
@@ -409,7 +409,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate({ to: '/$organizationSlug/knowledge', params: { organizationSlug } })}
+              onClick={() => navigate({ to: '/$organizationSlug/documents', params: { organizationSlug } })}
             >
               {formatMessage(documentMessages.goToAll)}
             </Button>

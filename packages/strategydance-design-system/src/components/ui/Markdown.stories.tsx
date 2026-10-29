@@ -32,7 +32,7 @@ function renderAppLink({ href, children }: MarkdownLink) {
 
   return (
     <a
-      href={isTask ? '#tasks' : '#knowledge'}
+      href={isTask ? '#tasks' : '#documents'}
       className="font-medium text-primary no-underline hover:text-primary-800 hover:underline"
     >
       <Icon className={linkIconClassName} />

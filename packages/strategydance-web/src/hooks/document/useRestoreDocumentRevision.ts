@@ -33,7 +33,7 @@ function useRestoreDocumentRevision() {
     try {
       const data = await requestApi<RestoreDocumentRevisionData>({
         method: 'POST',
-        path: `/organizations/${organizationId}/knowledge/${documentId}/revisions/${revisionId}/restore`,
+        path: `/organizations/${organizationId}/documents/${documentId}/revisions/${revisionId}/restore`,
         body: { isUndo },
       })
 

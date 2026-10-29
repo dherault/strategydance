@@ -85,7 +85,7 @@ function AspectDocuments({ aspect }: Props) {
       {organizationDocuments.length ? (
         <div className="-mt-1 flex justify-end">
           <Link
-            to="/$organizationSlug/knowledge"
+            to="/$organizationSlug/documents"
             params={{ organizationSlug }}
             className="inline-flex items-center gap-1.5 text-sm font-medium no-underline"
           >

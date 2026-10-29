@@ -34,7 +34,7 @@ function ConversationDocumentUndo({ documentId, revisionId }: Props) {
 
   function openHistory() {
     navigate({
-      to: '/$organizationSlug/knowledge/$documentId',
+      to: '/$organizationSlug/documents/$documentId',
       params: { organizationSlug, documentId },
       search: { history: true },
     })

@@ -12,7 +12,7 @@ import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 const DOCUMENT_MESSAGE_TYPES: MessageType[] = ['document']
 
 type DocumentSearch = {
-  // A draft at the id the document will have, opened by an "Add knowledge" button
+  // A draft at the id the document will have, opened by a "New document" button
   isNew?: true
   // The aspect the draft starts tagged with. Its value as the enum spells it, which TanStack writes
   // into the query as it is, and which goes with `isNew` once the draft is stored
@@ -22,7 +22,7 @@ type DocumentSearch = {
 }
 
 /*
-  One document of the current organization's knowledge, or a draft of one at the id it will have.
+  One of the current organization's documents, or a draft of one at the id it will have.
 
   A draft is this route rather than one of its own, so storing it is a change of search on the
   same route and the same params: TanStack keeps a route's component mounted through that, as
@@ -33,7 +33,7 @@ type DocumentSearch = {
   Each search key is overwritten with `undefined` when it fails validation, since TanStack lays
   what this returns over the raw query rather than replacing it
 */
-export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/knowledge/$documentId')({
+export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/documents/$documentId')({
   validateSearch: (search: Record<string, unknown>): DocumentSearch => ({
     isNew: search.isNew === true ? true : undefined,
     aspect: Object.values(CompanyAspect).find(aspect => aspect === search.aspect),

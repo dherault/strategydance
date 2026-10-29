@@ -24,7 +24,7 @@ function DocumentCard({ organizationDocument, now }: Props) {
 
   return (
     <Link
-      to="/$organizationSlug/knowledge/$documentId"
+      to="/$organizationSlug/documents/$documentId"
       params={{ organizationSlug, documentId: organizationDocument.id }}
       className="box-border flex min-h-28 min-w-0 flex-col gap-2 rounded-xs border border-neutral-200 bg-white p-4 text-foreground no-underline transition-colors duration-150 ease-in-out hover:border-neutral-300 hover:bg-neutral-50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
     >

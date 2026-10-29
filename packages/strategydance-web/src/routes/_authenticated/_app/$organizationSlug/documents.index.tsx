@@ -11,8 +11,8 @@ import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 // At module scope so the reference is stable across renders
 const DOCUMENT_MESSAGE_TYPES: MessageType[] = ['document']
 
-// Every document of the current organization's knowledge
-export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/knowledge/')({
+// Every document of the current organization
+export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/documents/')({
   component: DocumentsRoute,
 })
 

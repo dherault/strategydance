@@ -27,7 +27,7 @@ import restoreDocumentRevisionForMember from '~domain/documents/restoreDocumentR
 /*
   An organization's documents as the backend serves them to members, for what a page cannot do
   with the web connector alone: the revisions of the agents' edits, whose text only the backend
-  merges and writes back as a difference. Mounted at `/organizations/:organizationId/knowledge`, so
+  merges and writes back as a difference. Mounted at `/organizations/:organizationId/documents`, so
   every route reads the organization from the path, and every one is a member's
 */
 function createDocumentsRouter() {

@@ -24,7 +24,7 @@ function createDocumentsServer(caller: ModuleCaller) {
     { name: 'strategydance-documents', title: documentsModule.title, version: '1.0.0' },
     { capabilities: { tools: {} }, instructions: INSTRUCTIONS },
   )
-  const context = { caller, toAddress: createModuleAddresses(caller, 'knowledge') }
+  const context = { caller, toAddress: createModuleAddresses(caller, 'documents') }
 
   for (const register of DOCUMENTS_TOOLS) register(server, context)
 

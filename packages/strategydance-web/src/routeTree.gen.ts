@@ -44,8 +44,8 @@ import { Route as AuthenticatedAppOrganizationSlugAspectsAspectRouteImport } fro
 import { Route as AuthenticatedAppOrganizationSlugBudgetBillIdRouteImport } from './routes/_authenticated/_app/$organizationSlug/budget.$billId'
 import { Route as AuthenticatedAppOrganizationSlugConversationsIndexRouteImport } from './routes/_authenticated/_app/$organizationSlug/conversations.index'
 import { Route as AuthenticatedAppOrganizationSlugConversationsConversationIdRouteImport } from './routes/_authenticated/_app/$organizationSlug/conversations.$conversationId'
-import { Route as AuthenticatedAppOrganizationSlugKnowledgeIndexRouteImport } from './routes/_authenticated/_app/$organizationSlug/knowledge.index'
-import { Route as AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRouteImport } from './routes/_authenticated/_app/$organizationSlug/knowledge.$documentId'
+import { Route as AuthenticatedAppOrganizationSlugDocumentsIndexRouteImport } from './routes/_authenticated/_app/$organizationSlug/documents.index'
+import { Route as AuthenticatedAppOrganizationSlugDocumentsDocumentIdRouteImport } from './routes/_authenticated/_app/$organizationSlug/documents.$documentId'
 import { Route as AuthenticatedAppOrganizationSlugTasksTaskIdRouteImport } from './routes/_authenticated/_app/$organizationSlug/tasks.$taskId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -248,16 +248,16 @@ const AuthenticatedAppOrganizationSlugConversationsConversationIdRoute =
       getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
     } as any,
   )
-const AuthenticatedAppOrganizationSlugKnowledgeIndexRoute =
-  AuthenticatedAppOrganizationSlugKnowledgeIndexRouteImport.update({
-    id: '/knowledge/',
-    path: '/knowledge/',
+const AuthenticatedAppOrganizationSlugDocumentsIndexRoute =
+  AuthenticatedAppOrganizationSlugDocumentsIndexRouteImport.update({
+    id: '/documents/',
+    path: '/documents/',
     getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
   } as any)
-const AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute =
-  AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRouteImport.update({
-    id: '/knowledge/$documentId',
-    path: '/knowledge/$documentId',
+const AuthenticatedAppOrganizationSlugDocumentsDocumentIdRoute =
+  AuthenticatedAppOrganizationSlugDocumentsDocumentIdRouteImport.update({
+    id: '/documents/$documentId',
+    path: '/documents/$documentId',
     getParentRoute: () => AuthenticatedAppOrganizationSlugRoute,
   } as any)
 const AuthenticatedAppOrganizationSlugTasksTaskIdRoute =
@@ -300,10 +300,10 @@ export interface FileRoutesByFullPath {
   '/$organizationSlug/aspects/$aspect': typeof AuthenticatedAppOrganizationSlugAspectsAspectRoute
   '/$organizationSlug/budget/$billId': typeof AuthenticatedAppOrganizationSlugBudgetBillIdRoute
   '/$organizationSlug/conversations/$conversationId': typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRoute
-  '/$organizationSlug/knowledge/$documentId': typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute
+  '/$organizationSlug/documents/$documentId': typeof AuthenticatedAppOrganizationSlugDocumentsDocumentIdRoute
   '/$organizationSlug/tasks/$taskId': typeof AuthenticatedAppOrganizationSlugTasksTaskIdRoute
   '/$organizationSlug/conversations/': typeof AuthenticatedAppOrganizationSlugConversationsIndexRoute
-  '/$organizationSlug/knowledge/': typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRoute
+  '/$organizationSlug/documents/': typeof AuthenticatedAppOrganizationSlugDocumentsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -334,10 +334,10 @@ export interface FileRoutesByTo {
   '/$organizationSlug/aspects/$aspect': typeof AuthenticatedAppOrganizationSlugAspectsAspectRoute
   '/$organizationSlug/budget/$billId': typeof AuthenticatedAppOrganizationSlugBudgetBillIdRoute
   '/$organizationSlug/conversations/$conversationId': typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRoute
-  '/$organizationSlug/knowledge/$documentId': typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute
+  '/$organizationSlug/documents/$documentId': typeof AuthenticatedAppOrganizationSlugDocumentsDocumentIdRoute
   '/$organizationSlug/tasks/$taskId': typeof AuthenticatedAppOrganizationSlugTasksTaskIdRoute
   '/$organizationSlug/conversations': typeof AuthenticatedAppOrganizationSlugConversationsIndexRoute
-  '/$organizationSlug/knowledge': typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRoute
+  '/$organizationSlug/documents': typeof AuthenticatedAppOrganizationSlugDocumentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -375,10 +375,10 @@ export interface FileRoutesById {
   '/_authenticated/_app/$organizationSlug/aspects/$aspect': typeof AuthenticatedAppOrganizationSlugAspectsAspectRoute
   '/_authenticated/_app/$organizationSlug/budget/$billId': typeof AuthenticatedAppOrganizationSlugBudgetBillIdRoute
   '/_authenticated/_app/$organizationSlug/conversations/$conversationId': typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRoute
-  '/_authenticated/_app/$organizationSlug/knowledge/$documentId': typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute
+  '/_authenticated/_app/$organizationSlug/documents/$documentId': typeof AuthenticatedAppOrganizationSlugDocumentsDocumentIdRoute
   '/_authenticated/_app/$organizationSlug/tasks/$taskId': typeof AuthenticatedAppOrganizationSlugTasksTaskIdRoute
   '/_authenticated/_app/$organizationSlug/conversations/': typeof AuthenticatedAppOrganizationSlugConversationsIndexRoute
-  '/_authenticated/_app/$organizationSlug/knowledge/': typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRoute
+  '/_authenticated/_app/$organizationSlug/documents/': typeof AuthenticatedAppOrganizationSlugDocumentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -415,10 +415,10 @@ export interface FileRouteTypes {
     | '/$organizationSlug/aspects/$aspect'
     | '/$organizationSlug/budget/$billId'
     | '/$organizationSlug/conversations/$conversationId'
-    | '/$organizationSlug/knowledge/$documentId'
+    | '/$organizationSlug/documents/$documentId'
     | '/$organizationSlug/tasks/$taskId'
     | '/$organizationSlug/conversations/'
-    | '/$organizationSlug/knowledge/'
+    | '/$organizationSlug/documents/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -449,10 +449,10 @@ export interface FileRouteTypes {
     | '/$organizationSlug/aspects/$aspect'
     | '/$organizationSlug/budget/$billId'
     | '/$organizationSlug/conversations/$conversationId'
-    | '/$organizationSlug/knowledge/$documentId'
+    | '/$organizationSlug/documents/$documentId'
     | '/$organizationSlug/tasks/$taskId'
     | '/$organizationSlug/conversations'
-    | '/$organizationSlug/knowledge'
+    | '/$organizationSlug/documents'
   id:
     | '__root__'
     | '/'
@@ -489,10 +489,10 @@ export interface FileRouteTypes {
     | '/_authenticated/_app/$organizationSlug/aspects/$aspect'
     | '/_authenticated/_app/$organizationSlug/budget/$billId'
     | '/_authenticated/_app/$organizationSlug/conversations/$conversationId'
-    | '/_authenticated/_app/$organizationSlug/knowledge/$documentId'
+    | '/_authenticated/_app/$organizationSlug/documents/$documentId'
     | '/_authenticated/_app/$organizationSlug/tasks/$taskId'
     | '/_authenticated/_app/$organizationSlug/conversations/'
-    | '/_authenticated/_app/$organizationSlug/knowledge/'
+    | '/_authenticated/_app/$organizationSlug/documents/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -751,18 +751,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
-    '/_authenticated/_app/$organizationSlug/knowledge/': {
-      id: '/_authenticated/_app/$organizationSlug/knowledge/'
-      path: '/knowledge'
-      fullPath: '/$organizationSlug/knowledge/'
-      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRouteImport
+    '/_authenticated/_app/$organizationSlug/documents/': {
+      id: '/_authenticated/_app/$organizationSlug/documents/'
+      path: '/documents'
+      fullPath: '/$organizationSlug/documents/'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugDocumentsIndexRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
-    '/_authenticated/_app/$organizationSlug/knowledge/$documentId': {
-      id: '/_authenticated/_app/$organizationSlug/knowledge/$documentId'
-      path: '/knowledge/$documentId'
-      fullPath: '/$organizationSlug/knowledge/$documentId'
-      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRouteImport
+    '/_authenticated/_app/$organizationSlug/documents/$documentId': {
+      id: '/_authenticated/_app/$organizationSlug/documents/$documentId'
+      path: '/documents/$documentId'
+      fullPath: '/$organizationSlug/documents/$documentId'
+      preLoaderRoute: typeof AuthenticatedAppOrganizationSlugDocumentsDocumentIdRouteImport
       parentRoute: typeof AuthenticatedAppOrganizationSlugRoute
     }
     '/_authenticated/_app/$organizationSlug/tasks/$taskId': {
@@ -817,9 +817,9 @@ interface AuthenticatedAppOrganizationSlugRouteChildren {
   AuthenticatedAppOrganizationSlugIndexRoute: typeof AuthenticatedAppOrganizationSlugIndexRoute
   AuthenticatedAppOrganizationSlugAspectsAspectRoute: typeof AuthenticatedAppOrganizationSlugAspectsAspectRoute
   AuthenticatedAppOrganizationSlugConversationsConversationIdRoute: typeof AuthenticatedAppOrganizationSlugConversationsConversationIdRoute
-  AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute: typeof AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute
+  AuthenticatedAppOrganizationSlugDocumentsDocumentIdRoute: typeof AuthenticatedAppOrganizationSlugDocumentsDocumentIdRoute
   AuthenticatedAppOrganizationSlugConversationsIndexRoute: typeof AuthenticatedAppOrganizationSlugConversationsIndexRoute
-  AuthenticatedAppOrganizationSlugKnowledgeIndexRoute: typeof AuthenticatedAppOrganizationSlugKnowledgeIndexRoute
+  AuthenticatedAppOrganizationSlugDocumentsIndexRoute: typeof AuthenticatedAppOrganizationSlugDocumentsIndexRoute
 }
 
 const AuthenticatedAppOrganizationSlugRouteChildren: AuthenticatedAppOrganizationSlugRouteChildren =
@@ -846,12 +846,12 @@ const AuthenticatedAppOrganizationSlugRouteChildren: AuthenticatedAppOrganizatio
       AuthenticatedAppOrganizationSlugAspectsAspectRoute,
     AuthenticatedAppOrganizationSlugConversationsConversationIdRoute:
       AuthenticatedAppOrganizationSlugConversationsConversationIdRoute,
-    AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute:
-      AuthenticatedAppOrganizationSlugKnowledgeDocumentIdRoute,
+    AuthenticatedAppOrganizationSlugDocumentsDocumentIdRoute:
+      AuthenticatedAppOrganizationSlugDocumentsDocumentIdRoute,
     AuthenticatedAppOrganizationSlugConversationsIndexRoute:
       AuthenticatedAppOrganizationSlugConversationsIndexRoute,
-    AuthenticatedAppOrganizationSlugKnowledgeIndexRoute:
-      AuthenticatedAppOrganizationSlugKnowledgeIndexRoute,
+    AuthenticatedAppOrganizationSlugDocumentsIndexRoute:
+      AuthenticatedAppOrganizationSlugDocumentsIndexRoute,
   }
 
 const AuthenticatedAppOrganizationSlugRouteWithChildren =

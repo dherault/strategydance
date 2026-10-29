@@ -14,7 +14,7 @@ through the aliases of `tsconfig.json`, which Bun reads at runtime.
 - The app's routes answer core's `ApiResponse` envelope, every refusal going through `respondError`
   with an `ERROR_CODE_*`. The OAuth protocol's routes and the modules' endpoints answer and
   authenticate as their protocols ask, as [OAuth and integrations](#oauth-and-integrations) says
-- No body parser runs app wide: an app route parses its own, then runs `appCheckMiddleware`,
+- No body parser runs app-wide: an app route parses its own, then runs `appCheckMiddleware`,
   `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`. A
   route taking a file parses it last, after whatever says the caller may send it
 - Rich text, its Yjs helpers and its Markdown come from the design system's `lib/`, never a
@@ -29,9 +29,10 @@ through the aliases of `tsconfig.json`, which Bun reads at runtime.
 
 `createApp` (`src/app.ts`) builds two services from one image: the public `strategydance-backend`,
 and the private `strategydance-worker` (`SERVICE=worker`), which mounts `routes/internal.ts` at
-`/internal` and nothing else. A route Cloud Tasks or Cloud Scheduler calls goes there: Cloud Run's
-invoker check admits `conversation-tasks@strategydance.iam.gserviceaccount.com` alone, so no internal
-route verifies a token.
+`/internal` and nothing else. A route Cloud Tasks or Cloud Scheduler calls goes there. The internal
+routes verify no token themselves: they rely on Cloud Run's IAM invoker check, which grants
+`roles/run.invoker` on the worker to `conversation-tasks@strategydance.iam.gserviceaccount.com`, the
+account both call it as, and admits any principal holding that role on the project too.
 
 - Both run as the Compute Engine default service account, which holds, the organization withholding
   Editor, `roles/run.builder`, `roles/firebasedataconnect.dataAdmin`, `roles/storage.objectAdmin` on
@@ -162,7 +163,7 @@ A new tool takes:
 
 Integrations reach the agent through three fixed tools, so the list never varies with them. A call
 is decided once, as it is drawn (`decideConversationIntegrationCall`), and a call that started is
-never made again: one cut off is finished as interrupted.
+never made again: a call that is cut off is finished as interrupted.
 
 Tests run on `createConversationDatabaseFake`. `bun run check:conversation-runs`,
 `check:subagent-runs` and `check:conversation-search` check the operations against the emulators,

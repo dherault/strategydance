@@ -153,7 +153,7 @@ Done when the driver's verdict is clean and the validation exits 0.
    that fences the app off a half-written project, every file, the deletes, the sentinel again, and
    `_ds_sync.json` last, so the record only ever vouches for an upload that finished. A count of the
    project's files confirms it
-4. CLAUDE.md says where the sync lives and how to run it again, and `index.css`'s header says the
+4. The design system's CLAUDE.md says where the sync lives and how to run it again, and `index.css`'s header says the
    project now follows the repository
 5. The campaign worktree is removed, once M4 merges, since its review is fixed there
 

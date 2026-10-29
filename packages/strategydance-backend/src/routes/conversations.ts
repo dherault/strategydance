@@ -871,6 +871,7 @@ function createConversationsRouter() {
           return
         case 'unsupported':
         case 'tooLarge':
+        case 'incomplete':
           respondAttachmentRefusal(response, result)
 
           return

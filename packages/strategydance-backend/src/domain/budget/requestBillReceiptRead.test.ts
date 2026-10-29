@@ -290,6 +290,30 @@ describe('requestBillReceiptRead', () => {
     expect(fake.receipts.get(receipt.id)?.readAt).not.toBeNull()
   })
 
+  test('refuses a receipt uploaded over a day ago, whose read the caps could lose to the sweep', async () => {
+    const receipt = upload({
+      organizationId: ORGANIZATION_ID,
+      userId: MEMBER,
+      createdAt: new Date(Date.now() - 25 * HOUR_MS).toISOString(),
+    })
+
+    expect(await read(receipt.id)).toEqual({ outcome: 'expired' })
+    expect(fake.receipts.get(receipt.id)?.readAt).toBeNull()
+  })
+
+  test('answers a receipt the sweep removed while it waited as missing, not as busy', async () => {
+    const receipt = upload()
+
+    fake.beforeOperation = async name => {
+      if (name === 'ClaimBillReceiptRead') {
+        fake.receipts.delete(receipt.id)
+        throw new Error('The receipt is being read, or was read already')
+      }
+    }
+
+    expect(await read(receipt.id)).toEqual({ outcome: 'missing' })
+  })
+
   test('refuses a photo past what Claude reads before anything is claimed', async () => {
     const receipt = upload({
       organizationId: ORGANIZATION_ID,

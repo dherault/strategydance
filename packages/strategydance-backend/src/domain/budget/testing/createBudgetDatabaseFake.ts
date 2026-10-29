@@ -435,8 +435,8 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
               name: receipt.name,
               contentType: receipt.contentType,
               size: receipt.size,
-              readAt: receipt.readAt,
               readFields: receipt.readFields,
+              createdAt: receipt.createdAt,
             }
           : null,
       }
@@ -464,6 +464,7 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
       if (
         !isOwnReceipt(receipt, variables)
         || receipt.status !== BillReceiptStatus.READY
+        || Date.parse(receipt.createdAt) <= Date.now() - DAY_MS
         || !(
           receipt.readAt === null
           || (receipt.readFields === null && Date.parse(receipt.readAt) < Date.now() - BILL_RECEIPT_READ_CLAIM_MS)
@@ -538,9 +539,9 @@ function createBudgetDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Bas
       return { bill_deleteMany: deleted }
     },
 
-    GetPrunableBillReceipts: () => ({
+    GetPrunableBillReceipts: variables => ({
       billReceipts: [...receipts.values()]
-        .filter(isPrunable)
+        .filter(receipt => isPrunable(receipt) && !(variables.skippedIds as string[]).includes(receipt.id))
         .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
         .slice(0, 100)
         .map(receipt => ({ id: receipt.id, organizationId: receipt.organizationId })),

@@ -15,10 +15,12 @@ const BATCH_SIZE = 100
 const MAX_DURATION_MS = 3 * 60 * 1000
 
 /*
-  The daily sweep's prune of bills' receipts no bill holds, deleted bills included, three days after
+  The daily sweep's prune of bills' receipts no bill holds nor keeps, deleted bills included, three days after
   their upload, a day after the last save that could take one: one never saved, one an edit replaced or removed, and one whose bill the sweep pruned
   just before. A batch at a time, each file deleted before its row, so no file is ever without its
-  row; a receipt whose file could not be deleted keeps its row for the next sweep
+  row, the deadline checked before each file. A receipt whose file could not be deleted keeps its row
+  for the next sweep, and is read past for the rest of this one, so failures never hold back the
+  others; any kept fails the step once the rest is pruned, so the sweep says so
 */
 async function pruneBillReceipts() {
   const deadline = Date.now() + MAX_DURATION_MS
@@ -26,14 +28,16 @@ async function pruneBillReceipts() {
   let deleted = 0
 
   while (Date.now() < deadline) {
-    const { data } = await getPrunableBillReceipts(dataConnect)
-    const batch = data.billReceipts.filter(({ id }) => !failed.has(id))
+    const { data } = await getPrunableBillReceipts(dataConnect, { skippedIds: [...failed] })
+    const batch = data.billReceipts
 
     if (!batch.length) break
 
     const gone: string[] = []
 
     for (const receipt of batch) {
+      if (Date.now() >= deadline) break
+
       try {
         await billReceiptStorage.delete(
           buildBillReceiptObjectName({ organizationId: receipt.organizationId, receiptId: receipt.id }),
@@ -53,10 +57,12 @@ async function pruneBillReceipts() {
       deleted += result.billReceipt_deleteMany
     }
 
-    if (data.billReceipts.length < BATCH_SIZE) break
+    if (batch.length < BATCH_SIZE) break
   }
 
   logger.info(`Swept bills' receipts: ${deleted} deleted, ${failed.size} kept`)
+
+  if (failed.size) throw new Error(`${failed.size} bills' receipts kept, their files not deleted, for the next sweep`)
 
   return { deleted, kept: failed.size }
 }

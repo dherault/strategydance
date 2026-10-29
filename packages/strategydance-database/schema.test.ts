@@ -4,6 +4,7 @@ import {
   BILL_RECEIPT_ATTACHABLE_DAYS,
   BILL_RECEIPT_CONTENT_TYPES,
   BILL_RECEIPT_PRUNE_DAYS,
+  BILL_RECURRENCES,
   BUDGET_PERIOD_MONTHS,
   Currency,
   MAX_BILL_COMPANY_LENGTH,
@@ -63,6 +64,10 @@ describe('schema.gql', () => {
 
   it("declares the budget's periods strategydance-core counts the months of", () => {
     expect(readEnumValues('BudgetPeriod')).toEqual(Object.keys(BUDGET_PERIOD_MONTHS))
+  })
+
+  it("declares the bills' recurrences strategydance-core lists, in their order", () => {
+    expect(readEnumValues('BillRecurrence')).toEqual([...BILL_RECURRENCES])
   })
 })
 

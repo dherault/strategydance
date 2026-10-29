@@ -21,7 +21,12 @@ import createConcurrencyLimit from '~utils/createConcurrencyLimit'
 import logger from '~utils/logger'
 
 import conversationClaudeClient from '~domain/agent/conversationClaudeClient'
-import { BILL_RECEIPT_READ_TIMEOUT_MS, MAX_BILL_RECEIPT_READ_IMAGE_SIZE } from '~domain/budget/billReceiptReadSettings'
+import {
+  BILL_RECEIPT_READ_TIMEOUT_MS,
+  BILL_RECEIPT_READABLE_MS,
+  MAX_BILL_RECEIPT_READ_IMAGE_SIZE,
+  MAX_BILL_RECEIPT_TEXT_READ_BYTES,
+} from '~domain/budget/billReceiptReadSettings'
 import billReceiptStorage from '~domain/budget/billReceiptStorage'
 import buildBillReceiptReadRequest from '~domain/budget/buildBillReceiptReadRequest'
 import readBillReceiptFields from '~domain/budget/readBillReceiptFields'
@@ -61,6 +66,8 @@ type RequestBillReceiptReadResult =
   | { outcome: 'missing' }
   // A photo past what Claude reads
   | { outcome: 'tooLarge' }
+  // Uploaded over a day ago, past when a receipt can be read
+  | { outcome: 'expired' }
   | { outcome: 'capped'; cap: ReachedUsageCap }
   // Another read of the same receipt is under way
   | { outcome: 'busy' }
@@ -101,6 +108,7 @@ async function requestBillReceiptRead({
 
   if (receipt.userId !== reference.userId) return { outcome: 'notUploader' }
   if (receipt.readFields) return readStored(reference.receiptId, receipt.readFields)
+  if (Date.parse(receipt.createdAt) <= Date.now() - BILL_RECEIPT_READABLE_MS) return { outcome: 'expired' }
 
   if (receipt.contentType.startsWith('image/') && receipt.size > MAX_BILL_RECEIPT_READ_IMAGE_SIZE) {
     return { outcome: 'tooLarge' }
@@ -121,7 +129,9 @@ async function requestBillReceiptRead({
       try {
         signal.throwIfAborted()
 
-        const bytes = await readReceiptBytes(buildBillReceiptObjectName(reference), signal)
+        // A text receipt is read as far as the characters the request takes, never whole
+        const end = receipt.contentType.startsWith('text/') ? MAX_BILL_RECEIPT_TEXT_READ_BYTES - 1 : undefined
+        const bytes = await readReceiptBytes(buildBillReceiptObjectName(reference), signal, end)
         const body = buildBillReceiptReadRequest({
           file: { name: receipt.name, contentType: receipt.contentType, bytes },
           today,
@@ -155,17 +165,18 @@ async function requestBillReceiptRead({
 }
 
 /*
-  A receipt's bytes from Storage, streamed rather than downloaded, since a download takes no signal:
-  the deadline destroys the stream, so a read that timed out holds no bytes past it, and its place
-  in the limit goes with them
+  A receipt's bytes from Storage, up to `end` when given, streamed rather than downloaded, since a
+  download takes no signal: the deadline destroys the stream, so a read that timed out holds no bytes
+  past it, and its place in the limit goes with them. Each chunk is kept as Storage gave it, and the
+  bytes joined once
 */
-async function readReceiptBytes(objectName: string, signal: AbortSignal) {
-  const stream = addAbortSignal(signal, billReceiptStorage.openRead(objectName))
+async function readReceiptBytes(objectName: string, signal: AbortSignal, end?: number) {
+  const stream = addAbortSignal(signal, billReceiptStorage.openRead(objectName, { end }))
   const chunks: Buffer[] = []
 
-  for await (const chunk of stream) chunks.push(Buffer.from(chunk))
+  for await (const chunk of stream) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
 
-  return new Uint8Array(Buffer.concat(chunks))
+  return Buffer.concat(chunks)
 }
 
 /*
@@ -225,9 +236,13 @@ async function claim(claimed: BillReceiptReadClaim): Promise<RequestBillReceiptR
       if (cap) return { outcome: 'capped', cap }
 
       if (isOperationRefusal(error, 'The receipt is being read')) {
-        // The other read may have finished meanwhile, which answers for nothing
+        // The other read may have finished meanwhile, which answers for nothing, or the sweep removed
+        // the receipt
         const { data } = await getBillReceiptForReader(dataConnect, reference)
-        const readFields = data.billReceipt?.readFields
+
+        if (!data.billReceipt) return { outcome: 'missing' }
+
+        const { readFields } = data.billReceipt
 
         return readFields ? readStored(reference.receiptId, readFields) : { outcome: 'busy' }
       }

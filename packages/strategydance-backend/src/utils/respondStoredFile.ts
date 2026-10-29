@@ -16,9 +16,20 @@ type StoredFile = {
   Answers a stored file's bytes as they stream from the bucket, typed, sized and named as its row
   says, text in UTF-8, shown in place rather than downloaded, and kept privately for good, since a
   stored file's bytes never change. A file the bucket no longer holds is a 404 while nothing was
-  sent, and a cut answer after
+  sent, and a cut answer after. A reader that goes away before the file ends destroys the bucket's
+  stream, which `pipe` alone would leave open, and so does one gone while the route looked the file
+  up, whose answer closed before anything listened
 */
 function respondStoredFile(response: Response, stream: Readable, { name, contentType, size }: StoredFile) {
+  if (response.destroyed) {
+    stream.destroy()
+
+    return
+  }
+
+  response.once('close', () => {
+    if (!response.writableFinished) stream.destroy()
+  })
   stream.once('error', () => {
     if (response.headersSent) response.destroy()
     else respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This file no longer exists')

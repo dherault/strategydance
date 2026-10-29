@@ -67,6 +67,10 @@ describe('readBillReceiptFields', () => {
 
   test('keeps an amount as the receipt wrote it, checked as two decimals when no currency is known', () => {
     expect(read({ amount: ' 1500 ', currency: 'JPY' })?.amount).toBe('1500')
+    // The prompt's own form, written for a currency with no decimals
+    expect(read({ amount: '1500.00', currency: 'JPY' })?.amount).toBe('1500')
+    expect(read({ amount: '12.500', currency: 'EUR' })?.amount).toBe('12.50')
+    expect(read({ amount: '1500.50', currency: 'KRW' })?.amount).toBeNull()
     expect(read({ amount: '12.5', currency: null })?.amount).toBe('12.5')
     expect(read({ amount: '12.505', currency: 'AED' })).toMatchObject({ amount: null, currency: null })
   })

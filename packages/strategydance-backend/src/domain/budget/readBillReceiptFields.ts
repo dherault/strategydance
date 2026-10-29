@@ -2,9 +2,10 @@ import type { BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/mess
 import {
   addCalendarDays,
   BILL_DAYS_AHEAD,
+  BILL_RECURRENCES,
   type BillReceiptFields,
-  type BillRecurrence,
   Currency,
+  CURRENCIES,
   FIRST_BILL_DAY,
   isCalendarDay,
   isCurrency,
@@ -14,8 +15,6 @@ import {
   parseMoney,
 } from 'strategydance-core'
 import { z } from 'zod'
-
-const BILL_RECURRENCES = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY'] as const satisfies readonly BillRecurrence[]
 
 const answerSchema = z.object({
   name: z.string(),
@@ -75,12 +74,26 @@ function toOneLine(text: string, maxLength: number) {
   return Array.from(text.replace(/\s+/g, ' ').trim()).slice(0, maxLength).join('').trim()
 }
 
-// US dollars stand in for a currency of two decimals, the bill dialog checking it again in its own
+/*
+  US dollars stand in for a currency of two decimals, the bill dialog checking it again in its own.
+  Decimals of zeros past the currency's own are dropped, as the prompt's "1500.00" written for a
+  currency with none, the yen, the won or the króna, means 1500
+*/
 function readAmount(amount: string | null, currency: Currency | null) {
-  const trimmed = amount?.trim() ?? ''
-  const minor = parseMoney(trimmed, currency ?? Currency.USD)
+  const known = currency ?? Currency.USD
+  const trimmed = dropZeroDecimals(amount?.trim() ?? '', CURRENCIES[known].exponent)
+  const minor = parseMoney(trimmed, known)
 
   return minor !== null && minor > 0 ? trimmed : null
+}
+
+// An amount without the zeros past a currency's decimals: "1500.00" with none is "1500"
+function dropZeroDecimals(amount: string, exponent: number) {
+  const match = /^(\d+)\.(\d+)$/.exec(amount)
+
+  if (!match || match[2]!.length <= exponent || !/^0+$/.test(match[2]!.slice(exponent))) return amount
+
+  return exponent === 0 ? match[1]! : `${match[1]}.${match[2]!.slice(0, exponent)}`
 }
 
 function readDay(day: string | null, today: string) {

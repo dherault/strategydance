@@ -84,6 +84,17 @@ describe('buildBillReceiptReadRequest', () => {
     })
   })
 
+  test('holds back a character a read cut inside, rather than send a replacement for it', () => {
+    // Three of the four bytes of the receipt emoji, as a read stopping short of it leaves them
+    const cut = new Uint8Array([
+      ...new TextEncoder().encode('Total 12.00 '),
+      ...new TextEncoder().encode('🧾').subarray(0, 3),
+    ])
+    const [block] = readContent(build({ name: 'receipt.txt', contentType: 'text/plain', bytes: cut }))
+
+    expect(block).toMatchObject({ source: { data: 'Total 12.00 ' } })
+  })
+
   test('sends a text file as plain text, cut at 50000 characters, never inside one', () => {
     const long = new TextEncoder().encode('🧾'.repeat(50001))
     const [block] = readContent(build({ name: 'receipt.md', contentType: 'text/markdown', bytes: long }))

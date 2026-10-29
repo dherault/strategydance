@@ -450,10 +450,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.aipulse.fyi/",
     "submissionUrl": "https://www.aipulse.fyi/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Review site and directory of AI tools sorted by category, where makers can submit their AI apps for review and listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -526,10 +528,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.aitoolnet.com/",
     "submissionUrl": "https://www.aitoolnet.com/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
+    "description": "Directory and search engine of AI tools sorted by category and use case, where makers submit their own AI products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -2269,10 +2273,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.f6s.com/",
     "submissionUrl": "https://www.f6s.com/submitmystartup.com",
-    "description": "",
-    "categories": [],
+    "description": "Global founder community and startup directory where founders build startup profiles and connect with accelerators, investors, jobs and perks.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -2804,11 +2810,13 @@
     "name": "How to Buy SaaS",
     "type": "WEBSITE",
     "rootUrl": "https://www.howtobuysaas.com/",
-    "submissionUrl": "https://www.howtobuysaas.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "submissionUrl": "https://www.howtobuysaas.com/list-your-saas/",
+    "description": "Marketplace of SaaS products sorted by category, with reviews and comparisons, where software vendors list their products for business buyers.",
+    "categories": [
+      "SAAS"
+    ],
+    "businessModel": "PAID",
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -3020,7 +3028,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -4854,11 +4862,13 @@
     "name": "Serchen",
     "type": "WEBSITE",
     "rootUrl": "https://www.serchen.com/",
-    "submissionUrl": "https://www.serchen.com/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://www.serchen.com/get-listed",
+    "description": "Marketplace of business software, SaaS and AI tools with user reviews and comparisons across categories, where software vendors can list or claim their products.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -5142,10 +5152,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://startupvideos.com/",
     "submissionUrl": "https://startupvideos.com/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Curated library of startup and brand marketing videos, tagged by style, industry and length, where companies and studios can submit videos for review.",
+    "categories": [
+      "DESIGN"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -5404,10 +5416,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://startupstash.com/",
     "submissionUrl": "https://startupstash.com/add-listing/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of software tools and resources for startups and entrepreneurs, sorted by category and alternatives, where vendors can list their products.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -6510,10 +6524,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.websitehunt.co/",
     "submissionUrl": "https://www.websitehunt.co/",
-    "description": "",
-    "categories": [],
+    "description": "Curated directory of useful and interesting websites and tools, sorted by category, where users post websites and upvote them.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -6548,10 +6564,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://help.wellfound.com/",
     "submissionUrl": "https://help.wellfound.com/article/720-how-can-i-create-a-new-company-or-access-an-existing-one",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE",
-    "lastChecked": null,
+    "description": "Startup jobs and recruiting platform (formerly AngelList Talent) where startups create company profiles to post jobs and hire candidates.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {

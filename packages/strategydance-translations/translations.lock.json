@@ -529,8 +529,20 @@
         "hash": "f7d70794f77be0d5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.billAddedOnBy": {
+        "hash": "28b26e355e78f672",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.billAmountLabel": {
         "hash": "65498dd6f2440c2e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.billChangedOn": {
+        "hash": "ac2a5ae30ad45feb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.billChangedOnBy": {
+        "hash": "a077978a6c615dbe",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.billDeleteFailed": {
@@ -751,6 +763,10 @@
       },
       "budget.dueOn": {
         "hash": "e495ea66b19f6686",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.earlierReceiptsLabel": {
+        "hash": "d7a193d1fe13e68c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.edit": {
@@ -1137,6 +1153,10 @@
         "hash": "2337521fdf352566",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.showOlderReceipts": {
+        "hash": "9e63c10988e6633e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.spendingIn": {
         "hash": "97b0006ce4dea767",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1219,6 +1239,18 @@
       },
       "budget.uploadUnsupported": {
         "hash": "d4d483c1f99d9461",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.useEarlierReceiptAgain": {
+        "hash": "9cbbd44d81496e1d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.useReceiptAgain": {
+        "hash": "ecbec45e2693f234",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.viewEarlierReceipt": {
+        "hash": "76b7f0a4667df75e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.viewReceipt": {

@@ -116,9 +116,13 @@ enum BillReceiptStatus { UPLOADING READY }
   - `paidBy: User`, which the bill keeps when that member leaves.
   - `receipt: BillReceipt`, unique, since a receipt belongs to one bill.
   - `createdBy: User`, and `createdAt`, `updatedAt` and `deletedAt`.
+  - `updatedBy: User`, who saved it last, the member an agent acts as included, written with
+    `updatedAt`. Its dialog says who added it and who last changed it, and `read_bill` answers both.
   - An index on `["organizationId", "deletedAt"]`.
 - **`BillReceipt`**:
   - `id`, `organization`, and `user`, the member who uploaded it.
+  - `formerBill: Bill`, the bill that held it when that bill was last saved, which keeps it as an
+    earlier receipt once an edit replaces or removes it, null once that bill is pruned.
   - `status: BillReceiptStatus`.
   - `name`, `contentType` and `size`.
   - `readAt`, when the receipt reader claimed it, which its daily caps count, under an index on
@@ -294,21 +298,33 @@ Deleting the organization deletes that prefix with the rest. `routes/budget.ts`,
 **A bill names its receipt by id.** `CreateBill` and `UpdateBill` refuse a receipt that is any of:
 - not `READY`;
 - in another organization;
-- uploaded by another member, unless it is the bill's own already;
-- uploaded over two days ago, unless it is the bill's own already;
+- uploaded by another member, unless it is the bill's own already, or one of its earlier receipts;
+- uploaded over two days ago, unless it is the bill's own already, or one of its earlier receipts;
 - held by another bill, which the receipt's unique reference also refuses. `UpdateBill` runs as one
-  SQL statement, so it reports that refusal before its own check's.
+  SQL statement, so it reports that refusal before its own check's;
+- kept by another bill as an earlier receipt, however fresh and whoever uploaded it, so a bill's
+  history never moves to another.
+
+**An edit loses no receipt.** A receipt is evidence of a payment, which a company keeps for years, and
+an edit that replaced or removed one used to leave it to the next sweep, beyond any undo. Every save
+of a bill, the page's and an agent's, first marks the receipt the bill holds with the bill
+(`formerBill`), in the same statement, so one the save lets go is kept as the bill's earlier
+receipt. The bill's dialog lists its earlier receipts under its own, each with View and Use again
+(`BillEarlierReceipts`, read by `GetBillEarlierReceipts` as the dialog opens), and `update_bill`
+takes one back too. They go with the bill, once the sweep prunes it.
 
 **Nothing moves a file.** A receipt is stored where it stays, and its row exists before its file, so
 no file is ever without its row.
 
 **The daily sweep prunes what nothing holds:**
-- `pruneDeletedBills` deletes the bills deleted over a day ago.
-- `pruneBillReceipts` then deletes the receipts no bill holds that were created over two days ago,
-  first the file, then the row. That covers:
+- `pruneDeletedBills` deletes the bills deleted over a day ago, which sets their earlier receipts'
+  `formerBill` to null.
+- `pruneBillReceipts` then deletes the receipts no bill holds nor keeps that were created over three
+  days ago (`BILL_RECEIPT_PRUNE_DAYS`), first the file, then the row. A save takes one only within
+  two days (`BILL_RECEIPT_ATTACHABLE_DAYS`), so a save in flight as its two days run out commits
+  before any sweep reads the receipt as held by nothing. That covers:
   - a receipt uploaded and never saved;
-  - one replaced or removed in an edit;
-  - one whose bill was just pruned.
+  - the receipt and the earlier receipts of a bill just pruned.
 - A bill's dialog left open past two days on a receipt nothing holds yet is refused on save, saying
   to attach it again.
 
@@ -415,9 +431,9 @@ Its tools, in their frozen order:
 | --- | --- | --- | --- |
 | `read_budget` | `{ month? }`, `YYYY-MM`, this month by default | the budget (amount, period, currency) or null; today; the rates' date; for the month, its quarter and its year: spent, expected, limit, left and projected left; the status at today; `missingRates` | read |
 | `list_bills` | `{ query?, paidFrom?, paidTo?, paidBy?, recurring?, active?, limit?, cursor? }` | up to 50 bills, by last payment, newest first. Each has its fields, its last and next payments converted, its payer, whether it has a receipt, and its address. Also `total` and `nextCursor` | read |
-| `read_bill` | `{ id }` | one bill, with its receipt's name, type and size, its payments this year (count and total), who created it and when, and `version` | read |
+| `read_bill` | `{ id }` | one bill, with its receipt's name, type and size, its earlier receipts, its payments this year (count and total), who created it and when, who saved it last and when, and `version` | read |
 | `add_bill` | `{ name, description?, company, amount, currency, paidOn?, recurrence?, endsOn?, paidBy?, receipt? }` | the bill, and the budget's status after it | write |
-| `update_bill` | `{ id, version?, …any field of add_bill, receipt? }`, where `receipt: null` removes it | the bill, and the status after it | write |
+| `update_bill` | `{ id, version?, …any field of add_bill, receipt? }`, where `receipt: null` removes it and `receipt: { earlierReceiptId }` takes back an earlier one | the bill, and the status after it | write |
 | `delete_bill` | `{ id }` | the bill deleted, restorable for a day | write, destructive |
 | `restore_bill` | `{ id }` | the bill | write |
 
@@ -441,6 +457,9 @@ Its tools, in their frozen order:
     conversation calling, or, for a subagent, one its brief lists. Judged on its row, its type and
     the pages its upload counted, up to a receipt's 10 MiB, and copied in the bucket, never read
     again. Any other caller is refused one.
+  - `{ earlierReceiptId }`, for `update_bill` alone: one of the bill's earlier receipts, which an edit
+    replaced or removed and `read_bill` lists, taken back. Any other id is refused, naming
+    `read_bill`.
 - **A write with a receipt** checks its bytes as an upload's are, before anything is written, then
   writes the receipt's row (`ReserveBillReceiptForAgent`) and file, then the bill. So a retry that
   its key answers leaves a receipt nothing holds, which the sweep prunes.

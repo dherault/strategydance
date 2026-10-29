@@ -106,7 +106,10 @@ async function requestBillReceiptRead({
     return { outcome: 'tooLarge' }
   }
 
-  const refusal = await claim(reference)
+  // This read's own claim, which its record or its release names, so a read another took over
+  // touches nothing of the read that took it
+  const claimed = { ...reference, readClaim: crypto.randomUUID() }
+  const refusal = await claim(claimed)
 
   if (refusal) return refusal
 
@@ -133,7 +136,7 @@ async function requestBillReceiptRead({
   } catch (error) {
     logger.warn(`Receipt ${reference.receiptId}: its read failed${signal.aborted ? ', timed out' : ''}`, error)
 
-    return release(reference)
+    return release(claimed)
   }
 
   const { usage } = message
@@ -144,9 +147,9 @@ async function requestBillReceiptRead({
 
   const fields = readBillReceiptFields(message, { today })
 
-  if (!fields) return release(reference)
+  if (!fields) return release(claimed)
 
-  await record(reference, fields)
+  await record(claimed, fields)
 
   return { outcome: 'read', fields }
 }
@@ -171,7 +174,7 @@ async function readReceiptBytes(objectName: string, signal: AbortSignal) {
   refused since the claim is gone, or still failing, leaves the member the fields all the same, and
   the claim, should it be held still, lapses in two minutes
 */
-async function record(reference: BillReceiptReadReference, fields: BillReceiptFields) {
+async function record(reference: BillReceiptReadClaim, fields: BillReceiptFields) {
   for (let attempt = 1; ; attempt++) {
     try {
       await recordBillReceiptRead(dataConnect, { ...reference, readFields: JSON.stringify(fields) })
@@ -195,19 +198,23 @@ type BillReceiptReadReference = {
   receiptId: string
 }
 
+// A reference with the id this read claimed the receipt under
+type BillReceiptReadClaim = BillReceiptReadReference & { readClaim: string }
+
 /*
   Claims the receipt for this read, or answers why it cannot be: a cap reached, read before and again
   once the claim is refused, since a cap can fill between the two; another read under way; or the
   caller no longer a member. A refusal at a cap whose window moved on meanwhile is tried once more
 */
-async function claim(reference: BillReceiptReadReference): Promise<RequestBillReceiptReadResult | null> {
+async function claim(claimed: BillReceiptReadClaim): Promise<RequestBillReceiptReadResult | null> {
+  const { readClaim, ...reference } = claimed
   const reached = await readReachedReceiptReadCap(reference)
 
   if (reached) return { outcome: 'capped', cap: reached }
 
   for (let attempt = 0; ; attempt++) {
     try {
-      await claimBillReceiptRead(dataConnect, { ...reference, isUsageCapped: IS_USAGE_CAPPED })
+      await claimBillReceiptRead(dataConnect, { ...reference, readClaim, isUsageCapped: IS_USAGE_CAPPED })
 
       return null
     } catch (error) {
@@ -243,7 +250,7 @@ function readStored(receiptId: string, readFields: string): RequestBillReceiptRe
 
 // Lets the claim go after a read that failed, so it counts toward no cap. Should that fail too, the
 // claim lapses in two minutes
-async function release(reference: BillReceiptReadReference): Promise<RequestBillReceiptReadResult> {
+async function release(reference: BillReceiptReadClaim): Promise<RequestBillReceiptReadResult> {
   try {
     await releaseBillReceiptRead(dataConnect, reference)
   } catch (error) {

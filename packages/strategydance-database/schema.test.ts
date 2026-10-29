@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'bun:test'
 
 import {
+  BILL_RECEIPT_ATTACHABLE_DAYS,
   BILL_RECEIPT_CONTENT_TYPES,
+  BILL_RECEIPT_PRUNE_DAYS,
   BUDGET_PERIOD_MONTHS,
   Currency,
   MAX_BILL_COMPANY_LENGTH,
@@ -128,6 +130,18 @@ describe('the bills', () => {
     })
   }
 
+  for (const [name, source] of [
+    ['GetExchangeRates', webQueries],
+    ['GetExchangeRatesForAgent', backendQueries],
+  ] as const) {
+    it(`${name} reads every year of every currency the ECB has published since 1999, and decades more`, () => {
+      const [limit] = readNumbers(readOperation(source, name), /limit: (\d+)/g)
+      const currencies = readEnumValues('Currency').filter(currency => currency !== 'EUR')
+
+      expect(limit).toBeGreaterThanOrEqual(currencies.length * (new Date().getUTCFullYear() + 30 - 1999 + 1))
+    })
+  }
+
   it('GetBills reads as many bills as an organization keeps', () => {
     expect(readNumbers(readOperation(webQueries, 'GetBills'), /limit: (\d+)/g)).toEqual([MAX_BILLS])
   })
@@ -141,6 +155,28 @@ describe('the bills', () => {
       MAX_MONEY_MINOR,
     ])
   })
+
+  for (const [name, source] of [
+    ['CreateBill', webMutations],
+    ['UpdateBill', webMutations],
+    ['CreateBillForAgent', backendMutations],
+    ['UpdateBillForAgent', backendMutations],
+  ] as const) {
+    it(`${name} takes a receipt nothing holds within strategydance-core's days of its upload`, () => {
+      expect(readNumbers(readOperation(source, name), /sub: \{ days: (\d+) \}/g)).toEqual([
+        BILL_RECEIPT_ATTACHABLE_DAYS,
+      ])
+    })
+  }
+
+  for (const name of ['GetPrunableBillReceipts', 'DeleteBillReceipts']) {
+    it(`${name} prunes a receipt nothing holds a day after a save could last take it`, () => {
+      const operation = readOperation(name === 'DeleteBillReceipts' ? backendMutations : backendQueries, name)
+
+      expect(readNumbers(operation, /sub: \{ days: (\d+) \}/g)).toEqual([BILL_RECEIPT_PRUNE_DAYS])
+      expect(BILL_RECEIPT_PRUNE_DAYS).toBe(BILL_RECEIPT_ATTACHABLE_DAYS + 1)
+    })
+  }
 
   for (const [name, size] of [
     ['ReserveBillReceipt', MAX_BILL_RECEIPT_SIZE],

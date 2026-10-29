@@ -673,7 +673,7 @@ What a conversation keeps, and how, is in [Conversation conventions](#conversati
   its Undo window and prunes what expires: conversations deleted over a day ago, claimed first, so a
   restore refuses them, and deleted with their files and module call results, one whose files could
   not all go staying claimed for the next sweep; files never sent; the board's deleted tasks;
-  deleted bills, then the receipts no bill holds two days after their upload; deleted documents and
+  deleted bills, then the receipts no bill holds three days after their upload; deleted documents and
   MCP servers; revisions over 30 days old; and the expired Connects, searches,
   run spends, call results and the authorization server's requests and tokens. Each step runs
   whatever failed before it (`runSweepSteps`), and the route answers 500 naming the failures.
@@ -1205,8 +1205,9 @@ milestones that build it: read it before changing any of it.
   with every variable: the amount and the period together, or both null to remove it, the currency
   kept
 - Any member adds, saves, deletes and restores any bill, as the board's tasks. `UpdateBill` writes
-  every field on the `updatedAt` the dialog read, refused once another save moved it, and a delete
-  and its Undo leave `updatedAt` alone. A restore takes a bill deleted within a day. `CreateBill` and
+  every field on the `updatedAt` the dialog read, refused once another save moved it, and names its
+  saver in `updatedBy`, an agent's write the member it acts as. A delete and its Undo leave both
+  alone. A restore takes a bill deleted within a day. `CreateBill` and
   `RestoreBill` hold `MAX_BILLS` under a lock on the organization's row, their count reading the
   lock's response. A bill keeps its payer once they leave, and a new payer is a member. A bill's
   limits are core's, written out again in its operations' checks, which `schema.test.ts` holds to
@@ -1217,11 +1218,15 @@ milestones that build it: read it before changing any of it.
   token: the backend alone writes it and serves it, to any member of the organization
   (`routes/budget.ts`), through `billReceiptStorage`, which the tests replace with
   `createAttachmentStorageFake`. Nothing moves a file, so none is ever without its row
-- A save takes a receipt that is `READY`, in the organization, the caller's, held by no bill and
-  uploaded within two days, or one the bill holds already. The sweep prunes deleted bills a day
-  after, then the receipts no bill holds, deleted bills included, two days after their upload, each
-  file before its row (`pruneDeletedBills`, `pruneBillReceipts`). An upload never carries on a
-  reservation over a day old, so it never writes a file the sweep may be deleting
+- A save takes a receipt that is `READY`, in the organization, the caller's, held nor kept by no
+  bill and uploaded within two days (`BILL_RECEIPT_ATTACHABLE_DAYS`), or one the bill holds already,
+  or one of its earlier receipts. Every save first marks the receipt the bill holds with the bill
+  (`formerBill`), so one it replaces or removes is kept as the bill's earlier receipt: a new way to
+  save a bill marks it too. The sweep prunes deleted bills a day after, nulling their earlier
+  receipts' `formerBill`, then the receipts no bill holds nor keeps, deleted bills included, three
+  days after their upload (`BILL_RECEIPT_PRUNE_DAYS`), a day past the last save that could take
+  one, each file before its row (`pruneDeletedBills`, `pruneBillReceipts`). An upload never carries
+  on a reservation over a day old, so it never writes a file the sweep may be deleting
 - `bun run check:budget` checks the operations against the emulators, and the domain's tests run
   against `createBudgetDatabaseFake`, built on the modules' fake base: an operation changed is
   changed in both

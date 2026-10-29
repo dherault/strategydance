@@ -40,6 +40,8 @@ function toSentence(refusal: BudgetRefusal) {
       return 'No file the member sent in this conversation, nor one your brief hands you, has that id. Name a file by the id its line gives, as name (attachment <id>), or hand the receipt over as base64 or as text.'
     case 'receiptTaken':
       return 'Another bill took that receipt meanwhile. Send the receipt again with this call, and it is stored anew.'
+    case 'earlierReceiptNotFound':
+      return "That id is none of the bill's earlier receipts. Read the bill: read_bill lists them under earlierReceipts."
     case 'notDeleted':
       return 'The bill is not deleted, so there is nothing to restore.'
     case 'goneForGood':

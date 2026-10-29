@@ -522,6 +522,10 @@ export type AgentBillReceipt =
   | { name: string; text: string }
   | { attachmentId: string }
 
+// A receipt an update hands the Budget module: any an add takes, or one of the bill's earlier
+// receipts, which an edit replaced or removed, taken back by its id
+export type AgentBillUpdateReceipt = AgentBillReceipt | { earlierReceiptId: string }
+
 /*
   Why the Budget module refused a call, which its tool words for the model: each is something the
   model can act on, by telling the member, reading the bill again, or changing what it sent
@@ -555,6 +559,8 @@ export type BudgetRefusal =
   | { outcome: 'attachmentNotFound' }
   /** A receipt the bill can no longer take, which another bill took meanwhile */
   | { outcome: 'receiptTaken' }
+  /** A receipt to take back that is none of the bill's earlier receipts */
+  | { outcome: 'earlierReceiptNotFound' }
   /** A restore of a bill not deleted, or of one deleted over a day ago */
   | { outcome: 'notDeleted' }
   | { outcome: 'goneForGood' }

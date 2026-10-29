@@ -18,6 +18,7 @@ import {
   getBillForAgent,
   getBudgetForAgent,
   getConversationAttachmentForAgent,
+  getExchangeRatesForAgent,
   getModuleCallResult,
   launchSubagent,
   reserveAttachmentBillReceiptForAgent,
@@ -238,12 +239,13 @@ type BillRow = {
   paidById: string | null
   receiptId: string | null
   deletedAt: string | null
+  updatedById: string | null
   updatedAt: string
 }
 
 async function readBillRow(id: string) {
   const data = await read<{ bill: BillRow | null }>(
-    `query ReadBill($id: UUID!) { bill(id: $id) { name amountMinor paidById receiptId deletedAt updatedAt } }`,
+    `query ReadBill($id: UUID!) { bill(id: $id) { name amountMinor paidById receiptId deletedAt updatedById updatedAt } }`,
     { id },
   )
 
@@ -251,10 +253,9 @@ async function readBillRow(id: string) {
 }
 
 async function readReceiptRow(id: string) {
-  const data = await read<{ billReceipt: { status: string; userId: string | null } | null }>(
-    `query ReadReceipt($id: UUID!) { billReceipt(id: $id) { status userId } }`,
-    { id },
-  )
+  const data = await read<{
+    billReceipt: { status: string; userId: string | null; formerBillId: string | null } | null
+  }>(`query ReadReceipt($id: UUID!) { billReceipt(id: $id) { status userId formerBillId } }`, { id })
 
   return data.billReceipt
 }
@@ -347,6 +348,34 @@ async function checkReads() {
   check('a bill read answers a deleted bill with when it went', bill.data.bills[0]?.deletedAt != null)
   check('a bill read answers nothing to a membership that ended', staleBill.data.bills.length === 0)
   check("a bill read answers nothing of another organization's bill", elsewhere.data.bills.length === 0)
+
+  // Years no sync writes, so the rows are this check's alone, written and removed here
+  const years = [2991, 2990]
+  const rows = [Currency.USD, Currency.GBP].flatMap(currency => years.map(year => ({ currency, year, rates: '{}' })))
+
+  await write(`mutation InsertRates($rows: [ExchangeRateYear_Data!]!) { exchangeRateYear_upsertMany(data: $rows) }`, {
+    rows,
+  })
+
+  try {
+    const { data: rates } = await getExchangeRatesForAgent(dataConnect, {
+      currencies: [Currency.USD, Currency.GBP],
+      years,
+    })
+
+    check(
+      'the rates read answers every year asked for, by currency, then year',
+      rates.exchangeRateYears.map(({ currency, year }) => `${currency} ${year}`).join(', ')
+        === 'GBP 2990, GBP 2991, USD 2990, USD 2991',
+    )
+  } finally {
+    await write(
+      `mutation DeleteRates($years: [Int!]!) { exchangeRateYear_deleteMany(where: { year: { in: $years } }) }`,
+      {
+        years,
+      },
+    )
+  }
 }
 
 async function checkIdempotency() {
@@ -427,12 +456,16 @@ async function checkCreating() {
         ...UNKEYED,
       })
 
-      const row = await read<{ bill: { name: string; createdById: string; recurrence: string } | null }>(
-        `query ReadCreated($id: UUID!) { bill(id: $id) { name createdById recurrence } }`,
-        { id },
-      )
+      const row = await read<{
+        bill: { name: string; createdById: string; updatedById: string; recurrence: string } | null
+      }>(`query ReadCreated($id: UUID!) { bill(id: $id) { name createdById updatedById recurrence } }`, { id })
 
-      return row.bill?.name === 'Notion' && row.bill.createdById === userIds.member && row.bill.recurrence === 'MONTHLY'
+      return (
+        row.bill?.name === 'Notion'
+        && row.bill.createdById === userIds.member
+        && row.bill.updatedById === userIds.member
+        && row.bill.recurrence === 'MONTHLY'
+      )
     })(),
   )
 
@@ -492,11 +525,15 @@ async function checkCreating() {
 }
 
 async function checkUpdating() {
-  const id = await insertBill({ name: 'Saved', paidById: userIds.leaver })
+  const id = await insertBill({ name: 'Saved', paidById: userIds.leaver, createdById: userIds.other })
 
   check(
     'a save on the updatedAt read goes through',
     await isAccepted(update(id, { name: 'Renamed', paidById: userIds.leaver })),
+  )
+  check(
+    'it names the member the agent acts as who saved the bill last',
+    (await readBillRow(id))?.updatedById === userIds.member,
   )
   check(
     'a save on an updatedAt another save moved is refused',
@@ -543,6 +580,35 @@ async function checkUpdating() {
     'a save with no receipt detaches it',
     (await isAccepted(update(withReceipt, { receiptId: null })))
       && (await readBillRow(withReceipt))?.receiptId === null,
+  )
+  check(
+    "the receipt let go is kept as the bill's earlier receipt",
+    (await readReceiptRow(own))?.formerBillId === withReceipt,
+  )
+  check(
+    'a bill read lists it among its earlier receipts',
+    (await getBillForAgent(dataConnect, { ...caller(), id: withReceipt })).data.bills[0]?.earlierReceipts.some(
+      ({ id }) => id === own,
+    ) ?? false,
+  )
+  check(
+    'the bill takes it back, however old and whoever uploaded it',
+    (await isAccepted(update(withReceipt, { receiptId: own }))) && (await readBillRow(withReceipt))?.receiptId === own,
+  )
+  check(
+    "another bill does not take a bill's earlier receipt",
+    (await isAccepted(update(withReceipt, { receiptId: null })))
+      && (await isRefused(update(await insertBill(), { receiptId: own }), 'The receipt can no longer be attached')),
+  )
+
+  // The member's own, fresh, which a bill keeps once a save let it go
+  const kept = await insertReceipt()
+
+  check(
+    "the member's own fresh receipt a bill keeps is refused to another bill",
+    (await isAccepted(update(withReceipt, { receiptId: kept })))
+      && (await isAccepted(update(withReceipt, { receiptId: null })))
+      && (await isRefused(create({ receiptId: kept }), 'The receipt can no longer be attached')),
   )
 
   const taken = await insertReceipt()

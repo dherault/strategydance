@@ -16,9 +16,9 @@ import {
   daySchema,
   descriptionSchema,
   payerSchema,
-  receiptSchema,
   recurrenceSchema,
   statusSchema,
+  updateReceiptSchema,
 } from '~modules/budget/budgetSchemas'
 import readBudgetWriteCall from '~modules/budget/readBudgetWriteCall'
 import toBudgetWriteResult from '~modules/budget/toBudgetWriteResult'
@@ -60,7 +60,12 @@ const inputSchema = z
       .describe('How often it is paid again, null for a one-time payment'),
     endsOn: daySchema.nullable().optional().describe('The day a recurring bill stops, null while it goes on'),
     paidBy: payerSchema.optional().describe('Who pays it: "me", or "member:<id>"'),
-    receipt: receiptSchema.nullable().optional().describe("A new receipt replacing the bill's, null removing it"),
+    receipt: updateReceiptSchema
+      .nullable()
+      .optional()
+      .describe(
+        "A receipt replacing the bill's, null removing it, which keeps the one let go among its earlierReceipts",
+      ),
   })
   .superRefine((args, context) => {
     if (FIELDS.every(field => args[field] === undefined)) {

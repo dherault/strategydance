@@ -246,6 +246,24 @@ const budgetMessages = defineMessages({
     description:
       'Line under the title of an existing bill\'s dialog: when it was added. {date} is a day with its year, such as "Oct 21, 2026".',
   },
+  billAddedOnBy: {
+    id: 'budget.billAddedOnBy',
+    defaultMessage: 'Added {date} by {name}',
+    description:
+      'Line under the title of an existing bill\'s dialog: when it was added and by whom. {date} is a day with its year, such as "Oct 21, 2026", and {name} a team member\'s name.',
+  },
+  billChangedOn: {
+    id: 'budget.billChangedOn',
+    defaultMessage: 'last changed {date}',
+    description:
+      'Second part of the line under the title of an existing bill\'s dialog, after "Added {date}" and joined to it as a list, as in "Added Oct 21, 2026 and last changed Oct 27, 2026": when the bill was last saved. {date} is a day with its year.',
+  },
+  billChangedOnBy: {
+    id: 'budget.billChangedOnBy',
+    defaultMessage: 'last changed {date} by {name}',
+    description:
+      'Second part of the line under the title of an existing bill\'s dialog, after "Added {date} by {name}" and joined to it as a list, as in "Added Oct 21, 2026 by Sam and last changed Oct 27, 2026 by Alex": when the bill was last saved and by whom. {date} is a day with its year, and {name} a team member\'s name.',
+  },
   nameLabel: {
     id: 'budget.nameLabel',
     defaultMessage: 'Name',
@@ -403,6 +421,36 @@ const budgetMessages = defineMessages({
     defaultMessage: 'Remove receipt',
     description:
       "Tooltip and accessible name of the icon button that takes a bill's receipt off, after a second click to confirm.",
+  },
+  earlierReceiptsLabel: {
+    id: 'budget.earlierReceiptsLabel',
+    defaultMessage: 'Earlier receipts',
+    description:
+      "Label above the list, in a bill's dialog, of the receipts the bill held before an edit replaced or removed them, which it keeps and can use again.",
+  },
+  viewEarlierReceipt: {
+    id: 'budget.viewEarlierReceipt',
+    defaultMessage: 'View {name}',
+    description:
+      "Accessible name of the icon button that opens one of a bill's earlier receipts. {name} is the receipt's file name, such as invoice-march.pdf.",
+  },
+  showOlderReceipts: {
+    id: 'budget.showOlderReceipts',
+    defaultMessage: 'Show older receipts',
+    description:
+      "Button under the list of a bill's earlier receipts, in its dialog, which shows the older ones the list does not show yet.",
+  },
+  useReceiptAgain: {
+    id: 'budget.useReceiptAgain',
+    defaultMessage: 'Use again',
+    description:
+      "Tooltip of the icon button that puts one of a bill's earlier receipts back as the bill's receipt, once the bill is saved.",
+  },
+  useEarlierReceiptAgain: {
+    id: 'budget.useEarlierReceiptAgain',
+    defaultMessage: 'Use {name} again',
+    description:
+      "Accessible name of the icon button that puts one of a bill's earlier receipts back as the bill's receipt, once the bill is saved. {name} is the receipt's file name, such as invoice-march.pdf.",
   },
   removeReceiptConfirm: {
     id: 'budget.removeReceiptConfirm',

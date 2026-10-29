@@ -43,16 +43,16 @@ import useSaveBill from '~hooks/budget/useSaveBill'
 import useLocalDate from '~hooks/common/useLocalDate'
 
 import formatBudgetAmount from '~utils/budget/formatBudgetAmount'
-import formatBudgetDay from '~utils/budget/formatBudgetDay'
 import listBillCompanies from '~utils/budget/listBillCompanies'
 import toBillDraft from '~utils/budget/toBillDraft'
 import toBillFormValues, { type BillFormValues } from '~utils/budget/toBillFormValues'
 import toBillFormValuesFromReceipt from '~utils/budget/toBillFormValuesFromReceipt'
 import createId from '~utils/common/createId'
-import getLocalDate from '~utils/date/getLocalDate'
 
 import BillCompanyField from '~components/budget/BillCompanyField'
 import BillDayField from '~components/budget/BillDayField'
+import BillDialogHistory from '~components/budget/BillDialogHistory'
+import BillEarlierReceipts from '~components/budget/BillEarlierReceipts'
 import BillPayerOption from '~components/budget/BillPayerOption'
 import BillReceiptField from '~components/budget/BillReceiptField'
 import CurrencySelect from '~components/budget/CurrencySelect'
@@ -221,11 +221,14 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
       <DialogHeader className="px-6 pt-6 pb-5">
         <DialogTitle>{formatMessage(bill ? budgetMessages.editBill : budgetMessages.newBill)}</DialogTitle>
         <DialogDescription>
-          {bill
-            ? formatMessage(budgetMessages.billAddedOn, {
-                date: formatBudgetDay(getLocalDate(new Date(bill.createdAt)), today, locale, { withYear: true }),
-              })
-            : formatMessage(budgetMessages.newBillDescription)}
+          {bill ? (
+            <BillDialogHistory
+              bill={bill}
+              today={today}
+            />
+          ) : (
+            formatMessage(budgetMessages.newBillDescription)
+          )}
         </DialogDescription>
       </DialogHeader>
       <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-6 pt-0.5 pb-6">
@@ -411,6 +414,15 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
           onAttach={receipt.attach}
           onRemove={receipt.remove}
         />
+        {bill ? (
+          <BillEarlierReceipts
+            billId={bill.id}
+            heldId={receipt.draft.status === 'none' ? null : receipt.draft.receipt.id}
+            billName={name.trim()}
+            details={receiptDetails}
+            onTakeBack={receipt.takeBack}
+          />
+        ) : null}
       </div>
       <DialogFooter className="flex-row items-center justify-end border-t border-border px-6 py-4">
         {bill ? (

@@ -132,7 +132,7 @@ function createInternalRouter() {
     day: the conversations, subagents before their parents, with their files, the board's tasks, the
     bills, the documents and the organizations' MCP servers, with their keys and members'
     connections, deleted over a day ago, the files uploaded to conversations and never sent, and the
-    bills' receipts no bill holds two days after their upload, after the bills, so a bill pruned
+    bills' receipts no bill holds three days after their upload, after the bills, so a bill pruned
     frees its receipt in the same sweep. A milestone that keeps
     something else deleted for a while adds its prune here. So does one that keeps a count or a
     record for a while, as the conversation searches, the starts the daily caps counted and what

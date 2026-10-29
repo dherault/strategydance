@@ -121,6 +121,10 @@ function useBillReceiptDraft(initial: BillReceiptData | null, onChange: (receipt
         },
       })
 
+      // Replaced, removed, taken back or closed in the moment the upload answered, which takes
+      // nothing back from whatever took its place
+      if (signal.aborted) return false
+
       heldRef.current = { status: 'ready', receipt }
       setDraft(heldRef.current)
       onChange(receipt.id)
@@ -168,6 +172,15 @@ function useBillReceiptDraft(initial: BillReceiptData | null, onChange: (receipt
     onChange(null)
   }
 
+  // Takes one of the bill's earlier receipts back in place of whatever the dialog held
+  function takeBack(receipt: BillReceiptData) {
+    runRef.current?.controller.abort()
+    runRef.current = null
+    heldRef.current = { status: 'ready', receipt }
+    setDraft(heldRef.current)
+    onChange(receipt.id)
+  }
+
   // Starts over from a receipt as it now is, as the bill's dialog does once somebody saved the bill meanwhile
   function reset(receipt: BillReceiptData | null) {
     runRef.current?.controller.abort()
@@ -201,7 +214,7 @@ function useBillReceiptDraft(initial: BillReceiptData | null, onChange: (receipt
     return heldRef.current
   }
 
-  return { draft, attach, remove, reset, settle, readHeld }
+  return { draft, attach, remove, takeBack, reset, settle, readHeld }
 }
 
 export { type BillReceiptDraft }

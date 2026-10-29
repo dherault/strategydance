@@ -28,7 +28,7 @@ function oneLineSchema(field: string, maxLength: number) {
     .trim()
     .min(1)
     .max(maxLength)
-    .regex(/^[^\r\n]*$/, `A ${field} is one line`)
+    .regex(/^[^\r\n\u2028\u2029]*$/, `A ${field} is one line`)
     .refine(hasNoNul, `A ${field} holds no U+0000`)
 }
 
@@ -88,6 +88,17 @@ export const receiptSchema = z.union([
       .describe(
         "For Strategy Dance's own agent: a file the member sent in this conversation, or one your brief hands you, by the id the line naming it gives, as name (attachment <id>)",
       ),
+  }),
+])
+
+// What an update takes as a receipt: any an add takes, or one of the bill's earlier receipts
+export const updateReceiptSchema = z.union([
+  ...receiptSchema.options,
+  z.object({
+    earlierReceiptId: z
+      .string()
+      .regex(UUID_PATTERN, 'A receipt id is a UUID')
+      .describe("One of the bill's earlierReceipts, which read_bill lists, taken back as its receipt"),
   }),
 ])
 

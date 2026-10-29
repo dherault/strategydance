@@ -2073,7 +2073,7 @@ mutation SetBudget($organizationId: UUID!, $currency: Currency!, $amountMinor: I
 # when it recurs, on or after its first payment. Its payer is a member of the organization.
 #
 # Its receipt, when it has one, is `READY`, in the organization, uploaded by the caller, held by no
-# bill, and uploaded within two days, past which the daily sweep may be deleting a receipt nothing
+# bill nor kept by one as an earlier receipt, and uploaded within two days, past which the daily sweep may be deleting a receipt nothing
 # holds: a dialog left open that long is told to attach it again. The receipt's unique reference
 # refuses a second bill taking it at the same instant
 mutation CreateBill(
@@ -2094,7 +2094,7 @@ mutation CreateBill(
     @redact
     @check(expr: "this != null", message: "Only a member of an organization can add to its bills")
     @check(
-      expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.company) <= 60 && vars.company.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.description) <= 140"
+      expr: "size(vars.name) <= 80 && vars.name.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.company) <= 60 && vars.company.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.description) <= 140"
       message: "A bill's name and company are one line of at most 80 and 60 characters, with no space at either end, and its description at most 140 characters"
     )
     @check(
@@ -2135,6 +2135,7 @@ mutation CreateBill(
           { userId: { eq_expr: "auth.uid" } }
           { createdAt: { gt_time: { now: true, sub: { days: 2 } } } }
           { _not: { bill_on_receipt: { id: { isNull: false } } } }
+          { formerBillId: { isNull: true } }
         ]
       }
       limit: 1
@@ -2161,6 +2162,7 @@ mutation CreateBill(
       paidById: $paidById
       receiptId: $receiptId
       createdById_expr: "auth.uid"
+      updatedById_expr: "auth.uid"
     }
   )
 }
@@ -2172,7 +2174,8 @@ mutation CreateBill(
 # The checks read the bill as it was before this save, which the `updatedAt` match then holds the
 # row to, so a bill keeps what it had already: the payer, even one who has left the organization, and
 # the receipt, whoever uploaded it and however long ago. A new payer is a member, and a new receipt
-# one `CreateBill` would take. The checks on the variables are optional under the membership, so
+# one `CreateBill` would take, or one of the bill's earlier receipts. A receipt the save replaces or
+# removes is kept as an earlier receipt of the bill (`formerBill`) until the bill is pruned. The checks on the variables are optional under the membership, so
 # somebody who is no member is told so (CLAUDE.md § The database). A receipt another bill holds is
 # refused by the unique reference before the receipt's check, since the operation runs as one SQL
 # statement, where a constraint a later step breaks is reported first
@@ -2196,7 +2199,7 @@ mutation UpdateBill(
       @check(expr: "this != null", message: "Only a member of an organization can change its bills") {
       role
         @check(
-          expr: "size(vars.name) <= 80 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.company) <= 60 && vars.company.matches('^[[:^space:]](.*[[:^space:]])?$') && size(vars.description) <= 140"
+          expr: "size(vars.name) <= 80 && vars.name.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.company) <= 60 && vars.company.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.description) <= 140"
           message: "A bill's name and company are one line of at most 80 and 60 characters, with no space at either end, and its description at most 140 characters"
           optional: true
         )
@@ -2245,12 +2248,14 @@ mutation UpdateBill(
           {
             _or: [
               { bill_on_receipt: { id: { eq: $id } } }
+              { _and: [{ formerBillId: { eq: $id } }, { _not: { bill_on_receipt: { id: { isNull: false } } } }] }
               {
                 _and: [
                   { status: { eq: READY } }
                   { userId: { eq_expr: "auth.uid" } }
                   { createdAt: { gt_time: { now: true, sub: { days: 2 } } } }
                   { _not: { bill_on_receipt: { id: { isNull: false } } } }
+                  { formerBillId: { isNull: true } }
                 ]
               }
             ]
@@ -2266,6 +2271,13 @@ mutation UpdateBill(
       id
     }
   }
+  # Marks the receipt the bill holds, as the statement reads it before this save, as the bill's own,
+  # so should the save let it go, it is kept as one of the bill's earlier receipts rather than
+  # pruned. It filters on the bill alone, never on `$receiptId`, whose filter a null would drop
+  billReceipt_updateMany(
+    where: { organizationId: { eq: $organizationId }, bill_on_receipt: { id: { eq: $id } } }
+    data: { formerBillId: $id }
+  )
   bill_updateMany(
     where: {
       id: { eq: $id }
@@ -2284,6 +2296,7 @@ mutation UpdateBill(
       endsOn: $endsOn
       paidById: $paidById
       receiptId: $receiptId
+      updatedById_expr: "auth.uid"
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The bill was deleted or changed elsewhere since it was read")

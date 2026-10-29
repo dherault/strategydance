@@ -39,6 +39,19 @@ describe('update_bill', () => {
     expect(fake.bills.get(bill.id)).toMatchObject({ name: 'Figma', description: 'Design', amountMinor: 1800 })
   })
 
+  it('names the member the agent acts as who saved the bill last, beside who added it', async () => {
+    const kit = await book.connect()
+    const bill = book.add({ name: 'Figma', createdById: 'other', updatedById: 'other' })
+
+    await kit.answer('update_bill', { id: bill.id, amount: '18.00' })
+
+    expect(fake.bills.get(bill.id)).toMatchObject({ createdById: 'other', updatedById: 'member' })
+    expect(await kit.answer('read_bill', { id: bill.id })).toMatchObject({
+      createdBy: 'member:other',
+      updatedBy: 'member:member',
+    })
+  })
+
   it("keeps both a member's save landing in between and its own, reading the bill again and applying its fields again", async () => {
     const kit = await book.connect()
     const bill = book.add({ name: 'Figma', company: 'Figma', amountMinor: 1500 })
@@ -103,21 +116,54 @@ describe('update_bill', () => {
     })
   })
 
-  it('detaches the receipt on null, and replaces it with a new one', async () => {
+  it('detaches the receipt on null, and replaces it with a new one, keeping each as an earlier receipt', async () => {
     const kit = await book.connect()
     const receipt = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'member' })
     const bill = book.add({ receiptId: receipt.id })
 
     expect((await kit.answer('update_bill', { id: bill.id, receipt: null })).hasReceipt).toBe(false)
     expect(fake.bills.get(bill.id)!.receiptId).toBeNull()
+    expect(fake.receipts.get(receipt.id)!.formerBillId).toBe(bill.id)
 
     const replaced = await kit.answer('update_bill', {
       id: bill.id,
       receipt: { name: 'Invoice.txt', text: 'Figma, $15.00' },
     })
+    const replacement = fake.receipts.get(fake.bills.get(bill.id)!.receiptId!)!
 
     expect(replaced.hasReceipt).toBe(true)
-    expect(fake.receipts.get(fake.bills.get(bill.id)!.receiptId!)!.name).toBe('Invoice.txt')
+    expect(replacement.name).toBe('Invoice.txt')
+
+    await kit.answer('update_bill', { id: bill.id, receipt: null })
+
+    expect(replacement.formerBillId).toBe(bill.id)
+  })
+
+  it("takes back one of the bill's earlier receipts by its id, and refuses any other", async () => {
+    const kit = await book.connect()
+    const kept = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'other', name: 'March.pdf' })
+    const current = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'member' })
+    // The caller's own and fresh, which another bill keeps, so no bill but that one takes it
+    const elsewhere = fake.insertReceipt({ organizationId: ORGANIZATION_ID, userId: 'member' })
+    const bill = book.add({ receiptId: current.id })
+    const other = book.add({ receiptId: null })
+
+    kept.formerBillId = bill.id
+    elsewhere.formerBillId = other.id
+
+    expect((await kit.answer('read_bill', { id: bill.id })).earlierReceipts).toEqual([
+      { id: kept.id, name: 'March.pdf', contentType: 'application/pdf', size: 1000 },
+    ])
+    expect(await kit.refusal('update_bill', { id: bill.id, receipt: { earlierReceiptId: elsewhere.id } })).toBe(
+      "That id is none of the bill's earlier receipts. Read the bill: read_bill lists them under earlierReceipts.",
+    )
+    expect(await kit.answer('update_bill', { id: bill.id, receipt: { earlierReceiptId: kept.id } })).toMatchObject({
+      hasReceipt: true,
+    })
+    expect(fake.bills.get(bill.id)!.receiptId).toBe(kept.id)
+    expect((await kit.answer('read_bill', { id: bill.id })).earlierReceipts).toEqual([
+      { id: current.id, name: 'Invoice.pdf', contentType: 'application/pdf', size: 1000 },
+    ])
   })
 
   it('takes its end off with its recurrence, and refuses a currency its amount does not fit', async () => {

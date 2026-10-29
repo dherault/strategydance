@@ -880,6 +880,15 @@ export const MAX_BILL_RECEIPT_TEXT_LENGTH = 50000
 export const MAX_BILL_RECEIPT_NAME_LENGTH = 200
 
 /*
+  How many days after its upload a receipt no bill holds may still be taken by a bill's save, and
+  after how many the daily sweep prunes it: a day apart, so a save that reads the receipt as the
+  window closes commits before any sweep can read it as held by nothing. Written out again in the
+  bills' operations and the sweep's, which `schema.test.ts` holds to them
+*/
+export const BILL_RECEIPT_ATTACHABLE_DAYS = 2
+export const BILL_RECEIPT_PRUNE_DAYS = 3
+
+/*
   A receipt an agent hands the Budget module, in bytes once decoded: its base64 is a third longer,
   some 933 KiB at this size, which a call's body of 1 MiB at the modules' endpoint still carries
   with its other arguments. A larger file goes through the page's upload. Written out again in

@@ -21,7 +21,7 @@ type WriteAgentBillReceiptResult = { outcome: 'written'; receiptId: string } | {
   Stores a receipt an agent handed over, checked already by `readAgentBillReceipt`, as the page's
   upload stores one: its row first, `UPLOADING`, under a new id, then its file, create-only, where it
   stays, then the row `READY`, which a bill's write then takes. A write the call's key answers later
-  leaves a receipt nothing holds, which the daily sweep prunes two days after, as it prunes an upload
+  leaves a receipt nothing holds, which the daily sweep prunes three days after, as it prunes an upload
   never saved.
 
   Imported only by a call carrying a receipt, since it reaches the bucket, which a module's tests do

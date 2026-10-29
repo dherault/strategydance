@@ -3231,9 +3231,14 @@ query GetLatestExchangeRateYear @auth(level: NO_ACCESS) {
 # The ECB's daily rates of the currencies and years asked for, as `GetExchangeRates` reads them, for
 # the Budget module. It matches no membership, since the rates are public and say nothing of any
 # organization: the module reads them beside the budget, whose read checks its caller. Both lists
-# are required, since a filter on a list left out matches every row
+# are required, since a filter on a list left out matches every row. As many rows as 29 currencies
+# hold for every year from 1999 to past 2060, in order, so a request never loses a year to the limit
 query GetExchangeRatesForAgent($currencies: [Currency!]!, $years: [Int!]!) @auth(level: NO_ACCESS) {
-  exchangeRateYears(where: { currency: { in: $currencies }, year: { in: $years } }, limit: 1000) {
+  exchangeRateYears(
+    where: { currency: { in: $currencies }, year: { in: $years } }
+    orderBy: [{ currency: ASC }, { year: ASC }]
+    limit: 2000
+  ) {
     currency
     year
     rates
@@ -3314,16 +3319,18 @@ query GetBillReceiptReads($organizationId: UUID!, $userId: String!, $receiptId: 
   }
 }
 
-# The daily sweep's: a hundred receipts that no bill holds, deleted bills included, uploaded over two
-# days ago, whatever their status, whose files it deletes before their rows (`DeleteBillReceipts`).
-# A bill's save takes no receipt that old unless it holds it already, so none of these is taken
-# meanwhile
+# The daily sweep's: a hundred receipts that no bill holds nor keeps as an earlier receipt, deleted
+# bills included, uploaded over three days ago, whatever their status, whose files it deletes before
+# their rows (`DeleteBillReceipts`). A bill's save takes no receipt over two days old unless it holds
+# it already or keeps it, so none of these is taken meanwhile, a save in flight as its two days ran
+# out included
 query GetPrunableBillReceipts @auth(level: NO_ACCESS) {
   billReceipts(
     where: {
       _and: [
-        { createdAt: { lt_time: { now: true, sub: { days: 2 } } } }
+        { createdAt: { lt_time: { now: true, sub: { days: 3 } } } }
         { _not: { bill_on_receipt: { id: { isNull: false } } } }
+        { formerBillId: { isNull: true } }
       ]
     }
     orderBy: [{ createdAt: ASC }]
@@ -3423,7 +3430,8 @@ query GetBudgetForAgent($organizationId: UUID!, $userId: String!, $membershipCre
 }
 
 # One bill by its id, deleted or not, so a restore can tell a bill deleted from one never there, with
-# its receipt's name, type and size, who paid it and who created it, and the budget's currency, which
+# its receipt's name, type and size, its earlier receipts, who paid it, who created it and who saved
+# it last, and the budget's currency, which
 # its payments are converted into. With the member's time zone, from which the module tells their
 # today
 query GetBillForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!, $id: UUID!)
@@ -3481,11 +3489,27 @@ query GetBillForAgent($organizationId: UUID!, $userId: String!, $membershipCreat
       contentType
       size
     }
+    # The receipts it held before an edit replaced or removed them, newest first, which an update
+    # can take back
+    earlierReceipts: billReceipts_on_formerBill(
+      where: { _not: { bill_on_receipt: { id: { isNull: false } } } }
+      orderBy: [{ createdAt: DESC }]
+      limit: 50
+    ) {
+      id
+      name
+      contentType
+      size
+    }
     createdById
     createdBy {
       displayName
     }
     createdAt
+    updatedById
+    updatedBy {
+      displayName
+    }
     updatedAt
     deletedAt
   }

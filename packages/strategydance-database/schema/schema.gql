@@ -1685,6 +1685,9 @@ type Bill @table @index(fields: ["organizationId", "deletedAt"]) {
   # Who added it. Optional, set to null when the account goes, so deleting an account keeps its
   # team's bills
   createdBy: User
+  # Who saved its fields last, the member an agent acts as included: written with `updatedAt`, which
+  # a delete and its Undo leave, so they leave it too. Optional, set to null when the account goes
+  updatedBy: User
   deletedAt: Timestamp
   createdAt: Timestamp! @default(expr: "request.time")
   # Written by every save of its fields, so a save made on what another member's save replaced is
@@ -1699,9 +1702,11 @@ type Bill @table @index(fields: ["organizationId", "deletedAt"]) {
 # `organizations/`.
 #
 # Its row is written before its file and nothing moves the file, so no file is ever without its
-# row. One no bill holds, deleted bills included, is deleted by the daily sweep two days after its
-# upload, its file first, then its row: an upload never saved, one an edit replaced or removed, and
-# one whose bill was pruned
+# row. A bill's save takes one no bill holds within two days of its upload. One an edit replaced or
+# removed stays its bill's, `formerBill`, as an earlier receipt the bill can take back, until the
+# bill is pruned. The daily sweep deletes one no bill holds nor keeps, deleted bills included, three
+# days after its upload, its file first, then its row: an upload never saved, and the earlier
+# receipts of a bill pruned
 type BillReceipt @table @index(fields: ["createdAt"]) @index(fields: ["organizationId", "readAt"]) {
   # Made by the page, so an upload sent again stores the file once, and the object's name in Storage
   id: UUID! @default(expr: "uuidV4()")
@@ -1711,6 +1716,11 @@ type BillReceipt @table @index(fields: ["createdAt"]) @index(fields: ["organizat
   # organization. Optional, set to null when the account goes, so the receipt stays with its bill and
   # the sweep still finds its file once no bill holds it
   user: User
+  # The bill that held it when it was last saved, which every save of a bill writes on the receipt
+  # it holds, kept or let go, so one an edit replaced or removed is kept as that bill's earlier
+  # receipt, which it can take back. Optional, set to null when the bill is pruned, after which the
+  # sweep takes the receipt with the bill's other earlier ones
+  formerBill: Bill
   status: BillReceiptStatus!
   # Its name as the member's device gave it, on one line of at most 200 characters
   # (`MAX_BILL_RECEIPT_NAME_LENGTH`)
@@ -1724,6 +1734,10 @@ type BillReceipt @table @index(fields: ["createdAt"]) @index(fields: ["organizat
   # asks for it to be read and again once a read that failed lets go (`ClaimBillReceiptRead`,
   # `ReleaseBillReceiptRead`)
   readAt: Timestamp
+  # The claim's own id, which the backend makes for each read, so only the read that claimed the
+  # receipt keeps what it found or lets it go: a read held up past the two minutes after which another
+  # takes it over touches nothing of that read's. Null while `readAt` is
+  readClaim: UUID
   # What the read found, the JSON text of strategydance-core's `BillReceiptFields`, so asking again
   # answers it for nothing. A `String` rather than `Any`, which Postgres' `jsonb` would rewrite
   readFields: String

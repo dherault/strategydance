@@ -14,7 +14,7 @@ const searching: BetaMessageParam = {
 const calling: BetaMessageParam = {
   role: 'assistant',
   content: [
-    { type: 'tool_use', id: 'toolu_1', name: 'read_knowledge', input: {} },
+    { type: 'tool_use', id: 'toolu_1', name: 'read_document', input: {} },
     { type: 'tool_use', id: 'toolu_2', name: 'get_team', input: {} },
   ],
 }

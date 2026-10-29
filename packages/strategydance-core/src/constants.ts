@@ -405,7 +405,7 @@ export const MAX_TASK_DEPENDENCIES = 50
 --- */
 
 /*
-  How many documents an organization keeps in its knowledge, how long a document's title may be,
+  How many documents an organization keeps, how long a document's title may be,
   on one line, and how long its serialized blocks may run, which is room for a long plan in
   formatted text. Written out again in `CreateDocument`'s, `RestoreDocument`'s, `RenameDocument`'s
   and `UpdateDocumentContent`'s checks and in `GetOrganizationDocuments`' limit, which cannot import
@@ -619,7 +619,7 @@ export const MAX_PENDING_CONVERSATION_ATTACHMENTS = 30
 
 /*
   How long a search may be, in characters and in words, the conversations field and the agent's
-  knowledge search alike. Every word has to match, so a longer query finds nothing a shorter one
+  document search alike. Every word has to match, so a longer query finds nothing a shorter one
   would miss
 */
 export const MAX_SEARCH_QUERY_LENGTH = 100

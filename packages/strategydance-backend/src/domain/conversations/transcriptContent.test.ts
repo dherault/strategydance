@@ -7,7 +7,7 @@ describe('transcript content', () => {
   test('stores a turn holding U+0000 and keys out of alphabetical order, and reads it back as the same bytes', () => {
     const content = [
       { type: 'text', text: 'Before\u0000after' },
-      { type: 'tool_use', id: 'toolu_1', name: 'read_knowledge', input: { zebra: 1, apple: { b: 2, a: 1 } } },
+      { type: 'tool_use', id: 'toolu_1', name: 'read_document', input: { zebra: 1, apple: { b: 2, a: 1 } } },
     ]
     const stored = serializeTranscriptContent(content)
     const read = parseTranscriptContent(stored)

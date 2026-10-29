@@ -21,7 +21,7 @@ const ASPECT_MESSAGE_TYPES: MessageType[] = ['aspect', 'document']
   Not at the root, where any static route of the same name outranks a dynamic segment: the public
   `/legal` would have hidden the Legal aspect, and the build would not have said so.
 
-  The page waits for the organization's knowledge, which its section lists the latest of
+  The page waits for the organization's documents, which its section lists the latest of
 */
 export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/aspects/$aspect')({
   params: {

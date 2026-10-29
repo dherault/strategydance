@@ -802,7 +802,7 @@ await check('The agent hands work to a subagent through the whole list, with a t
           {
             role: 'user',
             content:
-              'Hand the research of the pricing pages of Linear, Notion and Asana to a subagent now, one subagent for the three: I need you free meanwhile. Do not read the knowledge or the board first.',
+              'Hand the research of the pricing pages of Linear, Notion and Asana to a subagent now, one subagent for the three: I need you free meanwhile. Do not read the documents or the board first.',
           },
         ],
         { system: CONVERSATION_SYSTEM_PROMPT, tools: agentTools },

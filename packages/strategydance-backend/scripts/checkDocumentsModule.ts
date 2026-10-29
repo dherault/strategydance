@@ -36,10 +36,10 @@ import { dataConnect } from '~firebase'
 import buildSubstringSearchPatterns from '~domain/conversations/buildSubstringSearchPatterns'
 
 /*
-  Checks the Knowledge module's operations against the emulators, where CI cannot, since what they
+  Checks the Documents module's operations against the emulators, where CI cannot, since what they
   guard is in their SQL conditions and what they find is Postgres' full-text search:
 
-    bun run check:knowledge-module
+    bun run check:documents-module
 
   It makes a throwaway organization with a member and a few documents, calls the backend
   connector's own operations as the module calls them, and the web connector's as a member,
@@ -54,7 +54,7 @@ import buildSubstringSearchPatterns from '~domain/conversations/buildSubstringSe
 */
 if (!process.env.DATA_CONNECT_EMULATOR_HOST) {
   console.error(
-    'DATA_CONNECT_EMULATOR_HOST is not set. This script only writes to the emulators: run `bun run check:knowledge-module`',
+    'DATA_CONNECT_EMULATOR_HOST is not set. This script only writes to the emulators: run `bun run check:documents-module`',
   )
   process.exit(1)
 }
@@ -72,7 +72,7 @@ function createId() {
 
 const checkId = createId().slice(0, 8)
 const organizationId = createId()
-const userId = `check-knowledge-module-${checkId}-member`
+const userId = `check-documents-module-${checkId}-member`
 const scope = `connection:check-${checkId}`
 
 // What the agent's writes take for a call without a key

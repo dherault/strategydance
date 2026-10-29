@@ -38,7 +38,7 @@ import readModuleCaller from '~modules/readModuleCaller'
   First the whole flow, as an external agent and a member would go through it, against the backend
   at `API_URL`, `bun run dev:backend` unless it says otherwise: it registers a loopback client,
   authorizes, approves as an account signed in to the Auth emulator, exchanges the code, has the
-  token verifier take the access token, calls the Knowledge module's endpoint with it, refreshes,
+  token verifier take the access token, calls the Documents module's endpoint with it, refreshes,
   presents the spent refresh token again, has the endpoint challenge a token narrowed to read when
   it writes, and revokes.
 
@@ -53,7 +53,7 @@ import readModuleCaller from '~modules/readModuleCaller'
   so the agent's next refresh and its next call to the module are refused. Allow holds a member to `MAX_AGENT_CONNECTIONS`, so the
   tab lists every one.
 
-  And the Tasks and the Budget modules' endpoints, each beside the Knowledge module's, for one agent
+  And the Tasks and the Budget modules' endpoints, each beside the Documents module's, for one agent
   connected to both: each module's token opens that module alone, a query draws on the member's
   search allowance, a token granted read alone is challenged when it writes, and Disconnect of one
   connection leaves the other working.
@@ -98,15 +98,15 @@ const otherOrganizationId = createId()
 const userId = `check-oauth-${checkId}-member`
 const otherUserId = `check-oauth-${checkId}-other`
 // The backend's own issuer names its modules, so a token made here is one it refreshes
-const resource = `${apiUrl}/mcp/knowledge`
-const READ_WRITE = ['knowledge:read', 'knowledge:write']
+const resource = `${apiUrl}/mcp/documents`
+const READ_WRITE = ['documents:read', 'documents:write']
 
-// The modules a check connects an agent to, Knowledge unless it says otherwise
-const KNOWLEDGE = { name: 'knowledge', resource } as const
+// The modules a check connects an agent to, Documents unless it says otherwise
+const DOCUMENTS = { name: 'documents', resource } as const
 const TASKS = { name: 'tasks', resource: `${apiUrl}/mcp/tasks` } as const
 const BUDGET = { name: 'budget', resource: `${apiUrl}/mcp/budget` } as const
 
-type CheckedModule = typeof KNOWLEDGE | typeof TASKS | typeof BUDGET
+type CheckedModule = typeof DOCUMENTS | typeof TASKS | typeof BUDGET
 
 // What the check made that its organization does not take with it, for the tear down
 const clientIds = new Set<string>()
@@ -278,7 +278,7 @@ async function readLastUsedAt(connectionId: string) {
 // one, as the member, and a connection marked used at most once a minute
 async function checkEndpoint(issuer: string, clientId: string, tokens: Tokens) {
   const unauthorized = await postModule(resource, null, { method: 'tools/list' })
-  const resourceMetadataUrl = `${issuer}/.well-known/oauth-protected-resource/mcp/knowledge`
+  const resourceMetadataUrl = `${issuer}/.well-known/oauth-protected-resource/mcp/documents`
 
   check(
     "the module's endpoint answers a call without a token 401, naming its protected resource metadata",
@@ -341,7 +341,7 @@ async function checkEndpoint(issuer: string, clientId: string, tokens: Tokens) {
 
 async function checkFlow() {
   const metadata = await readMetadata()
-  const resource = `${metadata.issuer}/mcp/knowledge`
+  const resource = `${metadata.issuer}/mcp/documents`
   const redirectUri = 'http://127.0.0.1:43210/callback'
   const form = { 'Content-Type': 'application/x-www-form-urlencoded' }
 
@@ -367,7 +367,7 @@ async function checkFlow() {
   registeredClientIds.add(clientId)
   check('a loopback client registers', registration.status === 201 && /^[0-9a-f]{32}$/.test(clientId))
 
-  // It asks for the member's knowledge, which sends the browser to the consent page
+  // It asks for the member's documents, which sends the browser to the consent page
   const verifier = createSecret()
   const state = `state-${checkId}`
   const authorizeUrl = new URL(metadata.authorization_endpoint)
@@ -421,7 +421,7 @@ async function checkFlow() {
   check(
     'the consent page reads the request: the module, an unverified client, a loopback address, the access asked',
     reading.status === 200
-      && summary?.module === 'knowledge'
+      && summary?.module === 'documents'
       && !summary.client.isVerified
       && summary.isLoopbackRedirect
       && summary.scopes.join(' ') === READ_WRITE.join(' '),
@@ -467,9 +467,9 @@ async function checkFlow() {
   )
 
   // The module's endpoint would take the access token, and nothing else
-  const knowledgeVerifier = createAgentConnectionTokenVerifier(new URL(resource))
+  const documentsVerifier = createAgentConnectionTokenVerifier(new URL(resource))
   const tasksVerifier = createAgentConnectionTokenVerifier(new URL(`${metadata.issuer}/mcp/tasks`))
-  const authInfo = await knowledgeVerifier.verifyAccessToken(tokens.access_token).catch(() => null)
+  const authInfo = await documentsVerifier.verifyAccessToken(tokens.access_token).catch(() => null)
 
   check(
     'the verifier takes the access token as the member, with the scopes allowed',
@@ -483,7 +483,7 @@ async function checkFlow() {
   )
   check(
     'the verifier refuses the refresh token',
-    (await refusal(knowledgeVerifier.verifyAccessToken(tokens.refresh_token))) !== null,
+    (await refusal(documentsVerifier.verifyAccessToken(tokens.refresh_token))) !== null,
   )
 
   await checkEndpoint(metadata.issuer, clientId, tokens)
@@ -510,12 +510,12 @@ async function checkFlow() {
   )
 
   // A refresh naming read alone narrows its access token, and its refresh token keeps both
-  const narrowed = (await (await refresh(rotated.refresh_token, 'knowledge:read')).json()) as Tokens
-  const narrowedInfo = await knowledgeVerifier.verifyAccessToken(narrowed.access_token).catch(() => null)
+  const narrowed = (await (await refresh(rotated.refresh_token, 'documents:read')).json()) as Tokens
+  const narrowedInfo = await documentsVerifier.verifyAccessToken(narrowed.access_token).catch(() => null)
 
   check(
     'a refresh naming read alone narrows its access token to read',
-    narrowed.scope === 'knowledge:read' && narrowedInfo?.scopes.join(' ') === 'knowledge:read',
+    narrowed.scope === 'documents:read' && narrowedInfo?.scopes.join(' ') === 'documents:read',
   )
 
   const challenged = await postModule(resource, narrowed.access_token, {
@@ -528,7 +528,7 @@ async function checkFlow() {
     "the endpoint challenges a read-only token's write, naming the write scope",
     challenged.status === 403
       && challenge.includes('error="insufficient_scope"')
-      && challenge.includes('scope="knowledge:write"'),
+      && challenge.includes('scope="documents:write"'),
   )
 
   // The client revokes
@@ -542,7 +542,7 @@ async function checkFlow() {
   check('a revoked refresh token is refused', (await refresh(narrowed.refresh_token)).status === 400)
   check(
     "the revoked connection's access token is refused",
-    (await refusal(knowledgeVerifier.verifyAccessToken(narrowed.access_token))) !== null,
+    (await refusal(documentsVerifier.verifyAccessToken(narrowed.access_token))) !== null,
   )
   check(
     "the module's endpoint refuses the revoked connection's access token",
@@ -551,7 +551,7 @@ async function checkFlow() {
 }
 
 // A pending request a client made, asking for read and write unless told otherwise
-async function createRequest(clientId: string, scopes = READ_WRITE, module: CheckedModule = KNOWLEDGE) {
+async function createRequest(clientId: string, scopes = READ_WRITE, module: CheckedModule = DOCUMENTS) {
   clientIds.add(clientId)
 
   const { data } = await createOAuthAuthorizationRequest(dataConnect, {
@@ -575,7 +575,7 @@ function approve(
     scopes = READ_WRITE,
     organization = organizationId,
     user = userId,
-    module = KNOWLEDGE,
+    module = DOCUMENTS,
   }: { scopes?: string[]; organization?: string; user?: string; module?: CheckedModule } = {},
 ) {
   const connectionId = createId()
@@ -626,7 +626,7 @@ function exchange(
   requestId: string,
   code: string,
   connectionId: string,
-  { scopes = READ_WRITE, module = KNOWLEDGE }: { scopes?: string[]; module?: CheckedModule } = {},
+  { scopes = READ_WRITE, module = DOCUMENTS }: { scopes?: string[]; module?: CheckedModule } = {},
 ) {
   const accessToken = createSecret()
   const refreshToken = createSecret()
@@ -655,8 +655,8 @@ async function checkConsent() {
 
   check('an Allow makes a connection', (await refusal(firstApproval.approval)) === null)
 
-  const second = await createRequest(clientId, ['knowledge:read'])
-  const secondApproval = approve(second, clientId, { scopes: ['knowledge:read'] })
+  const second = await createRequest(clientId, ['documents:read'])
+  const secondApproval = approve(second, clientId, { scopes: ['documents:read'] })
 
   check('consenting again goes through', (await refusal(secondApproval.approval)) === null)
 
@@ -666,7 +666,7 @@ async function checkConsent() {
     'consenting again replaces the connection with one of the access last allowed',
     connections.length === 1
       && connections[0]?.id === secondApproval.connectionId
-      && connections[0].scopes.join() === 'knowledge:read',
+      && connections[0].scopes.join() === 'documents:read',
   )
 
   const { data: replaced } = await getOAuthAuthorizationRequestByCode(dataConnect, {
@@ -738,14 +738,14 @@ async function checkConsent() {
   )
 
   // What a consent may grant
-  const readOnly = await createRequest(clientId, ['knowledge:read'])
+  const readOnly = await createRequest(clientId, ['documents:read'])
 
   check(
     'an Allow granting a scope the request did not ask for is refused',
     (await refusal(approve(readOnly, clientId).approval)) !== null,
   )
   const outsider = await refusal(
-    approve(readOnly, clientId, { scopes: ['knowledge:read'], organization: otherOrganizationId }).approval,
+    approve(readOnly, clientId, { scopes: ['documents:read'], organization: otherOrganizationId }).approval,
   )
 
   check(
@@ -895,7 +895,7 @@ async function countBillsNamed(name: string) {
   return data.bills.length
 }
 
-// What `checkModuleEndpoint` needs of a module served beside Knowledge: its title, scopes and tool
+// What `checkModuleEndpoint` needs of a module served beside Documents: its title, scopes and tool
 // count, the write it makes, one item named as the check names it, and the list whose query finds
 // that item, the item's address ending in the module's name and its id
 type CheckedEndpoint = {
@@ -935,10 +935,10 @@ const BUDGET_ENDPOINT: CheckedEndpoint = {
 }
 
 /*
-  A module's endpoint beside the Knowledge module's, for one agent the member connected to both:
+  A module's endpoint beside the Documents module's, for one agent the member connected to both:
   each module's token opens that module alone, a query counts against the member's search
   allowance, a token granted read alone is challenged when it writes, and Disconnect of the module's
-  connection stops its calls while the Knowledge connection's go on
+  connection stops its calls while the Documents connection's go on
 */
 async function checkModuleEndpoint({
   module,
@@ -952,8 +952,8 @@ async function checkModuleEndpoint({
 }: CheckedEndpoint) {
   const metadata = await readMetadata()
   const readWrite = [scopes.read, scopes.write]
-  const clientId = `https://check-${checkId}.example.com/${module.name}-and-knowledge.json`
-  const knowledge = await connectModule(clientId, KNOWLEDGE, READ_WRITE)
+  const clientId = `https://check-${checkId}.example.com/${module.name}-and-documents.json`
+  const documents = await connectModule(clientId, DOCUMENTS, READ_WRITE)
   const connected = await connectModule(clientId, module, readWrite)
   const resourceMetadataUrl = `${metadata.issuer}/.well-known/oauth-protected-resource/mcp/${module.name}`
   const resourceMetadata = (await (await fetch(resourceMetadataUrl)).json()) as {
@@ -971,7 +971,7 @@ async function checkModuleEndpoint({
 
   for (const [name, token] of [
     ['no token', null],
-    ['a Knowledge token', knowledge.accessToken],
+    ['a Documents token', documents.accessToken],
   ] as const) {
     const refused = await postModule(module.resource, token, { method: 'tools/list' })
 
@@ -983,8 +983,8 @@ async function checkModuleEndpoint({
   }
 
   check(
-    `the Knowledge module's endpoint answers a ${title} token 401`,
-    (await postModule(KNOWLEDGE.resource, connected.accessToken, { method: 'tools/list' })).status === 401,
+    `the Documents module's endpoint answers a ${title} token 401`,
+    (await postModule(DOCUMENTS.resource, connected.accessToken, { method: 'tools/list' })).status === 401,
   )
 
   const name = `Checked ${checkId}`
@@ -1039,8 +1039,8 @@ async function checkModuleEndpoint({
     (await postModule(module.resource, connected.accessToken, { method: 'tools/list' })).status === 401,
   )
   check(
-    "the Knowledge connection of the same agent still calls its module's endpoint",
-    (await postModule(KNOWLEDGE.resource, knowledge.accessToken, { method: 'tools/list' })).status === 200,
+    "the Documents connection of the same agent still calls its module's endpoint",
+    (await postModule(DOCUMENTS.resource, documents.accessToken, { method: 'tools/list' })).status === 200,
   )
 }
 
@@ -1058,7 +1058,7 @@ async function checkConnectionCap() {
     .slice(0, MAX_AGENT_CONNECTIONS - 1 - held.length)
     .map(
       clientId =>
-        `{ membershipUserId: "${userId}", membershipOrganizationId: "${organizationId}", clientId: "${clientId}", module: "knowledge", scopes: ["knowledge:read"] }`,
+        `{ membershipUserId: "${userId}", membershipOrganizationId: "${organizationId}", clientId: "${clientId}", module: "documents", scopes: ["documents:read"] }`,
     )
 
   await write(`mutation Fill { agentConnection_insertMany(data: [${rows.join(', ')}]) }`)
@@ -1069,7 +1069,7 @@ async function checkConnectionCap() {
 
   check(
     'an Allow up to the cap goes through',
-    (await refusal(approve(lastRequest, last, { scopes: ['knowledge:read', 'knowledge:write'] }).approval)) === null,
+    (await refusal(approve(lastRequest, last, { scopes: ['documents:read', 'documents:write'] }).approval)) === null,
   )
 
   const pastRequest = await createRequest(past)
@@ -1088,7 +1088,7 @@ async function checkConnectionCap() {
   )
   check(
     'consenting again with an agent connected at the cap replaces it',
-    (await refusal(approve(await createRequest(last), last, { scopes: ['knowledge:read'] }).approval)) === null
+    (await refusal(approve(await createRequest(last), last, { scopes: ['documents:read'] }).approval)) === null
       && (await readConnections(last)).length === 1,
   )
 
@@ -1183,7 +1183,7 @@ async function checkTokens() {
       id: refreshTokenId,
       connectionId: approval.connectionId,
       resource,
-      accessScopes: ['knowledge:read'],
+      accessScopes: ['documents:read'],
       refreshScopes: READ_WRITE,
       successorKeyVersion: 1,
       accessTokenHash: createHashOf(createSecret()),

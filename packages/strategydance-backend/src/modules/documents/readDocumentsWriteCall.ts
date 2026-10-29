@@ -2,13 +2,13 @@ import type { ServerContext } from '@modelcontextprotocol/server'
 
 import type { DocumentsToolContext } from '~types'
 
-import knowledgeModule from '~modules/knowledge/knowledgeModule'
-import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
+import documentsModule from '~modules/documents/documentsModule'
+import toDocumentsRefusal from '~modules/documents/toDocumentsRefusal'
 import readModuleWriteCall from '~modules/readModuleWriteCall'
 
-// What every write tool of the Knowledge module checks before anything is read or written: the write
+// What every write tool of the Documents module checks before anything is read or written: the write
 // scope, and the idempotency key its call carries, if any
-function readKnowledgeWriteCall(
+function readDocumentsWriteCall(
   context: DocumentsToolContext,
   serverContext: ServerContext,
   tool: string,
@@ -16,11 +16,11 @@ function readKnowledgeWriteCall(
 ) {
   return readModuleWriteCall(
     context.caller,
-    { scope: knowledgeModule.scopes.write, readOnly: toKnowledgeRefusal({ outcome: 'readOnly' }) },
+    { scope: documentsModule.scopes.write, readOnly: toDocumentsRefusal({ outcome: 'readOnly' }) },
     serverContext,
     tool,
     args,
   )
 }
 
-export default readKnowledgeWriteCall
+export default readDocumentsWriteCall

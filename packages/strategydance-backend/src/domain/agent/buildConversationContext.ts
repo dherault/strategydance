@@ -44,7 +44,7 @@ const LANGUAGES: Record<string, string> = {
   The context message a run sends after the member's entry, from Strategy Dance: the date, weekday
   and time in the member's time zone, and, when it changed since the last context message still in
   the transcript, the profile part, who the member is, their organization, what the conversation is
-  about and the language they write in. The team, the log and knowledge come through tools, which
+  about and the language they write in. The team, the log and the documents come through tools, which
   keeps it short.
 
   The hash is of the profile part, whether it is sent or not, so the next run compares against the

@@ -10,7 +10,7 @@ import readDocumentText from '~domain/documents/readDocumentText'
 import hashModuleCallArguments from '~domain/modules/hashModuleCallArguments'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
-import createKnowledgeTestDocuments from './testing/createKnowledgeTestDocuments'
+import createTestDocuments from './testing/createTestDocuments'
 
 const fake = createModuleDatabaseFake()
 
@@ -23,7 +23,7 @@ const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 
 const SCOPE = 'conversation:checked'
 
-const documents = createKnowledgeTestDocuments(fake, ORGANIZATION_ID)
+const documents = createTestDocuments(fake, ORGANIZATION_ID)
 
 const CHANGED = 'The document changed since you read it. Read it again first.'
 
@@ -32,12 +32,12 @@ const CLOSED = 'The team keeps AI from changing this document. Tell the member i
 type Reading = { version: string; blocks: { id: string; markdown: string }[] }
 
 function connect(fields: Partial<ModuleCaller> = {}) {
-  return createModuleTestKit('knowledge', {
+  return createModuleTestKit('documents', {
     kind: 'agent',
     userId: 'member',
     organizationId: ORGANIZATION_ID,
     membershipCreatedAt: fake.addMember('member', ORGANIZATION_ID),
-    scopes: ['knowledge:read', 'knowledge:write'],
+    scopes: ['documents:read', 'documents:write'],
     idempotencyScope: SCOPE,
     ...fields,
   })

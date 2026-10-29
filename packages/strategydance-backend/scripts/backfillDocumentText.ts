@@ -7,7 +7,7 @@ import { dataConnect } from '~firebase'
 import readDocumentContentText from '~domain/documents/readDocumentContentText'
 
 /*
-  Fills the plain text the Knowledge module's search reads, `Document.contentText`, of every
+  Fills the plain text the Documents module's search reads, `Document.contentText`, of every
   document a release left without one, from its `content`, run by hand once the release that added
   it has deployed:
 

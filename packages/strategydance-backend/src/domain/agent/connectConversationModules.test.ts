@@ -74,7 +74,7 @@ afterEach(async () => {
 })
 
 describe('connectConversationModules', () => {
-  it('connects without an initialize handshake, listing the Knowledge module’s tools, then the Tasks module’s and the Subagents module’s', async () => {
+  it('connects without an initialize handshake, listing the Documents module’s tools, then the Tasks module’s and the Subagents module’s', async () => {
     const { tools, runners } = await connect()
 
     expect(requests.map(({ method }) => method)).not.toContain('initialize')

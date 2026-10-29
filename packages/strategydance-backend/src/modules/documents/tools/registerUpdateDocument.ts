@@ -6,10 +6,10 @@ import type { DocumentEdit, DocumentsToolContext } from '~types'
 
 import updateDocument from '~domain/documents/updateDocument'
 
-import knowledgeModule from '~modules/knowledge/knowledgeModule'
-import { documentIdSchema, markdownSchema, titleSchema } from '~modules/knowledge/knowledgeSchemas'
-import readKnowledgeWriteCall from '~modules/knowledge/readKnowledgeWriteCall'
-import toKnowledgeWriteResult from '~modules/knowledge/toKnowledgeWriteResult'
+import documentsModule from '~modules/documents/documentsModule'
+import { documentIdSchema, markdownSchema, titleSchema } from '~modules/documents/documentsSchemas'
+import readDocumentsWriteCall from '~modules/documents/readDocumentsWriteCall'
+import toDocumentsWriteResult from '~modules/documents/toDocumentsWriteResult'
 import { hasNoNul } from '~modules/moduleSchemas'
 import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 
@@ -91,19 +91,19 @@ function registerUpdateDocument(server: McpServer, context: DocumentsToolContext
   server.registerTool(
     TOOL,
     {
-      title: 'Update knowledge',
+      title: 'Update a document',
       description:
-        "Changes a document of the organization's knowledge: its `title`, and at most one edit of its text, in Markdown, where a [title](doc:<id>) or [name](task:<id>) link mentions a document or a task. `append` adds to the end. `replaceBlocks` replaces the top-level blocks from `fromId` to `toId`, ids read_document gave, and leaves the rest alone. `replaceText` replaces a piece of text that occurs exactly once, for a small change inside a block, and never finds a mention: replace its block to change one. `content` replaces the whole text, only for a document you read whole, with the `version` read_document gave. Members may be typing in the document meanwhile: every edit but `content` merges with what they write, so prefer them. Call it to write what the member agreed into the team's knowledge, then say what changed.",
+        "Changes a document of the organization: its `title`, and at most one edit of its text, in Markdown, where a [title](doc:<id>) or [name](task:<id>) link mentions a document or a task. `append` adds to the end. `replaceBlocks` replaces the top-level blocks from `fromId` to `toId`, ids read_document gave, and leaves the rest alone. `replaceText` replaces a piece of text that occurs exactly once, for a small change inside a block, and never finds a mention: replace its block to change one. `content` replaces the whole text, only for a document you read whole, with the `version` read_document gave. Members may be typing in the document meanwhile: every edit but `content` merges with what they write, so prefer them. Call it to write what the member agreed into the team's documents, then say what changed.",
       inputSchema,
       outputSchema,
       // Destructive, as an edit can rewrite the whole text: a client may ask its member before
       // calling it, by its own policy. Advisory, so the revision each edit keeps is what guards the
       // text, and Claude's tool list never carries an annotation, so it changes no request's bytes
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
-      scopeChallenge: requireModuleWriteScope(knowledgeModule),
+      scopeChallenge: requireModuleWriteScope(documentsModule),
     },
     async (args, serverContext) => {
-      const prepared = readKnowledgeWriteCall(context, serverContext, TOOL, args)
+      const prepared = readDocumentsWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result
 
@@ -119,7 +119,7 @@ function registerUpdateDocument(server: McpServer, context: DocumentsToolContext
         prepared.call,
       )
 
-      return toKnowledgeWriteResult(updated, context.toAddress)
+      return toDocumentsWriteResult(updated, context.toAddress)
     },
   )
 }

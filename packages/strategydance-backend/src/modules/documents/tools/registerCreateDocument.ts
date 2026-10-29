@@ -5,10 +5,10 @@ import type { DocumentsToolContext } from '~types'
 
 import createDocument from '~domain/documents/createDocument'
 
-import knowledgeModule from '~modules/knowledge/knowledgeModule'
-import { markdownSchema, titleSchema } from '~modules/knowledge/knowledgeSchemas'
-import readKnowledgeWriteCall from '~modules/knowledge/readKnowledgeWriteCall'
-import toKnowledgeWriteResult from '~modules/knowledge/toKnowledgeWriteResult'
+import documentsModule from '~modules/documents/documentsModule'
+import { markdownSchema, titleSchema } from '~modules/documents/documentsSchemas'
+import readDocumentsWriteCall from '~modules/documents/readDocumentsWriteCall'
+import toDocumentsWriteResult from '~modules/documents/toDocumentsWriteResult'
 import { aspectSchema, aspectsSchema } from '~modules/moduleSchemas'
 import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 
@@ -28,25 +28,25 @@ const outputSchema = z.object({
   url: z.string().optional(),
 })
 
-// `create_document`: a new document in the organization's knowledge
+// `create_document`: a new document of the organization
 function registerCreateDocument(server: McpServer, context: DocumentsToolContext) {
   server.registerTool(
     TOOL,
     {
-      title: 'Create knowledge',
+      title: 'Create a document',
       description:
-        "Creates a document in the organization's knowledge, with its title, its aspects and its text in Markdown, where a [title](doc:<id>) or [name](task:<id>) link mentions a document or a task. Call it to write down a decision, a plan or notes the member agreed to keep, once a search found no document it belongs in. The team shares it at once, and you may read and change it, as they may turn off. Answers its id and version.",
+        'Creates a document of the organization, with its title, its aspects and its text in Markdown, where a [title](doc:<id>) or [name](task:<id>) link mentions a document or a task. Call it to write down a decision, a plan or notes the member agreed to keep, once a search found no document it belongs in. The team shares it at once, and you may read and change it, as they may turn off. Answers its id and version.',
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-      scopeChallenge: requireModuleWriteScope(knowledgeModule),
+      scopeChallenge: requireModuleWriteScope(documentsModule),
     },
     async (args, serverContext) => {
-      const prepared = readKnowledgeWriteCall(context, serverContext, TOOL, args)
+      const prepared = readDocumentsWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result
 
-      return toKnowledgeWriteResult(await createDocument(context.caller, args, prepared.call), context.toAddress)
+      return toDocumentsWriteResult(await createDocument(context.caller, args, prepared.call), context.toAddress)
     },
   )
 }

@@ -5,10 +5,10 @@ import type { DocumentsToolContext } from '~types'
 
 import restoreDocument from '~domain/documents/restoreDocument'
 
-import knowledgeModule from '~modules/knowledge/knowledgeModule'
-import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
-import readKnowledgeWriteCall from '~modules/knowledge/readKnowledgeWriteCall'
-import toKnowledgeWriteResult from '~modules/knowledge/toKnowledgeWriteResult'
+import documentsModule from '~modules/documents/documentsModule'
+import { documentIdSchema } from '~modules/documents/documentsSchemas'
+import readDocumentsWriteCall from '~modules/documents/readDocumentsWriteCall'
+import toDocumentsWriteResult from '~modules/documents/toDocumentsWriteResult'
 import requireModuleWriteScope from '~modules/requireModuleWriteScope'
 
 const TOOL = 'restore_document'
@@ -25,20 +25,20 @@ function registerRestoreDocument(server: McpServer, context: DocumentsToolContex
   server.registerTool(
     TOOL,
     {
-      title: 'Restore knowledge',
+      title: 'Restore a document',
       description:
-        "Restores a document of the organization's knowledge deleted less than a day ago, as its page's Undo does. Call it when the member wants back a document that was deleted.",
+        "Restores a document of the organization deleted less than a day ago, as its page's Undo does. Call it when the member wants back a document that was deleted.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-      scopeChallenge: requireModuleWriteScope(knowledgeModule),
+      scopeChallenge: requireModuleWriteScope(documentsModule),
     },
     async (args, serverContext) => {
-      const prepared = readKnowledgeWriteCall(context, serverContext, TOOL, args)
+      const prepared = readDocumentsWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result
 
-      return toKnowledgeWriteResult(await restoreDocument(context.caller, args, prepared.call), context.toAddress)
+      return toDocumentsWriteResult(await restoreDocument(context.caller, args, prepared.call), context.toAddress)
     },
   )
 }

@@ -5130,7 +5130,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsTitle": {
-        "hash": "7ace30ffa218a5c4",
+        "hash": "4898d1579ad8a442",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.allow": {
@@ -5178,7 +5178,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.connectionModule": {
-        "hash": "7f04f1e8713b367d",
+        "hash": "0165f7f9695277e9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.consentEyebrow": {
@@ -5190,7 +5190,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.consentTitle": {
-        "hash": "c02f5548cc9482ef",
+        "hash": "0b95d689b61a7422",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.createOrganization": {
@@ -5229,6 +5229,22 @@
         "hash": "53db53f507dafc55",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.documentsAgentsButton": {
+        "hash": "60d08b9b537c9ef8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.documentsName": {
+        "hash": "b9ebd743f4a11f6f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.documentsReadAccess": {
+        "hash": "0ec7d9ae674fd80c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.documentsWriteAccess": {
+        "hash": "8387381ade568074",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.expiredDescription": {
         "hash": "9bdb0686cbf190b4",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -5243,22 +5259,6 @@
       },
       "module.fullTitle": {
         "hash": "3fb0f5196115dc3b",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "module.knowledgeAgentsButton": {
-        "hash": "9acba3475fbd19df",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "module.knowledgeName": {
-        "hash": "11870396e2df3f8a",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "module.knowledgeReadAccess": {
-        "hash": "fc678685da3d8bc1",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "module.knowledgeWriteAccess": {
-        "hash": "49cb7850ea3b22e3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.lastUsedAgo": {
@@ -5362,7 +5362,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.unnamedAgent": {
-        "hash": "8699ee05cda763af",
+        "hash": "2e6962e663d97bef",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.unverified": {

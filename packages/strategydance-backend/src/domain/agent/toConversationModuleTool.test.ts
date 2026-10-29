@@ -9,7 +9,7 @@ describe('toConversationModuleTool', () => {
     expect(
       toConversationModuleTool({
         name: 'read_document',
-        title: 'Read knowledge',
+        title: 'Read a document',
         description: 'Reads a document',
         inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
         annotations: { readOnlyHint: true },

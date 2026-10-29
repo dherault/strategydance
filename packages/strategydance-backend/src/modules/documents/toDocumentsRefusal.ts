@@ -6,19 +6,19 @@ import toToolRefusal from '~modules/toToolRefusal'
 import toTooManySearchesSentence from '~modules/toTooManySearchesSentence'
 
 /*
-  A refusal of the Knowledge module, as the model reads it: what happened, in a sentence it can act
+  A refusal of the Documents module, as the model reads it: what happened, in a sentence it can act
   on, by telling the member, reading the document again, or changing what it sent
 */
-function toKnowledgeRefusal(refusal: DocumentsRefusal) {
+function toDocumentsRefusal(refusal: DocumentsRefusal) {
   return toToolRefusal(toSentence(refusal))
 }
 
 function toSentence(refusal: DocumentsRefusal) {
   switch (refusal.outcome) {
     case 'notMember':
-      return 'The member is no longer in this organization, so its knowledge is closed to you.'
+      return 'The member is no longer in this organization, so its documents are closed to you.'
     case 'readOnly':
-      return 'This connection may only read knowledge. Ask the member to connect again with write access to change it.'
+      return 'This connection may only read documents. Ask the member to connect again with write access to change them.'
     case 'fromReaction':
       return "This run reacts to subagents' reports, and deletes nothing. Ask the member with ask_user whether the document should go: the run their answer starts can delete it."
     case 'notFound':
@@ -32,7 +32,7 @@ function toSentence(refusal: DocumentsRefusal) {
     case 'versionRequired':
       return 'Replacing the whole content takes the version read_document gave. Read the whole document first, then send its version.'
     case 'full':
-      return `The organization's knowledge holds ${MAX_DOCUMENTS} documents, the most it keeps. Tell the member, who can delete one first.`
+      return `The organization holds ${MAX_DOCUMENTS} documents, the most it keeps. Tell the member, who can delete one first.`
     case 'empty':
       return 'A document keeps a title or some text: give it one.'
     case 'contentTooLong':
@@ -62,4 +62,4 @@ function toSentence(refusal: DocumentsRefusal) {
   }
 }
 
-export default toKnowledgeRefusal
+export default toDocumentsRefusal

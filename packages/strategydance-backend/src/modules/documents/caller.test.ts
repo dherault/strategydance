@@ -4,7 +4,7 @@ import type { ModuleCaller } from '~types'
 
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
-import createKnowledgeTestDocuments from './testing/createKnowledgeTestDocuments'
+import createTestDocuments from './testing/createTestDocuments'
 
 const fake = createModuleDatabaseFake()
 
@@ -15,17 +15,17 @@ const { default: createModuleTestKit } = await import('~modules/testing/createMo
 
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 
-const documents = createKnowledgeTestDocuments(fake, ORGANIZATION_ID)
+const documents = createTestDocuments(fake, ORGANIZATION_ID)
 
-const NOT_MEMBER = 'The member is no longer in this organization, so its knowledge is closed to you.'
+const NOT_MEMBER = 'The member is no longer in this organization, so its documents are closed to you.'
 
 function connect(fields: Partial<ModuleCaller> = {}) {
-  return createModuleTestKit('knowledge', {
+  return createModuleTestKit('documents', {
     kind: 'agent',
     userId: 'member',
     organizationId: ORGANIZATION_ID,
     membershipCreatedAt: fake.addMember('member', ORGANIZATION_ID),
-    scopes: ['knowledge:read', 'knowledge:write'],
+    scopes: ['documents:read', 'documents:write'],
     idempotencyScope: 'conversation:checked',
     ...fields,
   })
@@ -35,7 +35,7 @@ afterEach(() => fake.reset())
 
 describe('the caller', () => {
   it('challenges every write of a caller without the write scope, still listing it, before anything is read or written', async () => {
-    const kit = await connect({ kind: 'external', scopes: ['knowledge:read'], idempotencyScope: 'connection:checked' })
+    const kit = await connect({ kind: 'external', scopes: ['documents:read'], idempotencyScope: 'connection:checked' })
     const document = documents.store('Plan', { deletedAt: null })
 
     fake.calls.length = 0
@@ -60,7 +60,7 @@ describe('the caller', () => {
     ] as const) {
       await expect(kit.call(name, args)).rejects.toMatchObject({
         name: 'InsufficientScopeError',
-        requiredScope: 'knowledge:write',
+        requiredScope: 'documents:write',
       })
     }
 

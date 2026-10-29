@@ -67,8 +67,8 @@ describe('MODULE_SERVERS', () => {
     for (const name of names) expect(name).toMatch(CLAUDE_TOOL_NAME)
   })
 
-  it('lists the eight tools of the Knowledge module, reads first', async () => {
-    expect(await listToolNames('knowledge')).toEqual([
+  it('lists the eight tools of the Documents module, reads first', async () => {
+    expect(await listToolNames('documents')).toEqual([
       'search_documents',
       'list_documents',
       'read_document',

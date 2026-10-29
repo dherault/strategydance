@@ -119,7 +119,7 @@ function KnowledgeDocuments() {
           actions={
             <>
               <AddKnowledgeDocumentButton size="md" />
-              <ModuleAgentsButton module="knowledge" />
+              <ModuleAgentsButton module="documents" />
             </>
           }
         >

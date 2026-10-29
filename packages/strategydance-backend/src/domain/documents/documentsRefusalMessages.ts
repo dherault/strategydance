@@ -1,5 +1,5 @@
 /*
-  Parts of the messages the Knowledge module's operations give when one of their checks refuses,
+  Parts of the messages the Documents module's operations give when one of their checks refuses,
   which the domain matches to say why: change each with its check in the backend connector
 */
 export const FULL_REFUSAL = 'An organization keeps at most'

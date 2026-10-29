@@ -78,7 +78,7 @@ function createModulesRouter() {
   /*
     What any of these endpoints threw before the handler answered, in JSON-RPC: a body that is not
     JSON, or one over the limit, is the caller's, and anything else is logged and answered as the
-    server's. A request's body is never logged, since it carries what the member's knowledge holds
+    server's. A request's body is never logged, since it carries what the member's documents hold
   */
   router.use((error: unknown, request: Request, response: Response, next: NextFunction) => {
     if (response.headersSent) {

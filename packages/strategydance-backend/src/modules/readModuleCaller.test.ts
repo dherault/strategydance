@@ -10,7 +10,7 @@ const CALLER: ModuleCaller = {
   userId: 'member',
   organizationId: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
   membershipCreatedAt: '2026-10-09T10:00:00.000000Z',
-  scopes: ['knowledge:read'],
+  scopes: ['documents:read'],
   idempotencyScope: 'connection:checked',
 }
 
@@ -20,7 +20,7 @@ describe('readModuleCaller', () => {
   })
 
   it('carries the scopes and whatever an access token says beside the caller', () => {
-    const resource = new URL('https://api.strategydance.com/mcp/knowledge')
+    const resource = new URL('https://api.strategydance.com/mcp/documents')
     const authInfo = toModuleAuthInfo(CALLER, { token: 'token', clientId: 'client', expiresAt: 1, resource })
 
     expect(authInfo).toMatchObject({
@@ -28,7 +28,7 @@ describe('readModuleCaller', () => {
       clientId: 'client',
       expiresAt: 1,
       resource,
-      scopes: ['knowledge:read'],
+      scopes: ['documents:read'],
     })
   })
 

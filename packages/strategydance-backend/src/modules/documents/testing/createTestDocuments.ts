@@ -7,11 +7,11 @@ import type { FakeDocument } from '~domain/documents/testing/createDocumentsData
 import type { ModuleDatabaseFake } from '~domain/modules/testing/createModuleDatabaseFake'
 
 /*
-  Documents as the Knowledge module's tests meet them, in one organization of the database fake:
+  Documents as the Documents module's tests meet them, in one organization of the database fake:
   stored as a page stores one, or as a page stored one before the editor was shared, typed into by a
   tab, which pushes its edit as a pending update, and read back as the editor would read them now
 */
-function createKnowledgeTestDocuments(fake: ModuleDatabaseFake, organizationId: string) {
+function createTestDocuments(fake: ModuleDatabaseFake, organizationId: string) {
   // The first snapshot, content and plain text of a text written in Markdown
   function measure(markdown: string) {
     const text = createDocumentText(markdown)
@@ -78,4 +78,4 @@ function createKnowledgeTestDocuments(fake: ModuleDatabaseFake, organizationId: 
   return { measure, store, storeUnshared, open, type, read }
 }
 
-export default createKnowledgeTestDocuments
+export default createTestDocuments

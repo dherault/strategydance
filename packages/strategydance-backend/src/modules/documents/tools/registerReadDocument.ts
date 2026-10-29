@@ -5,8 +5,8 @@ import type { DocumentsToolContext } from '~types'
 
 import readDocument from '~domain/documents/readDocument'
 
-import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
-import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
+import { documentIdSchema } from '~modules/documents/documentsSchemas'
+import toDocumentsRefusal from '~modules/documents/toDocumentsRefusal'
 import { aspectSchema } from '~modules/moduleSchemas'
 import toToolResult from '~modules/toToolResult'
 
@@ -40,9 +40,9 @@ function registerReadDocument(server: McpServer, { caller, toAddress }: Document
   server.registerTool(
     'read_document',
     {
-      title: 'Read knowledge',
+      title: 'Read a document',
       description:
-        "Reads a document of the organization's knowledge as it stands now, with what members are typing merged in: its title, aspects, version, whether you may change it, and its text as a list of top-level blocks, each with its id and its Markdown, where a [title](doc:<id>) or [name](task:<id>) link mentions a document or a task, up to 40000 characters at a time. Call it before relying on a document or changing it. While more remains it answers `next`: send it back as `from` to read on. A block too long for one page comes in parts, `offset` saying where a part starts and `isCut` that it stops inside the block. `restart` says the page started over, at the block it stopped in when that block was edited, or at the document's start when the block is gone. Edit blocks by their ids with update_document. `version` names the whole text, which replacing all of the content takes: it comes only with a document small enough to read in one page, and a longer one is edited by its blocks.",
+        "Reads a document of the organization as it stands now, with what members are typing merged in: its title, aspects, version, whether you may change it, and its text as a list of top-level blocks, each with its id and its Markdown, where a [title](doc:<id>) or [name](task:<id>) link mentions a document or a task, up to 40000 characters at a time. Call it before relying on a document or changing it. While more remains it answers `next`: send it back as `from` to read on. A block too long for one page comes in parts, `offset` saying where a part starts and `isCut` that it stops inside the block. `restart` says the page started over, at the block it stopped in when that block was edited, or at the document's start when the block is gone. Edit blocks by their ids with update_document. `version` names the whole text, which replacing all of the content takes: it comes only with a document small enough to read in one page, and a longer one is edited by its blocks.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -50,7 +50,7 @@ function registerReadDocument(server: McpServer, { caller, toAddress }: Document
     async ({ id, from }) => {
       const read = await readDocument(caller, { id, ...(from !== undefined && { from }) })
 
-      if (read.outcome !== 'read') return toKnowledgeRefusal(read)
+      if (read.outcome !== 'read') return toDocumentsRefusal(read)
 
       const url = await toAddress(id)
 

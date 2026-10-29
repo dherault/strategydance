@@ -275,11 +275,11 @@ export type ModuleCall = {
 }
 
 /* ---
-  KNOWLEDGE MODULE
+  DOCUMENTS MODULE
 --- */
 
 /*
-  Why the Knowledge module refused a call, which its tool words for the model: each is something the
+  Why the Documents module refused a call, which its tool words for the model: each is something the
   model can act on, by telling the member, reading the document again, or changing what it sent
 */
 export type DocumentsRefusal =
@@ -325,14 +325,14 @@ export type DocumentsRefusal =
   /** An external agent's search past the member's search allowance, until the next one fits */
   | { outcome: 'tooManySearches'; retryAfterMs: number }
 
-// What a write of the Knowledge module answers: its result, or the one stored under its key when the
+// What a write of the Documents module answers: its result, or the one stored under its key when the
 // call was sent before, or why it was refused
 export type DocumentsWriteResult<Result> =
   | { outcome: 'written'; result: Result }
   | { outcome: 'answered'; result: unknown }
   | DocumentsRefusal
 
-// What each of the Knowledge module's tools is registered with: who calls it, and the web address of
+// What each of the Documents module's tools is registered with: who calls it, and the web address of
 // a document for an external caller, whose results carry them, undefined for Strategy Dance's agent
 export type DocumentsToolContext = {
   caller: ModuleCaller

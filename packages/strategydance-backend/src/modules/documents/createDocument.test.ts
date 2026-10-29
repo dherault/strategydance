@@ -6,7 +6,7 @@ import type { ModuleCaller } from '~types'
 
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
-import createKnowledgeTestDocuments from './testing/createKnowledgeTestDocuments'
+import createTestDocuments from './testing/createTestDocuments'
 
 const fake = createModuleDatabaseFake()
 
@@ -17,17 +17,17 @@ const { default: createModuleTestKit } = await import('~modules/testing/createMo
 
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 
-const documents = createKnowledgeTestDocuments(fake, ORGANIZATION_ID)
+const documents = createTestDocuments(fake, ORGANIZATION_ID)
 
 type Created = { id: string; title: string; aspects: string[]; version: string }
 
 function connect(fields: Partial<ModuleCaller> = {}) {
-  return createModuleTestKit('knowledge', {
+  return createModuleTestKit('documents', {
     kind: 'agent',
     userId: 'member',
     organizationId: ORGANIZATION_ID,
     membershipCreatedAt: fake.addMember('member', ORGANIZATION_ID),
-    scopes: ['knowledge:read', 'knowledge:write'],
+    scopes: ['documents:read', 'documents:write'],
     idempotencyScope: 'conversation:checked',
     ...fields,
   })
@@ -91,7 +91,7 @@ describe('create_document', () => {
     for (let index = 0; index < MAX_DOCUMENTS; index++) fake.insertDocument({ organizationId: ORGANIZATION_ID })
 
     expect(await kit.refusal('create_document', { title: 'One more', aspects: [], content: '' })).toBe(
-      "The organization's knowledge holds 1000 documents, the most it keeps. Tell the member, who can delete one first.",
+      'The organization holds 1000 documents, the most it keeps. Tell the member, who can delete one first.',
     )
     expect(fake.documents.size).toBe(MAX_DOCUMENTS)
   })

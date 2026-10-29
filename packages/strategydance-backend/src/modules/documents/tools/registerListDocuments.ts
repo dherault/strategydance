@@ -5,8 +5,8 @@ import type { DocumentsToolContext } from '~types'
 
 import listDocuments from '~domain/documents/listDocuments'
 
-import { documentSummaryShape } from '~modules/knowledge/knowledgeSchemas'
-import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
+import { documentSummaryShape } from '~modules/documents/documentsSchemas'
+import toDocumentsRefusal from '~modules/documents/toDocumentsRefusal'
 import { aspectsSchema } from '~modules/moduleSchemas'
 import toToolResult from '~modules/toToolResult'
 
@@ -25,9 +25,9 @@ function registerListDocuments(server: McpServer, { caller, toAddress }: Documen
   server.registerTool(
     'list_documents',
     {
-      title: 'List knowledge',
+      title: 'List documents',
       description:
-        "Lists the organization's knowledge, the documents its team writes together, 50 at a time, latest changed first, with each one's id, title, aspects, when it last changed and whether you may change it. Call it to look round when you do not know what to search for, or to see what the team keeps about an aspect. Answers a `cursor` while more remain: send it back to read the next page.",
+        "Lists the organization's documents, which its team writes together, 50 at a time, latest changed first, with each one's id, title, aspects, when it last changed and whether you may change it. Call it to look round when you do not know what to search for, or to see what the team keeps about an aspect. Answers a `cursor` while more remain: send it back to read the next page.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -38,7 +38,7 @@ function registerListDocuments(server: McpServer, { caller, toAddress }: Documen
         ...(cursor !== undefined && { cursor }),
       })
 
-      if (listed.outcome !== 'listed') return toKnowledgeRefusal(listed)
+      if (listed.outcome !== 'listed') return toDocumentsRefusal(listed)
 
       const documents = await Promise.all(
         listed.documents.map(async document => {

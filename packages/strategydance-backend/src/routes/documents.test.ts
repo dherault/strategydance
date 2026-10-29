@@ -47,15 +47,14 @@ mock.module('~middleware/authentication', () => ({
 }))
 
 const { default: createModuleTestKit } = await import('~modules/testing/createModuleTestKit')
-const { default: createKnowledgeTestDocuments } =
-  await import('~modules/knowledge/testing/createKnowledgeTestDocuments')
+const { default: createTestDocuments } = await import('~modules/documents/testing/createTestDocuments')
 const { default: createDocumentsRouter } = await import('./documents')
 
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const CONVERSATION_ID = '5a4b3c2d1e0f4a9b8c7d6e5f4a3b2c1d'
 const MEMBER = 'member'
 
-const documents = createKnowledgeTestDocuments(fake, ORGANIZATION_ID)
+const documents = createTestDocuments(fake, ORGANIZATION_ID)
 
 const app = express()
 
@@ -72,12 +71,12 @@ afterEach(() => fake.reset())
 
 // Strategy Dance's agent in the member's conversation, each write keyed with Claude's id for the call
 async function connectAgent(conversationId = CONVERSATION_ID, userId = MEMBER) {
-  return createModuleTestKit('knowledge', {
+  return createModuleTestKit('documents', {
     kind: 'agent',
     userId,
     organizationId: ORGANIZATION_ID,
     membershipCreatedAt: fake.addMember(userId, ORGANIZATION_ID),
-    scopes: ['knowledge:read', 'knowledge:write'],
+    scopes: ['documents:read', 'documents:write'],
     idempotencyScope: `conversation:${conversationId}`,
   })
 }

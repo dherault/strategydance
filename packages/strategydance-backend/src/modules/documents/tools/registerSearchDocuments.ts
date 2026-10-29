@@ -8,8 +8,8 @@ import { MAX_DOCUMENT_SEARCH_RESULTS } from '~constants'
 
 import searchDocuments from '~domain/documents/searchDocuments'
 
-import { documentSummaryShape } from '~modules/knowledge/knowledgeSchemas'
-import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
+import { documentSummaryShape } from '~modules/documents/documentsSchemas'
+import toDocumentsRefusal from '~modules/documents/toDocumentsRefusal'
 import { aspectsSchema, hasNoNul } from '~modules/moduleSchemas'
 import toToolResult from '~modules/toToolResult'
 
@@ -45,9 +45,9 @@ function registerSearchDocuments(server: McpServer, { caller, toAddress }: Docum
   server.registerTool(
     'search_documents',
     {
-      title: 'Search knowledge',
+      title: 'Search documents',
       description:
-        "Searches the organization's knowledge, the documents its team writes together, for every word of a query, in a document's title or text, ignoring case. Call it to find what the team already decided, planned or noted before answering from memory or writing something new. Answers up to 10 documents with their id, title, aspects, when each last changed, whether you may change it, and an excerpt around a matched word; `hasMore` says more matched, which a narrower query finds. `isIndexComplete` false means some documents were not searchable yet, so try again later or read the ones you know. Read a document with read_document before relying on it.",
+        "Searches the organization's documents, which its team writes together, for every word of a query, in a document's title or text, ignoring case. Call it to find what the team already decided, planned or noted before answering from memory or writing something new. Answers up to 10 documents with their id, title, aspects, when each last changed, whether you may change it, and an excerpt around a matched word; `hasMore` says more matched, which a narrower query finds. `isIndexComplete` false means some documents were not searchable yet, so try again later or read the ones you know. Read a document with read_document before relying on it.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -59,7 +59,7 @@ function registerSearchDocuments(server: McpServer, { caller, toAddress }: Docum
         limit: limit ?? MAX_DOCUMENT_SEARCH_RESULTS,
       })
 
-      if (found.outcome !== 'found') return toKnowledgeRefusal(found)
+      if (found.outcome !== 'found') return toDocumentsRefusal(found)
 
       const documents = await Promise.all(
         found.documents.map(async document => {

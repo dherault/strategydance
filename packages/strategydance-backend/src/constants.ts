@@ -311,7 +311,7 @@ export const MODULE_REQUEST_WINDOW_MS = 10 * 60 * 1000
 export const MODULE_CALL_RESULT_LIFETIME_MS = 24 * 60 * 60 * 1000
 
 /*
-  The Knowledge module's bounds. A search answers at most 10 documents, of at most 20 candidates
+  The Documents module's bounds. A search answers at most 10 documents, of at most 20 candidates
   whose plain text is loaded to cut an excerpt around a matched word, and says when more matched.
   Before it reads the index it indexes up to 20 documents a page from before `contentText` left
   unindexed. A list pages in fifties

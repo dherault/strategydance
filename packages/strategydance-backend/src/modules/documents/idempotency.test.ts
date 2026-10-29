@@ -4,7 +4,7 @@ import type { ModuleCaller } from '~types'
 
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
-import createKnowledgeTestDocuments from './testing/createKnowledgeTestDocuments'
+import createTestDocuments from './testing/createTestDocuments'
 
 const fake = createModuleDatabaseFake()
 
@@ -16,17 +16,17 @@ const { default: pruneModuleCallResults } = await import('~domain/modules/pruneM
 
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 
-const documents = createKnowledgeTestDocuments(fake, ORGANIZATION_ID)
+const documents = createTestDocuments(fake, ORGANIZATION_ID)
 
 const CONFLICT = 'That idempotency key was sent before with another call. Send a new key with each new call.'
 
 function connect(fields: Partial<ModuleCaller> = {}) {
-  return createModuleTestKit('knowledge', {
+  return createModuleTestKit('documents', {
     kind: 'agent',
     userId: 'member',
     organizationId: ORGANIZATION_ID,
     membershipCreatedAt: fake.addMember('member', ORGANIZATION_ID),
-    scopes: ['knowledge:read', 'knowledge:write'],
+    scopes: ['documents:read', 'documents:write'],
     idempotencyScope: 'conversation:checked',
     ...fields,
   })
@@ -96,7 +96,7 @@ describe('idempotency keys', () => {
     fake.addMember('member', ORGANIZATION_ID)
 
     expect(await kit.refusal('update_document', args, 'key-1')).toBe(
-      'The member is no longer in this organization, so its knowledge is closed to you.',
+      'The member is no longer in this organization, so its documents are closed to you.',
     )
   })
 

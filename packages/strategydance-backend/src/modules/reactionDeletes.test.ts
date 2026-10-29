@@ -14,10 +14,9 @@ mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {},
 mock.module('strategydance-database/backend', () => fake.sdk)
 
 const { default: createModuleTestKit } = await import('~modules/testing/createModuleTestKit')
-const { default: createKnowledgeTestDocuments } =
-  await import('~modules/knowledge/testing/createKnowledgeTestDocuments')
+const { default: createTestDocuments } = await import('~modules/documents/testing/createTestDocuments')
 
-const documents = createKnowledgeTestDocuments(fake.modules, ORGANIZATION_ID)
+const documents = createTestDocuments(fake.modules, ORGANIZATION_ID)
 
 // A run of a conversation's, claimed by its worker and running, started as `trigger` starts one
 async function startRunning(trigger: string) {
@@ -32,8 +31,8 @@ async function startRunning(trigger: string) {
   return parent
 }
 
-// The Knowledge, Tasks and Budget modules as the run's worker reaches them, the run as their launcher
-function connect(name: 'knowledge' | 'tasks' | 'budget', launching: ConversationRunReference) {
+// The Documents, Tasks and Budget modules as the run's worker reaches them, the run as their launcher
+function connect(name: 'documents' | 'tasks' | 'budget', launching: ConversationRunReference) {
   return createModuleTestKit(
     name,
     createSubagentsCaller(fake, launching, { scopes: [`${name}:read`, `${name}:write`] }),
@@ -52,11 +51,11 @@ describe("the deletes, from a parent's reaction to its subagents' reports", () =
     const documentId = documents.store('The old pricing page').id
     const task = fake.modules.insertTask({ organizationId: ORGANIZATION_ID, name: 'Retire the old pricing' })
     const bill = fake.modules.insertBill({ organizationId: ORGANIZATION_ID, name: 'Old pricing tool' })
-    const knowledge = await connect('knowledge', reaction)
+    const documentsKit = await connect('documents', reaction)
     const tasks = await connect('tasks', reaction)
     const budget = await connect('budget', reaction)
 
-    expect(await knowledge.refusal('delete_document', { id: documentId }, 'toolu_document')).toBe(
+    expect(await documentsKit.refusal('delete_document', { id: documentId }, 'toolu_document')).toBe(
       "This run reacts to subagents' reports, and deletes nothing. Ask the member with ask_user whether the document should go: the run their answer starts can delete it.",
     )
     expect(await tasks.refusal('delete_task', { id: task.id }, 'toolu_task')).toBe(
@@ -76,7 +75,7 @@ describe("the deletes, from a parent's reaction to its subagents' reports", () =
     const task = fake.modules.insertTask({ organizationId: ORGANIZATION_ID, name: 'Retire the old pricing' })
     const bill = fake.modules.insertBill({ organizationId: ORGANIZATION_ID, name: 'Old pricing tool' })
 
-    await (await connect('knowledge', continuation)).answer('delete_document', { id: documentId }, 'toolu_document')
+    await (await connect('documents', continuation)).answer('delete_document', { id: documentId }, 'toolu_document')
     await (await connect('tasks', continuation)).answer('delete_task', { id: task.id }, 'toolu_task')
     await (await connect('budget', continuation)).answer('delete_bill', { id: bill.id }, 'toolu_bill')
 

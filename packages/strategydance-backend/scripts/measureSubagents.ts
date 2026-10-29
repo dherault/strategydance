@@ -38,7 +38,7 @@ import createTask from '~domain/tasks/createTask'
     bun run measure:subagents [--configurations <name,…>] [--briefs <name,…>] [--max-total <dollars>] [--max-subagent <dollars>]
 
   Three short briefs, each meant to end within one run, a piece of web research, a task read from
-  the board and planned in its description, and a document written from what the knowledge holds,
+  the board and planned in its description, and a document written from what the documents hold,
   each run as a subagent on each configuration: Opus 5.5 at medium effort, today's, Opus 5.5 at low,
   Sonnet 5.5 at medium, and Opus 5.5 at medium with a task budget. Twelve subagents, as David chose
   on 2026-10-17 over the eighteen M33 first planned.
@@ -166,12 +166,12 @@ function toCaller(membershipCreatedAt: string): ModuleCaller {
     userId,
     organizationId,
     membershipCreatedAt,
-    scopes: ['knowledge:read', 'knowledge:write', 'tasks:read', 'tasks:write'],
+    scopes: ['documents:read', 'documents:write', 'tasks:read', 'tasks:write'],
     idempotencyScope: `measure:${measureId}`,
   }
 }
 
-// What the briefs work on: a task on the board and a document in the knowledge
+// What the briefs work on: a task on the board and one of the documents
 async function seed(caller: ModuleCaller) {
   const task = await createTask(
     caller,
@@ -220,7 +220,7 @@ function buildBriefs({ taskId, documentId }: { taskId: string; documentId: strin
   return [
     {
       name: 'research',
-      text: 'Find what Linear and Notion each charge a month for their Business plan, as their pricing pages say today, with a link to each page. Write nothing into the knowledge or the tasks. Report the two prices and links in at most 120 words.',
+      text: 'Find what Linear and Notion each charge a month for their Business plan, as their pricing pages say today, with a link to each page. Write nothing into the documents or the tasks. Report the two prices and links in at most 120 words.',
     },
     {
       name: 'task',
@@ -228,11 +228,11 @@ function buildBriefs({ taskId, documentId }: { taskId: string; documentId: strin
     },
     {
       name: 'document',
-      text: `Read the document ${documentId} in the knowledge. Create a new document titled "Pricing summary" holding a summary of it in five bullets, tagged with the aspects it is about. Change nothing else. Report the new document's link.`,
+      text: `Read the document ${documentId}. Create a new document titled "Pricing summary" holding a summary of it in five bullets, tagged with the aspects it is about. Change nothing else. Report the new document's link.`,
     },
     {
       name: 'long',
-      text: 'Find the monthly price per seat of the cheapest paid plan of each of these twelve tools, from its own pricing page, one tool at a time: Linear, Notion, Asana, Trello, ClickUp, Monday.com, Jira, Basecamp, Airtable, Shortcut, Todoist and Height. Write nothing into the knowledge or the tasks. Report a table of each tool, its plan, its price and the link, saying which you could not find.',
+      text: 'Find the monthly price per seat of the cheapest paid plan of each of these twelve tools, from its own pricing page, one tool at a time: Linear, Notion, Asana, Trello, ClickUp, Monday.com, Jira, Basecamp, Airtable, Shortcut, Todoist and Height. Write nothing into the documents or the tasks. Report a table of each tool, its plan, its price and the link, saying which you could not find.',
       runLimits: { maxDurationMs: 150_000 },
     },
   ]

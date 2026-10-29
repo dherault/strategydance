@@ -3,11 +3,11 @@ import { MAX_DOCUMENTS } from 'strategydance-core'
 import type { AnyVariables, ModuleDatabaseFakeBase } from '~domain/modules/testing/createModuleDatabaseFakeBase'
 
 /*
-  The backend connector's Knowledge module operations, over tables kept in memory, added to a
+  The backend connector's Documents module operations, over tables kept in memory, added to a
   module database fake's base, which `createModuleDatabaseFake` builds with every module's, for the
   modules' tests, which mock `strategydance-database/backend` with it. Each operation mirrors the
   conditions of its namesake in the connector, in the same order, and throws the same messages, so a
-  test reads as the behaviour it checks rather than as a script of answers. `check:knowledge-module`
+  test reads as the behaviour it checks rather than as a script of answers. `check:documents-module`
   checks those conditions against the emulators, which is what keeps the two alike: change one with
   the other. A search matches words and patterns as near as a test needs, which that script checks
   against Postgres' own

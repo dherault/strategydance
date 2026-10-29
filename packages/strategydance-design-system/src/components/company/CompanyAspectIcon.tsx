@@ -3,12 +3,12 @@ import {
   ChessKnightIcon,
   CodeXmlIcon,
   HandshakeIcon,
+  LandmarkIcon,
   type LucideProps,
   MegaphoneIcon,
   PaletteIcon,
   ScaleIcon,
   UsersIcon,
-  WalletIcon,
 } from 'lucide-react'
 
 // The aspects of a company, in order, each with its canonical Lucide icon
@@ -20,7 +20,7 @@ const CompanyAspects = [
   { id: 'engineering', label: 'Engineering', lucide: 'code-xml' },
   { id: 'design', label: 'Design', lucide: 'palette' },
   { id: 'people', label: 'People and operations', lucide: 'users' },
-  { id: 'finances', label: 'Finances', lucide: 'wallet' },
+  { id: 'finances', label: 'Finances', lucide: 'landmark' },
   { id: 'legal', label: 'Legal', lucide: 'scale' },
 ] as const
 
@@ -34,7 +34,7 @@ const icons = {
   engineering: CodeXmlIcon,
   design: PaletteIcon,
   people: UsersIcon,
-  finances: WalletIcon,
+  finances: LandmarkIcon,
   legal: ScaleIcon,
 }
 

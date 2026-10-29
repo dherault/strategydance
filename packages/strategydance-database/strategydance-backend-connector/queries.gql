@@ -3218,3 +3218,352 @@ query GetIntegrationConnectionForMember($organizationId: UUID!, $userId: String!
     }
   }
 }
+
+# Every currency and year of exchange rates stored, without the rates, from which the daily sync
+# carries on: from the least advanced currency's latest year, which a run before may have written
+# only partly, or before the ECB's last day of it, or from 1999 for a currency with no row at all,
+# as one added to the list since. As many rows as 29 currencies hold for every year from 1999 to
+# past 2060
+query GetExchangeRateYearKeys @auth(level: NO_ACCESS) {
+  exchangeRateYears(orderBy: [{ year: DESC }, { currency: ASC }], limit: 2000) {
+    currency
+    year
+  }
+}
+
+# The ECB's daily rates of the currencies and years asked for, as `GetExchangeRates` reads them, for
+# the Budget module. It matches no membership, since the rates are public and say nothing of any
+# organization: the module reads them beside the budget, whose read checks its caller. Both lists
+# are required, since a filter on a list left out matches every row. As many rows as 29 currencies
+# hold for every year from 1999 to past 2060, in order, so a request never loses a year to the limit
+query GetExchangeRatesForAgent($currencies: [Currency!]!, $years: [Int!]!) @auth(level: NO_ACCESS) {
+  exchangeRateYears(
+    where: { currency: { in: $currencies }, year: { in: $years } }
+    orderBy: [{ currency: ASC }, { year: ASC }]
+    limit: 2000
+  ) {
+    currency
+    year
+    rates
+  }
+}
+
+# A bill's receipt by its id alone, with whether the caller belongs to the organization the route
+# names: the backend serves its file to any member of the receipt's own organization, and its upload
+# reads it to tell a retry from an id another member or organization holds. `$userId` is the uid the
+# backend verified
+query GetBillReceiptForMember($organizationId: UUID!, $userId: String!, $receiptId: UUID!) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+  }
+  billReceipt(id: $receiptId) {
+    organizationId
+    userId
+    status
+    name
+    contentType
+    size
+    createdAt
+  }
+}
+
+# A receipt by its id alone, for the receipt reader: whether the caller belongs to the organization
+# the route names, and its name, which the reader's request quotes so the model tells the seller from
+# the buyer, then the receipt with what a read found already, and when it was uploaded, since a read
+# takes only a receipt uploaded within a day. `$userId` is the uid the backend verified
+query GetBillReceiptForReader($organizationId: UUID!, $userId: String!, $receiptId: UUID!) @auth(level: NO_ACCESS) {
+  userOrganization(key: { userId: $userId, organizationId: $organizationId }) {
+    role
+    organization {
+      name
+    }
+  }
+  billReceipt(id: $receiptId) {
+    organizationId
+    userId
+    status
+    name
+    contentType
+    size
+    readFields
+    createdAt
+  }
+}
+
+# The receipts the reader claimed in the last 24 hours but the one it is asked to read, as
+# `ClaimBillReceiptRead` counts them: the caller's in the organization and the organization's, newest
+# first, each as many as its cap counts, so the oldest of them says when the next read fits. `$userId`
+# is the uid the backend verified
+query GetBillReceiptReads($organizationId: UUID!, $userId: String!, $receiptId: UUID!) @auth(level: NO_ACCESS) {
+  memberReads: billReceipts(
+    where: {
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      id: { ne: $receiptId }
+      readAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ readAt: DESC }]
+    limit: 50
+  ) {
+    id
+    readAt
+  }
+  organizationReads: billReceipts(
+    where: {
+      organizationId: { eq: $organizationId }
+      id: { ne: $receiptId }
+      readAt: { gt_time: { now: true, sub: { hours: 24 } } }
+    }
+    orderBy: [{ readAt: DESC }]
+    limit: 200
+  ) {
+    id
+    readAt
+  }
+}
+
+# The daily sweep's: a hundred receipts that no bill holds nor keeps as an earlier receipt, deleted
+# bills included, uploaded over three days ago, whatever their status, whose files it deletes before
+# their rows (`DeleteBillReceipts`). A bill's save takes no receipt over two days old unless it holds
+# it already or keeps it, so none of these is taken meanwhile, a save in flight as its two days ran
+# out included. `$skippedIds` are those whose files this sweep failed to delete, which it reads past,
+# so a hundred that keep failing never hold back the rest. Required, since a filter on a list left
+# out matches every row
+query GetPrunableBillReceipts($skippedIds: [UUID!]!) @auth(level: NO_ACCESS) {
+  billReceipts(
+    where: {
+      _and: [
+        { createdAt: { lt_time: { now: true, sub: { days: 3 } } } }
+        { _not: { bill_on_receipt: { id: { isNull: false } } } }
+        { formerBillId: { isNull: true } }
+        { _not: { id: { in: $skippedIds } } }
+      ]
+    }
+    orderBy: [{ createdAt: ASC }]
+    limit: 100
+  ) {
+    id
+    organizationId
+  }
+}
+
+# The Budget module's operations follow, named `…ForAgent`: what an agent reads and writes of an
+# organization's bills through it. Each takes the member the backend verified, `$userId`, and the
+# `createdAt` of the membership it read, `$membershipCreatedAt`, so a member removed, or removed and
+# invited back, stops every agent acting as them at its next call. Each read answers that membership
+# beside its rows, so such a caller is refused rather than shown no bills. Bills carry no AI
+# permission, as tasks do not: an agent acting as a member reads and changes any bill, as the member
+# could, and never the budget itself, which stays an administrator's, on the page
+
+# The budget and every live bill, as `GetBudget` and `GetBills` read them, which the module computes
+# from as the page does: up to 2000 bills (`MAX_BILLS` in strategydance-core), so nothing is left out
+# of a sum. With the member's time zone, from which the module tells their today, and the members, up
+# to 100 (`MAX_TEAM_SIZE`), by when they joined, so an agent can name a payer and is refused one who
+# is not a member before anything is written
+query GetBudgetForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!)
+@auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+    user {
+      timezone
+    }
+  }
+  budgets(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    currency
+    amountMinor
+    period
+  }
+  members: userOrganizations(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ createdAt: ASC }, { userId: ASC }]
+    limit: 100
+  ) {
+    userId
+    user {
+      displayName
+    }
+  }
+  bills(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 2000
+  ) {
+    id
+    name
+    description
+    company
+    amountMinor
+    currency
+    paidOn
+    recurrence
+    endsOn
+    paidById
+    paidBy {
+      displayName
+    }
+    receiptId
+    # An update is guarded on it, and `update_bill`'s `version` is it
+    updatedAt
+  }
+}
+
+# One bill by its id, deleted or not, so a restore can tell a bill deleted from one never there, with
+# its receipt's name, type and size, its earlier receipts, who paid it, who created it and who saved
+# it last, and the budget's currency, which
+# its payments are converted into. With the member's time zone, from which the module tells their
+# today
+query GetBillForAgent($organizationId: UUID!, $userId: String!, $membershipCreatedAt: Timestamp!, $id: UUID!)
+@auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+    user {
+      timezone
+    }
+  }
+  budgets(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    currency
+  }
+  bills(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    id
+    name
+    description
+    company
+    amountMinor
+    currency
+    paidOn
+    recurrence
+    endsOn
+    paidById
+    paidBy {
+      displayName
+    }
+    receipt {
+      id
+      name
+      contentType
+      size
+    }
+    # The receipts it held before an edit replaced or removed them, newest first, which an update
+    # can take back
+    earlierReceipts: billReceipts_on_formerBill(
+      where: { _not: { bill_on_receipt: { id: { isNull: false } } } }
+      orderBy: [{ createdAt: DESC }]
+      limit: 50
+    ) {
+      id
+      name
+      contentType
+      size
+    }
+    createdById
+    createdBy {
+      displayName
+    }
+    createdAt
+    updatedById
+    updatedBy {
+      displayName
+    }
+    updatedAt
+    deletedAt
+  }
+}
+
+# A file the member sent in a conversation, which Strategy Dance's agent hands the Budget module as a
+# bill's receipt by its id: the conversation calling, its launcher's, with its parent and its brief,
+# and the file, the member's, stored and sent, as `GetConversationBriefAttachments` reads a brief's
+# files for the page. A conversation's own files are its own; a subagent's are the files of its
+# parent's its brief lists, which the module checks. Its type, size and pages are the row's, written
+# once the upload checked the bytes, so the module judges the file as a receipt without reading it
+query GetConversationAttachmentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $conversationId: UUID!
+  $attachmentId: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  conversations(
+    where: { id: { eq: $conversationId }, userId: { eq: $userId }, organizationId: { eq: $organizationId } }
+    limit: 1
+  ) {
+    parentId
+    deletedAt
+    briefs: conversationMessages_on_conversation(where: { position: { eq: 0 }, kind: { eq: BRIEF } }, limit: 1) {
+      attachmentIds
+    }
+  }
+  attachments: conversationAttachments(
+    where: {
+      id: { eq: $attachmentId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      status: { eq: READY }
+      messageId: { isNull: false }
+    }
+    limit: 1
+  ) {
+    conversationId
+    name
+    contentType
+    size
+    pageCount
+  }
+}

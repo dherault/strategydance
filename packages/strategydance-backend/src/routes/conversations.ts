@@ -3,6 +3,7 @@ import {
   type AnswerConversationApprovalData,
   type AnswerConversationQuestionData,
   type ApiResponse,
+  CONVERSATION_ATTACHMENT_CONTENT_TYPES,
   type ConversationAttachmentData,
   ERROR_CODE_ATTACHMENT_TOO_LARGE,
   ERROR_CODE_BAD_REQUEST,
@@ -18,6 +19,8 @@ import {
   ERROR_CODE_TOO_MANY_REQUESTS,
   ERROR_CODE_UNSUPPORTED_MEDIA_TYPE,
   MAX_ANSWER_OTHER_LENGTH,
+  MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
+  MAX_CONVERSATION_ATTACHMENT_SIZE,
   MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
   MAX_CONVERSATIONS,
   MAX_PENDING_CONVERSATION_ATTACHMENTS,
@@ -35,9 +38,10 @@ import { z } from 'zod'
 
 import { UUID_PATTERN } from '~constants'
 
-import parseConversationAttachmentHeaders from '~utils/parseConversationAttachmentHeaders'
+import parseUploadHeaders from '~utils/parseUploadHeaders'
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
+import respondStoredFile from '~utils/respondStoredFile'
 import respondUsageCapped from '~utils/respondUsageCapped'
 import toCanonicalUuid from '~utils/toCanonicalUuid'
 
@@ -775,6 +779,14 @@ function createConversationsRouter() {
     attachmentId: z.string().regex(UUID_PATTERN),
   })
 
+  // What a conversation takes of a file, as its upload declares it
+  const attachmentUploadLimits = {
+    contentTypes: CONVERSATION_ATTACHMENT_CONTENT_TYPES,
+    maxSize: MAX_CONVERSATION_ATTACHMENT_SIZE,
+    maxNameLength: MAX_CONVERSATION_ATTACHMENT_NAME_LENGTH,
+    unsupportedReason: 'A conversation takes images, PDFs and text files',
+  }
+
   type AttachmentRequest<Data = unknown> = Request<z.infer<typeof attachmentParamsSchema>, ApiResponse<Data>>
 
   // Where a file is, by the route's parameters, canonical, and the caller as the backend verified them
@@ -812,11 +824,14 @@ function createConversationsRouter() {
       request: AttachmentRequest<ConversationAttachmentData>,
       response: Response<ApiResponse<ConversationAttachmentData>>,
     ) => {
-      const headers = parseConversationAttachmentHeaders({
-        contentType: request.header('content-type'),
-        contentLength: request.header('content-length'),
-        fileName: request.header('x-file-name'),
-      })
+      const headers = parseUploadHeaders(
+        {
+          contentType: request.header('content-type'),
+          contentLength: request.header('content-length'),
+          fileName: request.header('x-file-name'),
+        },
+        attachmentUploadLimits,
+      )
 
       if (headers.outcome !== 'valid') {
         respondAttachmentRefusal(response, headers)
@@ -856,6 +871,7 @@ function createConversationsRouter() {
           return
         case 'unsupported':
         case 'tooLarge':
+        case 'incomplete':
           respondAttachmentRefusal(response, result)
 
           return
@@ -913,34 +929,11 @@ function createConversationsRouter() {
         return
       }
 
-      const stream = conversationAttachmentStorage.openRead(result.objectName)
-
-      stream.once('error', () => {
-        if (response.headersSent) response.destroy()
-        else respondError(response, 404, ERROR_CODE_NOT_FOUND, 'This file no longer exists')
-      })
-      stream.once('readable', () => {
-        response.setHeader(
-          'Content-Type',
-          result.contentType.startsWith('text/') ? `${result.contentType}; charset=utf-8` : result.contentType,
-        )
-        response.setHeader('Content-Length', result.size)
-        response.setHeader('Cache-Control', 'private, max-age=31536000, immutable')
-        response.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeHeaderValue(result.name)}`)
-        stream.pipe(response)
-      })
+      respondStoredFile(response, conversationAttachmentStorage.openRead(result.objectName), result)
     },
   )
 
   return router
-}
-
-// A file's name as an RFC 5987 value, which takes none of the characters `encodeURIComponent` leaves
-function encodeHeaderValue(value: string) {
-  return encodeURIComponent(value).replace(
-    /['()*]/g,
-    character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
-  )
 }
 
 // The refusal of a file for what it is: a 415 for its type, a 413 for its size, a 400 otherwise

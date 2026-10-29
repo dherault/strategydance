@@ -11,6 +11,9 @@ import toCanonicalUuid from '~utils/toCanonicalUuid'
 import validateMiddleware from '~middleware/validate'
 
 import createAnthropicClaudeClient from '~domain/agent/createAnthropicClaudeClient'
+import pruneBillReceipts from '~domain/budget/pruneBillReceipts'
+import pruneDeletedBills from '~domain/budget/pruneDeletedBills'
+import syncExchangeRates from '~domain/budget/syncExchangeRates'
 import pruneCappedStarts from '~domain/conversations/pruneCappedStarts'
 import pruneConversationAttachments from '~domain/conversations/pruneConversationAttachments'
 import pruneConversationSearches from '~domain/conversations/pruneConversationSearches'
@@ -123,17 +126,20 @@ function createInternalRouter() {
   --- */
 
   /*
-    Reconciles first the runs no page reconciled, as the reconcile every five minutes does, then
-    removes what is still deleted past its Undo window, whether or not anybody comes back, as Cloud
-    Scheduler asks once a day: the conversations, subagents before their parents, with their files,
-    the board's tasks, the documents and the organizations' MCP servers, with their keys and
-    members' connections, deleted over a day ago, and the files uploaded to conversations and never
-    sent. A milestone that keeps something else deleted for a while adds its prune here. So does one
-    that keeps a count or a record for a while, as the conversation searches, the starts the daily
-    caps counted and what runs may have cost, over a day old, go, documents' revisions over 30 days
-    old, the module call results past their expiry, members' Connects to MCP servers expired over an
-    hour ago, and the authorization server's requests expired over a day ago, its tokens past their
-    expiry and the registrations nobody uses.
+    Syncs first the ECB's exchange rates from Frankfurter (`syncExchangeRates`), then reconciles the
+    runs no page reconciled, as the reconcile every five minutes does, then removes what is still
+    deleted past its Undo window, whether or not anybody comes back, as Cloud Scheduler asks once a
+    day: the conversations, subagents before their parents, with their files, the board's tasks, the
+    bills, the documents and the organizations' MCP servers, with their keys and members'
+    connections, deleted over a day ago, the files uploaded to conversations and never sent, and the
+    bills' receipts no bill holds three days after their upload, after the bills, so a bill pruned
+    frees its receipt in the same sweep. A milestone that keeps
+    something else deleted for a while adds its prune here. So does one that keeps a count or a
+    record for a while, as the conversation searches, the starts the daily caps counted and what
+    runs may have cost, over a day old, go, documents' revisions over 30 days old, the module call
+    results past their expiry, members' Connects to MCP servers expired over an hour ago, and the
+    authorization server's requests expired over a day ago, its tokens past their expiry and the
+    registrations nobody uses.
 
     Each step runs whatever the steps before it met (`runSweepSteps`), so a prune that fails, or one
     that takes long, never keeps the keys and tokens after it from going. Every step is idempotent,
@@ -141,6 +147,7 @@ function createInternalRouter() {
   */
   router.post('/sweep', async (_request: Request, response: Response<ApiResponse>) => {
     const failed = await runSweepSteps({
+      syncExchangeRates,
       sweepSubagentRuns,
       sweepDeadConversationRuns,
       sweepSubagentReactions,
@@ -150,6 +157,8 @@ function createInternalRouter() {
       pruneCappedStarts,
       pruneRunSpends,
       pruneDeletedTasks,
+      pruneDeletedBills,
+      pruneBillReceipts,
       pruneDeletedDocuments,
       pruneDocumentRevisions,
       pruneDeletedIntegrations,

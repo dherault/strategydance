@@ -167,7 +167,7 @@ describe('launchSubagent', () => {
     expect(enqueueRun).toHaveBeenCalledTimes(2)
   })
 
-  test('hands over the files its parent sent, by their ids in the Files API, before the brief', async () => {
+  test('hands over the files its parent sent, named with their ids, by their ids in the Files API, before the brief', async () => {
     const parent = await kit.start()
     const image = insertAttachment(parent.conversationId, { name: 'chart.png', contentType: 'image/png' })
     const pdf = insertAttachment(parent.conversationId)
@@ -175,6 +175,7 @@ describe('launchSubagent', () => {
     const reference = { ...parent, conversationId: subagentId, runId }
 
     expect(JSON.parse(kit.readEntries(reference)[0]?.content ?? '[]')).toEqual([
+      { type: 'text', text: `pricing.pdf (attachment ${pdf.id})\nchart.png (attachment ${image.id})` },
       { type: 'document', source: { type: 'file', file_id: pdf.claudeFileId }, title: 'pricing.pdf' },
       { type: 'image', source: { type: 'file', file_id: image.claudeFileId } },
       { type: 'text', text: BRIEF },

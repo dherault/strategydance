@@ -29,7 +29,8 @@ export const CLAUDE_MODEL_PRICES: Record<string, ClaudeModelPrice> = {
   'claude-opus-4-8': { input: 5, output: 25, cacheRead: 0.5, cacheWrite: 6.25 },
   'claude-sonnet-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
   // Its rates for a prompt of 100000 tokens or fewer, five times them past that: only the tagging
-  // request names it, whose prompt quotes 8000 characters of each side of an exchange
+  // request names it, whose prompt quotes 8000 characters of each side of an exchange, and the
+  // receipt reader, whose receipt is 20 pages or 50000 characters at most
   'claude-haiku-5-5': { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
 }
 

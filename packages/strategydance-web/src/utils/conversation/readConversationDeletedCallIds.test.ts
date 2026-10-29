@@ -9,19 +9,22 @@ function entry(id: string, toolName: string, toolStatus = 'SUCCEEDED', kind = 'T
 }
 
 describe('readConversationDeletedCallIds', () => {
-  it('reads the deletes of documents and tasks that succeeded, sorted, and nothing else', () => {
+  it('reads the deletes of documents, tasks and bills that succeeded, sorted, and nothing else', () => {
     expect(
       readConversationDeletedCallIds([
         entry('c', 'delete_document'),
         entry('a', 'delete_document'),
         entry('g', 'delete_task'),
+        entry('i', 'delete_bill'),
+        entry('j', 'delete_bill', 'FAILED'),
+        entry('k', 'restore_bill'),
         entry('b', 'delete_document', 'FAILED'),
         entry('d', 'delete_task', 'RUNNING'),
         entry('e', 'restore_document'),
         entry('h', 'restore_task'),
         entry('f', 'delete_document', 'SUCCEEDED', 'AGENT_TEXT'),
       ]),
-    ).toEqual(['a', 'c', 'g'])
+    ).toEqual(['a', 'c', 'g', 'i'])
   })
 
   it('reads every one, however many the thread holds', () => {

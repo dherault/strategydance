@@ -32,8 +32,8 @@ async function startRunning(trigger: string) {
   return parent
 }
 
-// The Knowledge and Tasks modules as the run's worker reaches them, the run as their launcher
-function connect(name: 'knowledge' | 'tasks', launching: ConversationRunReference) {
+// The Knowledge, Tasks and Budget modules as the run's worker reaches them, the run as their launcher
+function connect(name: 'knowledge' | 'tasks' | 'budget', launching: ConversationRunReference) {
   return createModuleTestKit(
     name,
     createSubagentsCaller(fake, launching, { scopes: [`${name}:read`, `${name}:write`] }),
@@ -47,12 +47,14 @@ beforeEach(() => {
 afterEach(() => fake.reset())
 
 describe("the deletes, from a parent's reaction to its subagents' reports", () => {
-  it('refuse a reaction’s delete_document and delete_task with a sentence asking the member, deleting nothing', async () => {
+  it('refuse a reaction’s delete_document, delete_task and delete_bill with a sentence asking the member, deleting nothing', async () => {
     const reaction = await startRunning('REPORTS')
     const documentId = documents.store('The old pricing page').id
     const task = fake.modules.insertTask({ organizationId: ORGANIZATION_ID, name: 'Retire the old pricing' })
+    const bill = fake.modules.insertBill({ organizationId: ORGANIZATION_ID, name: 'Old pricing tool' })
     const knowledge = await connect('knowledge', reaction)
     const tasks = await connect('tasks', reaction)
+    const budget = await connect('budget', reaction)
 
     expect(await knowledge.refusal('delete_document', { id: documentId }, 'toolu_document')).toBe(
       "This run reacts to subagents' reports, and deletes nothing. Ask the member with ask_user whether the document should go: the run their answer starts can delete it.",
@@ -60,19 +62,26 @@ describe("the deletes, from a parent's reaction to its subagents' reports", () =
     expect(await tasks.refusal('delete_task', { id: task.id }, 'toolu_task')).toBe(
       "This run reacts to subagents' reports, and deletes nothing. Ask the member with ask_user whether the task should go: the run their answer starts can delete it.",
     )
+    expect(await budget.refusal('delete_bill', { id: bill.id }, 'toolu_bill')).toBe(
+      "This run reacts to subagents' reports, and deletes nothing. Ask the member with ask_user whether the bill should go: the run their answer starts can delete it.",
+    )
     expect(fake.modules.documents.get(documentId)?.deletedAt ?? null).toBeNull()
     expect(fake.modules.tasks.get(task.id)?.deletedAt ?? null).toBeNull()
+    expect(fake.modules.bills.get(bill.id)?.deletedAt).toBeNull()
   })
 
   it('let the run the member’s answer starts delete what a report proposed', async () => {
     const continuation = await startRunning('ANSWER')
     const documentId = documents.store('The old pricing page').id
     const task = fake.modules.insertTask({ organizationId: ORGANIZATION_ID, name: 'Retire the old pricing' })
+    const bill = fake.modules.insertBill({ organizationId: ORGANIZATION_ID, name: 'Old pricing tool' })
 
     await (await connect('knowledge', continuation)).answer('delete_document', { id: documentId }, 'toolu_document')
     await (await connect('tasks', continuation)).answer('delete_task', { id: task.id }, 'toolu_task')
+    await (await connect('budget', continuation)).answer('delete_bill', { id: bill.id }, 'toolu_bill')
 
     expect(fake.modules.documents.get(documentId)?.deletedAt).toEqual(expect.any(String))
     expect(fake.modules.tasks.get(task.id)?.deletedAt).toEqual(expect.any(String))
+    expect(fake.modules.bills.get(bill.id)?.deletedAt).toEqual(expect.any(String))
   })
 })

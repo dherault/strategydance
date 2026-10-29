@@ -1,4 +1,5 @@
 import type { MODULES } from './constants'
+import type { Currency } from './enums'
 
 /*
   The envelope every backend response is wrapped in, success and failure alike. Declared here
@@ -400,4 +401,175 @@ export type IntegrationConnectionMessage = {
   authorizationId: string | null
   outcome: 'connected' | 'denied' | 'failed'
   code: string | null
+}
+
+/* ---
+  BUDGET
+--- */
+
+// How long a budget's amount is meant to last: `schema.gql`'s `BudgetPeriod`, which core cannot
+// import. The SDK's enum passes for it, since each of its values is the same string
+export type BudgetPeriod = 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
+
+// How often a recurring bill is paid again: `schema.gql`'s `BillRecurrence`, as `BudgetPeriod` is
+export type BillRecurrence = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
+
+/*
+  When a bill is paid, its days `YYYY-MM-DD`: on `paidOn`, and, when it recurs, again each period
+  counted from that day, until `endsOn` when it has one
+*/
+export type BillSchedule = {
+  readonly paidOn: string
+  readonly recurrence: BillRecurrence | null
+  readonly endsOn: string | null
+}
+
+/*
+  What the budget's computations read of a bill, its amount in minor units of its own currency.
+  Plain rather than a row of the database's, so the page and the module compute the same numbers
+  from what each of them reads, the `Int64` turned into a number at the edge
+*/
+export type BudgetBill = BillSchedule & {
+  readonly id: string
+  readonly name: string
+  readonly company: string
+  readonly amountMinor: number
+  readonly currency: Currency
+}
+
+/*
+  A row of `ExchangeRateYear`: one currency's rates for one calendar year, the JSON text of an
+  object from each ECB day, `YYYY-MM-DD`, to the units of the currency one euro bought that day
+*/
+export type ExchangeRateYearRow = {
+  readonly currency: Currency
+  readonly year: number
+  readonly rates: string
+}
+
+// Each currency's ECB days, sorted, beside the rate of each, as `buildExchangeRateTable` reads them
+export type ExchangeRateTable = ReadonlyMap<
+  Currency,
+  {
+    readonly days: readonly string[]
+    readonly rates: readonly number[]
+  }
+>
+
+// The budget an administrator set: an amount, in minor units of the currency the Budget computes
+// in, meant to last a month, a quarter or a year
+export type BudgetLimit = {
+  readonly amountMinor: number
+  readonly period: BudgetPeriod
+}
+
+// What a stretch of days pays, in minor units: on or before today, and after it
+export type BudgetSpending = {
+  spent: number
+  expected: number
+}
+
+// Which of today's periods a budget is held to, after the period it was set for
+export type BudgetScope = 'month' | 'quarter' | 'year'
+
+/*
+  Where spending stands against the budget in its own period: over once what was spent passes the
+  limit, warned once what is still expected would take it past, and by how much, with the limit and
+  what is expected
+*/
+export type BudgetStatus = {
+  level: 'over' | 'warn'
+  scope: BudgetScope
+  by: number
+  limit: number
+  expected: number
+}
+
+/*
+  What the Budget page draws, every amount in minor units of the currency it computes in: this
+  month, quarter and year, next month, each month of the year, the recurring bills next month pays,
+  the limits, the status, and the same stretches before, to compare with. `missingRates` names the
+  currencies a payment could not be converted from or to, which the sums leave out
+*/
+export type BudgetSummary = {
+  month: BudgetSpending
+  quarter: BudgetSpending
+  year: BudgetSpending
+  next: number
+  months: (BudgetSpending & { isCurrent: boolean })[]
+  recurringCount: number
+  monthlyLimit: number | null
+  yearlyLimit: number | null
+  status: BudgetStatus | null
+  previous: {
+    monthToDate: number
+    yearToDate: number
+    lastYear: number
+  }
+  missingRates: Currency[]
+}
+
+/*
+  A month, a quarter or a year against the budget, as the Budget module's `read_budget` answers it:
+  its first and last days, what it paid and still expects relative to today, its share of the
+  budget, and what is left of it once what was spent, then also what is expected, is taken off
+*/
+export type BudgetPeriodSummary = BudgetSpending & {
+  from: string
+  to: string
+  limit: number | null
+  left: number | null
+  projectedLeft: number | null
+}
+
+// A month, its quarter and its year against the budget, and the currencies left out
+export type BudgetPeriodsSummary = {
+  month: BudgetPeriodSummary
+  quarter: BudgetPeriodSummary
+  year: BudgetPeriodSummary
+  missingRates: Currency[]
+}
+
+// A payment still to come, converted, or null when its currency has no rate
+export type UpcomingBillPayment<T extends BudgetBill = BudgetBill> = {
+  bill: T
+  day: string
+  amountMinor: number | null
+}
+
+// What a company was paid, converted, under the name its latest bill spells it with
+export type CompanySpending = {
+  company: string
+  amountMinor: number
+}
+
+// What uploading a bill's receipt answers with, the first time and every time the same upload is
+// sent again: the file as it was stored
+export type BillReceiptData = {
+  id: string
+  name: string
+  contentType: string
+  size: number
+}
+
+/*
+  What the receipt reader found in a receipt, for the bill dialog to fill in and the member to check:
+  a name, a description, empty when it found none, and the company paid, each on one line within a
+  bill's lengths; the total paid as a decimal string, as the bill dialog types it; the currency and
+  how often it recurs, each null when the receipt said none it knows; and the day paid, `YYYY-MM-DD`,
+  today when it read none
+*/
+export type BillReceiptFields = {
+  name: string
+  description: string
+  company: string
+  amount: string | null
+  currency: Currency | null
+  paidOn: string
+  recurrence: BillRecurrence | null
+}
+
+// What asking the receipt reader answers with, the first time and every time after, for nothing
+export type BillReceiptReadData = {
+  fields: BillReceiptFields
 }

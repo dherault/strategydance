@@ -9,6 +9,7 @@ import {
   SquareKanbanIcon,
   StoreIcon,
   UsersRoundIcon,
+  WalletIcon,
 } from 'lucide-react'
 import { useIntl } from 'react-intl'
 import { OrganizationRole } from 'strategydance-database/web'
@@ -80,6 +81,13 @@ function SidebarNavigation() {
             label={formatMessage(navigationMessages.knowledge)}
             icon={<FileTextIcon />}
             link={{ to: '/$organizationSlug/knowledge', params: { organizationSlug } }}
+          />
+          <NavigationLink
+            path={`/${organizationSlug}/budget`}
+            isNested
+            label={formatMessage(navigationMessages.budget)}
+            icon={<WalletIcon />}
+            link={{ to: '/$organizationSlug/budget', params: { organizationSlug } }}
           />
           <ConversationsNavigationLink />
         </SidebarMenu>

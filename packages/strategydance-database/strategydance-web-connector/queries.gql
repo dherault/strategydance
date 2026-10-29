@@ -3280,3 +3280,203 @@ query GetIntegrationConnections($organizationId: UUID!)
     createdAt
   }
 }
+
+# The ECB's daily rates of the currencies and years asked for, from which the Budget page converts
+# every amount at its payment's day. `USER`, though no membership is read: the rates are public, the
+# European Central Bank's, and say nothing of any organization, so any signed-in user may read them.
+# Not a live query: the worker writes them once a day, and the page reads them again as it opens or
+# comes back into focus. Both lists are required, since a filter on a list left out matches every
+# row. As many rows as 29 currencies hold for every year from 1999 to past 2060, in order, so a page
+# never loses a year to the limit
+query GetExchangeRates($currencies: [Currency!]!, $years: [Int!]!) @auth(level: USER) {
+  exchangeRateYears(
+    where: { currency: { in: $currencies }, year: { in: $years } }
+    orderBy: [{ currency: ASC }, { year: ASC }]
+    limit: 2000
+  ) {
+    currency
+    year
+    rates
+  }
+}
+
+# An organization's budget, which every member reads and only its administrators set: its currency,
+# and its amount and period, both null once removed. No row before an administrator first sets one,
+# which the page reads as US dollars and no budget. Outsiders read nothing.
+#
+# A live query: setting the budget pushes it, and so do removing a member, who then reads nothing,
+# and deleting the organization
+query GetBudget($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetBudget"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  budgets(
+    where: {
+      organizationId: { eq: $organizationId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    currency
+    amountMinor
+    period
+    updatedById
+    updatedAt
+  }
+}
+
+# An organization's bills, every one not deleted, which the Budget page computes the budget from and
+# lists: up to 2000, as many as an organization keeps (`MAX_BILLS` in strategydance-core), so nothing
+# is left out of a sum. Each carries its receipt's name, type and size, whose file the backend serves,
+# and its payer's name and pictures, since a payer who left the organization is no longer among the
+# team the page reads. Outsiders read nothing.
+#
+# A live query: each `@refresh` names a mutation that changes a bill the page shows, the Budget
+# module's included, which the backend runs for an agent. Removing a member empties theirs, and deleting the organization empties everybody's. The daily sweep's prune
+# takes only bills deleted already, which nobody reads
+query GetBills($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateBill"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateBill"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteBill"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreBill"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateBillForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateBillForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteBillForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RestoreBillForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  bills(
+    where: {
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    orderBy: [{ createdAt: ASC }, { id: ASC }]
+    limit: 2000
+  ) {
+    id
+    name
+    description
+    company
+    amountMinor
+    currency
+    paidOn
+    recurrence
+    endsOn
+    paidById
+    paidBy {
+      displayName
+      imageUrl
+      imageThumbnailUrl
+    }
+    receipt {
+      id
+      name
+      contentType
+      size
+    }
+    createdById
+    createdBy {
+      displayName
+    }
+    createdAt
+    # Who saved it last, whom its dialog names beside who added it
+    updatedById
+    updatedBy {
+      displayName
+    }
+    # The dialog saves on it, and is refused once another save moved it
+    updatedAt
+  }
+}
+
+# A bill's earlier receipts, which an edit replaced or removed and the bill keeps until it is pruned,
+# the newest `$limit`, for its dialog to show and take one back, which asks for more as the reader
+# goes back in them. Read as the dialog opens, not live: a save that lets a receipt go closes the
+# dialog. Outsiders read nothing
+query GetBillEarlierReceipts($organizationId: UUID!, $billId: UUID!, $limit: Int!) @auth(level: USER) {
+  billReceipts(
+    where: {
+      _and: [
+        { organizationId: { eq: $organizationId } }
+        { formerBillId: { eq: $billId } }
+        { _not: { bill_on_receipt: { id: { isNull: false } } } }
+        { organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } } }
+      ]
+    }
+    orderBy: [{ createdAt: DESC }, { id: DESC }]
+    limit: $limit
+  ) {
+    id
+    name
+    contentType
+    size
+  }
+}

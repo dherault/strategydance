@@ -1,57 +1,6 @@
 # Conversations: the milestones
 
-The forty-two milestones that build the conversations feature, each one pull request into `dev`
-that a Claude Code session can implement, with the conventions every one of them follows. What they
-build, and why, is in [conversations.md](conversations.md): the sections named here, such as The
-data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
-merges, write its pull request number in the table below.
-
-## Conventions for every milestone
-
-- Follow `CLAUDE.md`: a branch from `origin/dev`, granular commits each green on lint, typecheck,
-  test and build, a pull request into `dev`, the Copilot loop, then a human merges.
-- Read the Architecture of [conversations.md](conversations.md) first. Load the `claude-api` skill
-  before writing any Claude SDK code, and never guess an SDK name.
-- Strings go in the `conversation` catalogue (`integration` for the MCP pages, `module` for the
-  consent page, Connected agents and the modules' dialog), registered app-wide
-  in `_app.tsx`'s `APP_MESSAGE_TYPES` since the dock and the sidebar need it everywhere, and
-  `bun run translate` runs whenever one changes. No em dash in a message.
-- Web files: `components/conversation/`, `hooks/conversation/`, `utils/conversation/`,
-  `contexts/ConversationDockContext.ts`. One concern per file, a waiter above the bouncer that reads
-  its data, waiters keyed on the organization's id, no `useMemo` or `useCallback`.
-- Backend files: `routes/conversations.ts` (mounted at
-  `/organizations/:organizationId/conversations` with `mergeParams`), `routes/internal.ts` (mounted
-  by the worker service only), `middleware/organizationMember.ts`,
-  `middleware/conversationSearchRateLimit.ts`, `domain/conversations/`, `domain/agent/`; for the
-  modules, `modules/` (one folder per module), `domain/knowledge/`, `domain/tasks/`, `domain/subagents/`,
-  `routes/oauth.ts` (mounted at `/oauth`), `routes/modules.ts` (mounted at `/mcp`), `domain/oauth/`
-  and `middleware/moduleRateLimit.ts`.
-- Data Connect: a mutation writes each row once; messages are ordered by `position`, claimed on the
-  conversation's counter; live queries name every mutation that changes them; backend operations
-  take `$userId` and check it against the rows. Each milestone adds the tables, fields and
-  operations it is the first to use, and a variable added to an existing operation later is
-  optional, as `CLAUDE.md` § The database says, so no milestone has to guess another's needs and
-  none breaks the connector.
-- CI runs without emulators. Domain tests mock `strategydance-database/backend` with `mock.module`, as
-  `deleteOrganization.test.ts` does; the SQL conditions are checked by hand against the emulators,
-  with a script under `scripts/`, never a `*.test.ts`.
-- A milestone that sets a convention later sessions must follow adds it to `CLAUDE.md` in the same
-  pull request.
-- Every milestone ends with the four checks green, and the UI ones with the change looked at in a
-  browser, on desktop and phone widths, against the design.
-
-## Milestones
-
-A milestone starts once the ones it depends on have merged, so several can be under way at once:
-M3 from the start, M13 as soon as M1 has merged, M15 and M18 as soon as M14 has, M30 as soon as M17
-and M25 have, M35 and M36 as soon as M33 has, M37 once M35 and M36 have, and M12, M24 and M27 well
-before their neighbours. M33 lets the agent launch, and only M34 has the page reconcile a parent's
-subagents and Retry ask before it discards them, so M33 keeps `launch_subagent` refusing in
-production behind a gate of its own, which M34 removes: a release cut between the two launches
-nothing, rather than leave the daily sweep their only recovery. M39 to M42, which the adversarial
-review of M1 to M38 added on 2026-10-18, each start once M38 has merged, in any order.
-
-| # | Milestone | Packages | Depends on | PR |
+| # | Milestone | Packages | Depends on | Implementation PR |
 | --- | --- | --- | --- | --- |
 | M1 | Spikes: the request to Claude, and an edit to a shared document | backend, design-system | Setup 1, 2, 5, 8 | #88 |
 | M2 | The conversation tables | database, core | M1 | #95 |
@@ -95,6 +44,57 @@ review of M1 to M38 added on 2026-10-18, each start once M38 has merged, in any 
 | M40 | Document revisions for agents' edits | database, backend, web, root | M38 | #230 |
 | M41 | Races against a real Postgres | database, backend, root | M38 | #231 |
 | M42 | A subagent's report at any limit | backend | M38 | #229 |
+
+The forty-two milestones that build the conversations feature, each one pull request into `dev`
+that a Claude Code session can implement, with the conventions every one of them follows. What they
+build, and why, is in [conversations.md](conversations.md): the sections named here, such as The
+data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
+merges, write its pull request number in the table above.
+
+## Conventions for every milestone
+
+- Follow `CLAUDE.md`: a branch from `origin/dev`, granular commits each green on lint, typecheck,
+  test and build, a pull request into `dev`, the review loop, then a human merges.
+- Read the Architecture of [conversations.md](conversations.md) first. Load the `claude-api` skill
+  before writing any Claude SDK code, and never guess an SDK name.
+- Strings go in the `conversation` catalogue (`integration` for the MCP pages, `module` for the
+  consent page, Connected agents and the modules' dialog), registered app-wide
+  in `_app.tsx`'s `APP_MESSAGE_TYPES` since the dock and the sidebar need it everywhere, and
+  `bun run translate` runs whenever one changes. No em dash in a message.
+- Web files: `components/conversation/`, `hooks/conversation/`, `utils/conversation/`,
+  `contexts/ConversationDockContext.ts`. One concern per file, a waiter above the bouncer that reads
+  its data, waiters keyed on the organization's id, no `useMemo` or `useCallback`.
+- Backend files: `routes/conversations.ts` (mounted at
+  `/organizations/:organizationId/conversations` with `mergeParams`), `routes/internal.ts` (mounted
+  by the worker service only), `middleware/organizationMember.ts`,
+  `middleware/conversationSearchRateLimit.ts`, `domain/conversations/`, `domain/agent/`; for the
+  modules, `modules/` (one folder per module), `domain/knowledge/`, `domain/tasks/`, `domain/subagents/`,
+  `routes/oauth.ts` (mounted at `/oauth`), `routes/modules.ts` (mounted at `/mcp`), `domain/oauth/`
+  and `middleware/moduleRateLimit.ts`.
+- Data Connect: a mutation writes each row once; messages are ordered by `position`, claimed on the
+  conversation's counter; live queries name every mutation that changes them; backend operations
+  take `$userId` and check it against the rows. Each milestone adds the tables, fields and
+  operations it is the first to use, and a variable added to an existing operation later is
+  optional, as `CLAUDE.md` § The database says, so no milestone has to guess another's needs and
+  none breaks the connector.
+- CI runs without emulators. Domain tests mock `strategydance-database/backend` with `mock.module`, as
+  `deleteOrganization.test.ts` does; the SQL conditions are checked by hand against the emulators,
+  with a script under `scripts/`, never a `*.test.ts`.
+- A milestone that sets a convention later sessions must follow adds it to `CLAUDE.md` in the same
+  pull request.
+- Every milestone ends with the four checks green, and the UI ones with the change looked at in a
+  browser, on desktop and phone widths, against the design.
+
+## Milestones
+
+A milestone starts once the ones it depends on have merged, so several can be under way at once:
+M3 from the start, M13 as soon as M1 has merged, M15 and M18 as soon as M14 has, M30 as soon as M17
+and M25 have, M35 and M36 as soon as M33 has, M37 once M35 and M36 have, and M12, M24 and M27 well
+before their neighbours. M33 lets the agent launch, and only M34 has the page reconcile a parent's
+subagents and Retry ask before it discards them, so M33 keeps `launch_subagent` refusing in
+production behind a gate of its own, which M34 removes: a release cut between the two launches
+nothing, rather than leave the daily sweep their only recovery. M39 to M42, which the adversarial
+review of M1 to M38 added on 2026-10-18, each start once M38 has merged, in any order.
 
 ### M1: Spikes: the request to Claude, and an edit to a shared document
 

@@ -67,6 +67,12 @@ const navigationMessages = defineMessages({
     description:
       "Sidebar link to the page that lists everything the team wrote down about its company, such as notes, plans and decisions, and that page's title, and the title of the section of each aspect's page that lists the items tagged with that aspect.",
   },
+  budget: {
+    id: 'navigation.budget',
+    defaultMessage: 'Budget',
+    description:
+      "Sidebar link to the page that compares what the company spends, its bills, with what it means to spend, its budget, and that page's title.",
+  },
   company: {
     id: 'navigation.company',
     defaultMessage: 'Company',

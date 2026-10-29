@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
-import type { Locale } from 'strategydance-core'
+import type { BillRecurrence, BudgetBill, BudgetLimit, Currency, Locale } from 'strategydance-core'
 import type {
   CompanyAspect,
   GetAgentConnectionsData,
   GetAdministrationOrganizationsData,
+  GetBillsData,
   GetAdministrationUsersData,
   GetChecklistData,
   GetCurrentUserData,
@@ -129,6 +130,57 @@ export type StagedImage =
 // hid, both as user ids
 export type TodayPreferences = NonNullable<GetTodayPreferencesData['userOrganization']>
 
+// What an organization means to spend, as the Budget page reads it: the budget, or null while it has
+// none, and the currency every amount of the page is counted in, US dollars while nobody chose one
+export type BudgetSettings = {
+  limit: BudgetLimit | null
+  currency: Currency
+}
+
+// One of an organization's bills, as the Budget page reads it: the fields strategydance-core's
+// computations take, in its shape, with the rest of its row, its payer and its receipt
+export type Bill = BudgetBill & Omit<GetBillsData['bills'][number], keyof BudgetBill>
+
+// Somebody who pays the organization's bills, as the Budget page offers them: a member, or a payer
+// a bill names who has left since, whose name the bill kept, null when they never gave one
+export type BillPayer = {
+  id: string
+  name: string | null
+  imageUrl: string | null
+  isViewer: boolean
+  hasLeft: boolean
+}
+
+// A bill's receipt as its dialog draws it: its bytes, and a text file's text read out of them
+export type BillReceiptFile = {
+  blob: Blob
+  text: string | null
+}
+
+// A bill as its dialog saves it, in strategydance-core's shape: its amount in minor units of its own
+// currency, and its receipt by id
+export type BillDraft = {
+  name: string
+  description: string
+  company: string
+  amountMinor: number
+  currency: Currency
+  paidOn: string
+  recurrence: BillRecurrence | null
+  endsOn: string | null
+  paidById: string
+  receiptId: string | null
+}
+
+// One month of the Budget page's chart: its short name, what it comes to in whole units of the
+// currency, which the chart plots, and what was spent and is expected in it, in minor units
+export type BudgetChartMonth = {
+  name: string
+  value: number
+  spent: number
+  expected: number
+}
+
 // One task on its organization's board: where it sits, who is doing it, when it is due, what it is
 // about and which tasks it waits on. Its description is read apart, by `useTaskDescriptions`
 export type Task = GetTasksData['tasks'][number]
@@ -159,8 +211,9 @@ export type TaskSnapshot = {
   What history keeps for an address beside the router's own: whether the task board opened the task
   it names, so closing the task steps back to the board's entry rather than adding one, and whether
   the dialog the task was created in opened it in its own place, which the task's dialog then takes
-  without the opening animation; and whether a conversation's thread opened the subagent's work it
-  names, which closing it steps back from the same way. Extended on `@tanstack/history`, a dependency of the web package
+  without the opening animation; whether a conversation's thread opened the subagent's work it
+  names, and whether the Budget page opened the bill it names, which closing them steps back from
+  the same way. Extended on `@tanstack/history`, a dependency of the web package
   for this alone at the version the router pins: a router bump that moves it fails the typecheck
   where the key is read, until it follows
 */
@@ -171,6 +224,8 @@ declare module '@tanstack/history' {
     // Whether a subagent's work was opened from its row, so closing it steps back to the
     // conversation's entry rather than adding one
     isFromConversationThread?: boolean
+    // Whether the Budget page opened the bill, so closing it steps back to the page's entry
+    isFromBudgetPage?: boolean
   }
 }
 

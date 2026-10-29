@@ -5,18 +5,25 @@ import type { AddressInfo } from 'node:net'
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import express, { type NextFunction, type Request, type Response } from 'express'
-import { CONVERSATION_SEARCH_WINDOW_MINUTES, MAX_CONVERSATION_SEARCHES } from 'strategydance-core'
+import {
+  CONVERSATION_SEARCH_WINDOW_MINUTES,
+  MAX_AGENT_BILL_RECEIPT_SIZE,
+  MAX_CONVERSATION_SEARCHES,
+} from 'strategydance-core'
 
 import {
+  MAX_MODULE_REQUEST_BYTES,
   MAX_MODULE_REQUESTS,
   MAX_REFUSED_MODULE_REQUESTS,
   MODULE_IDEMPOTENCY_KEY_META,
   MODULE_PROTOCOL_VERSION,
 } from '~constants'
 
+import createAttachmentStorageFake from '~domain/conversations/testing/createAttachmentStorageFake'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
 const fake = createModuleDatabaseFake()
+const storage = createAttachmentStorageFake()
 
 const CLIENT_ID = 'https://client.example.com/oauth/metadata.json'
 
@@ -39,6 +46,7 @@ mock.module('~firebase', () => ({ dataConnect: {} }))
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 mock.module('~utils/fetchOutbound', () => ({ default: fetchOutbound, OutboundRefusal: class extends Error {} }))
 mock.module('strategydance-database/backend', () => fake.sdk)
+mock.module('~domain/budget/billReceiptStorage', () => ({ default: storage.storage }))
 mock.module('~domain/oauth/readOAuthTokenSecret', () => ({
   default: async (version?: number) => ({ value: 'secret', version: version ?? 1 }),
 }))
@@ -63,6 +71,8 @@ const KNOWLEDGE = `${ISSUER}/mcp/knowledge`
 const TASKS = `${ISSUER}/mcp/tasks`
 const RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/knowledge`
 const TASKS_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/tasks`
+const BUDGET = `${ISSUER}/mcp/budget`
+const BUDGET_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/budget`
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const MEMBER = 'member'
 const REDIRECT_URI = 'https://client.example.com/callback'
@@ -209,8 +219,13 @@ function tasksOfOrganization() {
   return [...fake.tasks.values()].filter(task => task.organizationId === ORGANIZATION_ID)
 }
 
+function billsOfOrganization() {
+  return [...fake.bills.values()].filter(bill => bill.organizationId === ORGANIZATION_ID)
+}
+
 beforeEach(() => {
   fake.reset()
+  storage.objects.clear()
   fake.addMember(MEMBER, ORGANIZATION_ID)
 })
 
@@ -636,6 +651,178 @@ describe('the Tasks module for external agents', () => {
       `limited to ${MAX_CONVERSATION_SEARCHES} in ${CONVERSATION_SEARCH_WINDOW_MINUTES} minutes`,
     )
     expect((await send(callTool('list_tasks', {}), { token, path: TASKS_PATH })).body.result.isError).toBeFalsy()
+  })
+})
+
+describe('the Budget module for external agents', () => {
+  const BUDGET_PATH = '/mcp/budget'
+  const READ_WRITE = ['budget:read', 'budget:write']
+  const NOTION = { name: 'Notion', company: 'Notion Labs', amount: '10.00', currency: 'USD' }
+  const list = { jsonrpc: '2.0', id: 1, method: 'tools/list' }
+
+  // A PNG of `size` bytes, its signature being all the module reads of a photo, in base64
+  function createPng(size: number) {
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+
+    return Buffer.concat([signature, Buffer.alloc(size - signature.length)]).toString('base64')
+  }
+
+  test("serves its protected resource metadata at the root, beside the other modules'", async () => {
+    const response = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/budget`)
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      resource: BUDGET,
+      authorization_servers: [ISSUER],
+      scopes_supported: ['budget:read', 'budget:write'],
+      resource_name: 'Strategy Dance Budget',
+    })
+  })
+
+  test("answers no token and a Tasks token 401, naming the Budget module's protected resource metadata", async () => {
+    const tasks = await connect({ scopes: ['tasks:read', 'tasks:write'], resource: TASKS })
+
+    for (const token of [undefined, tasks.access_token]) {
+      const { status, headers } = await send(list, { token, path: BUDGET_PATH })
+
+      expect(status).toBe(401)
+      expect(headers.get('www-authenticate')).toContain(`resource_metadata="${BUDGET_RESOURCE_METADATA}"`)
+    }
+
+    const budget = await connect({ scopes: READ_WRITE, resource: BUDGET })
+
+    expect((await send(list, { token: budget.access_token, path: BUDGET_PATH })).status).toBe(200)
+    expect((await send(list, { token: budget.access_token, path: '/mcp/tasks' })).status).toBe(401)
+  })
+
+  test("serves a valid access token's calls as its member, its results carrying the bills' addresses", async () => {
+    const client = await open((await connect({ scopes: READ_WRITE, resource: BUDGET })).access_token, BUDGET_PATH)
+
+    expect((await client.listTools()).tools).toHaveLength(7)
+
+    const added = await client.callTool({ name: 'add_bill', arguments: NOTION })
+    const { id, url } = added.structuredContent as { id: string; url: string }
+
+    expect(added.isError).toBeFalsy()
+    expect(url).toBe(`http://localhost:5173/${ORGANIZATION_ID}/budget/${id}`)
+    expect(billsOfOrganization()).toEqual([expect.objectContaining({ id, name: 'Notion', paidById: MEMBER })])
+
+    const listed = await client.callTool({ name: 'list_bills', arguments: { query: 'notion' } })
+    const read = await client.callTool({ name: 'read_bill', arguments: { id } })
+    const budget = await client.callTool({ name: 'read_budget', arguments: {} })
+
+    expect((listed.structuredContent as { bills: unknown[] }).bills).toEqual([expect.objectContaining({ id, url })])
+    expect(read.structuredContent).toMatchObject({ id, url })
+    expect(budget.isError).toBeFalsy()
+    expect(budget.structuredContent).toMatchObject({ budget: null })
+
+    await client.close()
+  })
+
+  test("challenges a read-only connection's writes, still listing them, until a new consent allows them", async () => {
+    const readOnly = await connect({ scopes: ['budget:read'], resource: BUDGET })
+
+    expect(readOnly.scope).toBe('budget:read')
+
+    const listed = await send(list, { token: readOnly.access_token, path: BUDGET_PATH })
+
+    expect(listed.body.result.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      'read_budget',
+      'list_bills',
+      'read_bill',
+      'add_bill',
+      'update_bill',
+      'delete_bill',
+      'restore_bill',
+    ])
+
+    const bill = fake.insertBill({ organizationId: ORGANIZATION_ID, paidById: MEMBER })
+
+    for (const [name, args] of [
+      ['add_bill', NOTION],
+      ['update_bill', { id: bill.id, name: 'Renamed' }],
+      ['delete_bill', { id: bill.id }],
+      ['restore_bill', { id: bill.id }],
+    ] as const) {
+      const challenged = await send(callTool(name, args), { token: readOnly.access_token, path: BUDGET_PATH })
+
+      expect(challenged.status).toBe(403)
+      expect(challenged.body.error).toBe('insufficient_scope')
+      expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
+      expect(challenged.headers.get('www-authenticate')).toContain('scope="budget:write"')
+      expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${BUDGET_RESOURCE_METADATA}"`)
+    }
+
+    expect(billsOfOrganization()).toEqual([expect.objectContaining({ id: bill.id, name: bill.name, deletedAt: null })])
+
+    const readWrite = await connect({ scopes: READ_WRITE, resource: BUDGET })
+    const written = await send(callTool('add_bill', NOTION), { token: readWrite.access_token, path: BUDGET_PATH })
+
+    expect(written.status).toBe(200)
+    expect(written.body.result.isError).toBeFalsy()
+    expect(billsOfOrganization()).toHaveLength(2)
+  })
+
+  test("takes the largest receipt an agent may hand over within the endpoint's body, and refuses a larger one with a sentence", async () => {
+    const { access_token: token } = await connect({ scopes: READ_WRITE, resource: BUDGET })
+    const largest = callTool('add_bill', {
+      ...NOTION,
+      receipt: { name: 'Receipt.png', contentType: 'image/png', base64: createPng(MAX_AGENT_BILL_RECEIPT_SIZE) },
+    })
+
+    // The base64 of 700 KiB, some 933 KiB, leaves the call under the endpoint's 1 MiB
+    expect(JSON.stringify(largest).length).toBeLessThan(MAX_MODULE_REQUEST_BYTES)
+
+    const stored = await send(largest, { token, path: BUDGET_PATH })
+    const { id } = stored.body.result.structuredContent as { id: string }
+
+    expect(stored.status).toBe(200)
+    expect(stored.body.result.isError).toBeFalsy()
+    expect(fake.receipts.get(fake.bills.get(id)!.receiptId!)).toMatchObject({
+      status: 'READY',
+      contentType: 'image/png',
+      size: MAX_AGENT_BILL_RECEIPT_SIZE,
+    })
+    expect(storage.objects.size).toBe(1)
+
+    const tooLarge = await send(
+      callTool('add_bill', {
+        ...NOTION,
+        receipt: {
+          name: 'Receipt.png',
+          contentType: 'image/png',
+          base64: createPng(MAX_AGENT_BILL_RECEIPT_SIZE + 1024),
+        },
+      }),
+      { token, path: BUDGET_PATH },
+    )
+
+    expect(tooLarge.status).toBe(200)
+    expect(tooLarge.body.result.isError).toBe(true)
+    expect(tooLarge.body.result.content[0].text).toContain('at most 700 KiB once decoded')
+    expect(billsOfOrganization()).toHaveLength(1)
+    expect(storage.objects.size).toBe(1)
+  })
+
+  test("answers a query past the member's allowance with a result saying so, and never counts a list without one", async () => {
+    const { access_token: token } = await connect({ scopes: READ_WRITE, resource: BUDGET })
+    const unfiltered = await send(callTool('list_bills', {}), { token, path: BUDGET_PATH })
+
+    expect(unfiltered.body.result.isError).toBeFalsy()
+    expect(fake.searches).toEqual([])
+
+    for (let index = 0; index < MAX_CONVERSATION_SEARCHES; index++) {
+      fake.searches.push({ userId: MEMBER, organizationId: ORGANIZATION_ID, createdAt: new Date().toISOString() })
+    }
+
+    const { status, body } = await send(callTool('list_bills', { query: 'notion' }), { token, path: BUDGET_PATH })
+
+    expect(status).toBe(200)
+    expect(body.result.isError).toBe(true)
+    expect(body.result.content[0].text).toContain(
+      `limited to ${MAX_CONVERSATION_SEARCHES} in ${CONVERSATION_SEARCH_WINDOW_MINUTES} minutes`,
+    )
+    expect((await send(callTool('list_bills', {}), { token, path: BUDGET_PATH })).body.result.isError).toBeFalsy()
   })
 })
 

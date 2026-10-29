@@ -20,6 +20,7 @@ import type {
 } from '~types'
 
 import useNow from '~hooks/common/useNow'
+import useConversationBills from '~hooks/conversation/useConversationBills'
 import useConversationDeletedItems from '~hooks/conversation/useConversationDeletedItems'
 import useConversationDocuments from '~hooks/conversation/useConversationDocuments'
 import useConversationPendingMessages from '~hooks/conversation/useConversationPendingMessages'
@@ -50,6 +51,7 @@ import hasConversationMessageBody, {
 } from '~utils/conversation/hasConversationMessageBody'
 import isAwaitingConversationRun, { type StartedConversationRun } from '~utils/conversation/isAwaitingConversationRun'
 import isConversationRunGoing from '~utils/conversation/isConversationRunGoing'
+import needsConversationBills, { DELETE_BILL_TOOL_NAME } from '~utils/conversation/needsConversationBills'
 import needsConversationDocuments, { DELETE_DOCUMENT_TOOL_NAME } from '~utils/conversation/needsConversationDocuments'
 import needsConversationTasks, { DELETE_TASK_TOOL_NAME } from '~utils/conversation/needsConversationTasks'
 import placeConversationPendingMessages from '~utils/conversation/placeConversationPendingMessages'
@@ -60,6 +62,7 @@ import Spinner from '~components/common/Spinner'
 import ConversationAgentMessage from '~components/conversation/ConversationAgentMessage'
 import ConversationApproval from '~components/conversation/ConversationApproval'
 import ConversationAspectsNote from '~components/conversation/ConversationAspectsNote'
+import ConversationBillRestore from '~components/conversation/ConversationBillRestore'
 import ConversationBrief from '~components/conversation/ConversationBrief'
 import ConversationDecidedApproval from '~components/conversation/ConversationDecidedApproval'
 import ConversationDocumentRestore from '~components/conversation/ConversationDocumentRestore'
@@ -147,6 +150,7 @@ function ConversationThread({
     needsConversationDocuments(entries, bodies) || pendingMessages.some(({ text }) => /doc:/i.test(text)),
   )
   const tasks = useConversationTasks(needsConversationTasks(entries, bodies))
+  const bills = useConversationBills(needsConversationBills(entries))
   const deletedItems = useConversationDeletedItems(conversation.id, readConversationDeletedCallIds(entries))
   // A subagent's edits too, which its viewer draws: what Undo takes back is the document's text
   const undoableRevisions = useConversationUndoableRevisions(conversation.id, countConversationDocumentEdits(entries))
@@ -339,10 +343,10 @@ function ConversationThread({
   }
 
   /*
-    Restore, on a row where Strategy Dance deleted a document or a task, while the organization's
-    live list does not hold it and a day has not passed since the call, and Undo, on a row where it
-    edited a document, while nobody has written in the document since. A row offers nothing else,
-    so a phone keeps its badge while neither is shown
+    Restore, on a row where Strategy Dance deleted a document, a task or a bill, while the
+    organization's live list does not hold it and a day has not passed since the call, and Undo, on a
+    row where it edited a document, while nobody has written in the document since. A row offers
+    nothing else, so a phone keeps its badge while neither is shown
   */
   function renderAction(entry: ConversationThreadEntry) {
     if (entry.toolName === UPDATE_DOCUMENT_TOOL_NAME && entry.toolStatus === ConversationToolStatus.SUCCEEDED) {
@@ -367,6 +371,10 @@ function ConversationThread({
 
     if (entry.toolName === DELETE_TASK_TOOL_NAME && canRestoreConversationItem(deleted, tasks, now)) {
       return <ConversationTaskRestore taskId={deleted.id} />
+    }
+
+    if (entry.toolName === DELETE_BILL_TOOL_NAME && canRestoreConversationItem(deleted, bills, now)) {
+      return <ConversationBillRestore billId={deleted.id} />
     }
 
     return null

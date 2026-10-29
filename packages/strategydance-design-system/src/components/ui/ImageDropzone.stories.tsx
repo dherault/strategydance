@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { UploadIcon } from 'lucide-react'
 import { type ComponentProps, useState } from 'react'
 import { ImageDropzone } from 'strategydance-design-system/components/ui/ImageDropzone'
 
@@ -81,6 +82,27 @@ export const CirclePreview: Story = {
     src: PHOTO,
     alt: 'Profile picture preview',
   },
+}
+
+// A file that need not be a picture, as a bill's receipt, under an icon of its own. Nothing is
+// previewed: the caller shows the file it took beside the zone
+export const Receipt: Story = {
+  args: {
+    label: 'Attach a receipt',
+    icon: <UploadIcon />,
+    accept: 'application/pdf,text/plain,image/jpeg,image/png,image/webp',
+    prompt: (
+      <>
+        <strong>Drop a receipt here</strong> or click to choose
+        <span className="block text-xs">PDF, text file or photo</span>
+      </>
+    ),
+  },
+  render: args => (
+    <div className="max-w-[512px]">
+      <ImageDropzone {...args} />
+    </div>
+  ),
 }
 
 // While the picture just chosen is being saved

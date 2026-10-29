@@ -425,9 +425,9 @@ const conversationMessages = defineMessages({
   retryDialogKept: {
     id: 'conversation.retryDialog.kept',
     defaultMessage:
-      '{total, plural, one {What it changed in your knowledge and tasks stays as it is.} other {What they changed in your knowledge and tasks stays as it is.}}',
+      '{total, plural, one {What it changed in your knowledge, tasks and bills stays as it is.} other {What they changed in your knowledge, tasks and bills stays as it is.}}',
     description:
-      'In the dialog that asks before the AI answers the reader’s last message again: the documents and tasks the discarded subagents created or changed are not undone. {total} is how many subagents.',
+      'In the dialog that asks before the AI answers the reader’s last message again: the documents, tasks and bills the discarded subagents created or changed are not undone. {total} is how many subagents.',
   },
   retryDialogConfirm: {
     id: 'conversation.retryDialog.confirm',
@@ -639,6 +639,88 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Restored a task',
     description:
       "What the AI did once it brought back a task on the team's board, the shared list of work to do that was deleted. Past tense.",
+  },
+  toolReadBudgetRunning: {
+    id: 'conversation.tool.readBudget.running',
+    defaultMessage: 'Checking the budget',
+    description:
+      "What the AI is doing while it checks the organization's budget, what the company means to spend and the bills it pays: what is spent and what is left.",
+  },
+  toolReadBudgetDone: {
+    id: 'conversation.tool.readBudget.done',
+    defaultMessage: 'Checked the budget',
+    description:
+      "What the AI did once it checked the organization's budget, what the company means to spend and the bills it pays: what is spent and what is left. Past tense.",
+  },
+  toolListBillsRunning: {
+    id: 'conversation.tool.listBills.running',
+    defaultMessage: 'Listing bills',
+    description:
+      "What the AI is doing while it looks through the bills in the organization's budget, what the company pays.",
+  },
+  toolListBillsDone: {
+    id: 'conversation.tool.listBills.done',
+    defaultMessage: 'Listed bills',
+    description:
+      "What the AI did once it looked through the bills in the organization's budget, what the company pays. Past tense.",
+  },
+  toolReadBillRunning: {
+    id: 'conversation.tool.readBill.running',
+    defaultMessage: 'Opening a bill',
+    description:
+      "What the AI is doing while it reads one bill in the organization's budget, something the company pays.",
+  },
+  toolReadBillDone: {
+    id: 'conversation.tool.readBill.done',
+    defaultMessage: 'Opened a bill',
+    description:
+      "What the AI did once it read one bill in the organization's budget, something the company pays. Past tense.",
+  },
+  toolAddBillRunning: {
+    id: 'conversation.tool.addBill.running',
+    defaultMessage: 'Adding a bill',
+    description: "What the AI is doing while it adds a bill, something the company pays, to the organization's budget.",
+  },
+  toolAddBillDone: {
+    id: 'conversation.tool.addBill.done',
+    defaultMessage: 'Added a bill',
+    description:
+      "What the AI did once it added a bill, something the company pays, to the organization's budget. Past tense.",
+  },
+  toolUpdateBillRunning: {
+    id: 'conversation.tool.updateBill.running',
+    defaultMessage: 'Updating a bill',
+    description:
+      "What the AI is doing while it changes a bill, something the company pays, in the organization's budget.",
+  },
+  toolUpdateBillDone: {
+    id: 'conversation.tool.updateBill.done',
+    defaultMessage: 'Updated a bill',
+    description:
+      "What the AI did once it changed a bill, something the company pays, in the organization's budget. Past tense.",
+  },
+  toolDeleteBillRunning: {
+    id: 'conversation.tool.deleteBill.running',
+    defaultMessage: 'Deleting a bill',
+    description:
+      "What the AI is doing while it deletes a bill, something the company pays, from the organization's budget.",
+  },
+  toolDeleteBillDone: {
+    id: 'conversation.tool.deleteBill.done',
+    defaultMessage: 'Deleted a bill',
+    description:
+      "What the AI did once it deleted a bill, something the company pays, from the organization's budget. Past tense.",
+  },
+  toolRestoreBillRunning: {
+    id: 'conversation.tool.restoreBill.running',
+    defaultMessage: 'Restoring a bill',
+    description: "What the AI is doing while it brings back a bill in the organization's budget that was deleted.",
+  },
+  toolRestoreBillDone: {
+    id: 'conversation.tool.restoreBill.done',
+    defaultMessage: 'Restored a bill',
+    description:
+      "What the AI did once it brought back a bill in the organization's budget that was deleted. Past tense.",
   },
   toolListIntegrationsRunning: {
     id: 'conversation.tool.listIntegrations.running',
@@ -1003,6 +1085,18 @@ const conversationMessages = defineMessages({
     defaultMessage: 'The task could not be brought back.',
     description:
       "Notification when bringing back a task on the team's board that the AI deleted failed, for instance once a day has passed since the delete.",
+  },
+  restoreBill: {
+    id: 'conversation.restoreBill',
+    defaultMessage: 'Restore',
+    description:
+      "Button on the line saying the AI deleted a bill, something the company pays, from the organization's budget, which brings the bill back. Offered for a day after the delete.",
+  },
+  restoreBillError: {
+    id: 'conversation.restoreBillError',
+    defaultMessage: 'The bill could not be brought back.',
+    description:
+      "Notification when bringing back a bill in the organization's budget that the AI deleted failed, for instance once a day has passed since the delete.",
   },
   undoDocumentEdit: {
     id: 'conversation.undoDocumentEdit',

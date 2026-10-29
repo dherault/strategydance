@@ -325,6 +325,19 @@
     "inactiveReason": "PARKED"
   },
   {
+    "id": "aibase",
+    "name": "AIBase",
+    "type": "WEBSITE",
+    "rootUrl": "https://app.aibase.com/",
+    "submissionUrl": "https://app.aibase.com/submission",
+    "description": "",
+    "categories": [],
+    "businessModel": "PAID",
+    "lastChecked": "2026-10-27",
+    "unreachableSince": "2026-10-24",
+    "inactiveReason": "UNREACHABLE"
+  },
+  {
     "id": "aicyclopedia",
     "name": "AICYCLOPEDIA",
     "type": "WEBSITE",
@@ -385,7 +398,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-27",
     "unreachableSince": null,
     "inactiveReason": "PARKED"
   },
@@ -1087,7 +1100,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null,
     "inactiveReason": "UNREACHABLE"
   },
@@ -1282,7 +1295,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null,
     "inactiveReason": "REPURPOSED"
   },
@@ -1620,7 +1633,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null,
     "inactiveReason": "REPURPOSED"
   },
@@ -1880,7 +1893,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null,
     "inactiveReason": "PARKED"
   },
@@ -1984,7 +1997,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null,
     "inactiveReason": "REPURPOSED"
   },

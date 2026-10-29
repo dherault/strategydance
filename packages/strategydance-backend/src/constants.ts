@@ -374,6 +374,15 @@ export const MAX_LOOP_TASKS_NAMED = 20
 export const MAX_TASKS_INDEXED = 20
 export const TASK_UPDATE_ATTEMPTS = 3
 
+/*
+  The Budget module's bounds. A list answers at most 50 bills and 40000 characters of JSON a page,
+  short of the 50000 characters a tool result is cut at. An update lost to another save is read again
+  and reapplied, three times at most
+*/
+export const BILL_LIST_PAGE_SIZE = 50
+export const BILL_LIST_PAGE_LENGTH = 40000
+export const BILL_UPDATE_ATTEMPTS = 3
+
 /* ---
   OAUTH
 
@@ -483,6 +492,22 @@ export const GITHUB_REQUEST_TIMEOUT_MS = 15 * 1000
 export const DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/directories.json'
 
 export const INACTIVE_DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/inactiveDirectories.json'
+
+/* ---
+  EXCHANGE RATES
+--- */
+
+/*
+  Frankfurter, which serves the European Central Bank's daily rates, free and with no key, and the
+  first year the ECB published them, 1999. A fixed address nobody gave, so the daily sync reaches it
+  with plain `fetch` rather than the outbound guard
+*/
+export const EXCHANGE_RATES_URL = 'https://api.frankfurter.dev/v1/'
+
+export const EXCHANGE_RATES_FIRST_YEAR = 1999
+
+// How long one year's request to Frankfurter may take, its answer read whole
+export const EXCHANGE_RATES_REQUEST_TIMEOUT_MS = 20 * 1000
 
 /* ---
   INTEGRATIONS

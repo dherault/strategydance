@@ -8883,3 +8883,724 @@ mutation DisconnectIntegration($organizationId: UUID!, $userId: String!, $integr
 mutation PruneIntegrationAuthorizations @auth(level: NO_ACCESS) {
   integrationAuthorization_deleteMany(where: { expiresAt: { lt_time: { now: true, sub: { hours: 1 } } } })
 }
+
+# The daily sync's: writes one currency's rates for one year, whole, over what was there. Each row is
+# written again while its year is the latest stored, so a run that failed partway is finished by the
+# next. `updatedAt` is written by hand, since a default applies to an insert alone
+mutation UpsertExchangeRateYear($currency: Currency!, $year: Int!, $rates: String!) @auth(level: NO_ACCESS) {
+  exchangeRateYear_upsert(data: { currency: $currency, year: $year, rates: $rates, updatedAt_expr: "request.time" })
+}
+
+# Reserves a receipt the caller uploads for a bill, before any of its bytes is accepted: its row,
+# `UPLOADING`, under the id the page made for it, so an upload sent again finds it, and its file is
+# never without its row. The first step writes the caller's membership, so somebody removed meanwhile
+# reserves nothing. The name, type and size are checked as the backend checked them,
+# `BILL_RECEIPT_CONTENT_TYPES`, `MAX_BILL_RECEIPT_NAME_LENGTH` and `MAX_BILL_RECEIPT_SIZE` in
+# strategydance-core. `$userId` is the uid the backend verified
+mutation ReserveBillReceipt(
+  $organizationId: UUID!
+  $userId: String!
+  $receiptId: UUID!
+  $name: String!
+  $contentType: String!
+  $size: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can upload a receipt to it")
+    @check(
+      expr: "size(vars.name) >= 1 && size(vars.name) <= 200 && vars.name.matches('^[^\\r\\n]*$') && vars.size >= 1 && vars.size <= 10485760 && vars.contentType in ['application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'image/jpeg', 'image/png', 'image/webp']"
+      message: "A receipt has a name on one line of at most 200 characters, a type a bill takes, and at most 10 MiB"
+    )
+  billReceipt_insert(
+    data: {
+      id: $receiptId
+      organizationId: $organizationId
+      userId: $userId
+      status: UPLOADING
+      name: $name
+      contentType: $contentType
+      size: $size
+    }
+  )
+}
+
+# Finishes the upload of a receipt whose row was reserved, once its file is stored and checked: it
+# turns `READY`, only while it is still `UPLOADING`, so a retry of the same upload that finished
+# first refuses it, and the backend reads the row again to tell
+mutation CompleteBillReceiptUpload($organizationId: UUID!, $userId: String!, $receiptId: UUID!)
+@auth(level: NO_ACCESS)
+@transaction {
+  billReceipt_updateMany(
+    where: {
+      id: { eq: $receiptId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      status: { eq: UPLOADING }
+    }
+    data: { status: READY }
+  ) @check(expr: "this == 1", message: "The receipt is no longer being uploaded")
+}
+
+# Claims a receipt for the receipt reader, which reads each receipt once and only for the member who
+# uploaded it, within a day of its upload, so every read the caps count outlives their 24 hours
+# before the sweep can delete its row: sets `readAt` on the caller's `READY` receipt while it has none, or while a read that
+# claimed it over two minutes ago stored nothing, which only a backend that stopped mid-read leaves,
+# its request timing out after one. A second claim is refused, and the backend reads the row again to
+# tell a read under way from one done.
+#
+# It holds the reader to 50 receipts in 24 hours per member in an organization and 200 per
+# organization (`MAX_DAILY_RECEIPT_READS_PER_MEMBER` and `MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION` in
+# strategydance-core: change them together), counting every receipt but this one claimed in the 24
+# hours before. The first step writes the caller's membership, so the member's count after it sees
+# every claim of theirs that committed before it; the organization's runs under no lock of its own,
+# which two members claiming at once can each pass by one. `$isUsageCapped` false lifts both, as the
+# development backend does; left out, they hold. `$userId` is the uid the backend verified, and
+# `$readClaim` the id it made for this read, which its record or its release names
+mutation ClaimBillReceiptRead(
+  $organizationId: UUID!
+  $userId: String!
+  $receiptId: UUID!
+  $readClaim: UUID!
+  $isUsageCapped: Boolean
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can have its receipts read")
+  query @redact {
+    # Reads the lock's response, so every step runs as a statement of its own, seeing what was
+    # committed while the lock was waited for, which one statement would not (CLAUDE.md § The database)
+    memberReads: billReceipts(
+      where: {
+        userId: { eq_expr: "response.userOrganization_update.userId" }
+        organizationId: { eq: $organizationId }
+        id: { ne: $receiptId }
+        readAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 50
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 50"
+        message: "Somebody has at most 50 receipts read in 24 hours in an organization"
+      ) {
+      id
+    }
+    organizationReads: billReceipts(
+      where: {
+        organizationId: { eq: $organizationId }
+        id: { ne: $receiptId }
+        readAt: { gt_time: { now: true, sub: { hours: 24 } } }
+      }
+      limit: 200
+    )
+      @check(
+        expr: "(has(vars.isUsageCapped) && vars.isUsageCapped == false) || size(this) < 200"
+        message: "An organization has at most 200 receipts read in 24 hours"
+      ) {
+      id
+    }
+  }
+  billReceipt_updateMany(
+    where: {
+      _and: [
+        {
+          id: { eq: $receiptId }
+          userId: { eq: $userId }
+          organizationId: { eq: $organizationId }
+          status: { eq: READY }
+          createdAt: { gt_time: { now: true, sub: { hours: 24 } } }
+        }
+        {
+          _or: [
+            { readAt: { isNull: true } }
+            { _and: [{ readFields: { isNull: true } }, { readAt: { lt_time: { now: true, sub: { minutes: 2 } } } }] }
+          ]
+        }
+      ]
+    }
+    data: { readAt_expr: "request.time", readClaim: $readClaim }
+  ) @check(expr: "this == 1", message: "The receipt is being read, or was read already")
+}
+
+# Keeps what the receipt reader found in a receipt it claimed, the JSON text of strategydance-core's
+# `BillReceiptFields`, clamped to a bill's lengths, so asking again answers it for nothing. Refused
+# once the claim is gone, another read took it over, or fields are stored, which the reader logs
+mutation RecordBillReceiptRead(
+  $organizationId: UUID!
+  $userId: String!
+  $receiptId: UUID!
+  $readClaim: UUID!
+  $readFields: String!
+) @auth(level: NO_ACCESS) @transaction {
+  billReceipt_updateMany(
+    where: {
+      id: { eq: $receiptId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      readClaim: { eq: $readClaim }
+      readFields: { isNull: true }
+    }
+    data: { readFields: $readFields }
+  )
+    @check(expr: "size(vars.readFields) <= 2000", message: "What a receipt's read found fits in 2000 characters")
+    @check(expr: "this == 1", message: "The receipt is no longer being read")
+}
+
+# Lets go of a receipt the reader claimed, once its request failed before it read anything, so the
+# read counts toward no cap and the member can ask again. A receipt whose fields are stored keeps its
+# claim, and so does one another read took over since, and letting go twice changes nothing
+mutation ReleaseBillReceiptRead($organizationId: UUID!, $userId: String!, $receiptId: UUID!, $readClaim: UUID!)
+@auth(level: NO_ACCESS) {
+  billReceipt_updateMany(
+    where: {
+      id: { eq: $receiptId }
+      userId: { eq: $userId }
+      organizationId: { eq: $organizationId }
+      readClaim: { eq: $readClaim }
+      readFields: { isNull: true }
+    }
+    data: { readAt: null, readClaim: null }
+  )
+}
+
+# The daily sweep's: deletes every bill deleted over a day ago, past its Undo, in every organization.
+# Its receipt stays, held by nothing, for `GetPrunableBillReceipts` to take. Deleting what is gone
+# already deletes nothing, so a sweep that failed is finished by the next
+mutation PruneDeletedBills @auth(level: NO_ACCESS) {
+  bill_deleteMany(where: { deletedAt: { lt_time: { now: true, sub: { days: 1 } } } })
+}
+
+# Deletes the rows of receipts the sweep read, once their files are gone. Only those still held and
+# kept by no bill and over three days old, as it read them, so a row is never deleted on its id
+# alone. Deleting one twice deletes nothing
+mutation DeleteBillReceipts($ids: [UUID!]!) @auth(level: NO_ACCESS) {
+  billReceipt_deleteMany(
+    where: {
+      _and: [
+        { id: { in: $ids } }
+        { createdAt: { lt_time: { now: true, sub: { days: 3 } } } }
+        { _not: { bill_on_receipt: { id: { isNull: false } } } }
+        { formerBillId: { isNull: true } }
+      ]
+    }
+  )
+}
+
+# The Budget module's writes follow, named `…ForAgent`, as its reads are: see `queries.gql`.
+#
+# Each runs as one transaction that checks the membership the module read, then, when the call
+# carries an idempotency key (`$isKeyed`), inserts its `ModuleCallResult`, `$result` being what the
+# module answers, and only then writes, as the Tasks module's writes do. Each holds a bill to what the
+# page's operation holds it to, with the same messages where the same rule holds, and is named in
+# `GetBills`' refreshes, on `$organizationId`, so an open Budget page follows an agent's change
+
+# Adds a bill an agent wrote, held to `CreateBill`'s bounds, and to the 2000 live bills an
+# organization keeps (`MAX_BILLS`), counted under the same lock on the organization's row: the count
+# and the membership read the lock's response, so they run as a statement of their own and see every
+# bill another member's add committed while the lock was waited for (CLAUDE.md § The database). Its
+# receipt, when it has one, is one `CreateBill` would take, uploaded by the member the agent acts as,
+# which `ReserveBillReceiptForAgent` reserved for this call
+mutation CreateBillForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $name: String!
+  $description: String!
+  $company: String!
+  $amountMinor: Int64!
+  $currency: Currency!
+  $paidOn: Date!
+  $recurrence: BillRecurrence
+  $endsOn: Date
+  $paidById: String!
+  $receiptId: UUID
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+    @check(
+      expr: "size(vars.name) <= 80 && vars.name.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.company) <= 60 && vars.company.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.description) <= 140"
+      message: "A bill's name and company are one line of at most 80 and 60 characters, with no space at either end, and its description at most 140 characters"
+    )
+    @check(
+      expr: "vars.amountMinor >= 1 && vars.amountMinor <= 1000000000000000"
+      message: "A bill's amount is 1 to 10^15 minor units"
+    )
+    @check(
+      expr: "vars.paidOn >= timestamp('1999-01-01T00:00:00Z') && vars.paidOn <= request.time + duration('87672h')"
+      message: "A bill is paid from 1999 to ten years ahead"
+    )
+    @check(
+      expr: "!has(vars.endsOn) || vars.endsOn == null || (has(vars.recurrence) && vars.recurrence != null && vars.endsOn >= vars.paidOn)"
+      message: "A bill ends only when it recurs, on or after its first payment"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    bills(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 2000
+    ) @check(expr: "size(this) < 2000", message: "An organization keeps at most 2000 bills") {
+      id
+    }
+    payers: userOrganizations(where: { organizationId: { eq: $organizationId }, userId: { eq: $paidById } }, limit: 1)
+      @check(expr: "size(this) == 1", message: "A bill is paid by a member of its organization") {
+      role
+    }
+    # With no receipt there is nothing to check, whatever this reads, since a filter on a null
+    # variable is dropped
+    receipts: billReceipts(
+      where: {
+        _and: [
+          { id: { eq: $receiptId } }
+          { organizationId: { eq: $organizationId } }
+          { status: { eq: READY } }
+          { userId: { eq: $userId } }
+          { createdAt: { gt_time: { now: true, sub: { days: 2 } } } }
+          { _not: { bill_on_receipt: { id: { isNull: false } } } }
+          { formerBillId: { isNull: true } }
+        ]
+      }
+      limit: 1
+    )
+      @check(
+        expr: "!has(vars.receiptId) || vars.receiptId == null || size(this) == 1"
+        message: "The receipt can no longer be attached to this bill: attach it again"
+      ) {
+      id
+    }
+  }
+  bill_insert(
+    data: {
+      id: $id
+      organizationId: $organizationId
+      name: $name
+      description: $description
+      company: $company
+      amountMinor: $amountMinor
+      currency: $currency
+      paidOn: $paidOn
+      recurrence: $recurrence
+      endsOn: $endsOn
+      paidById: $paidById
+      receiptId: $receiptId
+      createdById: $userId
+      updatedById: $userId
+    }
+  )
+}
+
+# Saves a bill for an agent as `UpdateBill` saves it: every field, the module having laid the fields
+# its call gave over the bill as it read it, held to what `UpdateBill` holds them to, on the
+# `updatedAt` it read, so a save another member made meanwhile refuses it, and the module reads the
+# bill again and lays its fields over that. A bill keeps its payer, even one who has left, and its
+# receipt, whoever uploaded it, takes back one of its earlier receipts, and keeps the one a save
+# replaces or removes as an earlier one (`formerBill`), as the page's does. The checks on the variables are optional under the membership, so a
+# caller who is no member is told so. A receipt another bill holds is refused by the receipt's check,
+# as the emulator answers it, or by the unique reference (`bill_receiptId_uidx`) where Postgres
+# reports that first, the operation running as one SQL statement: the module reads both alike
+mutation UpdateBillForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $updatedAt: Timestamp!
+  $name: String!
+  $description: String!
+  $company: String!
+  $amountMinor: Int64!
+  $currency: Currency!
+  $paidOn: Date!
+  $recurrence: BillRecurrence
+  $endsOn: Date
+  $paidById: String!
+  $receiptId: UUID
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+        @check(
+          expr: "size(vars.name) <= 80 && vars.name.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.company) <= 60 && vars.company.matches(r'^[^\\s\\v\\pZ\\x{FEFF}](?:[^\\r\\n\\x{2028}\\x{2029}]*[^\\s\\v\\pZ\\x{FEFF}])?$') && size(vars.description) <= 140"
+          message: "A bill's name and company are one line of at most 80 and 60 characters, with no space at either end, and its description at most 140 characters"
+          optional: true
+        )
+        @check(
+          expr: "vars.amountMinor >= 1 && vars.amountMinor <= 1000000000000000"
+          message: "A bill's amount is 1 to 10^15 minor units"
+          optional: true
+        )
+        @check(
+          expr: "vars.paidOn >= timestamp('1999-01-01T00:00:00Z') && vars.paidOn <= request.time + duration('87672h')"
+          message: "A bill is paid from 1999 to ten years ahead"
+          optional: true
+        )
+        @check(
+          expr: "!has(vars.endsOn) || vars.endsOn == null || (has(vars.recurrence) && vars.recurrence != null && vars.endsOn >= vars.paidOn)"
+          message: "A bill ends only when it recurs, on or after its first payment"
+          optional: true
+        )
+    }
+    # One `_and`, because a filter cannot put `_or` beside plain fields
+    payers: users(
+      where: {
+        _and: [
+          { id: { eq: $paidById } }
+          {
+            _or: [
+              { userOrganizations_on_user: { exist: { organizationId: { eq: $organizationId } } } }
+              { bills_on_paidBy: { exist: { id: { eq: $id } } } }
+            ]
+          }
+        ]
+      }
+      limit: 1
+    )
+      @check(
+        expr: "size(this) == 1"
+        message: "A bill is paid by a member of its organization, or by whoever paid it"
+      ) {
+      id
+    }
+    receipts: billReceipts(
+      where: {
+        _and: [
+          { id: { eq: $receiptId } }
+          { organizationId: { eq: $organizationId } }
+          {
+            _or: [
+              { bill_on_receipt: { id: { eq: $id } } }
+              { _and: [{ formerBillId: { eq: $id } }, { _not: { bill_on_receipt: { id: { isNull: false } } } }] }
+              {
+                _and: [
+                  { status: { eq: READY } }
+                  { userId: { eq: $userId } }
+                  { createdAt: { gt_time: { now: true, sub: { days: 2 } } } }
+                  { _not: { bill_on_receipt: { id: { isNull: false } } } }
+                  { formerBillId: { isNull: true } }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+      limit: 1
+    )
+      @check(
+        expr: "!has(vars.receiptId) || vars.receiptId == null || size(this) == 1"
+        message: "The receipt can no longer be attached to this bill: attach it again"
+      ) {
+      id
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  # Marks the receipt the bill holds, as the statement reads it before this save, as the bill's own,
+  # so should the save let it go, it is kept as one of the bill's earlier receipts rather than
+  # pruned. It filters on the bill alone, never on `$receiptId`, whose filter a null would drop
+  billReceipt_updateMany(
+    where: { organizationId: { eq: $organizationId }, bill_on_receipt: { id: { eq: $id } } }
+    data: { formerBillId: $id }
+  )
+  bill_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { isNull: true }
+      updatedAt: { eq: $updatedAt }
+    }
+    data: {
+      name: $name
+      description: $description
+      company: $company
+      amountMinor: $amountMinor
+      currency: $currency
+      paidOn: $paidOn
+      recurrence: $recurrence
+      endsOn: $endsOn
+      paidById: $paidById
+      receiptId: $receiptId
+      updatedById: $userId
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "The bill was deleted or changed elsewhere since it was read")
+}
+
+# Deletes a bill for an agent as `DeleteBill` does, setting `deletedAt` and keeping its receipt, so it
+# can be restored for a day, after which the daily sweep prunes it. Unlike the page's, a bill gone
+# already is refused, so the agent hears it
+mutation DeleteBillForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  bill_updateMany(
+    where: { id: { eq: $id }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+    data: { deletedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "No bill by that id in the organization")
+}
+
+# Takes back a delete for an agent, as `RestoreBill` does: within a day of it, and against the 2000
+# live bills an organization keeps, counted under the same lock on its row, the count and the
+# membership reading the lock's response
+mutation RestoreBillForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $id: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    bills(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 2000
+    ) @check(expr: "size(this) < 2000", message: "An organization keeps at most 2000 bills") {
+      id
+    }
+  }
+  bill_updateMany(
+    where: {
+      id: { eq: $id }
+      organizationId: { eq: $organizationId }
+      deletedAt: { gt_time: { now: true, sub: { days: 1 } } }
+    }
+    data: { deletedAt: null }
+  ) @check(expr: "this == 1", message: "The bill is gone for good")
+}
+
+# Reserves a receipt an agent hands the Budget module, before its file is written, as
+# `ReserveBillReceipt` reserves one the page uploads: its row, `UPLOADING`, under an id the module
+# made, so its file is never without its row. The first step writes the membership the module read,
+# matched on its `createdAt`, so a member removed meanwhile reserves nothing. Its size is
+# `MAX_AGENT_BILL_RECEIPT_SIZE` at most, past which the page's upload takes it, and its name and type
+# `MAX_BILL_RECEIPT_NAME_LENGTH` and `BILL_RECEIPT_CONTENT_TYPES` in strategydance-core. It writes no
+# `ModuleCallResult`: the bill's write, which takes the receipt once it is `READY`, holds the call's
+# key, and a receipt a retry leaves held by nothing is pruned by the daily sweep
+mutation ReserveBillReceiptForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $receiptId: UUID!
+  $name: String!
+  $contentType: String!
+  $size: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_updateMany(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "size(vars.name) >= 1 && size(vars.name) <= 200 && vars.name.matches('^[^\\r\\n]*$') && vars.size >= 1 && vars.size <= 716800 && vars.contentType in ['application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'image/jpeg', 'image/png', 'image/webp']"
+      message: "A receipt has a name on one line of at most 200 characters, a type a bill takes, and at most 700 KiB"
+    )
+  billReceipt_insert(
+    data: {
+      id: $receiptId
+      organizationId: $organizationId
+      userId: $userId
+      status: UPLOADING
+      name: $name
+      contentType: $contentType
+      size: $size
+    }
+  )
+}
+
+# Reserves a receipt Strategy Dance's agent names by a file the member sent in a conversation, before
+# the file is copied under it, as `ReserveBillReceiptForAgent` reserves one handed over in base64: its
+# row, `UPLOADING`, under an id the module made, so its file is never without its row, the
+# membership the module read matched on its `createdAt` first. The copy carries no bytes in a call's
+# body, so its size is the page's `MAX_BILL_RECEIPT_SIZE` at most rather than the agent's, and the
+# query step holds the reservation to the member's own file, stored and sent in `$conversationId`, of
+# the name, type and size the module read, so nothing else is reserved that large. It writes no
+# `ModuleCallResult`: the bill's write holds the call's key, and a receipt a retry leaves held by
+# nothing is pruned by the daily sweep
+mutation ReserveAttachmentBillReceiptForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $receiptId: UUID!
+  $conversationId: UUID!
+  $attachmentId: UUID!
+  $name: String!
+  $contentType: String!
+  $size: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  userOrganization_updateMany(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "size(vars.name) >= 1 && size(vars.name) <= 200 && vars.name.matches('^[^\\r\\n]*$') && vars.size >= 1 && vars.size <= 10485760 && vars.contentType in ['application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'image/jpeg', 'image/png', 'image/webp']"
+      message: "A receipt has a name on one line of at most 200 characters, a type a bill takes, and at most 10 MiB"
+    )
+  query @redact {
+    conversationAttachments(
+      where: {
+        id: { eq: $attachmentId }
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        conversationId: { eq: $conversationId }
+        status: { eq: READY }
+        messageId: { isNull: false }
+        name: { eq: $name }
+        contentType: { eq: $contentType }
+        size: { eq: $size }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The file is not one the member sent in the conversation") {
+      id
+    }
+  }
+  billReceipt_insert(
+    data: {
+      id: $receiptId
+      organizationId: $organizationId
+      userId: $userId
+      status: UPLOADING
+      name: $name
+      contentType: $contentType
+      size: $size
+    }
+  )
+}

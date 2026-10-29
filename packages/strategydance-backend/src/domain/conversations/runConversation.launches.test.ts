@@ -96,6 +96,7 @@ describe('runConversation, launching subagents', () => {
     const [brief] = kit.readEntries({ ...parent, conversationId: subagent?.id ?? '' })
 
     expect(JSON.parse(brief?.content ?? '[]')).toEqual([
+      { type: 'text', text: `deck.pdf (attachment ${attachmentId})` },
       { type: 'document', source: { type: 'file', file_id: 'file_deck' }, title: 'deck.pdf' },
       { type: 'text', text: 'Say what the deck claims about pricing.' },
     ])

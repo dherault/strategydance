@@ -12,6 +12,8 @@ const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 
 const CONVERSATION_ID = '1a2b3c4d5e6f40718293a4b5c6d7e8f9'
 
+const RECEIPT_ID = '2b3c4d5e6f7a48190a1b2c3d4e5f6a7b'
+
 const servers: Server[] = []
 const origins = { backend: '', worker: '' }
 
@@ -53,6 +55,9 @@ describe('createApp', () => {
       (await post(origins.backend, `/organizations/${ORGANIZATION_ID}/conversations/${CONVERSATION_ID}/messages`))
         .status,
     ).toBe(401)
+    expect(
+      (await fetch(`${origins.backend}/organizations/${ORGANIZATION_ID}/budget/receipts/${RECEIPT_ID}`)).status,
+    ).toBe(401)
   })
 
   test('the backend answers the authorization server', async () => {
@@ -65,7 +70,7 @@ describe('createApp', () => {
   })
 
   test("the backend answers each module's endpoint and its protected resource metadata", async () => {
-    for (const path of ['/mcp/knowledge', '/mcp/tasks']) {
+    for (const path of ['/mcp/knowledge', '/mcp/tasks', '/mcp/budget']) {
       const metadata = await fetch(`${origins.backend}/.well-known/oauth-protected-resource${path}`)
 
       expect(metadata.status).toBe(200)
@@ -96,11 +101,16 @@ describe('createApp', () => {
     expect((await fetch(`${origins.worker}/oauth/authorize`)).status).toBe(404)
     expect((await fetch(`${origins.worker}/.well-known/oauth-protected-resource/mcp/knowledge`)).status).toBe(404)
     expect((await fetch(`${origins.worker}/.well-known/oauth-protected-resource/mcp/tasks`)).status).toBe(404)
+    expect((await fetch(`${origins.worker}/.well-known/oauth-protected-resource/mcp/budget`)).status).toBe(404)
     expect((await post(origins.worker, '/mcp/knowledge')).status).toBe(404)
     expect((await post(origins.worker, '/mcp/tasks')).status).toBe(404)
+    expect((await post(origins.worker, '/mcp/budget')).status).toBe(404)
     expect(
       (await post(origins.worker, `/organizations/${ORGANIZATION_ID}/conversations/${CONVERSATION_ID}/messages`))
         .status,
+    ).toBe(404)
+    expect(
+      (await fetch(`${origins.worker}/organizations/${ORGANIZATION_ID}/budget/receipts/${RECEIPT_ID}`)).status,
     ).toBe(404)
   })
 })

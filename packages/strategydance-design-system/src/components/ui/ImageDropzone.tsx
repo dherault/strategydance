@@ -27,6 +27,8 @@ type Props = Omit<ComponentProps<'div'>, 'onChange' | 'children' | 'onDrop'> & {
   label: string
   /** What the empty zone says. A `<strong>` in it takes the primary color */
   prompt?: ReactNode
+  /** The icon above the prompt, an image unless set, as an upload for a file that need not be a picture */
+  icon?: ReactNode
   /** The file input's `accept` */
   accept?: string
   /** Called with the file chosen or dropped. Checking its type and size is the caller's to do */
@@ -41,8 +43,8 @@ type Props = Omit<ComponentProps<'div'>, 'onChange' | 'children' | 'onDrop'> & {
 /*
   Where a picture is chosen: a dashed zone that opens the file picker on a click, Enter or Space,
   and takes a file dragged onto it. It previews whatever `src` it is given, and hands over the file
-  and nothing more, since what a caller accepts varies. A caller that saves the file at once says
-  so with `busy` until it has
+  and nothing more, since what a caller accepts varies, which may be a file that is no picture,
+  under an icon of its own. A caller that saves the file at once says so with `busy` until it has
 */
 function ImageDropzone({
   shape = 'wide',
@@ -54,6 +56,7 @@ function ImageDropzone({
       <strong>Choose a file</strong> or drag it here
     </>
   ),
+  icon = <ImageIcon />,
   accept = 'image/*',
   onFileSelect,
   disabled = false,
@@ -135,10 +138,12 @@ function ImageDropzone({
           />
         ) : busy ? null : (
           <div className="flex w-full flex-col items-center gap-1.5 p-4 text-center text-sm text-neutral-500 [&_strong]:font-medium [&_strong]:text-primary">
-            <ImageIcon
+            <span
               aria-hidden="true"
-              className="size-6"
-            />
+              className="contents [&>svg]:size-6"
+            >
+              {icon}
+            </span>
             <span>{prompt}</span>
           </div>
         )}

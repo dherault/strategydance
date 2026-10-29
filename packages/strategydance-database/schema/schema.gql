@@ -1546,3 +1546,200 @@ type IntegrationAuthorization @table @unique(fields: ["integration", "membership
   expiresAt: Timestamp!
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+# The currencies a bill is paid in and a budget is set in: the 30 the European Central Bank
+# publishes a daily rate for, since every amount the Budget computes is converted at the ECB's rate
+# of its payment's day. Declared in strategydance-core as well, which cannot read this, as `Locale`
+# is, and `schema.test.ts` fails when the two disagree. Append a currency, never reorder
+enum Currency {
+  AUD
+  BRL
+  CAD
+  CHF
+  CNY
+  CZK
+  DKK
+  EUR
+  GBP
+  HKD
+  HUF
+  IDR
+  ILS
+  INR
+  ISK
+  JPY
+  KRW
+  MXN
+  MYR
+  NOK
+  NZD
+  PHP
+  PLN
+  RON
+  SEK
+  SGD
+  THB
+  TRY
+  USD
+  ZAR
+}
+
+# The European Central Bank's daily exchange rates, one row per currency and calendar year, which
+# the worker's daily sweep keeps current from Frankfurter (`syncExchangeRates`) and nothing else
+# writes. A row per currency and day would be some 200,000 rows since 1999, which connectors, writing
+# one row per mutation, would take an hour to fill: a year of one currency is some 256 days, about
+# 6 KB, the whole history some 800 rows, and a page reads only the currencies it shows for the years
+# it computes. The euro has no row, since its rate is 1. The rates are public, so any signed-in user
+# reads them (`GetExchangeRates`)
+type ExchangeRateYear @table(key: ["currency", "year"]) {
+  currency: Currency!
+  year: Int!
+  # The JSON text of an object from each ECB day of the year, `YYYY-MM-DD`, to the units of the
+  # currency one euro bought that day. A day of another year is filed under its own. A `String`
+  # rather than `Any`, which Postgres' `jsonb` would rewrite
+  rates: String!
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# How long a budget's amount is meant to last, whose limit the Budget page compares each month,
+# quarter or year with. strategydance-core types it as a string union, which `schema.test.ts` holds to
+# this. Append a value, never reorder
+enum BudgetPeriod {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+# How often a recurring bill is paid again, on the same day each period, counted from its first
+# payment. Append a value, never reorder
+enum BillRecurrence {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+# Where a bill's receipt stands. Append a value, never reorder
+enum BillReceiptStatus {
+  # Its row is reserved, and its bytes are on their way
+  UPLOADING
+  # Stored and checked, so a bill may hold it and any member read it
+  READY
+}
+
+# What an organization means to spend, one row each, which only its administrators set
+# (`SetBudget`) and every member reads. With no row, the Budget page counts in US dollars and says
+# there is no budget yet. Removing the budget nulls its amount and period and keeps its currency, in
+# which the page goes on counting
+type Budget @table(key: ["organization"]) {
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # What every amount the page computes is converted to
+  currency: Currency!
+  # The limit for each period, in minor units of `currency`, from 1 to `MAX_MONEY_MINOR`. Null with
+  # `period` when there is no budget: both are set or neither is
+  amountMinor: Int64
+  period: BudgetPeriod
+  # Who set it last. Optional, set to null when the account goes
+  updatedBy: User
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# Something an organization paid, once or each period: the Budget page's bills, against which its
+# budget is compared. Any member adds, changes and deletes any bill, as the board's tasks.
+#
+# Deleted by setting `deletedAt`, so an Undo is one update, and pruned by the daily sweep a day after
+# (`PruneDeletedBills`), with no restore past it. Its receipt stays its own while it is deleted, so
+# an Undo brings that back too, and goes once the bill does
+type Bill @table @index(fields: ["organizationId", "deletedAt"]) {
+  # Made by the page, so a save sent again stores the bill once
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # One line of at most 80 characters (`MAX_BILL_NAME_LENGTH` in strategydance-core), with no space
+  # at either end
+  name: String!
+  # What it was for, at most 140 characters (`MAX_BILL_DESCRIPTION_LENGTH`), and an empty string
+  # when there is none
+  description: String! @default(value: "")
+  # Who was paid, one line of at most 60 characters (`MAX_BILL_COMPANY_LENGTH`), with no space at
+  # either end. The page groups companies by this name, trimmed and lowercased
+  company: String!
+  # What was paid, in minor units of `currency`, from 1 to `MAX_MONEY_MINOR`: cents for dollars,
+  # whole yen for yen. Each payment converts at its own day's rate
+  amountMinor: Int64!
+  currency: Currency!
+  # The payment's day, or its first payment's when it recurs, the same day wherever its reader is
+  paidOn: Date!
+  # How often it is paid again, or null when it is paid once
+  recurrence: BillRecurrence
+  # The last day it may be paid on, or null while it keeps going. Set only on a recurring bill, on
+  # or after `paidOn`
+  endsOn: Date
+  # The member who paid it, kept when they leave the organization, so the page still names them.
+  # Optional, set to null when the account goes
+  paidBy: User
+  # The invoice or receipt it was paid on, or null. A receipt belongs to one bill at most. Set to
+  # null if its receipt goes, which the sweep only does to a receipt no bill holds
+  receipt: BillReceipt @unique
+  # Who added it. Optional, set to null when the account goes, so deleting an account keeps its
+  # team's bills
+  createdBy: User
+  # Who saved its fields last, the member an agent acts as included: written with `updatedAt`, which
+  # a delete and its Undo leave, so they leave it too. Optional, set to null when the account goes
+  updatedBy: User
+  deletedAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
+  # Written by every save of its fields, so a save made on what another member's save replaced is
+  # refused. A delete and its Undo leave it, since neither changes what the bill says
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# A bill's receipt: a PDF, a text file or a photo, uploaded by a member before the bill that holds
+# it is saved. Only the backend writes it, and only the backend reads its file, which it stores at
+# `organizations/{organizationId}/receipts/{id}`, its ids canonical, with no download token, and
+# serves to any member of the organization: `storage.rules` grants clients nothing under
+# `organizations/`.
+#
+# Its row is written before its file and nothing moves the file, so no file is ever without its
+# row. A bill's save takes one no bill holds within two days of its upload. One an edit replaced or
+# removed stays its bill's, `formerBill`, as an earlier receipt the bill can take back, until the
+# bill is pruned. The daily sweep deletes one no bill holds nor keeps, deleted bills included, three
+# days after its upload, its file first, then its row: an upload never saved, and the earlier
+# receipts of a bill pruned
+type BillReceipt @table @index(fields: ["createdAt"]) @index(fields: ["organizationId", "readAt"]) {
+  # Made by the page, so an upload sent again stores the file once, and the object's name in Storage
+  id: UUID! @default(expr: "uuidV4()")
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  # The member who uploaded it, the only one whose bill may take it first, kept when they leave the
+  # organization. Optional, set to null when the account goes, so the receipt stays with its bill and
+  # the sweep still finds its file once no bill holds it
+  user: User
+  # The bill that held it when it was last saved, which every save of a bill writes on the receipt
+  # it holds, kept or let go, so one an edit replaced or removed is kept as that bill's earlier
+  # receipt, which it can take back. Optional, set to null when the bill is pruned, after which the
+  # sweep takes the receipt with the bill's other earlier ones
+  formerBill: Bill
+  status: BillReceiptStatus!
+  # Its name as the member's device gave it, on one line of at most 200 characters
+  # (`MAX_BILL_RECEIPT_NAME_LENGTH`)
+  name: String!
+  # One of `BILL_RECEIPT_CONTENT_TYPES`, which its first bytes confirm
+  contentType: String!
+  # In bytes, as its upload declared and its stored object confirms, at most 10 MiB
+  # (`MAX_BILL_RECEIPT_SIZE`)
+  size: Int!
+  # When the receipt reader claimed it, which the reader's daily caps count, null until its uploader
+  # asks for it to be read and again once a read that failed lets go (`ClaimBillReceiptRead`,
+  # `ReleaseBillReceiptRead`)
+  readAt: Timestamp
+  # The claim's own id, which the backend makes for each read, so only the read that claimed the
+  # receipt keeps what it found or lets it go: a read held up past the two minutes after which another
+  # takes it over touches nothing of that read's. Null while `readAt` is
+  readClaim: UUID
+  # What the read found, the JSON text of strategydance-core's `BillReceiptFields`, so asking again
+  # answers it for nothing. A `String` rather than `Any`, which Postgres' `jsonb` would rewrite
+  readFields: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}

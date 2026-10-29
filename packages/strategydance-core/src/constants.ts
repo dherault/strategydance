@@ -1,5 +1,5 @@
-import { Locale } from './enums'
-import type { ModuleDefinition, ModuleName, OrganizationImageKind } from './types'
+import { type Currency, Locale } from './enums'
+import type { BillRecurrence, BudgetPeriod, ModuleDefinition, ModuleName, OrganizationImageKind } from './types'
 
 /*
   Bound through a local rather than exported straight off the call.
@@ -216,6 +216,10 @@ export const ERROR_CODE_ORGANIZATION_DAILY_RUNS_REACHED = 'ORGANIZATION_DAILY_RU
 export const ERROR_CODE_MEMBER_DAILY_SPEND_REACHED = 'MEMBER_DAILY_SPEND_REACHED' // 429
 export const ERROR_CODE_ACCOUNT_DAILY_SPEND_REACHED = 'ACCOUNT_DAILY_SPEND_REACHED' // 429
 export const ERROR_CODE_ORGANIZATION_DAILY_SPEND_REACHED = 'ORGANIZATION_DAILY_SPEND_REACHED' // 429
+
+// A 429 once the receipt reader has read as many receipts in 24 hours as the member's or the
+// organization's cap allows, answered with a `Retry-After` as the caps' are
+export const ERROR_CODE_RECEIPT_READS_CAPPED = 'RECEIPT_READS_CAPPED' // 429
 
 export const ERROR_CODE_INTERNAL_ERROR = 'INTERNAL_ERROR' // 500
 
@@ -694,6 +698,12 @@ export const MODULES = [
     title: 'Strategy Dance Tasks',
     scopes: { read: 'tasks:read', write: 'tasks:write' },
   },
+  {
+    name: 'budget',
+    path: '/mcp/budget',
+    title: 'Strategy Dance Budget',
+    scopes: { read: 'budget:read', write: 'budget:write' },
+  },
   // Strategy Dance's own agents' alone, served to no external agent: its address is reserved until a
   // later plan serves it, and the authorization server refuses it meanwhile
   {
@@ -707,13 +717,13 @@ export const MODULES = [
 /*
   The modules the public backend serves to external agents, each at its own address under its
   `/mcp` path, behind the bearer check, with its protected resource metadata at the app's root:
-  Knowledge and Tasks, in `MODULES`' order. The authorization server reads them alone, its
+  Knowledge, Tasks and Budget, in `MODULES`' order. The authorization server reads them alone, its
   resources and `scopes_supported`, and so does the consent page, so a client asking for a module
   served to nobody is refused as for an address no module has, and no consent makes a connection
   that no endpoint serves. A module added to `MODULES` later joins them by its name here, once its
   write tools are challenged and its searches counted
 */
-export const SERVED_MODULE_NAMES: readonly ModuleName[] = ['knowledge', 'tasks']
+export const SERVED_MODULE_NAMES: readonly ModuleName[] = ['knowledge', 'tasks', 'budget']
 
 export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.includes(module.name))
 
@@ -772,3 +782,141 @@ export const INTEGRATION_CONNECTION_CHANNEL = 'strategydance-integration-connect
   ID token gave, which only the member who connected reads
 */
 export const MAX_INTEGRATION_ACCOUNT_LABEL_LENGTH = 100
+
+/* ---
+  BUDGET
+--- */
+
+/*
+  Each currency's exponent, ISO 4217's: how many digits its minor unit takes after the point. Money
+  is a whole number of minor units, so $312.40 is 31240 and ¥1,500 is 1500. Held here rather than
+  read off `Intl`, whose digits differ between runtimes and would let the page and the module
+  disagree on an amount
+*/
+export const CURRENCIES = {
+  AUD: { exponent: 2 },
+  BRL: { exponent: 2 },
+  CAD: { exponent: 2 },
+  CHF: { exponent: 2 },
+  CNY: { exponent: 2 },
+  CZK: { exponent: 2 },
+  DKK: { exponent: 2 },
+  EUR: { exponent: 2 },
+  GBP: { exponent: 2 },
+  HKD: { exponent: 2 },
+  HUF: { exponent: 2 },
+  IDR: { exponent: 2 },
+  ILS: { exponent: 2 },
+  INR: { exponent: 2 },
+  ISK: { exponent: 0 },
+  JPY: { exponent: 0 },
+  KRW: { exponent: 0 },
+  MXN: { exponent: 2 },
+  MYR: { exponent: 2 },
+  NOK: { exponent: 2 },
+  NZD: { exponent: 2 },
+  PHP: { exponent: 2 },
+  PLN: { exponent: 2 },
+  RON: { exponent: 2 },
+  SEK: { exponent: 2 },
+  SGD: { exponent: 2 },
+  THB: { exponent: 2 },
+  TRY: { exponent: 2 },
+  USD: { exponent: 2 },
+  ZAR: { exponent: 2 },
+} as const satisfies Record<Currency, { readonly exponent: number }>
+
+/*
+  The most minor units an amount may hold. The database stores it as an `Int64`, which the SDK
+  hands over as a string, and the code reads it as a number: 10^15 keeps it an exact integer, far
+  below 2^53, and is still a quadrillion yen
+*/
+export const MAX_MONEY_MINOR = 10 ** 15
+
+/*
+  How many live bills an organization keeps, and how long a bill's name, description and company
+  may be, as the prototype held them: the page and the module read every bill at once, to compute
+  the budget
+*/
+export const MAX_BILLS = 2000
+export const MAX_BILL_NAME_LENGTH = 80
+export const MAX_BILL_DESCRIPTION_LENGTH = 140
+export const MAX_BILL_COMPANY_LENGTH = 60
+
+// How many months each period of a budget spans, which is also how far apart a bill recurring on
+// that period is paid
+export const BUDGET_PERIOD_MONTHS = {
+  MONTHLY: 1,
+  QUARTERLY: 3,
+  YEARLY: 12,
+} as const satisfies Record<BudgetPeriod, number>
+
+// How often a recurring bill can be paid again, in the schema's order, which `schema.test.ts` holds
+// to its `BillRecurrence`
+export const BILL_RECURRENCES = [
+  'WEEKLY',
+  'MONTHLY',
+  'QUARTERLY',
+  'YEARLY',
+] as const satisfies readonly BillRecurrence[]
+
+/*
+  The receipts a bill keeps, which the upload reads off their first bytes rather than off the
+  request: PDFs, text, and the photos a phone takes. Deliberately not `image/*`, which admits
+  `image/svg+xml`, an active document, nor GIF, which no receipt comes as
+*/
+export const BILL_RECEIPT_CONTENT_TYPES = [
+  'application/pdf',
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]
+
+/*
+  A receipt, in bytes, a PDF's pages and a text's characters: an invoice runs to a page or two, and
+  whoever reads one, the receipt reader or an agent, reads it whole in one request, so a long one is
+  cut at the text's length rather than refused. Written out again in `ReserveBillReceipt`'s checks,
+  and `ReserveAttachmentBillReceiptForAgent`'s, which cannot import them: change them together
+*/
+export const MAX_BILL_RECEIPT_SIZE = 10 * 1024 * 1024
+export const MAX_BILL_RECEIPT_PDF_PAGES = 20
+export const MAX_BILL_RECEIPT_TEXT_LENGTH = 50000
+
+// How long a receipt's file name may be, in characters, on one line, as a conversation's file's
+export const MAX_BILL_RECEIPT_NAME_LENGTH = 200
+
+/*
+  How many days after its upload a receipt no bill holds may still be taken by a bill's save, and
+  after how many the daily sweep prunes it: a day apart, so a save that reads the receipt as the
+  window closes commits before any sweep can read it as held by nothing. Written out again in the
+  bills' operations and the sweep's, which `schema.test.ts` holds to them
+*/
+export const BILL_RECEIPT_ATTACHABLE_DAYS = 2
+export const BILL_RECEIPT_PRUNE_DAYS = 3
+
+/*
+  A receipt an agent hands the Budget module, in bytes once decoded: its base64 is a third longer,
+  some 933 KiB at this size, which a call's body of 1 MiB at the modules' endpoint still carries
+  with its other arguments. A larger file goes through the page's upload. Written out again in
+  `ReserveBillReceiptForAgent`'s checks: change them together
+*/
+export const MAX_AGENT_BILL_RECEIPT_SIZE = 700 * 1024
+
+/*
+  How many receipts the receipt reader reads in 24 hours, counted over the 24 hours before each read
+  as the conversations' caps are: per member in each organization and per organization. A read that
+  failed counts for nothing, and a receipt is read once, so these bound what reading costs, a
+  fraction of a cent a receipt. `ClaimBillReceiptRead` writes them out: change them together
+*/
+export const MAX_DAILY_RECEIPT_READS_PER_MEMBER = 50
+export const MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION = 200
+
+/*
+  The days a bill can be paid on: from the ECB's first year, from which every rate is known, to ten
+  years ahead, a day short of the database's ten years, so no time zone takes a day picked past them
+*/
+export const FIRST_BILL_DAY = '1999-01-01'
+export const BILL_DAYS_AHEAD = 3652

@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# CodeRabbit reviews the pull requests into `dev`, through the review loop of CLAUDE.md's Workflow.
+# It reads this file from the pull request's head commit, so a change to it applies to the pull
+# request that makes it
+
+reviews:
+  # A pull request's description is written by hand, so the summary goes in the walkthrough comment
+  high_level_summary_in_walkthrough: true
+  # `bun run review wait` reads the `CodeRabbit` commit status of the pull request's head, which
+  # CodeRabbit writes only while its check run is off, and which a review that errors fails, rather
+  # than leaving the wait to time out
+  review_progress: false
+  commit_status: true
+  fail_commit_status: true
+  auto_review:
+    # Every pull request goes into `dev`, and only the default branch, `main`, is reviewed otherwise
+    base_branches:
+      - ^dev$
+    # The release, `bun run ship`'s pull request from `dev` into `main`, carries only commits that were
+    # reviewed on their way into `dev`, and a round on it spends one of the account's ten reviews an
+    # hour. `main` is the default branch, which `base_branches` cannot leave out, so the title that
+    # `scripts/ship.sh` gives it is what skips it, along with any pull request whose title contains it
+    ignore_title_keywords:
+      - Ship dev to main
+    # The wait asks for a round once auto reviews pause, and a pause would make each pull request
+    # past five commits wait on that ask
+    auto_pause_after_reviewed_commits: 0
+    # The directories check's rolling pull request carries data its own review proved, and a person
+    # reads it before merging
+    ignore_usernames:
+      - strategy-dance[bot]
+  # What a generator writes is never edited by hand, so a finding there has nowhere to go
+  path_filters:
+    - '!packages/strategydance-web/src/routeTree.gen.ts'
+    - '!packages/strategydance-web/src/data/intl/messages-translated/**'
+    - '!packages/strategydance-translations/translations.lock.json'
+  pre_merge_checks:
+    # The code explains itself in comments, never docstrings, so coverage would fail every pull request
+    docstrings:
+      mode: 'off'
+  tools:
+    # The repository lints with oxlint, which CodeRabbit runs as `oxc` from `.oxlintrc.json`. ESLint
+    # and Biome have no configuration here, and would report rules nobody follows
+    eslint:
+      enabled: false
+    biome:
+      enabled: false
+    # Markdown is not formatted, so markdownlint's layout rules would flag every document
+    markdownlint:
+      enabled: false

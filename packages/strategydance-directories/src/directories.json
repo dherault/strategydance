@@ -142,10 +142,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://aiagentsdirectory.com/",
     "submissionUrl": "https://aiagentsdirectory.com/submit-agent",
-    "description": "",
-    "categories": [],
+    "description": "Directory and marketplace of AI agents, agent platforms and agent skills, sorted by category, where makers submit their own agents.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-27",
     "unreachableSince": null
   },
   {
@@ -154,10 +157,14 @@
     "type": "WEBSITE",
     "rootUrl": "https://aiagentslist.com/",
     "submissionUrl": "https://aiagentslist.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI agents, agent-focused tools and MCP servers sorted by category and tag, where makers submit their AI products for editorial review.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS",
+      "MCP_SERVERS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -205,10 +212,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aicenter.ai/",
     "submissionUrl": "https://aicenter.ai/submit-tools",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category and tag, where makers submit their own AI products for a listing profile.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -253,10 +262,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://ai.dreamthere.cn/",
     "submissionUrl": "https://ai.dreamthere.cn/site/submit",
-    "description": "",
-    "categories": [],
+    "description": "Chinese-language directory of AI tools sorted by category, such as agents, RPA, text, image, code and video, with a form where anyone can submit a site.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null
   },
   {
@@ -326,11 +337,13 @@
     "name": "AI Hunt List",
     "type": "WEBSITE",
     "rootUrl": "https://aihuntlist.com/",
-    "submissionUrl": "https://aihuntlist.com/submit",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://aihuntlist.com/submission/new",
+    "description": "Directory of AI tools and apps sorted into 200+ categories, where makers submit their own AI products for editorial review.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-27",
     "unreachableSince": null
   },
   {
@@ -437,10 +450,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.aipulse.fyi/",
     "submissionUrl": "https://www.aipulse.fyi/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Review site and directory of AI tools sorted by category, where makers can submit their AI apps for review and listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -449,10 +464,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://airespo.com/",
     "submissionUrl": "https://airespo.com/submit-tool/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools organized by category, with guides and tips, where makers can submit their own AI tools for review and listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -461,10 +478,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://ai-search.io/",
     "submissionUrl": "https://ai-search.io/submit",
-    "description": "",
-    "categories": [],
+    "description": "Database of AI tools sorted by category, such as image generation, writing and productivity, where makers submit their AI products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null
   },
   {
@@ -509,10 +528,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.aitoolnet.com/",
     "submissionUrl": "https://www.aitoolnet.com/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
+    "description": "Directory and search engine of AI tools sorted by category and use case, where makers submit their own AI products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -739,18 +760,6 @@
     "unreachableSince": null
   },
   {
-    "id": "aibase",
-    "name": "AIBase",
-    "type": "WEBSITE",
-    "rootUrl": "https://app.aibase.com/",
-    "submissionUrl": "https://app.aibase.com/submission",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
-    "unreachableSince": null
-  },
-  {
     "id": "aibesttop-tools",
     "name": "AIBestTop Tools",
     "type": "WEBSITE",
@@ -840,10 +849,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.ainav.cn/",
     "submissionUrl": "https://www.ainav.cn/%e6%8f%90%e4%ba%a4%e7%bd%91%e7%ab%99",
-    "description": "",
-    "categories": [],
+    "description": "Chinese-language directory of AI tools from China and abroad, sorted by category such as chat, writing, image, video, audio, agents and coding, where makers can submit AI products.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -1089,10 +1101,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://althunt.io/",
     "submissionUrl": "https://althunt.io/new",
-    "description": "",
-    "categories": [],
+    "description": "Platform where SaaS founders publish AI-drafted comparison pages that present their product as an alternative to a known competitor, ranked weekly by votes.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -1229,10 +1243,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://appsmirror.com/",
     "submissionUrl": "https://appsmirror.com/submit-your-app-for-review",
-    "description": "",
-    "categories": [],
+    "description": "Online magazine that publishes reviews and news about iPhone, iPad, Android and web apps, where app developers submit their apps for review.",
+    "categories": [
+      "MOBILE_APPS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -1442,10 +1458,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://betabound.com/",
     "submissionUrl": "https://betabound.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Listing of beta testing opportunities for software, apps, games and hardware, where product developers announce their betas to recruit early-adopter testers.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -1492,10 +1510,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.beyondaitools.com/",
     "submissionUrl": "https://www.beyondaitools.com/product/submit",
-    "description": "",
-    "categories": [],
+    "description": "Multilingual directory of AI tools and products sorted by category, where makers submit their AI products for review.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-27",
     "unreachableSince": null
   },
   {
@@ -1576,10 +1596,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://builtbyindies.com/",
     "submissionUrl": "https://builtbyindies.com/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "description": "Weekly launch platform where indie hackers submit their products to get upvotes, feedback from other makers and a permanent listing.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_ENGAGEMENT",
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -1677,11 +1699,13 @@
     "name": "Clapstorm",
     "type": "WEBSITE",
     "rootUrl": "https://www.clapstorm.com/",
-    "submissionUrl": "https://www.clapstorm.com/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE",
-    "lastChecked": null,
+    "submissionUrl": "https://www.clapstorm.com/sign-in?intent=submit",
+    "description": "Weekly product launch platform where indie makers submit products of any kind and the community ranks them with claps in week-long rounds.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -1690,10 +1714,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.cloudfindr.co/",
     "submissionUrl": "https://www.cloudfindr.co/list-your-app",
-    "description": "",
-    "categories": [],
+    "description": "Directory of B2B software with reviews, buyer ratings and comparisons, sorted by category, where vendors can sign in and submit their tools.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -1925,10 +1951,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://devresourc.es/",
     "submissionUrl": "https://devresourc.es/submit",
-    "description": "",
-    "categories": [],
+    "description": "Crowdsourced directory of developer resources such as APIs, tools, libraries, UI kits, icons and learning material, sorted by category, where users submit their own.",
+    "categories": [
+      "DEVELOPER_TOOLS",
+      "DESIGN"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -1985,10 +2014,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://directory.ldmstudio.com/",
     "submissionUrl": "https://directory.ldmstudio.com/add/add.php",
-    "description": "",
-    "categories": [],
+    "description": "General web directory organized by topic categories, where site owners submit websites of any kind for a regular or featured listing.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -2175,10 +2206,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://emojilaunch.com/",
     "submissionUrl": "https://emojilaunch.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Launch site where makers list a ready-to-use product, such as an app, tool, site or hardware project, under a single emoji on a chosen launch day.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-27",
     "unreachableSince": null
   },
   {
@@ -2187,10 +2220,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.eu-startups.com/",
     "submissionUrl": "https://www.eu-startups.com/directory/",
-    "description": "",
-    "categories": [],
+    "description": "Database of European startups, organised by country, where founders based in Europe add their own company listing.",
+    "categories": [
+      "ANY_STARTUP",
+      "REGIONAL"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null
   },
   {
@@ -2237,10 +2273,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.f6s.com/",
     "submissionUrl": "https://www.f6s.com/submitmystartup.com",
-    "description": "",
-    "categories": [],
+    "description": "Global founder community and startup directory where founders build startup profiles and connect with accelerators, investors, jobs and perks.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -2397,10 +2435,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://fivetaco.com/",
     "submissionUrl": "https://fivetaco.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of software tools for solopreneurs, sorted by category and collection, where makers can submit their own products and users rate and review them.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null
   },
   {
@@ -2473,10 +2513,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.freeai.run/",
     "submissionUrl": "https://www.freeai.run/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools and websites, sorted by category and task, where makers submit their own AI products for listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-27",
     "unreachableSince": null
   },
   {
@@ -2760,7 +2802,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -2768,11 +2810,13 @@
     "name": "How to Buy SaaS",
     "type": "WEBSITE",
     "rootUrl": "https://www.howtobuysaas.com/",
-    "submissionUrl": "https://www.howtobuysaas.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "submissionUrl": "https://www.howtobuysaas.com/list-your-saas/",
+    "description": "Marketplace of SaaS products sorted by category, with reviews and comparisons, where software vendors list their products for business buyers.",
+    "categories": [
+      "SAAS"
+    ],
+    "businessModel": "PAID",
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -2984,7 +3028,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -3044,7 +3088,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -3327,10 +3371,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.linkcentre.com/",
     "submissionUrl": "https://www.linkcentre.com/addurl/",
-    "description": "",
-    "categories": [],
+    "description": "General web directory, running since 1996, that lists websites and businesses of all kinds in human-reviewed categories. Site owners submit their own sites.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -3387,10 +3433,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.listyourtool.com/",
     "submissionUrl": "https://www.listyourtool.com/submit-tool",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, with smart search, where makers submit their own AI products for review and listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null
   },
   {
@@ -3486,7 +3534,7 @@
     "description": "",
     "categories": [],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -3507,10 +3555,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://makerlist.io/",
     "submissionUrl": "https://makerlist.io/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of startups, apps and tools where makers sign in to submit their products and users vote for them, browsable by tag.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-10-27",
     "unreachableSince": null
   },
   {
@@ -3615,10 +3665,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://mcpub.dev/",
     "submissionUrl": "https://mcpub.dev/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Open directory of Model Context Protocol (MCP) servers, where owners submit their endpoints through a form or an MCP tool and live servers are verified automatically.",
+    "categories": [
+      "MCP_SERVERS"
+    ],
+    "businessModel": "FREE",
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -3902,11 +3954,14 @@
     "name": "Open SaaS Directory",
     "type": "WEBSITE",
     "rootUrl": "https://opensaas.directory/",
-    "submissionUrl": "https://opensaas.directory/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://opensaas.directory/projects/new",
+    "description": "Directory of open-source, self-hosted alternatives to SaaS products, sorted by category, where maintainers submit their own open-source projects.",
+    "categories": [
+      "SAAS",
+      "OPEN_SOURCE"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null
   },
   {
@@ -3980,10 +4035,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://osalt.com/",
     "submissionUrl": "https://osalt.com/suggest",
-    "description": "",
-    "categories": [],
+    "description": "Directory of open source software alternatives to well-known commercial products, sorted by category, where users can suggest applications to add.",
+    "categories": [
+      "OPEN_SOURCE"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null
   },
   {
@@ -4094,10 +4151,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://library.phygital.plus/",
     "submissionUrl": "https://library.phygital.plus/tool-submission",
-    "description": "",
-    "categories": [],
+    "description": "Catalog of AI tools and neural networks for creators and game developers, with semantic search and filters and a form for submitting tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -4214,10 +4273,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://productivity.directory/",
     "submissionUrl": "https://productivity.directory/s/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of productivity apps and tools sorted by category, such as to-do lists, project management, note-taking and AI tools, where makers submit their own listings.",
+    "categories": [
+      "AI_TOOLS",
+      "SAAS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null
   },
   {
@@ -4618,10 +4680,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.saaspa.ge/",
     "submissionUrl": "https://www.saaspa.ge/submit",
-    "description": "",
-    "categories": [],
+    "description": "Weekly launch board where makers submit SaaS, apps and tech products to compete for upvotes. The top three each week win a dofollow backlink.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -4798,11 +4862,13 @@
     "name": "Serchen",
     "type": "WEBSITE",
     "rootUrl": "https://www.serchen.com/",
-    "submissionUrl": "https://www.serchen.com/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://www.serchen.com/get-listed",
+    "description": "Marketplace of business software, SaaS and AI tools with user reviews and comparisons across categories, where software vendors can list or claim their products.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -5029,7 +5095,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -5086,10 +5152,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://startupvideos.com/",
     "submissionUrl": "https://startupvideos.com/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Curated library of startup and brand marketing videos, tagged by style, industry and length, where companies and studios can submit videos for review.",
+    "categories": [
+      "DESIGN"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -5148,10 +5216,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://startfa.st/",
     "submissionUrl": "https://startfa.st/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools, apps and tech products for founders, makers and startups, sorted into categories and collections, where makers can submit their products.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-27",
     "unreachableSince": null
   },
   {
@@ -5346,10 +5416,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://startupstash.com/",
     "submissionUrl": "https://startupstash.com/add-listing/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of software tools and resources for startups and entrepreneurs, sorted by category and alternatives, where vendors can list their products.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -5458,10 +5530,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://startups-list.com/",
     "submissionUrl": "https://startups-list.com/cities",
-    "description": "",
-    "categories": [],
+    "description": "Network of city startup directories (Berlin, London, Tokyo and others) where local startups submit a listing for review through each city's form.",
+    "categories": [
+      "ANY_STARTUP",
+      "REGIONAL"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-27",
     "unreachableSince": null
   },
   {
@@ -5836,10 +5911,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.tinylaunch.com/",
     "submissionUrl": "https://www.tinylaunch.com/",
-    "description": "",
-    "categories": [],
+    "description": "Product launch platform where makers submit startups and products of any kind to compete in upvote-ranked launch periods, with categories and a launch archive.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -5898,10 +5975,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://tooldirectory.ai/",
     "submissionUrl": "https://tooldirectory.ai/submit-tool",
-    "description": "",
-    "categories": [],
+    "description": "Curated directory of AI tools across 45 categories, where makers submit their tools for editorial review before listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -5910,10 +5989,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://tooldirs.com/",
     "submissionUrl": "https://tooldirs.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of software tools, SaaS services and AI apps sorted by category, where makers submit their own products for listing.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -5934,10 +6015,10 @@
     "type": "WEBSITE",
     "rootUrl": "https://toolfio.com/",
     "submissionUrl": "https://toolfio.com/submit",
-    "description": "",
+    "description": "Directory of SaaS, AI and startup tools sorted by category, with reviews and comparisons, where makers submit their own products.",
     "categories": [],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null
   },
   {
@@ -5969,11 +6050,13 @@
     "name": "Toolkitly",
     "type": "WEBSITE",
     "rootUrl": "https://www.toolkitly.com/",
-    "submissionUrl": "https://www.toolkitly.com/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://www.toolkitly.com/submit",
+    "description": "Directory of AI tools filed by task and category, where makers list their tools after a human review.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -5994,10 +6077,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.toolpilot.ai/",
     "submissionUrl": "https://www.toolpilot.ai/pages/submit-your-ai-tool",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools grouped by category, with reviews and coupon codes, where makers submit their own AI products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -6054,10 +6139,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://toolsfine.com/",
     "submissionUrl": "https://toolsfine.com/submit-ai-tools-or-product",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools and AI-native service companies with verified facts on pricing and status, where tool makers submit their products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-26",
     "unreachableSince": null
   },
   {
@@ -6066,10 +6153,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://toolspedia.io/",
     "submissionUrl": "https://toolspedia.io/submit-tool/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools, apps and software organized by category, platform and pricing model, where makers submit their own tools for review.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-25",
     "unreachableSince": null
   },
   {
@@ -6276,10 +6365,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.verifiedtools.info/",
     "submissionUrl": "https://www.verifiedtools.info/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI and SaaS tools sorted by category and pricing, where makers submit their own products for a hand review.",
+    "categories": [
+      "AI_TOOLS",
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-28",
     "unreachableSince": null
   },
   {
@@ -6432,10 +6524,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.websitehunt.co/",
     "submissionUrl": "https://www.websitehunt.co/",
-    "description": "",
-    "categories": [],
+    "description": "Curated directory of useful and interesting websites and tools, sorted by category, where users post websites and upvote them.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -6456,10 +6550,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.weekhack.com/",
     "submissionUrl": "https://www.weekhack.com/launches/submit",
-    "description": "",
-    "categories": [],
+    "description": "Weekly launch platform where makers and indie hackers submit side projects and products for community votes, with weekly winners and an archive.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-27",
     "unreachableSince": null
   },
   {
@@ -6468,10 +6564,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://help.wellfound.com/",
     "submissionUrl": "https://help.wellfound.com/article/720-how-can-i-create-a-new-company-or-access-an-existing-one",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE",
-    "lastChecked": null,
+    "description": "Startup jobs and recruiting platform (formerly AngelList Talent) where startups create company profiles to post jobs and hire candidates.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-10-29",
     "unreachableSince": null
   },
   {
@@ -6533,7 +6631,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {
@@ -6590,10 +6688,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://zplatform.ai/",
     "submissionUrl": "https://zplatform.ai/submit-ai-tool/",
-    "description": "",
-    "categories": [],
+    "description": "Directory and review site for AI tools, including AI agents and chatbots, where founders submit their tools for a profile, with optional hands-on reviews.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-24",
     "unreachableSince": null
   },
   {

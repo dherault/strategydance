@@ -1,6 +1,6 @@
 The icon of one of the nine aspects of a company, the areas Strategy Dance guides a team through:
 strategy, marketing, sales, product, engineering, design, people and operations, finances and
-legal. Use it wherever an aspect is named, in a sidebar row, a task card or a knowledge document's
+legal. Use it wherever an aspect is named, in a sidebar row, a task card or a document's
 tags, rather than picking a Lucide icon by hand. `CompanyAspects`, on the global, lists the aspects
 in their order, each `{ id, label, lucide }`.
 

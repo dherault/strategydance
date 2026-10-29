@@ -2,7 +2,7 @@ import { type ComponentProps, useEffect, useRef } from 'react'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 /*
-  A list of suggestions floating over a field while it is typed in, as the knowledge a message can
+  A list of suggestions floating over a field while it is typed in, as the documents a message can
   mention: the dropdown menu's look, but its rows are never focused. The field keeps the focus
   throughout, names the list in `aria-controls` and the highlighted row in
   `aria-activedescendant`, and moves the highlight on its own key presses, so a press anywhere on

@@ -11,7 +11,7 @@ import {
 const linkIconClassName = 'mr-[3px] inline-block size-[13px] align-[-2px]'
 
 /*
-  A link to knowledge or a task as the thread draws it: the document's current title or the task's
+  A link to a document or a task as the thread draws it: the document's current title or the task's
   current name, or struck through once it is deleted
 */
 function renderAppLink({ href, children }: MarkdownLink) {

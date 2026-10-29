@@ -22,7 +22,7 @@ type Story = StoryObj<typeof meta>
 
 export const Post: Story = {}
 
-// A knowledge document's text, drawn with every block its editor writes
+// A document's text, drawn with every block its editor writes
 export const Document: Story = {
   args: {
     value: richTextDocumentSample,

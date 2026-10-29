@@ -1,8 +1,8 @@
 The rich text field, BlockNote's block editor: "/" opens a menu of blocks, a selection raises a
 toolbar of styles and links, the handle beside a block drags or turns it into another, and
 Markdown's shortcuts work as typed, as do arrows: `->` writes →, `-->` writes ⟶. Use it for a log
-post, a top priority, a task's description or a knowledge document's body. A single line is
-`Input`, plain prose `Textarea`, and what it wrote is drawn back, read only, by `RichText`.
+post, a top priority, a task's description or a document's body. A single line is `Input`, plain
+prose `Textarea`, and what it wrote is drawn back, read only, by `RichText`.
 
 ## Usage
 
@@ -33,7 +33,7 @@ function DailyUpdate() {
 }
 ```
 
-A knowledge document's body, under its page's title, seeded with blocks in the shape `RichText`
+A document's body, under its page's title, seeded with blocks in the shape `RichText`
 reads and every block an editor writes:
 
 ```jsx

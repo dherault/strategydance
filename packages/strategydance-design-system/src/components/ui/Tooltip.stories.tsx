@@ -127,7 +127,7 @@ export const OnDialogTrigger: Story = {
       </Tooltip>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Use Knowledge with your agents</DialogTitle>
+          <DialogTitle>Use Documents with your agents</DialogTitle>
           <DialogDescription>Close this with the button, or with Escape from the keyboard.</DialogDescription>
         </DialogHeader>
       </DialogContent>

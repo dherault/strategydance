@@ -1,6 +1,6 @@
 An Input over several lines, with the same border, fill and focus: an organization's brief, a list
 of emails to invite, a note. Its height comes from `rows`, and with `autosize` it grows with what is
-typed. For formatted text, as a knowledge document's, use the RichTextEditor instead.
+typed. For formatted text, as a document's, use the RichTextEditor instead.
 
 ## Usage
 

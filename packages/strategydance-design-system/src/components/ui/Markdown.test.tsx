@@ -90,7 +90,7 @@ describe('Markdown', () => {
     expect(markup).toBe('<div><p>a b c d e f</p></div>')
   })
 
-  it('hands a link to a knowledge document to renderLink, and draws it as its words without one', () => {
+  it('hands a link to a document to renderLink, and draws it as its words without one', () => {
     const links: MarkdownLink[] = []
     const markup = render('Read the [Pricing **options**](doc:d4).', link => {
       links.push(link)

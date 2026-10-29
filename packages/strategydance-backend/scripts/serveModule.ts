@@ -15,10 +15,10 @@ import MODULE_SERVERS from '~modules/moduleServers'
   Claude Code say, reaches it before the authorization server exists. The package's scripts name the
   module, one each:
 
-    bun run mcp:knowledge <email> [--organization <id or slug>]
+    bun run mcp:documents <email> [--organization <id or slug>]
     bun run mcp:tasks <email> [--organization <id or slug>]
     bun run mcp:budget <email> [--organization <id or slug>]
-    claude mcp add strategydance-knowledge-local -- bun run mcp:knowledge <email>
+    claude mcp add strategydance-documents-local -- bun run mcp:documents <email>
     claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>
     claude mcp add strategydance-budget-local -- bun run mcp:budget <email>
 
@@ -39,7 +39,7 @@ if (
   || !process.env.FIREBASE_STORAGE_EMULATOR_HOST
 ) {
   console.error(
-    'FIREBASE_AUTH_EMULATOR_HOST, DATA_CONNECT_EMULATOR_HOST and FIREBASE_STORAGE_EMULATOR_HOST are not all set. This script only reads and writes the emulators: run `bun run mcp:knowledge`, `bun run mcp:tasks` or `bun run mcp:budget`',
+    'FIREBASE_AUTH_EMULATOR_HOST, DATA_CONNECT_EMULATOR_HOST and FIREBASE_STORAGE_EMULATOR_HOST are not all set. This script only reads and writes the emulators: run `bun run mcp:documents`, `bun run mcp:tasks` or `bun run mcp:budget`',
   )
   process.exit(1)
 }

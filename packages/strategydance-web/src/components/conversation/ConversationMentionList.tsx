@@ -8,7 +8,7 @@ import {
   SuggestionListOptions,
 } from 'strategydance-design-system/components/ui/SuggestionList'
 
-import type { KnowledgeDocumentSummary } from '~types'
+import type { DocumentSummary } from '~types'
 
 import conversationMessages from '~data/intl/messages/conversation'
 
@@ -16,16 +16,16 @@ type Props = {
   // The listbox's id, which the field names as what it controls
   listId: string
   getOptionId: (index: number) => string
-  documents: KnowledgeDocumentSummary[]
+  documents: DocumentSummary[]
   highlightedIndex: number
   // What is typed after the `@`
   query: string
   onHighlight: (index: number) => void
-  onPick: (document: KnowledgeDocumentSummary) => void
+  onPick: (document: DocumentSummary) => void
 }
 
 /*
-  The knowledge a mention being typed suggests, over the composer's whole width just above its
+  The documents a mention being typed suggests, over the composer's whole width just above its
   field, each document's title with a file icon, or what nothing matching says. No taller than
   a phone's screen leaves room for beside its keyboard
 */

@@ -2340,7 +2340,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.composer.attach": {
-        "hash": "66e8bcd286c734d0",
+        "hash": "328db88a518608d1",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.composer.attachmentEmpty": {
@@ -2407,8 +2407,8 @@
         "hash": "16ac60d21b24a121",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.composer.mentionKnowledge": {
-        "hash": "e1812b4a24932a76",
+      "conversation.composer.mentionDocument": {
+        "hash": "0ba21dc586d2c292",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.composer.overBudget": {
@@ -2556,15 +2556,15 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.documentEditChangedSince": {
-        "hash": "71bbc255cd731c6e",
+        "hash": "a8224e0561f240fe",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.documentEditUndone": {
-        "hash": "a1a8850ac4fb65e3",
+        "hash": "cd216d9d639f5f15",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.documentGone": {
-        "hash": "87c6424c781dd84f",
+        "hash": "c2e17f17a5bbf8f5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.editAspects": {
@@ -2648,11 +2648,11 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.mention.empty": {
-        "hash": "8b96886d37955977",
+        "hash": "05036367295c4dfb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.mention.listLabel": {
-        "hash": "0bcbccc30f324068",
+        "hash": "b02d3e19379e2867",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.messageLoading": {
@@ -2772,7 +2772,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.openDocumentHistory": {
-        "hash": "1fe9bc5240a94ae5",
+        "hash": "73c694a52c31fb10",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.openInDock": {
@@ -2892,11 +2892,11 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.redoDocumentEdit": {
-        "hash": "cc502b2ea50d0a2d",
+        "hash": "f3873558b759319c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.redoDocumentEditError": {
-        "hash": "e1887fc295532aef",
+        "hash": "659faad341ee9381",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.restoreBill": {
@@ -2908,11 +2908,11 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.restoreDocument": {
-        "hash": "478a3856e52f4e69",
+        "hash": "ec730f8ce3a7ecb3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.restoreDocumentError": {
-        "hash": "4b83e9a3fe5a20fb",
+        "hash": "e7732e7213f6dde6",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.restoreError": {
@@ -2948,7 +2948,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.retryDialog.kept": {
-        "hash": "f660924fd1642135",
+        "hash": "226681354998000a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.retryDialog.someWorking": {
@@ -3144,7 +3144,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.threadEmpty": {
-        "hash": "32739d8d2a72512a",
+        "hash": "9b4ed7e428cc9417",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.threadLabel": {
@@ -3171,12 +3171,12 @@
         "hash": "7bcad804246a145d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.createKnowledge.done": {
-        "hash": "af6c64105219dac1",
+      "conversation.tool.createDocument.done": {
+        "hash": "e43a7648cd44d37b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.createKnowledge.running": {
-        "hash": "80e599362e8ee722",
+      "conversation.tool.createDocument.running": {
+        "hash": "352288decec526fd",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.createTask.done": {
@@ -3195,12 +3195,12 @@
         "hash": "469a5fa07f32bf94",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.deleteKnowledge.done": {
-        "hash": "8980437b9bf749a4",
+      "conversation.tool.deleteDocument.done": {
+        "hash": "7f8a17c05c60aaee",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.deleteKnowledge.running": {
-        "hash": "44d0f0beaf4ae88f",
+      "conversation.tool.deleteDocument.running": {
+        "hash": "5b46ea145e54ae53",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.deleteTask.done": {
@@ -3243,20 +3243,20 @@
         "hash": "8afd01717a9fd8ae",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.listDocuments.done": {
+        "hash": "df3795f7e6053a9b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listDocuments.running": {
+        "hash": "2f45e66c727b4917",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.listIntegrations.done": {
         "hash": "4e7a158477b39678",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.listIntegrations.running": {
         "hash": "d630fac0907144c5",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "conversation.tool.listKnowledge.done": {
-        "hash": "210f05968bba69c8",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "conversation.tool.listKnowledge.running": {
-        "hash": "ec3949d2f18fd1b8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.listSubagents.done": {
@@ -3291,12 +3291,12 @@
         "hash": "865bce6c615c840c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.readKnowledge.done": {
-        "hash": "acd91b26f15c3ba0",
+      "conversation.tool.readDocument.done": {
+        "hash": "40dd4ce8f819e2bc",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.readKnowledge.running": {
-        "hash": "64c2f903f021241f",
+      "conversation.tool.readDocument.running": {
+        "hash": "bcc714b51d69c858",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.readSubagent.done": {
@@ -3323,12 +3323,12 @@
         "hash": "008a5d0d6b077fd3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.restoreKnowledge.done": {
-        "hash": "f6a40cf1a11ab03e",
+      "conversation.tool.restoreDocument.done": {
+        "hash": "fbf3d32b9072667d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.restoreKnowledge.running": {
-        "hash": "fc9f325533836356",
+      "conversation.tool.restoreDocument.running": {
+        "hash": "c26331f03e03fc2c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.restoreTask.done": {
@@ -3339,12 +3339,12 @@
         "hash": "6524a83a3bca3bdb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.searchKnowledge.done": {
-        "hash": "a7c76337b7c4980e",
+      "conversation.tool.searchDocuments.done": {
+        "hash": "e8553968cb13cf08",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.searchKnowledge.running": {
-        "hash": "ad4aa23eae02d820",
+      "conversation.tool.searchDocuments.running": {
+        "hash": "1196e7b07ce0cc1a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.stopSubagent.done": {
@@ -3355,12 +3355,12 @@
         "hash": "0d8d92650a40f7f7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.tagKnowledge.done": {
-        "hash": "bccc7ac0292e72dc",
+      "conversation.tool.tagDocument.done": {
+        "hash": "c3ef76811a939855",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.tagKnowledge.running": {
-        "hash": "fff715b6efc94d45",
+      "conversation.tool.tagDocument.running": {
+        "hash": "f58b7eed4b829784",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.unlinkTasks.done": {
@@ -3379,12 +3379,12 @@
         "hash": "b4b92a4b5b79cfdd",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.updateKnowledge.done": {
-        "hash": "551c441649f73049",
+      "conversation.tool.updateDocument.done": {
+        "hash": "9e61f84de562cc23",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.tool.updateKnowledge.running": {
-        "hash": "d7d1258752b01334",
+      "conversation.tool.updateDocument.running": {
+        "hash": "26cbac554c322c46",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.updateTask.done": {
@@ -3404,7 +3404,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.toolBadge": {
-        "hash": "34c5dd1fea693421",
+        "hash": "835e8101d35fb114",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.toolCall": {
@@ -3444,11 +3444,11 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.undoDocumentEdit": {
-        "hash": "219d62de97511a35",
+        "hash": "90af694d9420fd6c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.undoDocumentEditError": {
-        "hash": "b29215a4a47c64fd",
+        "hash": "9b5ef65649919a82",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.updated": {
@@ -3461,6 +3461,460 @@
       },
       "conversation.working": {
         "hash": "81f56f56f069b62c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
+    "document": {
+      "document.add": {
+        "hash": "58dd949addddbf7b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.addAspects": {
+        "hash": "ff25199bf909d111",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.addFull": {
+        "hash": "e7c476fb69e3d165",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aiNoAccess": {
+        "hash": "9ba93a32d096f1b0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aiPermissions": {
+        "hash": "323172388ac80bc9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aiRead": {
+        "hash": "27f893f5d6ba9c44",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aiReadOnly": {
+        "hash": "93e7b3750ddeaf2a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aiReadWrite": {
+        "hash": "d90375b3229f1279",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aiWrite": {
+        "hash": "0a5bde58236553a0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.allDocuments": {
+        "hash": "6ebd995253f2d666",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.alsoHere": {
+        "hash": "7986c438dd072aa0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectEmptyText": {
+        "hash": "f02797afc36f1c9e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectEmptyTitle": {
+        "hash": "203fe16286152027",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectsDescription": {
+        "hash": "4a5dc52c0a8a615c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectsFilterClear": {
+        "hash": "d999ef02943a084c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectsFilterClose": {
+        "hash": "f11f35ebc3821829",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectsFilterEmpty": {
+        "hash": "204a5e269a6ab3db",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectsFilterLabel": {
+        "hash": "b1e79a117327c634",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectsFilterMore": {
+        "hash": "9f9e73456bfa63f7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectsFilterPlaceholder": {
+        "hash": "c7ae3e201f33fa94",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectsFilterSearch": {
+        "hash": "4e0e238caae7ccbf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectsSelected": {
+        "hash": "6e5553ee91fc2c15",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.aspectsTitle": {
+        "hash": "6b8614f40df82d2f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.bodyLabel": {
+        "hash": "a2d0b7a63f8fe33d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.bodyPlaceholder": {
+        "hash": "10da767520e58104",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.cancel": {
+        "hash": "71bdf7a37795c9d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.clearFilters": {
+        "hash": "3991903a141d5bba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.close": {
+        "hash": "67dc33ff453aba41",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.confirm": {
+        "hash": "135471650e444bb3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.delete": {
+        "hash": "205282366e1c1030",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.deleteError": {
+        "hash": "fb856943620c2e73",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.deleted": {
+        "hash": "21ec0c5cbabf64d5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.deletedElsewhere": {
+        "hash": "fecccb96093fe765",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.documentLoadError": {
+        "hash": "3165fe0a29d18ff9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.draft": {
+        "hash": "66951b3c9aaec48f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.draftFull": {
+        "hash": "7e0c53de201bd4fd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editAspects": {
+        "hash": "f2ff80373aec7772",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editedAgo": {
+        "hash": "248b3264ee609042",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editedJustNow": {
+        "hash": "d85f2ac3f3960222",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editedOn": {
+        "hash": "5ff919c0ed26a155",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorError": {
+        "hash": "80d42d3fa93c6c10",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorImageSizeError": {
+        "hash": "b5083cccefb1a87c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorImageTypeError": {
+        "hash": "aaac00c1cf67a9c6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorImageUploadError": {
+        "hash": "84245768030fb79d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorLinkPreviewAdd": {
+        "hash": "d4429250f7fb1d08",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorLinkPreviewButton": {
+        "hash": "ff45661568feea30",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorLinkPreviewInvalid": {
+        "hash": "49dd16c48df72b27",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorLinkPreviewSubtext": {
+        "hash": "239070c29323db5f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorLinkPreviewTitle": {
+        "hash": "85b125e50ef55ed7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorMentionDocumentGone": {
+        "hash": "4ca637745d4d4c74",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorMentionDocuments": {
+        "hash": "7488905bba75b180",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorMentionItem": {
+        "hash": "6a78a4e2d9aa455b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorMentionItemSubtext": {
+        "hash": "056662367ccd679b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorMentionTaskGone": {
+        "hash": "e84329bcc02a81d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorMentionTasks": {
+        "hash": "43376af144ca2e74",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorTurnInto": {
+        "hash": "5ec56d5ad4433055",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorVideoSubtext": {
+        "hash": "7e206de7e8378567",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorVideoUnsupported": {
+        "hash": "fdeb040411c9477d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.emptyText": {
+        "hash": "323362301c1774f8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.emptyTitle": {
+        "hash": "6df59dff2b627dbb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.eyebrow": {
+        "hash": "17f4a78388059549",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.goToAll": {
+        "hash": "5f4d6beb87884fac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.history": {
+        "hash": "7305d28642b01af3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.historyClose": {
+        "hash": "9de651bd4190c1d4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.historyDescription": {
+        "hash": "c96d95fcec9d1348",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.historyEmpty": {
+        "hash": "52d19563fc590e52",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.historyError": {
+        "hash": "232cdba366ff5b98",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.historyTitle": {
+        "hash": "fc41d8088aba8219",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.lead": {
+        "hash": "15e1c8e1da91645f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.leave": {
+        "hash": "867734fa3afa331a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.leaveText": {
+        "hash": "46b30ee98f48d418",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.leaveTitle": {
+        "hash": "f4076c89cf96f667",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.loadError": {
+        "hash": "4aa04e5984729573",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.loadingEditor": {
+        "hash": "c67cd22dc5789197",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.moreActions": {
+        "hash": "636da90d076e46b1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.moreHere": {
+        "hash": "c9634f489b514dbc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.noMatchText": {
+        "hash": "67fe81cc4210bece",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.noMatchTitle": {
+        "hash": "9d07f1a07884dfc2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.notFoundText": {
+        "hash": "6bcca70e4b82cce0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.notFoundTitle": {
+        "hash": "8420eca02c454c8f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.notSaved": {
+        "hash": "201cfad1eefa82b1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.restoreError": {
+        "hash": "642141d12ba7af85",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.restoreUndoError": {
+        "hash": "e68ce55ee235e328",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.restoreVersion": {
+        "hash": "add0d677689e31c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.restoreVersionCancel": {
+        "hash": "280635e14e705b59",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.restoreVersionConfirm": {
+        "hash": "41b228a8b14d5d6b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.restoreVersionWaiting": {
+        "hash": "ee3f128810ea9fb5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.restoreVersionWarning": {
+        "hash": "f4f740e473649d45",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.retry": {
+        "hash": "62054e8712de1506",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.revisionByAgent": {
+        "hash": "71309c422255bafa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.revisionByStrategyDance": {
+        "hash": "89b7ce8d0430c5b6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.revisionFormerMember": {
+        "hash": "8c8cc9c6974c591e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.revisionHide": {
+        "hash": "9f657a784f838b24",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.revisionJustNow": {
+        "hash": "79b59419ecb5ff78",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.revisionOpenConversation": {
+        "hash": "4cab3f6173c1d0d8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.revisionRestored": {
+        "hash": "3bcf45eb6655d747",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.revisionTextEmpty": {
+        "hash": "e63d2d75389b04c0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.revisionTextError": {
+        "hash": "379b740ca073f288",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.revisionView": {
+        "hash": "6d57031ef4267c9c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.save": {
+        "hash": "8ff71af3fc870118",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.saveError": {
+        "hash": "0392ef4c7b9f27fc",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.saving": {
+        "hash": "d8ca52107ecfdef8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.searchPlaceholder": {
+        "hash": "3ebe9aaa7c5b37ec",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.stay": {
+        "hash": "3b815da41b4a5071",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.titleLabel": {
+        "hash": "488fafaf7c251943",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.tooLong": {
+        "hash": "42b25bb016177fc6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.undo": {
+        "hash": "6cac6edbe5aa0efe",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.undoRestore": {
+        "hash": "6f52095fd63c40d8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.untitled": {
+        "hash": "fc726616eb1d2cce",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.versionGone": {
+        "hash": "80504914de976c94",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.versionRestoreError": {
+        "hash": "e07a6d258c9f0cfd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.versionRestored": {
+        "hash": "3f7c404526cb7a15",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.versionUnrestorable": {
+        "hash": "ec73c1e859cc774c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
@@ -4450,460 +4904,6 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
-    "knowledge": {
-      "knowledge.add": {
-        "hash": "2060141b0312f833",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.addAspects": {
-        "hash": "e83e8207e3b19600",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.addFull": {
-        "hash": "d2a272d05c287f5e",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aiNoAccess": {
-        "hash": "7ccfc1b87988f01c",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aiPermissions": {
-        "hash": "6ba72ad1d9a7cfd2",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aiRead": {
-        "hash": "f91c6d8764639718",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aiReadOnly": {
-        "hash": "7fd3663d53853a11",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aiReadWrite": {
-        "hash": "06746ff9595a2ce1",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aiWrite": {
-        "hash": "816d69d067c644d6",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.allKnowledge": {
-        "hash": "7ba49bc4779b6d0b",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.alsoHere": {
-        "hash": "a923bdfcbb143a3e",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectEmptyText": {
-        "hash": "3db00d7058ec5e0a",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectEmptyTitle": {
-        "hash": "5837447ca17c4ff4",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectsDescription": {
-        "hash": "252f9ce064fb4771",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectsFilterClear": {
-        "hash": "30919fbb352264b4",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectsFilterClose": {
-        "hash": "1a13a4f70689f71f",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectsFilterEmpty": {
-        "hash": "247e09989c0fc1a4",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectsFilterLabel": {
-        "hash": "d4a0d8b24f4357e2",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectsFilterMore": {
-        "hash": "84a2e6f799dfa287",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectsFilterPlaceholder": {
-        "hash": "b092b186f60c2ded",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectsFilterSearch": {
-        "hash": "baeaf518d700da0c",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectsSelected": {
-        "hash": "9ca4fc2514431ab3",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.aspectsTitle": {
-        "hash": "6a196f54f10deb94",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.bodyLabel": {
-        "hash": "2a5b9fba7385e8a2",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.bodyPlaceholder": {
-        "hash": "d8ba071d72b67e63",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.cancel": {
-        "hash": "7963065a998a0c17",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.clearFilters": {
-        "hash": "26c48b21e459dc88",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.close": {
-        "hash": "67dc33ff453aba41",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.confirm": {
-        "hash": "4fffbcd7bae76009",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.delete": {
-        "hash": "76a7cb691647a668",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.deleteError": {
-        "hash": "eabdd24b845997bd",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.deleted": {
-        "hash": "39c84cc834fe4688",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.deletedElsewhere": {
-        "hash": "c08a3865f8bfeb00",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.documentLoadError": {
-        "hash": "3c2e62735e83354f",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.draft": {
-        "hash": "3eb57c047d8c6730",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.draftFull": {
-        "hash": "5b66eedd88c53db7",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editAspects": {
-        "hash": "7d7ae2b2017e87de",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editedAgo": {
-        "hash": "4529bb3cec93087e",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editedJustNow": {
-        "hash": "370d8fbdba86cd4b",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editedOn": {
-        "hash": "b9e1fbc7455d3729",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorError": {
-        "hash": "fef0fb6d952496b7",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorImageSizeError": {
-        "hash": "eca8d68fa206d342",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorImageTypeError": {
-        "hash": "b01a32209790c359",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorImageUploadError": {
-        "hash": "ca85f3d4ac2ac320",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorLinkPreviewAdd": {
-        "hash": "d4429250f7fb1d08",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorLinkPreviewButton": {
-        "hash": "ff45661568feea30",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorLinkPreviewInvalid": {
-        "hash": "49dd16c48df72b27",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorLinkPreviewSubtext": {
-        "hash": "239070c29323db5f",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorLinkPreviewTitle": {
-        "hash": "85b125e50ef55ed7",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorMentionDocumentGone": {
-        "hash": "9cebabb0585479a9",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorMentionItem": {
-        "hash": "ff31aaf96da2b50e",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorMentionItemSubtext": {
-        "hash": "6dcc28f889e5cce3",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorMentionKnowledge": {
-        "hash": "915fbe6393b74e57",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorMentionTaskGone": {
-        "hash": "e84329bcc02a81d0",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorMentionTasks": {
-        "hash": "43376af144ca2e74",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorTurnInto": {
-        "hash": "5ec56d5ad4433055",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorVideoSubtext": {
-        "hash": "7e206de7e8378567",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.editorVideoUnsupported": {
-        "hash": "fdeb040411c9477d",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.emptyText": {
-        "hash": "537f08982de3e76d",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.emptyTitle": {
-        "hash": "84ec0a09e0f7a7a1",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.eyebrow": {
-        "hash": "7fcf03bf94a880c4",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.goToAll": {
-        "hash": "ba58b941b24a5962",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.history": {
-        "hash": "6f2bc3b91aa2b7f9",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.historyClose": {
-        "hash": "da3f973055d88c81",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.historyDescription": {
-        "hash": "29b2e75872ceffd9",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.historyEmpty": {
-        "hash": "475ba95e1ad0d0c8",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.historyError": {
-        "hash": "77ba78283ea4be2a",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.historyTitle": {
-        "hash": "9c0375664c1c77db",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.lead": {
-        "hash": "37c6edbbe5b19ffb",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.leave": {
-        "hash": "6db8e3e4b9d9897b",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.leaveText": {
-        "hash": "e407ce52c7b92ebb",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.leaveTitle": {
-        "hash": "9a369b1545161330",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.loadError": {
-        "hash": "61f56ef3a4b48162",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.loadingEditor": {
-        "hash": "a3e24b1495c08e06",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.moreActions": {
-        "hash": "fe5acab51c7f2f2a",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.moreHere": {
-        "hash": "0d8fef38e801c449",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.noMatchText": {
-        "hash": "62138b6ea8351391",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.noMatchTitle": {
-        "hash": "5f06808e0cfc66ac",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.notFoundText": {
-        "hash": "f02845409afd6246",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.notFoundTitle": {
-        "hash": "b6590f1e00014fea",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.notSaved": {
-        "hash": "9484f03077f13ac6",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.restoreError": {
-        "hash": "7c8f9f8615aeacce",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.restoreUndoError": {
-        "hash": "9335d7a2dee6079b",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.restoreVersion": {
-        "hash": "2c62ec7f4865439c",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.restoreVersionCancel": {
-        "hash": "5ce0e6dcaa8e03c5",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.restoreVersionConfirm": {
-        "hash": "12ecd52de401f9d2",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.restoreVersionWaiting": {
-        "hash": "45433e4d17fd8025",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.restoreVersionWarning": {
-        "hash": "e9207ba2045f10c6",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.retry": {
-        "hash": "716596781f39ac89",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.revisionByAgent": {
-        "hash": "f0b1fd79935d5fba",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.revisionByStrategyDance": {
-        "hash": "bb2bbe30cb8ffb7f",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.revisionFormerMember": {
-        "hash": "8247934e09cb928a",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.revisionHide": {
-        "hash": "836e55fbf727e531",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.revisionJustNow": {
-        "hash": "a5b159c884baa36b",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.revisionOpenConversation": {
-        "hash": "2c0821ece06ee3b3",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.revisionRestored": {
-        "hash": "b84e2a95c3fd7827",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.revisionTextEmpty": {
-        "hash": "c5ec21c3bf509bce",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.revisionTextError": {
-        "hash": "77ec3415e98b10fd",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.revisionView": {
-        "hash": "41f3cd5a5e7b4fce",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.save": {
-        "hash": "8974db74af9e765c",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.saveError": {
-        "hash": "e1ad4126a3a7c6ce",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.saving": {
-        "hash": "e1c88c25f4be6ca6",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.searchPlaceholder": {
-        "hash": "de4a86fede42cf6c",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.stay": {
-        "hash": "e93736ca0e2457b2",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.titleLabel": {
-        "hash": "16ba1fd0a545d87f",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.tooLong": {
-        "hash": "2193060d366da1de",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.undo": {
-        "hash": "6cac6edbe5aa0efe",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.undoRestore": {
-        "hash": "bd1a72ad2116423d",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.untitled": {
-        "hash": "88ccadd9ec6ac06c",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.versionGone": {
-        "hash": "4cabe5cf5922caea",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.versionRestoreError": {
-        "hash": "e8ce91993dad895f",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.versionRestored": {
-        "hash": "5dd4bb1d2d1a40a6",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "knowledge.versionUnrestorable": {
-        "hash": "0b5122ed48d1c9bf",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      }
-    },
     "landing": {
       "landing.beta": {
         "hash": "0ca35b69ab2c13a0",
@@ -5130,7 +5130,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsTitle": {
-        "hash": "7ace30ffa218a5c4",
+        "hash": "4898d1579ad8a442",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.allow": {
@@ -5178,7 +5178,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.connectionModule": {
-        "hash": "7f04f1e8713b367d",
+        "hash": "0165f7f9695277e9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.consentEyebrow": {
@@ -5190,7 +5190,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.consentTitle": {
-        "hash": "c02f5548cc9482ef",
+        "hash": "0b95d689b61a7422",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.createOrganization": {
@@ -5229,6 +5229,22 @@
         "hash": "53db53f507dafc55",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.documentsAgentsButton": {
+        "hash": "60d08b9b537c9ef8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.documentsName": {
+        "hash": "b9ebd743f4a11f6f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.documentsReadAccess": {
+        "hash": "0ec7d9ae674fd80c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.documentsWriteAccess": {
+        "hash": "8387381ade568074",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.expiredDescription": {
         "hash": "9bdb0686cbf190b4",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -5243,22 +5259,6 @@
       },
       "module.fullTitle": {
         "hash": "3fb0f5196115dc3b",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "module.knowledgeAgentsButton": {
-        "hash": "9acba3475fbd19df",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "module.knowledgeName": {
-        "hash": "11870396e2df3f8a",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "module.knowledgeReadAccess": {
-        "hash": "fc678685da3d8bc1",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "module.knowledgeWriteAccess": {
-        "hash": "49cb7850ea3b22e3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.lastUsedAgo": {
@@ -5362,7 +5362,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.unnamedAgent": {
-        "hash": "8699ee05cda763af",
+        "hash": "2e6962e663d97bef",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.unverified": {
@@ -5495,6 +5495,10 @@
         "hash": "b7eac36e22480f93",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "navigation.documents": {
+        "hash": "f9c9daebcf49e270",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "navigation.exploreMore": {
         "hash": "c06a5db77d6a5de1",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -5512,15 +5516,11 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.guidance": {
-        "hash": "0f997587f913277b",
+        "hash": "d60a633d37fa16ec",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.integrations": {
         "hash": "8122d2f707abcdb0",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "navigation.knowledge": {
-        "hash": "6ce07a5a547ca81d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "navigation.logOut": {
@@ -6148,19 +6148,19 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorMentionDocumentGone": {
-        "hash": "9cebabb0585479a9",
+        "hash": "4ca637745d4d4c74",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionDocuments": {
+        "hash": "7488905bba75b180",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorMentionItem": {
-        "hash": "ff31aaf96da2b50e",
+        "hash": "6a78a4e2d9aa455b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorMentionItemSubtext": {
-        "hash": "6dcc28f889e5cce3",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "task.editorMentionKnowledge": {
-        "hash": "915fbe6393b74e57",
+        "hash": "056662367ccd679b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorMentionTaskGone": {
@@ -6172,7 +6172,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorMentionUntitled": {
-        "hash": "ea87582ebccc802c",
+        "hash": "c137221f5b5a8a88",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorTurnInto": {

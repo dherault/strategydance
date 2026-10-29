@@ -76,11 +76,11 @@ function SidebarNavigation() {
             link={{ to: '/$organizationSlug/tasks', params: { organizationSlug } }}
           />
           <NavigationLink
-            path={`/${organizationSlug}/knowledge`}
+            path={`/${organizationSlug}/documents`}
             isNested
-            label={formatMessage(navigationMessages.knowledge)}
+            label={formatMessage(navigationMessages.documents)}
             icon={<FileTextIcon />}
-            link={{ to: '/$organizationSlug/knowledge', params: { organizationSlug } }}
+            link={{ to: '/$organizationSlug/documents', params: { organizationSlug } }}
           />
           <NavigationLink
             path={`/${organizationSlug}/budget`}

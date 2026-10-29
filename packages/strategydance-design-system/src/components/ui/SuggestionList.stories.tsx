@@ -40,7 +40,7 @@ function SuggestionListOverField() {
   return (
     <div className="relative mt-56 w-96">
       <SuggestionList className="absolute inset-x-0 bottom-[calc(100%+4px)]">
-        <SuggestionListLabel id="suggestion-list-story-label">Knowledge</SuggestionListLabel>
+        <SuggestionListLabel id="suggestion-list-story-label">Documents</SuggestionListLabel>
         <SuggestionListOptions
           id="suggestion-list-story-options"
           aria-labelledby="suggestion-list-story-label"
@@ -77,7 +77,7 @@ export const Default: Story = {
 export const Empty: Story = {
   render: () => (
     <SuggestionList className="w-96">
-      <SuggestionListEmpty>No knowledge matches “roadmap”</SuggestionListEmpty>
+      <SuggestionListEmpty>No document matches “roadmap”</SuggestionListEmpty>
     </SuggestionList>
   ),
 }

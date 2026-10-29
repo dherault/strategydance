@@ -79,7 +79,7 @@ function toBody({
 
 /*
   A conversation's thread as its page draws it: the live tail merged with the older messages read
-  in pages, and each message's body, read once by id, as `CLAUDE.md` § The database describes.
+  in pages, and each message's body, read once by id, as conversations.md describes.
 
   Made from the tail the page first read, so the first paint has the thread. Nothing is read until
   somebody subscribes, and subscribing again after the last listener left, as StrictMode does,

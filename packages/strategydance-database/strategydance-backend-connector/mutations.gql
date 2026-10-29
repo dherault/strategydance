@@ -143,7 +143,7 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 
 # Deletes an organization, for one of its administrators. Its memberships and pending invitations
 # go with it, and so does everything its members keep in it on their Today pages, checklists and
-# log entries, the tasks on its board, and its knowledge: all of them reference it as required, which Data
+# log entries, the tasks on its board, and its documents: all of them reference it as required, which Data
 # Connect cascades. Its files are the
 # backend's, which sweeps them before running this, so a failed sweep leaves the organization to
 # delete again, and once more after, for an upload that raced it (`deleteOrganization`).
@@ -159,8 +159,8 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 # organization anyway, so touching it costs nothing.
 #
 # `$organizationId` is also what every live query scoped to an organization refreshes on, the
-# team, the log, knowledge and conversations among them, so a member watching any of them sees it
-# go
+# team, the log, the documents and conversations among them, so a member watching any of them sees
+# it go
 mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) @transaction {
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
@@ -5647,7 +5647,7 @@ mutation DeleteConversationAttachments($organizationId: UUID!, $userId: String!,
   )
 }
 
-# The Knowledge module's writes follow, named `…ForAgent`, as its reads are: see `queries.gql`.
+# The Documents module's writes follow, named `…ForAgent`, as its reads are: see `queries.gql`.
 #
 # Each runs as one transaction that checks the membership the module read, then, when the call
 # carries an idempotency key (`$isKeyed`), inserts its `ModuleCallResult` first, `$result` being
@@ -6449,7 +6449,7 @@ mutation DeleteExpiredModuleCallResults @auth(level: NO_ACCESS) {
 #
 # Each runs as one transaction that checks the membership the module read, then, when the call
 # carries an idempotency key (`$isKeyed`), inserts its `ModuleCallResult` first, `$result` being what
-# the module answers, and only then writes, as the Knowledge module's writes do. Each holds a task to
+# the module answers, and only then writes, as the Documents module's writes do. Each holds a task to
 # what the page's operation holds it to, with the same messages where the same rule holds.
 #
 # Each is named in `GetTasks`' refreshes, on `$organizationId`, but an update carrying a description

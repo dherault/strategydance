@@ -3,7 +3,7 @@ import { FileTextIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
 
-import type { KnowledgeDocumentSummary } from '~types'
+import type { DocumentSummary } from '~types'
 
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
@@ -18,11 +18,11 @@ type Props = {
   // The link's words, as the agent or the member's mention wrote them
   children: ReactNode
   // The organization's documents by id, or null while they are not read
-  documents: ReadonlyMap<string, KnowledgeDocumentSummary> | null
+  documents: ReadonlyMap<string, DocumentSummary> | null
 }
 
 /*
-  A link to knowledge in Strategy Dance's reply, or a member's mention of it, `doc:<id>`: the
+  A link to a document in Strategy Dance's reply, or a member's mention of one, `doc:<id>`: the
   document's current title with a file icon, opening it, whatever the link's words. A document the
   organization no longer holds, deleted, pruned or never there, is the link's words struck through
   and muted, which a screen reader hears said. A link naming no document's id is its words, neither
@@ -54,7 +54,7 @@ function ConversationDocumentLink({ href, children, documents }: Props) {
 
   return (
     <Link
-      to="/$organizationSlug/knowledge/$documentId"
+      to="/$organizationSlug/documents/$documentId"
       params={{ organizationSlug, documentId: target.item.id }}
       className="font-medium text-primary no-underline hover:text-primary-800 hover:underline"
     >

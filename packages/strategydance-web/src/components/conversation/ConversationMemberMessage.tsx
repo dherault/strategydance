@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { cn } from 'strategydance-design-system/lib/utils'
 
-import type { ConversationMessageAttachment, KnowledgeDocumentSummary } from '~types'
+import type { ConversationMessageAttachment, DocumentSummary } from '~types'
 
 import parseConversationMemberText from '~utils/conversation/parseConversationMemberText'
 
@@ -15,14 +15,14 @@ type Props = {
   // The files it sent, in the order Claude reads them
   attachments: readonly ConversationMessageAttachment[]
   // The organization's documents by id, or null while they are not read
-  documents: ReadonlyMap<string, KnowledgeDocumentSummary> | null
+  documents: ReadonlyMap<string, DocumentSummary> | null
   // Small in a dock's window, as Strategy Dance's replies are there
   size?: 'sm' | 'md'
 }
 
 /*
   What the reader wrote: a grey bubble on the right, its line breaks kept, as plain text, but for
-  the knowledge it mentions, drawn as Strategy Dance's replies draw a link to a document. Nothing
+  the documents it mentions, drawn as Strategy Dance's replies draw a link to a document. Nothing
   else is read as Markdown, so what the reader typed stays as typed. The files it sent sit above
   it, images as thumbnails and any other file as a chip, and a message of files alone has no bubble
 */

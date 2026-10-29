@@ -8,7 +8,7 @@ const markdownSampleReplies = [
   'Your [Contractor agreement](doc:d12) note covers scope, payment terms, IP assignment and a 30-day notice. For a 6-week project, add:\n\n- A list of deliverables with dates\n- Who owns drafts and source files\n- How many rounds of revisions are included\n\n**Have a lawyer review the final version before you sign.**',
 ]
 
-// The knowledge the replies link to, by id. "Risks and assumptions", `d6`, has been deleted
+// The documents the replies link to, by id. "Risks and assumptions", `d6`, has been deleted
 const markdownSampleDocuments = new Map([
   ['d2', '12-month plan'],
   ['d3', 'Competitor notes'],

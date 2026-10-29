@@ -43,7 +43,7 @@ import { dataConnect } from '~firebase'
   `doneAt` backfill's, take no organization, so they read and write every unindexed task in the
   emulator, and read every unstamped one; nothing else here reaches past the two organizations.
 
-  Like `checkKnowledgeModule.ts`, it refuses to run unless it points at the emulator
+  Like `checkDocumentsModule.ts`, it refuses to run unless it points at the emulator
 */
 if (!process.env.DATA_CONNECT_EMULATOR_HOST) {
   console.error(

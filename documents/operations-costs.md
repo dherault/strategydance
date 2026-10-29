@@ -238,9 +238,9 @@ keeps the 10 newest images holds it at $0.17. The tables assume that policy.
 refetches everything mounted, about 8 queries. That is most of the 250 operations a day. At $0.90 a
 million it costs $33.99 a month at 10,000 users, but it is also most of the database's load: a
 `staleTime` of a minute would let the instance steps come later. Five live queries already keep
-the team, the log, the knowledge list and an open document, its text and who is in it, current.
+the team, the log, the documents list and an open document, its text and who is in it, current.
 
-**Writing a document.** A knowledge document's text is pushed as it is typed, so writing costs by
+**Writing a document.** A document's text is pushed as it is typed, so writing costs by
 the second rather than by the save. Not in the 250 operations a day above, since nobody writes
 documents yet:
 

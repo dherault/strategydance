@@ -20,7 +20,7 @@ type Props = {
 
 /*
   What a subagent reported, in the output of the row of the call that launched it, in the Markdown
-  Strategy Dance's replies are drawn in, since its links to knowledge and tasks are what it changed,
+  Strategy Dance's replies are drawn in, since its links to documents and tasks are what it changed,
   with a button that copies it as written. Read as the output opens, and offered again when it could
   not be
 */

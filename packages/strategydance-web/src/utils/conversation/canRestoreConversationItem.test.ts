@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
-import type { KnowledgeDocumentSummary, Task } from '~types'
+import type { DocumentSummary, Task } from '~types'
 
 import canRestoreConversationItem from '~utils/conversation/canRestoreConversationItem'
 import readConversationDeletedItem from '~utils/conversation/readConversationDeletedItem'
@@ -19,7 +19,7 @@ const deletedTask = readConversationDeletedItem(
 )
 
 function documents(...ids: string[]) {
-  return new Map(ids.map(id => [id, { id } as KnowledgeDocumentSummary]))
+  return new Map(ids.map(id => [id, { id } as DocumentSummary]))
 }
 
 function board(...ids: string[]) {

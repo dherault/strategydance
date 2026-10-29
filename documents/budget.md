@@ -57,7 +57,7 @@ Left for later:
 
 ### The page
 
-`/$organizationSlug/budget`, under Guidance in the sidebar, after Knowledge, with lucide's
+`/$organizationSlug/budget`, under Guidance in the sidebar, after Documents, with lucide's
 `WalletIcon`.
 
 - **Its header** has the eyebrow "Every dollar counts", the title "Budget", and the lead "What the
@@ -130,7 +130,7 @@ of single-row mutations. A year of one currency is some 256 days, about 6 KB of 
 history is about 800 rows, and a page reads only a handful: the currencies it shows, for the years
 it computes.
 
-A table references the account and the organization apart, as CLAUDE.md says, so a member's
+A table references the account and the organization apart, as the database's CLAUDE.md says, so a member's
 removal keeps the bills they paid and the receipts they uploaded.
 
 ### Money and currencies
@@ -327,7 +327,7 @@ no file is ever without its row.
 - A bill's dialog left open past two days on a receipt nothing holds yet is refused on save, saying
   to attach it again.
 
-**The Storage emulator ignores generation preconditions**, as CLAUDE.md says, so the upload reads
+**The Storage emulator ignores generation preconditions**, as the backend's CLAUDE.md says, so the upload reads
 what is there before it writes, as `conversationAttachmentStorage` does, and its tests simulate the
 412 on `createAttachmentStorageFake`'s pattern.
 

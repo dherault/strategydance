@@ -122,8 +122,8 @@ type Props = {
 
 /*
   Where the reader writes to Strategy Dance, at the foot of a conversation: a field that grows
-  with what is written, and a button that sends it. Typing `@`, or "Mention knowledge" in the "+"
-  menu, suggests knowledge to mention, and each mention picked is sent as a link to its document
+  with what is written, and a button that sends it. Typing `@`, or "Mention a document" in the "+"
+  menu, suggests documents to mention, and each mention picked is sent as a link to its document
   (`useConversationMentions`). "Files and images" in the same menu, or a paste of files without
   text, attaches files, which go up at once and wait in the tray above the field
   (`useConversationComposerAttachments`): a message may hold files and no words, and is sent once
@@ -386,7 +386,7 @@ function ConversationComposer({
     <form
       className={cn(
         'flex flex-col gap-2 bg-background',
-        // Above the page's bar on a phone, which the list of knowledge to mention can reach
+        // Above the page's bar on a phone, which the list of documents to mention can reach
         variant === 'page' ? 'sticky bottom-0 z-10 pt-3 pb-5' : 'border-t border-border px-3 pt-2.5 pb-3',
       )}
       onSubmit={handleSubmit}
@@ -479,7 +479,7 @@ function ConversationComposer({
       ) : null}
       <div className="flex items-end gap-1.5">
         <ConversationComposerMenu
-          onMentionKnowledge={mentions.insertTrigger}
+          onMentionDocuments={mentions.insertTrigger}
           // The field again once the picker closes, but on a touch screen, which would raise its
           // keyboard over the files just picked
           onFilesOpen={() => {

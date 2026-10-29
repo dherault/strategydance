@@ -1,6 +1,6 @@
-import type { KnowledgeDocumentSummary } from '~types'
+import type { DocumentSummary } from '~types'
 
-import useOrganizationKnowledgeDocuments from '~hooks/knowledge/useOrganizationKnowledgeDocuments'
+import useOrganizationDocuments from '~hooks/document/useOrganizationDocuments'
 
 /*
   The organization's documents as a conversation's thread looks them up, by id, kept live, so a
@@ -9,8 +9,8 @@ import useOrganizationKnowledgeDocuments from '~hooks/knowledge/useOrganizationK
   thread draws what the agent wrote and decides nothing. The list leaves deleted documents out, so
   an id it lacks names one deleted, pruned or never there
 */
-function useConversationDocuments(needs: boolean): ReadonlyMap<string, KnowledgeDocumentSummary> | null {
-  const { data, initialLoading, hasFailed } = useOrganizationKnowledgeDocuments({ isEnabled: needs })
+function useConversationDocuments(needs: boolean): ReadonlyMap<string, DocumentSummary> | null {
+  const { data, initialLoading, hasFailed } = useOrganizationDocuments({ isEnabled: needs })
 
   if (!needs || initialLoading || hasFailed) return null
 

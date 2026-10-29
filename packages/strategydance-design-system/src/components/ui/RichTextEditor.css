@@ -22,9 +22,12 @@
 }
 
 /*
-  The text as `RichText` sets it. The left padding is the side menu's gutter, where the "+" and the
-  drag handle of the block under the pointer appear: the menu's 58px, its buttons flush against the
-  frame and 6px between them and the text.
+  The text as `RichText` sets it, in the design system's Inter rather than the stack BlockNote names
+  on the editor itself, which draws in an Inter installed on the computer, or the system's font
+  without one.
+  The left padding is the side menu's gutter, where the "+" and the drag handle of the block under
+  the pointer appear: the menu's 58px, its buttons flush against the frame and 6px between them and
+  the text.
 
   On a touch screen the text is 16px instead, as every field's is there: iOS zooms the page into an
   editable element whose text is smaller when it takes focus. `RichText` keeps its 15px, since its
@@ -32,6 +35,7 @@
 */
 .rich-text-editor.bn-root .bn-editor {
   padding: 12px 12px 12px 58px;
+  font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.6;
   overflow-wrap: anywhere;

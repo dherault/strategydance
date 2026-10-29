@@ -1792,7 +1792,7 @@ query GetConversationAttachmentsByClaudeFileIds($claudeFileIds: [String!]!) @aut
   }
 }
 
-# The Knowledge module's operations follow, named `…ForAgent`: what an agent reads and writes of an
+# The Documents module's operations follow, named `…ForAgent`: what an agent reads and writes of an
 # organization's documents through it, Strategy Dance's own and a member's alike. Each takes the
 # member the backend verified, `$userId`, and the `createdAt` of the membership it read,
 # `$membershipCreatedAt`, so a member removed, or removed and invited back, stops every agent acting

@@ -208,7 +208,7 @@ export const InDialog: Story = {
 }
 
 /*
-  A page's body under its title, as a knowledge document is written: no frame, as tall as its text,
+  A page's body under its title, as a document is written: no frame, as tall as its text,
   the side menu in the margin to its left. Below `md` the page leaves no margin, as a phone's does,
   and the side menu sits in the body's own gutter instead. Enter in the title moves the caret into
   the body
@@ -260,7 +260,7 @@ function DocumentExample(props: Parameters<typeof RichTextEditor>[0]) {
 }
 
 /*
-  One text written by two people at once, as a shared knowledge document is: what either types
+  One text written by two people at once, as a shared document is: what either types
   lands in the other's editor, and each shows the other's caret and name while they type. Each
   editor has a Yjs document of its own, linked to the other's here as the server links them, since
   two editors on one document would be one writer to Yjs, and neither would draw the other's caret

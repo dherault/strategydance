@@ -58,7 +58,7 @@ const { default: createOAuthRouter } = await import('./oauth')
 const { default: createOAuthRequestsRouter } = await import('./oauthRequests')
 
 const ISSUER = 'http://localhost:3003'
-const KNOWLEDGE = `${ISSUER}/mcp/knowledge`
+const DOCUMENTS = `${ISSUER}/mcp/documents`
 const TASKS = `${ISSUER}/mcp/tasks`
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const MEMBER = 'member'
@@ -119,7 +119,7 @@ function encode(parameters: Record<string, string | null>) {
 // A code a member allowed, as the consent page's Allow issues it
 async function issueCode({
   clientId = CLIENT_ID,
-  scopes = ['knowledge:read', 'knowledge:write'],
+  scopes = ['documents:read', 'documents:write'],
   allowed = scopes,
 }: { clientId?: string; scopes?: string[]; allowed?: string[] } = {}) {
   const { data } = await (
@@ -133,7 +133,7 @@ async function issueCode({
       registeredClientId: null,
       redirectUri: REDIRECT_URI,
       codeChallenge: CHALLENGE,
-      resource: KNOWLEDGE,
+      resource: DOCUMENTS,
       scopes,
       state: 'opaque state',
     },
@@ -158,7 +158,7 @@ function exchange(code: string, parameters: Record<string, string | null> = {}) 
       client_id: CLIENT_ID,
       redirect_uri: REDIRECT_URI,
       code_verifier: VERIFIER,
-      resource: KNOWLEDGE,
+      resource: DOCUMENTS,
       ...parameters,
     }),
   )
@@ -171,7 +171,7 @@ function refresh(refreshToken: string, parameters: Record<string, string | null>
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
       client_id: CLIENT_ID,
-      resource: KNOWLEDGE,
+      resource: DOCUMENTS,
       ...parameters,
     }),
   )
@@ -210,7 +210,7 @@ describe('POST /oauth/token, the authorization code grant', () => {
       token_type: 'Bearer',
       expires_in: 3600,
       refresh_token: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),
-      scope: 'knowledge:read knowledge:write',
+      scope: 'documents:read documents:write',
     })
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(response.headers.get('pragma')).toBe('no-cache')
@@ -220,22 +220,22 @@ describe('POST /oauth/token, the authorization code grant', () => {
       {
         kind: 'ACCESS',
         stored: hash(tokens.access_token),
-        resource: KNOWLEDGE,
-        scopes: ['knowledge:read', 'knowledge:write'],
+        resource: DOCUMENTS,
+        scopes: ['documents:read', 'documents:write'],
       },
       {
         kind: 'REFRESH',
         stored: hash(tokens.refresh_token),
-        resource: KNOWLEDGE,
-        scopes: ['knowledge:read', 'knowledge:write'],
+        resource: DOCUMENTS,
+        scopes: ['documents:read', 'documents:write'],
       },
     ])
   })
 
   test("names the scopes a member's reduced consent granted", async () => {
-    const { code } = await issueCode({ allowed: ['knowledge:read'] })
+    const { code } = await issueCode({ allowed: ['documents:read'] })
 
-    expect((await exchange(code)).body.scope).toBe('knowledge:read')
+    expect((await exchange(code)).body.scope).toBe('documents:read')
   })
 
   test('refuses a token request missing its resource, or naming another than its code’s', async () => {
@@ -243,7 +243,7 @@ describe('POST /oauth/token, the authorization code grant', () => {
 
     expectError(await exchange(code, { resource: null }), 'invalid_request')
     expectError(await exchange(code, { resource: TASKS }), 'invalid_target')
-    expectError(await exchange(code, { resource: `${KNOWLEDGE}/` }), 'invalid_target')
+    expectError(await exchange(code, { resource: `${DOCUMENTS}/` }), 'invalid_target')
     expect((await exchange(code)).status).toBe(200)
   })
 
@@ -334,7 +334,7 @@ describe('POST /oauth/token, the refresh token grant', () => {
     expect(rotated.access_token).not.toBe(tokens.access_token)
     expect(rotated.refresh_token).not.toBe(tokens.refresh_token)
     expect(rotated.access_token).not.toBe(rotated.refresh_token)
-    expect(rotated.scope).toBe('knowledge:read knowledge:write')
+    expect(rotated.scope).toBe('documents:read documents:write')
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(response.headers.get('pragma')).toBe('no-cache')
   })
@@ -374,18 +374,18 @@ describe('POST /oauth/token, the refresh token grant', () => {
     const { tokens } = await connect()
     const first = (await refresh(tokens.refresh_token)).body as unknown as Tokens
 
-    expectError(await refresh(tokens.refresh_token, { scope: 'knowledge:read' }), 'invalid_grant')
+    expectError(await refresh(tokens.refresh_token, { scope: 'documents:read' }), 'invalid_grant')
     expect((await refresh(tokens.refresh_token)).body.access_token).toBe(first.access_token)
     expect(fake.connections.size).toBe(1)
   })
 
   test('answers a duplicate asking for more than a narrowed first use with the pair it issued, and its scopes', async () => {
     const { tokens } = await connect()
-    const first = (await refresh(tokens.refresh_token, { scope: 'knowledge:read' })).body as unknown as Tokens
+    const first = (await refresh(tokens.refresh_token, { scope: 'documents:read' })).body as unknown as Tokens
     const duplicate = (await refresh(tokens.refresh_token)).body as unknown as Tokens
 
     expect(duplicate.access_token).toBe(first.access_token)
-    expect(duplicate.scope).toBe('knowledge:read')
+    expect(duplicate.scope).toBe('documents:read')
   })
 
   test('answers two refreshes at once with one pair', async () => {
@@ -440,24 +440,24 @@ describe('POST /oauth/token, the refresh token grant', () => {
 
   test('narrows the access token to the scopes a refresh names, the refresh token keeping its own', async () => {
     const { tokens } = await connect()
-    const narrowed = await refresh(tokens.refresh_token, { scope: 'knowledge:read' })
+    const narrowed = await refresh(tokens.refresh_token, { scope: 'documents:read' })
     const narrowedTokens = narrowed.body as unknown as Tokens
     const scopesOf = (token: string) =>
       [...fake.tokens.values()].find(({ hash: stored }) => stored === hash(token))?.scopes
 
-    expect(narrowedTokens.scope).toBe('knowledge:read')
-    expect(scopesOf(narrowedTokens.access_token)).toEqual(['knowledge:read'])
-    expect(scopesOf(narrowedTokens.refresh_token)).toEqual(['knowledge:read', 'knowledge:write'])
-    expect((await refresh(narrowedTokens.refresh_token)).body.scope).toBe('knowledge:read knowledge:write')
+    expect(narrowedTokens.scope).toBe('documents:read')
+    expect(scopesOf(narrowedTokens.access_token)).toEqual(['documents:read'])
+    expect(scopesOf(narrowedTokens.refresh_token)).toEqual(['documents:read', 'documents:write'])
+    expect((await refresh(narrowedTokens.refresh_token)).body.scope).toBe('documents:read documents:write')
   })
 
   test('refuses a refresh naming a scope its token was not granted, or write without read', async () => {
-    const { tokens } = await connect({ allowed: ['knowledge:read'] })
+    const { tokens } = await connect({ allowed: ['documents:read'] })
 
-    expectError(await refresh(tokens.refresh_token, { scope: 'knowledge:read knowledge:write' }), 'invalid_scope')
-    expectError(await refresh(tokens.refresh_token, { scope: 'knowledge:read tasks:read' }), 'invalid_scope')
-    expectError(await refresh(tokens.refresh_token, { scope: 'knowledge:write' }), 'invalid_scope')
-    expect((await refresh(tokens.refresh_token, { scope: 'knowledge:read' })).body.scope).toBe('knowledge:read')
+    expectError(await refresh(tokens.refresh_token, { scope: 'documents:read documents:write' }), 'invalid_scope')
+    expectError(await refresh(tokens.refresh_token, { scope: 'documents:read tasks:read' }), 'invalid_scope')
+    expectError(await refresh(tokens.refresh_token, { scope: 'documents:write' }), 'invalid_scope')
+    expect((await refresh(tokens.refresh_token, { scope: 'documents:read' })).body.scope).toBe('documents:read')
   })
 
   test('refuses a refresh whose connection goes while it rotates, as revoked rather than a server error', async () => {
@@ -505,7 +505,7 @@ describe('POST /oauth/token, whatever the grant', () => {
     const { code } = await issueCode()
 
     for (const name of ['code', 'code_verifier', 'client_id', 'resource', 'redirect_uri']) {
-      const form = `${encode({ grant_type: 'authorization_code', code, client_id: CLIENT_ID, redirect_uri: REDIRECT_URI, code_verifier: VERIFIER, resource: KNOWLEDGE })}&${name}=again`
+      const form = `${encode({ grant_type: 'authorization_code', code, client_id: CLIENT_ID, redirect_uri: REDIRECT_URI, code_verifier: VERIFIER, resource: DOCUMENTS })}&${name}=again`
 
       expectError(await post('token', form), 'invalid_request')
     }

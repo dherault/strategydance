@@ -1,5 +1,5 @@
 Draws what `RichTextEditor` wrote, read only and without an editor: a log post, a top priority, a
-task's description or a knowledge document's text. It is cheap, so a feed of many posts or a card
+task's description or a document's text. It is cheap, so a feed of many posts or a card
 uses it. An agent's Markdown reply is drawn by `Markdown` instead.
 
 ## Usage
@@ -58,7 +58,7 @@ const { RichText } = window.StrategyDanceDesignSystem
   Styles: `bold`, `italic`, `underline`, `strike` and `code`, each `true` when on
 - `blocks` names what it draws besides paragraphs, a post's `heading`, `quote`, `list` and
   `checklist` unless set: pass those of the editor that wrote the value, every one for a
-  knowledge document. Any other block holding text reads as a paragraph
+  document. Any other block holding text reads as a paragraph
 - A mention draws its icon and the words in its props unless `mentions` gives the live lists; a
   design leaves `mentions` out
 - Colors, alignment and anything else BlockNote stores are dropped, links open in a new tab, and

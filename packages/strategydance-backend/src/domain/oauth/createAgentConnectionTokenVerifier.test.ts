@@ -16,13 +16,13 @@ mock.module('strategydance-database/backend', () => fake.sdk)
 const { default: createAgentConnectionTokenVerifier } = await import('./createAgentConnectionTokenVerifier')
 const { default: readModuleCaller } = await import('~modules/readModuleCaller')
 
-const KNOWLEDGE = 'http://localhost:3003/mcp/knowledge'
+const DOCUMENTS = 'http://localhost:3003/mcp/documents'
 const TASKS = 'http://localhost:3003/mcp/tasks'
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const MEMBER = 'member'
 const CONNECTION_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
-const verifier = createAgentConnectionTokenVerifier(new URL(KNOWLEDGE))
+const verifier = createAgentConnectionTokenVerifier(new URL(DOCUMENTS))
 
 function hash(token: string) {
   return createHash('sha256').update(token).digest('base64url')
@@ -30,8 +30,8 @@ function hash(token: string) {
 
 // A connection of the member's, holding a token of each kind, as a code's exchange stores them
 function connect({
-  scopes = ['knowledge:read'],
-  resource = KNOWLEDGE,
+  scopes = ['documents:read'],
+  resource = DOCUMENTS,
   accessScopes,
 }: { scopes?: string[]; resource?: string; accessScopes?: string[] } = {}) {
   fake.connections.set(CONNECTION_ID, {
@@ -41,7 +41,7 @@ function connect({
     clientId: 'https://client.example.com/oauth/metadata.json',
     registeredClientId: null,
     clientName: 'Example Agent',
-    module: 'knowledge',
+    module: 'documents',
     scopes,
     createdAt: new Date().toISOString(),
     lastUsedAt: null,
@@ -88,34 +88,34 @@ afterEach(() => {
 
 describe('createAgentConnectionTokenVerifier', () => {
   test("accepts a valid access token, carrying the row's expiry and resource and the member's caller", async () => {
-    connect({ scopes: ['knowledge:read', 'knowledge:write'] })
+    connect({ scopes: ['documents:read', 'documents:write'] })
 
     const authInfo = await verifier.verifyAccessToken('access')
 
     expect(authInfo).toMatchObject({
       token: 'access',
       clientId: 'https://client.example.com/oauth/metadata.json',
-      scopes: ['knowledge:read', 'knowledge:write'],
+      scopes: ['documents:read', 'documents:write'],
       expiresAt: Math.floor(Date.parse(fake.tokens.get('ACCESS')!.expiresAt) / 1000),
-      resource: new URL(KNOWLEDGE),
+      resource: new URL(DOCUMENTS),
     })
     expect(readModuleCaller(authInfo)).toEqual({
       kind: 'external',
       userId: MEMBER,
       organizationId: ORGANIZATION_ID,
       membershipCreatedAt,
-      scopes: ['knowledge:read', 'knowledge:write'],
+      scopes: ['documents:read', 'documents:write'],
       idempotencyScope: `connection:${CONNECTION_ID}`,
     })
   })
 
   test("carries the scopes a refresh narrowed the token to, within its connection's", async () => {
-    connect({ scopes: ['knowledge:read', 'knowledge:write'], accessScopes: ['knowledge:read'] })
+    connect({ scopes: ['documents:read', 'documents:write'], accessScopes: ['documents:read'] })
 
     const authInfo = await verifier.verifyAccessToken('access')
 
-    expect(authInfo.scopes).toEqual(['knowledge:read'])
-    expect(readModuleCaller(authInfo).scopes).toEqual(['knowledge:read'])
+    expect(authInfo.scopes).toEqual(['documents:read'])
+    expect(readModuleCaller(authInfo).scopes).toEqual(['documents:read'])
   })
 
   test('refuses a token for another module', async () => {
@@ -155,7 +155,7 @@ describe('createAgentConnectionTokenVerifier', () => {
   test('marks the connection used on a verified call, then at most once a minute', async () => {
     connect()
 
-    const verifying = createAgentConnectionTokenVerifier(new URL(KNOWLEDGE))
+    const verifying = createAgentConnectionTokenVerifier(new URL(DOCUMENTS))
 
     await verifying.verifyAccessToken('access')
 
@@ -178,11 +178,11 @@ describe('createAgentConnectionTokenVerifier', () => {
   test('leaves the minute to the database across instances, each of which asks once', async () => {
     connect()
 
-    await createAgentConnectionTokenVerifier(new URL(KNOWLEDGE)).verifyAccessToken('access')
+    await createAgentConnectionTokenVerifier(new URL(DOCUMENTS)).verifyAccessToken('access')
 
     const first = fake.connections.get(CONNECTION_ID)!.lastUsedAt
 
-    await createAgentConnectionTokenVerifier(new URL(KNOWLEDGE)).verifyAccessToken('access')
+    await createAgentConnectionTokenVerifier(new URL(DOCUMENTS)).verifyAccessToken('access')
 
     expect(fake.calls.filter(name => name === 'RecordAgentConnectionUse')).toHaveLength(2)
     expect(fake.connections.get(CONNECTION_ID)!.lastUsedAt).toBe(first)
@@ -194,7 +194,7 @@ describe('createAgentConnectionTokenVerifier', () => {
       if (name === 'RecordAgentConnectionUse') throw new Error('unavailable')
     }
 
-    const verifying = createAgentConnectionTokenVerifier(new URL(KNOWLEDGE))
+    const verifying = createAgentConnectionTokenVerifier(new URL(DOCUMENTS))
 
     expect(readModuleCaller(await verifying.verifyAccessToken('access')).userId).toBe(MEMBER)
     expect(logged).toHaveBeenCalledTimes(1)

@@ -51,6 +51,12 @@ build, and why, is in [conversations.md](conversations.md): the sections named h
 data, A run, The transcript, The agent, Tools and Modules, are that document's. When a milestone
 merges, write its pull request number in the table above.
 
+Knowledge became Documents on 2026-10-29, after these milestones: the module is `documents`, served
+at `/mcp/documents`, the pages are at `/<organization>/documents`, and the code moved with them,
+`domain/knowledge/` to `domain/documents/`, `modules/knowledge/` to `modules/documents/`, the web's
+`knowledge` folders to `document` ones, and the `Knowledge` prefix dropped from their names. The
+milestones keep the names they were built under.
+
 ## Conventions for every milestone
 
 - Follow `CLAUDE.md`: a branch from `origin/dev`, granular commits each green on lint, typecheck,

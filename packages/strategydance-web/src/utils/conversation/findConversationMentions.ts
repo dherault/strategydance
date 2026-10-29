@@ -12,7 +12,7 @@ export type ConversationMention = {
 const WORD_CHARACTER_PATTERN = /[\p{L}\p{M}\p{N}\p{Pc}]/u
 
 /*
-  The knowledge a message mentions: each `@` that starts the text or follows a space, followed by
+  The documents a message mentions: each `@` that starts the text or follows a space, followed by
   the title of a document the composer tracks, `mentions` holding each title's id. The longest
   title wins, so `@Plan B` is "Plan B" rather than "Plan" followed by " B", and a title must end
   where a word does, so `@Planning` is no mention of "Plan". The scan carries on after each

@@ -19,7 +19,7 @@ const groups = [
   { items: [{ label: 'Today', icon: <CalendarIcon /> }] },
   { label: 'Guidance', items: [
     { label: 'Tasks', icon: <SquareKanbanIcon />, badge: 4 },
-    { label: 'Knowledge', icon: <FileTextIcon /> },
+    { label: 'Documents', icon: <FileTextIcon /> },
   ] },
   { label: 'Company', items: [
     { label: 'Strategy', icon: <CompanyAspectIcon aspect="strategy" /> },
@@ -103,7 +103,7 @@ const { FileTextIcon, PlusIcon, EllipsisIcon } = window.StrategyDanceDesignSyste
   <Sidebar collapsible="icon">
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>Knowledge</SidebarGroupLabel>
+        <SidebarGroupLabel>Documents</SidebarGroupLabel>
         <SidebarGroupAction aria-label="Write a document"><PlusIcon /></SidebarGroupAction>
         <SidebarMenu>
           <SidebarMenuItem>

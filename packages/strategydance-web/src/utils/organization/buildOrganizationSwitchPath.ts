@@ -1,5 +1,5 @@
 // The sections whose pages below the list belong to one organization: a document, a conversation
-const SECTIONS_OF_ONE_ORGANIZATION = ['knowledge', 'conversations']
+const SECTIONS_OF_ONE_ORGANIZATION = ['documents', 'conversations']
 
 /*
   Where switching to another organization leads from an organization's page: the same page in the

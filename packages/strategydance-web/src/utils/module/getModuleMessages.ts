@@ -16,11 +16,11 @@ type ModuleMessages = {
   worded here. `MODULES`' own title is the server's, in English, for what MCP clients show
 */
 const MODULE_MESSAGES: Record<ModuleName, ModuleMessages> = {
-  knowledge: {
-    name: moduleMessages.knowledgeName,
-    readAccess: moduleMessages.knowledgeReadAccess,
-    writeAccess: moduleMessages.knowledgeWriteAccess,
-    agentsButton: moduleMessages.knowledgeAgentsButton,
+  documents: {
+    name: moduleMessages.documentsName,
+    readAccess: moduleMessages.documentsReadAccess,
+    writeAccess: moduleMessages.documentsWriteAccess,
+    agentsButton: moduleMessages.documentsAgentsButton,
   },
   tasks: {
     name: moduleMessages.tasksName,

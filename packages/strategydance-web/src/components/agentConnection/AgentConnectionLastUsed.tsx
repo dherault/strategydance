@@ -11,7 +11,7 @@ type Props = {
 }
 
 /*
-  When a connected agent last called its module, as `KnowledgeEditedAt` words a time: "Last used 5
+  When a connected agent last called its module, as `DocumentEditedAt` words a time: "Last used 5
   minutes ago", then its date past a week, the exact time as the tooltip. The module's endpoint
   writes it at most once a minute
 */

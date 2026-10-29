@@ -827,7 +827,7 @@ query GetTaskDescription($organizationId: UUID!, $id: UUID!)
   }
 }
 
-# An organization's knowledge, the latest changed first, as the Knowledge page and each aspect's
+# An organization's documents, the latest changed first, as the Documents page and each aspect's
 # page list it: every document not deleted, without its content, which only the document's own page
 # reads. Outsiders read nothing.
 #
@@ -956,7 +956,7 @@ query GetOrganizationDocuments($organizationId: UUID!)
   }
 }
 
-# One document of an organization's knowledge, whole, for its own page. Read only by a member, and
+# One of an organization's documents, whole, for its own page. Read only by a member, and
 # only while it is not deleted.
 #
 # Read once as the page opens, and again whenever `GetLiveDocument` says the revision moved: the

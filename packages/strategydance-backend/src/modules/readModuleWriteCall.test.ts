@@ -16,7 +16,7 @@ const caller: ModuleCaller = {
   userId: 'member',
   organizationId: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
   membershipCreatedAt: '2026-10-11T10:00:00.000000Z',
-  scopes: ['knowledge:read'],
+  scopes: ['documents:read'],
   idempotencyScope: 'connection:checked',
 }
 
@@ -29,7 +29,7 @@ describe('readModuleWriteCall', () => {
     expect(
       readModuleWriteCall(
         caller,
-        { scope: 'knowledge:write', readOnly: READ_ONLY },
+        { scope: 'documents:write', readOnly: READ_ONLY },
         serverContext({ [MODULE_IDEMPOTENCY_KEY_META]: '' }),
         'create_document',
         {},
@@ -39,8 +39,8 @@ describe('readModuleWriteCall', () => {
 
   it('reads the key of a caller who may write', () => {
     const read = readModuleWriteCall(
-      { ...caller, scopes: ['knowledge:read', 'knowledge:write'] },
-      { scope: 'knowledge:write', readOnly: READ_ONLY },
+      { ...caller, scopes: ['documents:read', 'documents:write'] },
+      { scope: 'documents:write', readOnly: READ_ONLY },
       serverContext({ [MODULE_IDEMPOTENCY_KEY_META]: 'key' }),
       'create_document',
       { title: 'New' },

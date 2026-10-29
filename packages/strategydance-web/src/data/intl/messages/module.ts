@@ -8,28 +8,29 @@ import { defineMessages } from 'react-intl'
   sits outside the app
 */
 const moduleMessages = defineMessages({
-  knowledgeName: {
-    id: 'module.knowledgeName',
-    defaultMessage: 'Knowledge',
-    description: "The name of the module that lets an agent use the organization's knowledge documents.",
-  },
-  knowledgeReadAccess: {
-    id: 'module.knowledgeReadAccess',
-    defaultMessage: 'List, read and search the knowledge documents your organization lets agents read.',
+  documentsName: {
+    id: 'module.documentsName',
+    defaultMessage: 'Documents',
     description:
-      'What an agent allowed to read the Knowledge module can do. Each document has a setting saying whether agents may read it.',
+      "The name of the module that lets an agent use the organization's documents, the notes, plans and decisions its team writes together.",
   },
-  knowledgeWriteAccess: {
-    id: 'module.knowledgeWriteAccess',
-    defaultMessage: 'Create, edit and delete knowledge documents, where your organization lets agents write.',
+  documentsReadAccess: {
+    id: 'module.documentsReadAccess',
+    defaultMessage: 'List, read and search the documents your organization lets agents read.',
     description:
-      'What an agent allowed to write in the Knowledge module can do, beside reading. Each document has a setting saying whether agents may change it.',
+      'What an agent allowed to read the Documents module can do. Each document has a setting saying whether agents may read it.',
   },
-  knowledgeAgentsButton: {
-    id: 'module.knowledgeAgentsButton',
+  documentsWriteAccess: {
+    id: 'module.documentsWriteAccess',
+    defaultMessage: 'Create, edit and delete documents, where your organization lets agents write.',
+    description:
+      'What an agent allowed to write in the Documents module can do, beside reading. Each document has a setting saying whether agents may change it.',
+  },
+  documentsAgentsButton: {
+    id: 'module.documentsAgentsButton',
     defaultMessage: 'Allow your agents to read and write documents',
     description:
-      "Tooltip and accessible name of the icon button on the Knowledge page that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to the organization's knowledge documents.",
+      "Tooltip and accessible name of the icon button on the Documents page that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to the organization's documents.",
   },
   tasksName: {
     id: 'module.tasksName',
@@ -112,7 +113,7 @@ const moduleMessages = defineMessages({
     id: 'module.unnamedAgent',
     defaultMessage: 'Unnamed agent',
     description:
-      'What an external agent is called when it gave no name of its own, wherever its name would be, as in "Connect Unnamed agent to Knowledge".',
+      'What an external agent is called when it gave no name of its own, wherever its name would be, as in "Connect Unnamed agent to Documents".',
   },
   unverified: {
     id: 'module.unverified',
@@ -140,7 +141,7 @@ const moduleMessages = defineMessages({
     id: 'module.consentTitle',
     defaultMessage: 'Connect {agentName} to {moduleName}',
     description:
-      'Title of the page where a member allows an external agent to use a module. {agentName} is the agent\'s name, such as "Claude". {moduleName} is the module\'s name, such as "Knowledge".',
+      'Title of the page where a member allows an external agent to use a module. {agentName} is the agent\'s name, such as "Claude". {moduleName} is the module\'s name, such as "Documents".',
   },
   consentLead: {
     id: 'module.consentLead',
@@ -310,7 +311,7 @@ const moduleMessages = defineMessages({
     id: 'module.connectionModule',
     defaultMessage: '{moduleName} · {access}',
     description:
-      'On a connected agent, the module it may use and its access, such as "Knowledge · Read and write". {moduleName} is the module\'s name and {access} the access\'s short label.',
+      'On a connected agent, the module it may use and its access, such as "Documents · Read and write". {moduleName} is the module\'s name and {access} the access\'s short label.',
   },
   connectedOn: {
     id: 'module.connectedOn',
@@ -364,7 +365,7 @@ const moduleMessages = defineMessages({
     id: 'module.agentsTitle',
     defaultMessage: 'Use {module} with your agents',
     description:
-      'Title of the dialog explaining how to connect an AI agent of the member\'s own to a module. {module} is the module\'s name, such as "Knowledge".',
+      'Title of the dialog explaining how to connect an AI agent of the member\'s own to a module. {module} is the module\'s name, such as "Documents".',
   },
   agentsDescription: {
     id: 'module.agentsDescription',

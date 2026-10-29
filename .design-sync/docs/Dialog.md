@@ -44,7 +44,7 @@ function DeleteDocument() {
       <DialogContent showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Delete “Pricing”?</DialogTitle>
-          <DialogDescription>It leaves the team's knowledge. You can restore it for a day.</DialogDescription>
+          <DialogDescription>It leaves the team's documents. You can restore it for a day.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>

@@ -5,7 +5,7 @@ import {
 } from 'strategydance-design-system/lib/createRichTextMentionChip'
 
 /*
-  A mention of a knowledge document in the text, by its id, with its title when it was made: drawn
+  A mention of a document in the text, by its id, with its title when it was made: drawn
   with the document's live title, opening it. Its props are stored under these names for good, as
   `RichTextDocumentMention` says.
 

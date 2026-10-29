@@ -3,7 +3,7 @@ export type SubagentWrite = { tool: string; documentId?: string; taskId?: string
 
 /*
   The document or the task a write's result names, by the module whose tool wrote it: every result
-  of the Knowledge and Tasks modules' writes holds the id of what it wrote. `read_subagent` and the
+  of the Documents and Tasks modules' writes holds the id of what it wrote. `read_subagent` and the
   reports a parent is delivered name a subagent's writes so
 */
 function toSubagentWrite({ tool, result }: { tool: string; result: string }): SubagentWrite {

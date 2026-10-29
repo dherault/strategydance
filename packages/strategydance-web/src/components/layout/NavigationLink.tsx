@@ -6,7 +6,7 @@ import useSidebar from 'strategydance-design-system/hooks/useSidebar'
 type Props = {
   // Matched against the current path to mark the row active
   path: string
-  // Active on the pages under the path too, as the knowledge's row is on each document's
+  // Active on the pages under the path too, as the documents' row is on each document's
   isNested?: boolean
   label: string
   icon: ReactNode

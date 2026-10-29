@@ -12,7 +12,7 @@ type Member = { organizationId: string; userId: string; membershipCreatedAt: str
   The calls a subagent made to the organization's integrations, oldest first, each with its server,
   its tool and how it ended, and how many it made: those that started, since a call refused as it was
   drawn reached no server. A call to another company's server is what no restore undoes and nothing
-  in the team's knowledge or board shows, so its parent hears of each. Null once the membership is
+  in the team's documents or board shows, so its parent hears of each. Null once the membership is
   gone. The caller reads the subagent first, as its own and its parent's
 */
 async function readSubagentIntegrationCalls(

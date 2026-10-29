@@ -244,18 +244,18 @@ export type ChecklistItem = GetChecklistData['checklistItems'][number]
 export type LogEntry = GetOrganizationLogData['logEntries'][number]
 
 /*
-  One document of an organization's knowledge as its lists read it: its title, aspects and when it
+  One of an organization's documents as its lists read it: its title, aspects and when it
   last changed, without its content. Named apart from the DOM's `Document`, which a bare name would
   hide in every file that imports it
 */
-export type KnowledgeDocumentSummary = GetOrganizationDocumentsData['documents'][number]
+export type DocumentSummary = GetOrganizationDocumentsData['documents'][number]
 
 // One document whole, as its own page reads it once to start its text from
-export type KnowledgeDocument = GetDocumentData['documents'][number]
+export type OrganizationDocument = GetDocumentData['documents'][number]
 
 // What the document page saves of a document, each field by an operation of its own. The content
 // is an empty string when there is no text, never an empty document
-export type KnowledgeDocumentFields = {
+export type DocumentFields = {
   title: string
   content: string
   aspects: CompanyAspect[]
@@ -268,14 +268,14 @@ export type KnowledgeDocumentFields = {
   to save, a change waiting for the reader to pause, one on its way, one that failed and waits for
   the next try, a draft whose text is too long to store, or a draft the organization has no room for
 */
-export type KnowledgeDocumentSaveStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'full'
+export type DocumentSaveStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'full'
 
 /*
   Where the sending of a document's text stands, once it is stored: nothing to send, edits waiting
   for the next push, a push on its way, one that failed and waits for the next try, a text too
   long to send, or a document somebody deleted
 */
-export type KnowledgeDocumentSyncStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'gone'
+export type DocumentSyncStatus = 'idle' | 'pending' | 'saving' | 'error' | 'tooLong' | 'gone'
 
 // How a build in public card is laid out: 16:9, 1:1 or 4:5
 export type CardFormat = 'landscape' | 'square' | 'portrait'

@@ -59,7 +59,7 @@ mock.module('~middleware/authentication', () => ({
 const { default: createOAuthRequestsRouter } = await import('./oauthRequests')
 
 const ISSUER = 'http://localhost:3003'
-const KNOWLEDGE = `${ISSUER}/mcp/knowledge`
+const DOCUMENTS = `${ISSUER}/mcp/documents`
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const OTHER_ORGANIZATION_ID = '1f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const MEMBER = 'member'
@@ -95,7 +95,7 @@ async function call<Data>(
   return { status: response.status, answer: (await response.json()) as Answer<Data> }
 }
 
-function approve(requestId: string, scopes = ['knowledge:read', 'knowledge:write'], organizationId = ORGANIZATION_ID) {
+function approve(requestId: string, scopes = ['documents:read', 'documents:write'], organizationId = ORGANIZATION_ID) {
   return call<{ redirectUrl: string }>(`${requestId}/approve`, { method: 'POST', body: { organizationId, scopes } })
 }
 
@@ -107,7 +107,7 @@ function deny(requestId: string) {
 async function createRequest({
   clientId = CLIENT_ID_URL,
   redirectUri = 'https://client.example.com/callback',
-  scopes = ['knowledge:read', 'knowledge:write'],
+  scopes = ['documents:read', 'documents:write'],
 }: { clientId?: string; redirectUri?: string; scopes?: string[] } = {}) {
   const { data } = await (
     fake.sdk.createOAuthAuthorizationRequest as (
@@ -120,7 +120,7 @@ async function createRequest({
       registeredClientId: /^[0-9a-f]{32}$/.test(clientId) ? clientId : null,
       redirectUri,
       codeChallenge: CHALLENGE,
-      resource: KNOWLEDGE,
+      resource: DOCUMENTS,
       scopes,
       state: 'opaque state',
     },
@@ -213,8 +213,8 @@ describe('GET /oauth/requests/:requestId', () => {
           client: { name: 'Example Agent', isVerified: true, domain: `client${documentCount}.example.com` },
           redirectHost: 'client.example.com',
           isLoopbackRedirect: false,
-          module: 'knowledge',
-          scopes: ['knowledge:read', 'knowledge:write'],
+          module: 'documents',
+          scopes: ['documents:read', 'documents:write'],
           expiresAt: expect.any(String),
         },
       },
@@ -289,8 +289,8 @@ describe('POST /oauth/requests/:requestId/approve', () => {
         organizationId: ORGANIZATION_ID,
         clientId: CLIENT_ID_URL,
         clientName: 'Example Agent',
-        module: 'knowledge',
-        scopes: ['knowledge:read', 'knowledge:write'],
+        module: 'documents',
+        scopes: ['documents:read', 'documents:write'],
       }),
     )
     expect(fake.requests.get(requestId)?.codeHash).toBe(
@@ -301,17 +301,17 @@ describe('POST /oauth/requests/:requestId/approve', () => {
   test('lets the member reduce read and write to read', async () => {
     const requestId = await createRequest()
 
-    expect((await approve(requestId, ['knowledge:read'])).status).toBe(200)
-    expect([...fake.connections.values()][0]?.scopes).toEqual(['knowledge:read'])
+    expect((await approve(requestId, ['documents:read'])).status).toBe(200)
+    expect([...fake.connections.values()][0]?.scopes).toEqual(['documents:read'])
   })
 
   test('refuses read and write for a request that asked for read, and write without read', async () => {
-    const readOnly = await createRequest({ scopes: ['knowledge:read'] })
+    const readOnly = await createRequest({ scopes: ['documents:read'] })
     const both = await createRequest()
 
     expect((await approve(readOnly)).status).toBe(400)
-    expect((await approve(both, ['knowledge:write'])).status).toBe(400)
-    expect((await approve(both, ['knowledge:read', 'tasks:read'])).status).toBe(400)
+    expect((await approve(both, ['documents:write'])).status).toBe(400)
+    expect((await approve(both, ['documents:read', 'tasks:read'])).status).toBe(400)
     expect(fake.connections.size).toBe(0)
   })
 
@@ -354,8 +354,8 @@ describe('POST /oauth/requests/:requestId/approve', () => {
       connectionId: earlier!.id,
       kind: 'ACCESS',
       hash: 'hash',
-      resource: KNOWLEDGE,
-      scopes: ['knowledge:read'],
+      resource: DOCUMENTS,
+      scopes: ['documents:read'],
       issuedFrom: 'request',
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       usedAt: null,
@@ -363,13 +363,13 @@ describe('POST /oauth/requests/:requestId/approve', () => {
       createdAt: new Date().toISOString(),
     })
 
-    expect((await approve(await createRequest(), ['knowledge:read'])).status).toBe(200)
+    expect((await approve(await createRequest(), ['documents:read'])).status).toBe(200)
 
     const connections = [...fake.connections.values()]
 
     expect(connections).toHaveLength(1)
     expect(connections[0]?.id).not.toBe(earlier?.id)
-    expect(connections[0]?.scopes).toEqual(['knowledge:read'])
+    expect(connections[0]?.scopes).toEqual(['documents:read'])
     expect(fake.tokens.size).toBe(0)
   })
 
@@ -397,8 +397,8 @@ describe('POST /oauth/requests/:requestId/approve', () => {
         clientId: index ? `https://agent${index}.example.com/metadata.json` : CLIENT_ID_URL,
         registeredClientId: null,
         clientName: 'An agent',
-        module: 'knowledge',
-        scopes: ['knowledge:read'],
+        module: 'documents',
+        scopes: ['documents:read'],
         createdAt: new Date().toISOString(),
         lastUsedAt: null,
       })
@@ -410,7 +410,7 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     expect(status).toBe(409)
     expect(answer.status === 'error' && answer.code).toBe(ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS)
     expect(fake.requests.get(past)?.decidedAt).toBeNull()
-    expect((await approve(await createRequest(), ['knowledge:read'])).status).toBe(200)
+    expect((await approve(await createRequest(), ['documents:read'])).status).toBe(200)
     expect(fake.connections.size).toBe(MAX_AGENT_CONNECTIONS)
     expect(fake.connections.has('connection-0')).toBe(false)
   })
@@ -426,8 +426,8 @@ describe('POST /oauth/requests/:requestId/approve', () => {
         clientId: `https://agent${index}.example.com/metadata.json`,
         registeredClientId: null,
         clientName: 'An agent',
-        module: 'knowledge',
-        scopes: ['knowledge:read'],
+        module: 'documents',
+        scopes: ['documents:read'],
         createdAt: new Date().toISOString(),
         lastUsedAt: null,
       })
@@ -453,8 +453,8 @@ describe('POST /oauth/requests/:requestId/approve', () => {
       connectionId: connection!.id,
       kind: 'REFRESH',
       hash: 'hash',
-      resource: KNOWLEDGE,
-      scopes: ['knowledge:read'],
+      resource: DOCUMENTS,
+      scopes: ['documents:read'],
       issuedFrom: 'request',
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       usedAt: null,

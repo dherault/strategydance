@@ -1,5 +1,5 @@
 An Input for a search, with a magnifier at its start: the field that filters a list as somebody
-types, as the conversations and the knowledge documents have above theirs. Use Input for any other
+types, as the conversations and the documents have above theirs. Use Input for any other
 one-line text.
 
 ## Usage

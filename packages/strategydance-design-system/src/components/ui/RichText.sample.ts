@@ -52,7 +52,7 @@ const richTextSampleBlocks: RichTextBlock[] = [
 
 const richTextSample = JSON.stringify(richTextSampleBlocks)
 
-// A knowledge document: the post, then every block a document adds to it
+// A document: the post, then every block a document adds to it
 const richTextDocumentSampleBlocks: RichTextBlock[] = [
   ...richTextSampleBlocks,
   {

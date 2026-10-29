@@ -120,7 +120,7 @@ describe('buildConversationPreview', () => {
     expect(previewText('## Next steps ##\n\n> Ship it on **Monday**')).toBe('Next steps Ship it on Monday')
   })
 
-  it('reads a knowledge mention as its title, escapes and all', () => {
+  it('reads a document mention as its title, escapes and all', () => {
     expect(
       buildConversationPreview({
         kind: 'MEMBER_TEXT',
@@ -131,8 +131,8 @@ describe('buildConversationPreview', () => {
 
   it('takes inline markup down to its text', () => {
     expect(previewText('This is *really* _quite_ ~~not~~ __so__ done')).toBe('This is really quite not so done')
-    expect(previewText('Call **`read_knowledge`** first, see <https://strategydance.com>')).toBe(
-      'Call read_knowledge first, see https://strategydance.com',
+    expect(previewText('Call **`read_document`** first, see <https://strategydance.com>')).toBe(
+      'Call read_document first, see https://strategydance.com',
     )
     expect(previewText('Use \\*args\\* here')).toBe('Use *args* here')
     expect(previewText('Write to <ana@example.com> or <mailto:ben@example.com>')).toBe(
@@ -161,7 +161,7 @@ describe('buildConversationPreview', () => {
 
   it('keeps what a code span holds as written', () => {
     expect(previewText('Write `*literal*`, `\\*` and `[a](b)` as is')).toBe('Write *literal*, \\* and [a](b) as is')
-    expect(previewText('**Call `read_knowledge`** in [`search`](doc:a)')).toBe('Call read_knowledge in search')
+    expect(previewText('**Call `read_document`** in [`search`](doc:a)')).toBe('Call read_document in search')
   })
 
   it('lets a backslash keep a run of backticks from opening a code span, never from closing one', () => {
@@ -170,8 +170,8 @@ describe('buildConversationPreview', () => {
   })
 
   it('keeps an underscore inside a word', () => {
-    expect(previewText('I called read_knowledge and search_knowledge.')).toBe(
-      'I called read_knowledge and search_knowledge.',
+    expect(previewText('I called read_document and search_documents.')).toBe(
+      'I called read_document and search_documents.',
     )
   })
 
@@ -231,9 +231,9 @@ describe('buildConversationPreview', () => {
 
   it('keeps a tool call’s name and status', () => {
     for (const toolStatus of ['RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED'] as const) {
-      expect(buildConversationPreview({ kind: 'TOOL_CALL', toolName: 'search_knowledge', toolStatus })).toEqual({
+      expect(buildConversationPreview({ kind: 'TOOL_CALL', toolName: 'search_documents', toolStatus })).toEqual({
         kind: 'TOOL_CALL',
-        toolName: 'search_knowledge',
+        toolName: 'search_documents',
         toolStatus,
       })
     }

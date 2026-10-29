@@ -5,7 +5,7 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import { dataConnect } from '~data/firebase'
 
 /*
-  Restores a document Strategy Dance deleted, as the Knowledge page's Undo does, through the
+  Restores a document Strategy Dance deleted, as the Documents page's Undo does, through the
   page's own `RestoreDocument`, which refuses one deleted over a day ago. The organization's live
   document list follows, which takes the thread's Restore away and draws the links to it again
 */

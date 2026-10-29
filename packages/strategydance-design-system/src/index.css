@@ -22,6 +22,34 @@
 @source '../node_modules/@blocknote/shadcn/dist/blocknote-shadcn.js';
 
 /*
+  Inter's arrows, which its latin cut above lacks but for ↑ and ↓, so the → and ⟶ the editor writes
+  for -> and -->, and those an agent writes, are drawn in Inter rather than in whatever symbol font
+  the system falls back to. The same Inter 4.001, cut by Google Fonts to its arrows alone, which a
+  browser loads only for a page drawing one
+*/
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(./fonts/inter-arrows-opsz-normal.woff2) format('woff2-variations');
+  unicode-range:
+    U+2190, U+2192, U+2194-2199, U+21A9-21AA, U+21B0-21B1, U+21B3-21B5, U+21BA-21BB, U+21D0, U+21D2, U+21D4,
+    U+21DE-21DF, U+21E4-21E5, U+21E7, U+21EA, U+27F5-27FA;
+}
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(./fonts/inter-arrows-opsz-italic.woff2) format('woff2-variations');
+  unicode-range:
+    U+2190, U+2192, U+2194-2199, U+21A9-21AA, U+21B0-21B1, U+21B3-21B5, U+21BA-21BB, U+21D0, U+21D2, U+21D4,
+    U+21DE-21DF, U+21E4-21E5, U+21E7, U+21EA, U+27F5-27FA;
+}
+
+/*
   Nothing toggles this, and the design has no dark palette. The variant is declared so that a
   `dark:` class in a component added later stays inert instead of following the system theme
 */

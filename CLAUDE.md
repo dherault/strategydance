@@ -266,7 +266,7 @@ GitHub calls, since a worktree session refuses `gh` inside `$(…)` or a loop.
 1. Run `bun run review wait <number>` in the foreground, in the same turn. It returns once the
    pushed head is reviewed, asking CodeRabbit when it waits to be asked, and exits 75 after nine
    minutes: run it again until it returns. Never ask by hand, since the account has ten reviews an
-   hour, shared with sunshine. A clean round leaves no review at all
+   hour, sunshine's and strategydance's together. A clean round leaves no review at all
 2. Wait for CI (`gh pr checks <number> --watch`) and fix what fails
 3. Answer every finding, with a fix or a reply saying why it does not apply, checking its *Prompt
    for AI Agents* against the code first. Reply on each thread, then resolve it, never the other way:
@@ -287,7 +287,8 @@ merge commit, never a squash, since the granular commits are the point.
 
 ### Ship `dev` to `main`
 
-A release is a human's call. `bun run ship` (`scripts/ship.sh`) opens the "Ship dev to main" pull
-request, or finds the open one, and sets it to merge itself once `ci` passes, so what lands on `dev`
-meanwhile ships with it. It refuses while local `dev` holds unpushed commits, and `gh pr merge
-<number> --disable-auto` holds a release back. `main` takes pull requests alone.
+A release is a human's call, since it deploys everything, the database included. `bun run ship`
+(`scripts/ship.sh`) opens the "Ship dev to main" pull request, or finds the open one, and sets it to
+merge itself once `ci` passes, so what lands on `dev` meanwhile ships with it. It refuses while
+local `dev` holds unpushed commits, and `gh pr merge <number> --disable-auto` holds a release back.
+`main` takes pull requests alone.

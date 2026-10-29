@@ -319,7 +319,7 @@ enum TaskStatus {
 
 # A piece of work on an organization's board, which the Tasks page lays out in a column per status.
 # Any member reads, writes, moves and deletes any of its organization's tasks: the board is the
-# team's, not its author's, as the knowledge is.
+# team's, not its author's, as the documents are.
 #
 # Deleted by setting `deletedAt`, so an Undo is one update that brings it back with the links other
 # tasks had to it. `DeleteTask` prunes the organization's tasks deleted over a day ago, their links
@@ -387,8 +387,8 @@ type TaskDependency @table(key: ["task", "dependency"]) {
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
-# A piece of what an organization knows, such as a plan, some notes or a decision, which the
-# Knowledge pages list and each aspect's page shows when it is tagged with that aspect. Any member
+# A document of an organization, such as a plan, some notes or a decision, which the Documents
+# page lists and each aspect's page shows when it is tagged with that aspect. Any member
 # reads, writes, tags, deletes and sets what agents may do with any of its organization's
 # documents: it is the team's, not its author's.
 #
@@ -406,7 +406,7 @@ type Document @table @index(fields: ["organizationId", "updatedAt"]) {
   createdBy: User
   # One line of at most 200 characters (`MAX_DOCUMENT_TITLE_LENGTH` in strategydance-core), and
   # empty until somebody writes one, which the pages read as "Untitled". Searchable, with
-  # `contentText`, for the Knowledge module's `search_documents`, with the `simple` configuration,
+  # `contentText`, for the Documents module's `search_documents`, with the `simple` configuration,
   # as `ConversationMessage.text` is: see there
   title: String! @default(value: "") @searchable(language: "simple")
   # BlockNote's blocks, serialized, at most 200000 characters (`MAX_DOCUMENT_CONTENT_LENGTH` in
@@ -436,7 +436,7 @@ type Document @table @index(fields: ["organizationId", "updatedAt"]) {
   # them in `COMPANY_ASPECTS`' order
   aspects: [CompanyAspect!]! @default(sql: "'{}'")
   # Whether the team lets agents read it. Every agent is held to it, Strategy Dance's and a member's
-  # own alike, through the Knowledge module: one kept from them is neither found, listed nor read
+  # own alike, through the Documents module: one kept from them is neither found, listed nor read
   isAiReadable: Boolean! @default(value: true)
   # Whether the team lets agents change it, which they may only while they may read it too. One they
   # may not read keeps this as it was, for when they may again

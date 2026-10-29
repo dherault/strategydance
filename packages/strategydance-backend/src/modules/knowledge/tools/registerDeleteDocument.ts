@@ -1,9 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { KnowledgeToolContext } from '~types'
+import type { DocumentsToolContext } from '~types'
 
-import deleteKnowledgeDocument from '~domain/knowledge/deleteKnowledgeDocument'
+import deleteDocument from '~domain/documents/deleteDocument'
 
 import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
@@ -22,7 +22,7 @@ const outputSchema = z.object({
 })
 
 // `delete_document`: a document deleted as its page's Delete does, restorable for a day
-function registerDeleteDocument(server: McpServer, context: KnowledgeToolContext) {
+function registerDeleteDocument(server: McpServer, context: DocumentsToolContext) {
   server.registerTool(
     TOOL,
     {
@@ -48,7 +48,7 @@ function registerDeleteDocument(server: McpServer, context: KnowledgeToolContext
       }
 
       // A deleted document's page shows nothing, so the answer carries no address
-      return toKnowledgeWriteResult(await deleteKnowledgeDocument(context.caller, args, prepared.call), null)
+      return toKnowledgeWriteResult(await deleteDocument(context.caller, args, prepared.call), null)
     },
   )
 }

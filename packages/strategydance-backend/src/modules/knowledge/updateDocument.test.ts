@@ -5,8 +5,8 @@ import { richTextToMarkdown } from 'strategydance-design-system/lib/richTextToMa
 
 import type { ModuleCaller } from '~types'
 
-import fingerprintKnowledgeDocumentText from '~domain/knowledge/fingerprintKnowledgeDocumentText'
-import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
+import fingerprintDocumentText from '~domain/documents/fingerprintDocumentText'
+import readDocumentText from '~domain/documents/readDocumentText'
 import hashModuleCallArguments from '~domain/modules/hashModuleCallArguments'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
@@ -441,7 +441,7 @@ describe('update_document keeps the text it replaced as a revision', () => {
   }
 
   function readRevisionText(compressedState: string) {
-    const read = readKnowledgeDocumentText({ state: readRevisionState(compressedState), updates: [] })
+    const read = readDocumentText({ state: readRevisionState(compressedState), updates: [] })
 
     return read.outcome === 'read' ? read.blocks.map(block => block.markdown) : null
   }
@@ -467,7 +467,7 @@ describe('update_document keeps the text it replaced as a revision', () => {
     })
     expect(readRevisionContent(revision.content)).toBe('Intro typed\n\nOutro')
     expect(readRevisionText(revision.compressedState)).toEqual(['Intro typed', 'Outro'])
-    expect(fingerprintKnowledgeDocumentText(documents.open(document.id))).toBe(revision.afterFingerprint)
+    expect(fingerprintDocumentText(documents.open(document.id))).toBe(revision.afterFingerprint)
   })
 
   it('for every kind of edit, and for none that leaves the text as it was', async () => {
@@ -508,9 +508,7 @@ describe('update_document keeps the text it replaced as a revision', () => {
     const [revision] = fake.revisions
 
     expect(readRevisionText(revision.compressedState)).toEqual(['Intro', 'Outro'])
-    expect(
-      readKnowledgeDocumentText({ state: readRevisionState(revision.compressedState), updates: [] }),
-    ).toMatchObject({
+    expect(readDocumentText({ state: readRevisionState(revision.compressedState), updates: [] })).toMatchObject({
       blocks: (await kit.answer<Reading>('read_document', { id: document.id })).blocks.slice(0, 2),
     })
   })

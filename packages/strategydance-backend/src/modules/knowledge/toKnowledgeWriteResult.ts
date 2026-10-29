@@ -1,4 +1,4 @@
-import type { KnowledgeWriteResult } from '~types'
+import type { DocumentsWriteResult } from '~types'
 
 import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
 import toToolResult from '~modules/toToolResult'
@@ -9,7 +9,7 @@ import toToolResult from '~modules/toToolResult'
   or the refusal worded for the model
 */
 async function toKnowledgeWriteResult<Result extends { id: string }>(
-  written: KnowledgeWriteResult<Result>,
+  written: DocumentsWriteResult<Result>,
   toAddress: ((documentId: string) => Promise<string | undefined>) | null,
 ) {
   if (written.outcome !== 'written' && written.outcome !== 'answered') return toKnowledgeRefusal(written)

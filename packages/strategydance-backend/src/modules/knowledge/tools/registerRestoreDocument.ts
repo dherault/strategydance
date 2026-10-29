@@ -1,9 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { KnowledgeToolContext } from '~types'
+import type { DocumentsToolContext } from '~types'
 
-import restoreKnowledgeDocument from '~domain/knowledge/restoreKnowledgeDocument'
+import restoreDocument from '~domain/documents/restoreDocument'
 
 import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
@@ -21,7 +21,7 @@ const outputSchema = z.object({
 })
 
 // `restore_document`: a document deleted less than a day ago, brought back
-function registerRestoreDocument(server: McpServer, context: KnowledgeToolContext) {
+function registerRestoreDocument(server: McpServer, context: DocumentsToolContext) {
   server.registerTool(
     TOOL,
     {
@@ -38,10 +38,7 @@ function registerRestoreDocument(server: McpServer, context: KnowledgeToolContex
 
       if (prepared.outcome === 'refused') return prepared.result
 
-      return toKnowledgeWriteResult(
-        await restoreKnowledgeDocument(context.caller, args, prepared.call),
-        context.toAddress,
-      )
+      return toKnowledgeWriteResult(await restoreDocument(context.caller, args, prepared.call), context.toAddress)
     },
   )
 }

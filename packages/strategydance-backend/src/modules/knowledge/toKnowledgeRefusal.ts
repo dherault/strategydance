@@ -1,6 +1,6 @@
 import { MAX_DOCUMENT_CONTENT_LENGTH, MAX_DOCUMENTS } from 'strategydance-core'
 
-import type { KnowledgeRefusal } from '~types'
+import type { DocumentsRefusal } from '~types'
 
 import toToolRefusal from '~modules/toToolRefusal'
 import toTooManySearchesSentence from '~modules/toTooManySearchesSentence'
@@ -9,11 +9,11 @@ import toTooManySearchesSentence from '~modules/toTooManySearchesSentence'
   A refusal of the Knowledge module, as the model reads it: what happened, in a sentence it can act
   on, by telling the member, reading the document again, or changing what it sent
 */
-function toKnowledgeRefusal(refusal: KnowledgeRefusal) {
+function toKnowledgeRefusal(refusal: DocumentsRefusal) {
   return toToolRefusal(toSentence(refusal))
 }
 
-function toSentence(refusal: KnowledgeRefusal) {
+function toSentence(refusal: DocumentsRefusal) {
   switch (refusal.outcome) {
     case 'notMember':
       return 'The member is no longer in this organization, so its knowledge is closed to you.'

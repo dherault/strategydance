@@ -25,7 +25,7 @@ import { parseConversationRunUsage } from '~domain/conversations/conversationRun
 import priceConversationUsage from '~domain/conversations/priceConversationUsage'
 import type { ConversationRunLimits } from '~domain/conversations/requestConversationTurn'
 import stopConversationRun from '~domain/conversations/stopConversationRun'
-import createKnowledgeDocument from '~domain/knowledge/createKnowledgeDocument'
+import createDocument from '~domain/documents/createDocument'
 import launchSubagent from '~domain/subagents/launchSubagent'
 import reconcileSubagentRuns from '~domain/subagents/reconcileSubagentRuns'
 import stopConversationSubagents from '~domain/subagents/stopConversationSubagents'
@@ -183,7 +183,7 @@ async function seed(caller: ModuleCaller) {
     },
     null,
   )
-  const document = await createKnowledgeDocument(
+  const document = await createDocument(
     caller,
     {
       title: 'Pricing notes',

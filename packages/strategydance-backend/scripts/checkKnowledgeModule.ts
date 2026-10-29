@@ -29,7 +29,7 @@ import {
   seedDocumentStateForAgent,
 } from 'strategydance-database/backend'
 
-import { FIREBASE_PROJECT_ID, MAX_KNOWLEDGE_WRITE_REQUEST_BYTES } from '~constants'
+import { FIREBASE_PROJECT_ID, MAX_DOCUMENT_WRITE_REQUEST_BYTES } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -618,7 +618,7 @@ async function checkRevisions() {
 
   /*
     A fold at its bounds with its revision, its variables as long as the backend sends one, just
-    short of `MAX_KNOWLEDGE_WRITE_REQUEST_BYTES`: what says the bound fits what Data Connect takes in
+    short of `MAX_DOCUMENT_WRITE_REQUEST_BYTES`: what says the bound fits what Data Connect takes in
     a request. The revision's snapshot is filled with what gzip makes of a real one, bytes that do
     not compress again
   */
@@ -637,7 +637,7 @@ async function checkRevisions() {
     revisionCompressedState: '',
     revisionContent: 'm'.repeat(200000),
   }
-  const room = MAX_KNOWLEDGE_WRITE_REQUEST_BYTES - Buffer.byteLength(JSON.stringify(largeFold)) - 100
+  const room = MAX_DOCUMENT_WRITE_REQUEST_BYTES - Buffer.byteLength(JSON.stringify(largeFold)) - 100
   const filler = gzipSync(Buffer.from(randomUUID().repeat(room))).toString('base64')
 
   largeFold.revisionCompressedState = (filler + 'B'.repeat(room)).slice(0, room)

@@ -1,9 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { KnowledgeToolContext } from '~types'
+import type { DocumentsToolContext } from '~types'
 
-import listKnowledgeDocuments from '~domain/knowledge/listKnowledgeDocuments'
+import listDocuments from '~domain/documents/listDocuments'
 
 import { documentSummaryShape } from '~modules/knowledge/knowledgeSchemas'
 import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
@@ -21,7 +21,7 @@ const outputSchema = z.object({
 })
 
 // `list_documents`: the organization's documents agents may read, a page at a time
-function registerListDocuments(server: McpServer, { caller, toAddress }: KnowledgeToolContext) {
+function registerListDocuments(server: McpServer, { caller, toAddress }: DocumentsToolContext) {
   server.registerTool(
     'list_documents',
     {
@@ -33,7 +33,7 @@ function registerListDocuments(server: McpServer, { caller, toAddress }: Knowled
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     async ({ aspects, cursor }) => {
-      const listed = await listKnowledgeDocuments(caller, {
+      const listed = await listDocuments(caller, {
         aspects: aspects ?? [],
         ...(cursor !== undefined && { cursor }),
       })

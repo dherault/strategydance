@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import type { ModuleCaller } from '~types'
 
-import createKnowledgeDocumentText from '~domain/knowledge/createKnowledgeDocumentText'
+import createDocumentText from '~domain/documents/createDocumentText'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
 import createKnowledgeTestDocuments from './testing/createKnowledgeTestDocuments'
@@ -100,7 +100,7 @@ describe('read_document', () => {
   it('reads the snapshot a tab seeded while it read, and hands out its ids', async () => {
     const kit = await connect()
     const document = documents.storeUnshared('One\n\nTwo')
-    const tabs = createKnowledgeDocumentText('One\n\nTwo')
+    const tabs = createDocumentText('One\n\nTwo')
 
     if (tabs.outcome !== 'measured') throw new Error('Unmeasured')
 

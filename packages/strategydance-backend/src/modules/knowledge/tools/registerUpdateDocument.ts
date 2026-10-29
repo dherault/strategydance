@@ -2,9 +2,9 @@ import type { McpServer } from '@modelcontextprotocol/server'
 import { MAX_DOCUMENT_CONTENT_LENGTH } from 'strategydance-core'
 import { z } from 'zod'
 
-import type { KnowledgeDocumentEdit, KnowledgeToolContext } from '~types'
+import type { DocumentEdit, DocumentsToolContext } from '~types'
 
-import updateKnowledgeDocument from '~domain/knowledge/updateKnowledgeDocument'
+import updateDocument from '~domain/documents/updateDocument'
 
 import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import { documentIdSchema, markdownSchema, titleSchema } from '~modules/knowledge/knowledgeSchemas'
@@ -71,7 +71,7 @@ function toEdit({
   append,
   replaceBlocks,
   replaceText,
-}: z.infer<typeof inputSchema>): KnowledgeDocumentEdit | undefined {
+}: z.infer<typeof inputSchema>): DocumentEdit | undefined {
   if (content !== undefined) return { type: 'content', markdown: content }
   if (append !== undefined) return { type: 'append', markdown: append }
   if (replaceBlocks)
@@ -87,7 +87,7 @@ function toEdit({
 }
 
 // `update_document`: a document's title, or an edit of its shared text, or both
-function registerUpdateDocument(server: McpServer, context: KnowledgeToolContext) {
+function registerUpdateDocument(server: McpServer, context: DocumentsToolContext) {
   server.registerTool(
     TOOL,
     {
@@ -108,7 +108,7 @@ function registerUpdateDocument(server: McpServer, context: KnowledgeToolContext
       if (prepared.outcome === 'refused') return prepared.result
 
       const edit = toEdit(args)
-      const updated = await updateKnowledgeDocument(
+      const updated = await updateDocument(
         context.caller,
         {
           id: args.id,

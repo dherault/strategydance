@@ -316,29 +316,29 @@ export const MODULE_CALL_RESULT_LIFETIME_MS = 24 * 60 * 60 * 1000
   Before it reads the index it indexes up to 20 documents a page from before `contentText` left
   unindexed. A list pages in fifties
 */
-export const MAX_KNOWLEDGE_SEARCH_RESULTS = 10
-export const MAX_KNOWLEDGE_SEARCH_CANDIDATES = 20
-export const KNOWLEDGE_SEARCH_EXCERPT_LENGTH = 240
-export const MAX_KNOWLEDGE_DOCUMENTS_INDEXED = 20
-export const KNOWLEDGE_LIST_PAGE_SIZE = 50
+export const MAX_DOCUMENT_SEARCH_RESULTS = 10
+export const MAX_DOCUMENT_SEARCH_CANDIDATES = 20
+export const DOCUMENT_SEARCH_EXCERPT_LENGTH = 240
+export const MAX_DOCUMENTS_INDEXED = 20
+export const DOCUMENT_LIST_PAGE_SIZE = 50
 
 /*
   How much of a document's text one read answers, in characters, each block counted with its id
   and the JSON around it, so a page stays short of the 50000 characters a tool result is cut at
   while a document holds 200000
 */
-export const KNOWLEDGE_READ_PAGE_LENGTH = 40000
+export const DOCUMENT_READ_PAGE_LENGTH = 40000
 
 // How many times an agent's edit is applied to a document whose snapshot somebody folded more into
 // meanwhile, read again each time, before the module gives up
-export const KNOWLEDGE_FOLD_ATTEMPTS = 3
+export const DOCUMENT_FOLD_ATTEMPTS = 3
 
 /*
   How large a write of a document's text may be, its variables as JSON in UTF-8: short of the 4 MiB
   Data Connect takes in a request, gRPC's own bound, which the emulator names when a fold carrying
   its revision beside the new snapshot passes it, with room for the rest of the request
 */
-export const MAX_KNOWLEDGE_WRITE_REQUEST_BYTES = 4000000
+export const MAX_DOCUMENT_WRITE_REQUEST_BYTES = 4000000
 
 /*
   A member's reads of what a conversation's edits can undo and their restores of a document's
@@ -347,8 +347,8 @@ export const MAX_KNOWLEDGE_WRITE_REQUEST_BYTES = 4000000
   memory as the pictures' uploads are
 */
 export const MAX_UNDOABLE_REVISION_DOCUMENTS = 20
-export const KNOWLEDGE_REVISION_RATE_LIMIT = 60
-export const KNOWLEDGE_REVISION_RATE_WINDOW_MS = 10 * 60 * 1000
+export const DOCUMENT_REVISION_RATE_LIMIT = 60
+export const DOCUMENT_REVISION_RATE_WINDOW_MS = 10 * 60 * 1000
 
 /*
   The board's columns, left to right, as the web's `TASK_STATUSES` lists them: the order the Tasks

@@ -1,9 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { KnowledgeToolContext } from '~types'
+import type { DocumentsToolContext } from '~types'
 
-import readKnowledgeDocument from '~domain/knowledge/readKnowledgeDocument'
+import readDocument from '~domain/documents/readDocument'
 
 import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
 import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
@@ -36,7 +36,7 @@ const outputSchema = z.object({
 })
 
 // `read_document`: a document's shared text as its top-level blocks, a page at a time
-function registerReadDocument(server: McpServer, { caller, toAddress }: KnowledgeToolContext) {
+function registerReadDocument(server: McpServer, { caller, toAddress }: DocumentsToolContext) {
   server.registerTool(
     'read_document',
     {
@@ -48,7 +48,7 @@ function registerReadDocument(server: McpServer, { caller, toAddress }: Knowledg
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     async ({ id, from }) => {
-      const read = await readKnowledgeDocument(caller, { id, ...(from !== undefined && { from }) })
+      const read = await readDocument(caller, { id, ...(from !== undefined && { from }) })
 
       if (read.outcome !== 'read') return toKnowledgeRefusal(read)
 

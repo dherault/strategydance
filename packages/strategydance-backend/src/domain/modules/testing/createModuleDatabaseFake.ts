@@ -1,5 +1,5 @@
 import createBudgetDatabaseFake from '~domain/budget/testing/createBudgetDatabaseFake'
-import createKnowledgeDatabaseFake from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
+import createDocumentsDatabaseFake from '~domain/documents/testing/createDocumentsDatabaseFake'
 import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDatabaseFakeBase'
 import createOAuthDatabaseFake from '~domain/oauth/testing/createOAuthDatabaseFake'
 import createTasksDatabaseFake from '~domain/tasks/testing/createTasksDatabaseFake'
@@ -13,7 +13,7 @@ import createTasksDatabaseFake from '~domain/tasks/testing/createTasksDatabaseFa
 */
 function createModuleDatabaseFake() {
   return createOAuthDatabaseFake(
-    createBudgetDatabaseFake(createTasksDatabaseFake(createKnowledgeDatabaseFake(createModuleDatabaseFakeBase()))),
+    createBudgetDatabaseFake(createTasksDatabaseFake(createDocumentsDatabaseFake(createModuleDatabaseFakeBase()))),
   )
 }
 

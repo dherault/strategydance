@@ -1,9 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { KnowledgeToolContext } from '~types'
+import type { DocumentsToolContext } from '~types'
 
-import createKnowledgeDocument from '~domain/knowledge/createKnowledgeDocument'
+import createDocument from '~domain/documents/createDocument'
 
 import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import { markdownSchema, titleSchema } from '~modules/knowledge/knowledgeSchemas'
@@ -29,7 +29,7 @@ const outputSchema = z.object({
 })
 
 // `create_document`: a new document in the organization's knowledge
-function registerCreateDocument(server: McpServer, context: KnowledgeToolContext) {
+function registerCreateDocument(server: McpServer, context: DocumentsToolContext) {
   server.registerTool(
     TOOL,
     {
@@ -46,10 +46,7 @@ function registerCreateDocument(server: McpServer, context: KnowledgeToolContext
 
       if (prepared.outcome === 'refused') return prepared.result
 
-      return toKnowledgeWriteResult(
-        await createKnowledgeDocument(context.caller, args, prepared.call),
-        context.toAddress,
-      )
+      return toKnowledgeWriteResult(await createDocument(context.caller, args, prepared.call), context.toAddress)
     },
   )
 }

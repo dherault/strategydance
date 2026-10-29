@@ -4,7 +4,7 @@ import { getUnindexedDocuments, indexDocumentText } from 'strategydance-database
 
 import { dataConnect } from '~firebase'
 
-import readKnowledgeDocumentContentText from '~domain/knowledge/readKnowledgeDocumentContentText'
+import readDocumentContentText from '~domain/documents/readDocumentContentText'
 
 /*
   Fills the plain text the Knowledge module's search reads, `Document.contentText`, of every
@@ -49,7 +49,7 @@ for (;;) {
     const { data: written } = await indexDocumentText(dataConnect, {
       id: document.id,
       revision: document.revision,
-      contentText: readKnowledgeDocumentContentText(document.content),
+      contentText: readDocumentContentText(document.content),
     })
 
     if (written.document_updateMany === 1) {

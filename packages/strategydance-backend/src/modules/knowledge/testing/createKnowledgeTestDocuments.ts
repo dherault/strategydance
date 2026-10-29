@@ -1,9 +1,9 @@
 import { RICH_TEXT_YJS_FRAGMENT } from 'strategydance-design-system/lib/richText'
 import * as Y from 'yjs'
 
-import createKnowledgeDocumentText from '~domain/knowledge/createKnowledgeDocumentText'
-import readKnowledgeDocumentText from '~domain/knowledge/readKnowledgeDocumentText'
-import type { FakeDocument } from '~domain/knowledge/testing/createKnowledgeDatabaseFake'
+import createDocumentText from '~domain/documents/createDocumentText'
+import readDocumentText from '~domain/documents/readDocumentText'
+import type { FakeDocument } from '~domain/documents/testing/createDocumentsDatabaseFake'
 import type { ModuleDatabaseFake } from '~domain/modules/testing/createModuleDatabaseFake'
 
 /*
@@ -14,7 +14,7 @@ import type { ModuleDatabaseFake } from '~domain/modules/testing/createModuleDat
 function createKnowledgeTestDocuments(fake: ModuleDatabaseFake, organizationId: string) {
   // The first snapshot, content and plain text of a text written in Markdown
   function measure(markdown: string) {
-    const text = createKnowledgeDocumentText(markdown)
+    const text = createDocumentText(markdown)
 
     if (text.outcome !== 'measured') throw new Error(`The text is too long: ${text.outcome}`)
 
@@ -68,7 +68,7 @@ function createKnowledgeTestDocuments(fake: ModuleDatabaseFake, organizationId: 
 
     if (!document?.state) throw new Error('The document has no snapshot')
 
-    const read = readKnowledgeDocumentText({ state: document.state, updates: fake.pendingUpdates(documentId) })
+    const read = readDocumentText({ state: document.state, updates: fake.pendingUpdates(documentId) })
 
     if (read.outcome !== 'read') throw new Error(`The document cannot be read: ${read.outcome}`)
 

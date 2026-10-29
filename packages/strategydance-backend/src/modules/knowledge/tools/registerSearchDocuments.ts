@@ -2,11 +2,11 @@ import type { McpServer } from '@modelcontextprotocol/server'
 import { MAX_SEARCH_QUERY_LENGTH, MAX_SEARCH_TERMS, splitSearchTerms } from 'strategydance-core'
 import { z } from 'zod'
 
-import type { KnowledgeToolContext } from '~types'
+import type { DocumentsToolContext } from '~types'
 
-import { MAX_KNOWLEDGE_SEARCH_RESULTS } from '~constants'
+import { MAX_DOCUMENT_SEARCH_RESULTS } from '~constants'
 
-import searchKnowledgeDocuments from '~domain/knowledge/searchKnowledgeDocuments'
+import searchDocuments from '~domain/documents/searchDocuments'
 
 import { documentSummaryShape } from '~modules/knowledge/knowledgeSchemas'
 import toKnowledgeRefusal from '~modules/knowledge/toKnowledgeRefusal'
@@ -29,7 +29,7 @@ const inputSchema = z.object({
   limit: z
     .int()
     .min(1)
-    .max(MAX_KNOWLEDGE_SEARCH_RESULTS)
+    .max(MAX_DOCUMENT_SEARCH_RESULTS)
     .optional()
     .describe('How many documents to answer, 10 at most'),
 })
@@ -41,7 +41,7 @@ const outputSchema = z.object({
 })
 
 // `search_documents`: the organization's documents agents may read that hold every word of a query
-function registerSearchDocuments(server: McpServer, { caller, toAddress }: KnowledgeToolContext) {
+function registerSearchDocuments(server: McpServer, { caller, toAddress }: DocumentsToolContext) {
   server.registerTool(
     'search_documents',
     {
@@ -53,10 +53,10 @@ function registerSearchDocuments(server: McpServer, { caller, toAddress }: Knowl
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
     async ({ query, aspects, limit }) => {
-      const found = await searchKnowledgeDocuments(caller, {
+      const found = await searchDocuments(caller, {
         query,
         aspects: aspects ?? [],
-        limit: limit ?? MAX_KNOWLEDGE_SEARCH_RESULTS,
+        limit: limit ?? MAX_DOCUMENT_SEARCH_RESULTS,
       })
 
       if (found.outcome !== 'found') return toKnowledgeRefusal(found)

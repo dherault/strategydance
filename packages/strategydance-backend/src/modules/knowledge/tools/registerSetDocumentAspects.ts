@@ -1,9 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { KnowledgeToolContext } from '~types'
+import type { DocumentsToolContext } from '~types'
 
-import setKnowledgeDocumentAspects from '~domain/knowledge/setKnowledgeDocumentAspects'
+import setDocumentAspects from '~domain/documents/setDocumentAspects'
 
 import knowledgeModule from '~modules/knowledge/knowledgeModule'
 import { documentIdSchema } from '~modules/knowledge/knowledgeSchemas'
@@ -26,7 +26,7 @@ const outputSchema = z.object({
 })
 
 // `set_document_aspects`: the aspects a document is tagged with, replaced whole
-function registerSetDocumentAspects(server: McpServer, context: KnowledgeToolContext) {
+function registerSetDocumentAspects(server: McpServer, context: DocumentsToolContext) {
   server.registerTool(
     TOOL,
     {
@@ -43,10 +43,7 @@ function registerSetDocumentAspects(server: McpServer, context: KnowledgeToolCon
 
       if (prepared.outcome === 'refused') return prepared.result
 
-      return toKnowledgeWriteResult(
-        await setKnowledgeDocumentAspects(context.caller, args, prepared.call),
-        context.toAddress,
-      )
+      return toKnowledgeWriteResult(await setDocumentAspects(context.caller, args, prepared.call), context.toAddress)
     },
   )
 }

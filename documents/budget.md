@@ -163,16 +163,25 @@ removal keeps the bills they paid and the receipts they uploaded.
 ### Exchange rates
 
 **`syncExchangeRates`, in the backend's `domain/budget/`, keeps the table current.**
-1. It reads the latest year stored, or starts from 1999 when there is none.
+1. It reads every currency and year stored (`GetExchangeRateYearKeys`), and starts from the least
+   advanced currency's latest year, or from 1999 for a currency of `CURRENCIES` but EUR with no row
+   at all, as one added to the list since.
 2. For each year from there to the current one, it asks Frankfurter for that year's series, based on
-   EUR, for every currency of `CURRENCIES` but EUR: `/v1/<year>-01-01..<year>-12-31?symbols=…`, or
-   `/v1/<year>-01-01..` for the current year.
-3. It writes one row per currency for that year, an upsert.
+   EUR: `/v1/<year>-01-01..<year>-12-31`, or `/v1/<year>-01-01..` for the current year. It names no
+   `symbols`, so a currency the ECB stops publishing, as it stopped the rouble in 2022, the kuna in
+   2023 and the lev in 2026, fails no request, and keeps the answer to the currencies of
+   `CURRENCIES`.
+3. It writes one row per currency for that year, an upsert, once the answer holds a day of that
+   year: an empty one for a currency the ECB published nothing of, as the króna from 2009 to 2017,
+   or one it stopped publishing. So a currency's latest year says how far it was fetched: a backfill
+   a failure cut short carries on where it stopped, and a currency the ECB dropped moves on with
+   empty rows rather than being fetched back every day.
 
 - **Each day is filed under its own year.** Frankfurter starts a series at the last ECB day on or
   before its first date, so a year's answer opens with the previous year's last day.
 - **It is idempotent.** The current year's rows are written again each day, and an older year is
-  never fetched again once a later one is stored.
+  never fetched again once a later one is stored. So a closed year's answer that stops before
+  December 20, which the ECB reached every year, is refused rather than written short for good.
 - **The first run backfills since 1999** in about 28 requests and 800 upserts. A daily run makes one
   request and 29 upserts.
 - **It runs as a step of the worker's daily `/internal/sweep`**, through `runSweepSteps`, so a day

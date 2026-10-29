@@ -1509,7 +1509,7 @@ agents in M20:
   so an agent's writing pushes the whole list to nobody (see Who writes what).
 
 **The Tasks module's tools**, built in M15, reaching Strategy Dance's agent in M17 and external
-agents in M21. The team's tasks are a board (see `CLAUDE.md` § The database): `Task` rows in a
+agents in M21. The team's tasks are a board (see the database's `CLAUDE.md`): `Task` rows in a
 column per `TaskStatus`, Backlog, To do, Ongoing and Done, ordered in it by a float `position`,
 each with a name, a description in a post's blocks, at most one assignee, a member or Strategy Dance
 itself (`isAssignedToAgent`), a due date and aspects, and `TaskDependency` rows linking a task to
@@ -1597,8 +1597,8 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
   the agent's restore all mean one day.
 - **No streak.** A change an agent makes to the board counts toward nobody's build in public streak:
   no write of the Tasks module records an `ActivityDay`, for Strategy Dance's agent or an external
-  one, as David chose on 2026-10-09, so a streak counts what members do themselves. `CLAUDE.md`'s
-  rule that every new way to change the board records activity says so from M15.
+  one, as David chose on 2026-10-09, so a streak counts what members do themselves. The web's
+  `CLAUDE.md` says so: an agent's change never records activity.
 - **Text is checked before the database sees it**, as the Knowledge module's schemas check theirs: a
   name, a description, a query or an id holding U+0000, which Postgres refuses in any text, is
   refused with a result the model can act on, and every bound is the schema's, so a call past one is
@@ -1901,7 +1901,7 @@ authorization server from M18 and a consent page from M19:
     (RFC 6749) rather than `ApiResponse`, with no App Check, which no client can carry. The consent
     page's routes are the app's like any other, behind the member's ID token and App Check. Their
     operations find a token by its hash before any `$userId` has been verified, an exception
-    `CLAUDE.md` records beside the sign-in screen's public lookup.
+    the database's `CLAUDE.md` records beside the sign-in screen's public lookup.
 - **The data**: `OAuthClient` (a registered client's name and redirect addresses, `createdAt`,
   `lastUsedAt`), `OAuthAuthorizationRequest` (the client, its redirect address, the PKCE challenge,
   the resource, the scopes asked for, `state` and `expiresAt`; once decided, `decidedAt`, and on
@@ -2026,8 +2026,8 @@ way (see The orchestrator).
 - **Taking up a task.** A task assigned to Strategy Dance is claimed before its subagent is launched,
   so two conversations, a member's each, never take up one task at once: the parent moves it to
   `ONGOING` with `update_task`'s `fromStatus`, from M33, naming the column it read the task in, which
-  the module refuses once the task has left it, as the page's own moves refuse it (`CLAUDE.md` § The
-  database). A refused claim means another took it up, and the parent launches nothing for it; a
+  the module refuses once the task has left it, as the page's own moves refuse it (the database's
+  `CLAUDE.md`). A refused claim means another took it up, and the parent launches nothing for it; a
   claim whose launch is then refused is moved back, with `fromStatus: ONGOING`, or said in the
   parent's reply. A claim waits for no slot, so a subagent left `PENDING` holds its task as visibly
   as one running. The subagent never moves its task back, and moves it to `DONE` only when its brief
@@ -2469,7 +2469,7 @@ cells' content first, since normalizing would drop a table with its text, and re
 while it is still the `version` the model read (see Modules).
 
 **A document's text is shared**, so the Knowledge module reads and writes it as an editor does,
-for Strategy Dance's agent and an external one alike (see `CLAUDE.md` § The database):
+for Strategy Dance's agent and an external one alike (see the database's `CLAUDE.md`):
 
 - **Reading** merges the snapshot, `state`, with the pending `DocumentUpdate` rows into a Yjs
   document and reads its blocks with BlockNote's `yDocToBlocks`, ids and all, then each through
@@ -2635,7 +2635,7 @@ account, and until both exist every send in production answers 503.
 2. `gcloud services enable cloudtasks.googleapis.com cloudscheduler.googleapis.com --project
    strategydance`. Done on 2026-10-04, with `aiplatform.googleapis.com` and a policy allowing web
    search for partner models on Vertex, both from when Vertex was the plan, and unused since.
-3. For M8: grant the runtime service account (the Compute Engine default one, see `CLAUDE.md`),
+3. For M8: grant the runtime service account (the Compute Engine default one, see the backend's `CLAUDE.md`),
    which both services run as, Secret Manager's accessor role on `anthropic-api-key`,
    `roles/cloudtasks.enqueuer` and
    `roles/cloudtasks.viewer` (the queued-run check reads tasks, which the enqueuer role does not

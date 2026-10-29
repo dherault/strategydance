@@ -11,9 +11,10 @@ One router per resource in `routes/`, Express middleware in `middleware/`, what 
 `domain/`, the modules' servers in `modules/`, helpers in `utils/`, one concern per file. Imports go
 through the aliases of `tsconfig.json`, which Bun reads at runtime.
 
-- Every answer is core's `ApiResponse` envelope, and every refusal goes through `respondError` with
-  an `ERROR_CODE_*`
-- No body parser runs app wide: a route parses its own, then runs `appCheckMiddleware`,
+- The app's routes answer core's `ApiResponse` envelope, every refusal going through `respondError`
+  with an `ERROR_CODE_*`. The OAuth protocol's routes and the modules' endpoints answer and
+  authenticate as their protocols ask, as [OAuth and integrations](#oauth-and-integrations) says
+- No body parser runs app wide: an app route parses its own, then runs `appCheckMiddleware`,
   `authenticationMiddleware` and `validateMiddleware`, and reads its caller with `readViewer`. A
   route taking a file parses it last, after whatever says the caller may send it
 - Rich text, its Yjs helpers and its Markdown come from the design system's `lib/`, never a
@@ -41,16 +42,16 @@ route verifies a token.
 - The backend goes public through `--no-invoker-iam-check`, never `--allow-unauthenticated`, whose
   `allUsers` the organization refuses: each route's middleware guards it
 - Secrets are read through `retrieveSecret`, cached for the process, or `retrieveSecretVersion`
-- `dev:backend` runs on the emulators without App Check, caps, ceilings nor a confirmed address,
-  which `USAGE_CAPPED=true` and `EMAIL_VERIFICATION_REQUIRED=true` hold it to
+- `dev:backend` runs on the emulators without App Check, and lifts the caps, the ceilings and the
+  confirmed address unless started with `USAGE_CAPPED=true` and `EMAIL_VERIFICATION_REQUIRED=true`
 
 The worker's schedules:
 
 - `POST /internal/sweep`, daily, syncs the exchange rates, reconciles runs, then prunes what stays
   deleted past its Undo window or expires, each step running whatever failed before it
   (`runSweepSteps`). Anything kept deleted, or counted, for a while adds its idempotent prune there
-- `POST /internal/runs-reconcile`, every five minutes, reconciles the runs no page watches, as a new
-  kind of such run must be
+- `POST /internal/runs-reconcile`, every five minutes, reconciles the runs no page watches, and a
+  new kind of run no page watches is reconciled there too
 - `POST /internal/directories-check`, daily, commits the check to one rolling pull request through
   a GitHub App ([directories.md](../../documents/directories.md)). It runs the last release's code on
   `dev`'s lists, so `readDirectoryLists` refuses a field or value it does not know
@@ -84,8 +85,9 @@ The worker's schedules:
   OAuth's own JSON (`respondOAuthError`), without App Check, to any origin without credentials
   (`OAUTH_PROTOCOL_PATHS`). It never logs a body, finds tokens by their hash and meters callers.
   The consent page's routes keep the app's middleware, and alone fetch a client's metadata
-- A module's endpoint (`routes/modules.ts`) checks its bearer token with
-  `createAgentConnectionTokenVerifier`, and parses the body only once the token is verified
+- A module's endpoint (`routes/modules.ts`) answers JSON-RPC, without App Check, checks its bearer
+  token with `createAgentConnectionTokenVerifier`, and parses the body only once the token is
+  verified
 - An organization's MCP servers are its administrators' (`routes/integrations.ts`), and nothing is
   saved for a server that cannot be reached. Keys are encrypted, with Cloud KMS in production, bound
   to their organization and server
@@ -160,7 +162,7 @@ A new tool takes:
 
 Integrations reach the agent through three fixed tools, so the list never varies with them. A call
 is decided once, as it is drawn (`decideConversationIntegrationCall`), and a call that started is
-never made again: one cut off ends interrupted.
+never made again: one cut off is finished as interrupted.
 
 Tests run on `createConversationDatabaseFake`. `bun run check:conversation-runs`,
 `check:subagent-runs` and `check:conversation-search` check the operations against the emulators,
@@ -220,7 +222,7 @@ members' own agents at `/mcp/<name>` (conversations.md § Modules).
 | `send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message through `dev:backend` and prints the conversation's address |
 | `launch:subagent <email> --conversation <id> [--count <n>] <brief>` | Launches subagents as the module does, printing each report |
 | `measure:subagents` | Prices briefs run as subagents on each model weighed, capped at $15 in all |
-| `mcp:knowledge <email>`, `mcp:tasks`, `mcp:budget` | A module over stdio, as that account, for `claude mcp add … -- bun run mcp:knowledge <email>`. Over HTTP, the local backend serves `http://localhost:3003/mcp/<name>` |
+| `mcp:knowledge <email>`, `mcp:tasks <email>`, `mcp:budget <email>` | A module over stdio, as that account, for `claude mcp add … -- bun run mcp:knowledge <email>`. Over HTTP, the local backend serves `http://localhost:3003/mcp/<name>` |
 | `seed:budget <email>`, `sync:exchange-rates` | Fills an organization's Budget; syncs the ECB's rates, which the emulators need once |
 | `check:directories` | Runs the directories' check, about $0.10 a directory, into this checkout or, with `--publish`, the pull request |
 | `emulators:postgres` | The races' stack, four emulators on one Postgres, until Ctrl-C |

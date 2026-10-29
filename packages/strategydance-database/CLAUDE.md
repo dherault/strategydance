@@ -8,7 +8,7 @@ The Data Connect service's conventions, beside the root `CLAUDE.md`: the schema 
 ## Operations
 
 - Every operation carries an `@auth` level, and `USER` keys off `auth.uid`. The backend passes the
-  uid it verified as a variable, never one a client sent, and each operation checks it against the
+  `uid` it verified as a variable, never one a client sent, and each operation checks it against the
   rows it touches. The one `PUBLIC` operation is the sign-in screen's email lookup, and the OAuth
   operations that find a row by a random value or its hash are the only others to read before any
   `$userId` is checked

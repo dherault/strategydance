@@ -1,0 +1,29 @@
+import { createFileRoute } from '@tanstack/react-router'
+
+import type { MessageType } from '~types'
+
+import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
+
+import OrganizationDocuments from '~components/document/OrganizationDocuments'
+import OrganizationDocumentsWait from '~components/document/OrganizationDocumentsWait'
+import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
+
+// At module scope so the reference is stable across renders
+const DOCUMENT_MESSAGE_TYPES: MessageType[] = ['document']
+
+// Every document of the current organization
+export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/documents/')({
+  component: DocumentsRoute,
+})
+
+function DocumentsRoute() {
+  const { organization } = useCurrentOrganization()
+
+  return (
+    <IntlMessagesRegistration messageTypes={DOCUMENT_MESSAGE_TYPES}>
+      <OrganizationDocumentsWait key={organization?.id ?? 'none'}>
+        <OrganizationDocuments />
+      </OrganizationDocumentsWait>
+    </IntlMessagesRegistration>
+  )
+}

@@ -304,7 +304,7 @@ export type RichTextLink = {
 }
 
 /**
- * A mention of a knowledge document, by its id as Data Connect writes one, 32 lowercase hex digits,
+ * A mention of a document, by its id as Data Connect writes one, 32 lowercase hex digits,
  * with its title when the mention was made, which nothing rewrites after a rename: it is what the
  * mention reads as wherever the live title is not drawn. Its props are stored as they are named
  * here, for good, since a shared text holding one with a prop its schema lacks cannot be read

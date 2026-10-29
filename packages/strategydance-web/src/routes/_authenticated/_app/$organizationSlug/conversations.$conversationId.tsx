@@ -15,10 +15,11 @@ import ConversationWait from '~components/conversation/ConversationWait'
   will have.
 
   A draft is this route rather than one of its own, so storing it is a change of search on the same
-  route and the same params, which keeps the page mounted, as knowledge's is. So is a subagent's work
-  open over the page, `?subagent=<id>`, where a subagent's own address sends the reader. An id that
-  is not one is the app's not found page. Each search key is overwritten with `undefined` when it
-  fails validation, since TanStack lays what this returns over the raw query rather than replacing it
+  route and the same params, which keeps the page mounted, as a document's is. So is a subagent's
+  work open over the page, `?subagent=<id>`, where a subagent's own address sends the reader. An id
+  that is not one is the app's not found page. Each search key is overwritten with `undefined` when
+  it fails validation, since TanStack lays what this returns over the raw query rather than
+  replacing it
 */
 export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/conversations/$conversationId')({
   validateSearch: parseConversationSearch,

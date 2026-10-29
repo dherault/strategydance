@@ -2,7 +2,7 @@ import { useIntl } from 'react-intl'
 import { CitationLink } from 'strategydance-design-system/components/ui/CitationLink'
 import { Markdown, type MarkdownCitationMarker } from 'strategydance-design-system/components/ui/Markdown'
 
-import type { KnowledgeDocumentSummary, Task } from '~types'
+import type { DocumentSummary, Task } from '~types'
 
 import type { ConversationReplySource } from '~utils/conversation/groupConversationReplies'
 import readConversationSourceDomain from '~utils/conversation/readConversationSourceDomain'
@@ -18,8 +18,8 @@ type Props = {
   markers?: MarkdownCitationMarker[]
   // Its reply's sources, numbered across the reply
   sources?: ConversationReplySource[]
-  // The organization's documents by id, which its links to knowledge draw, or null while not read
-  documents?: ReadonlyMap<string, KnowledgeDocumentSummary> | null
+  // The organization's documents by id, which its links to documents draw, or null while not read
+  documents?: ReadonlyMap<string, DocumentSummary> | null
   // The organization's board by task id, which its links to tasks draw, or null while not read
   tasks?: ReadonlyMap<string, Task> | null
   // Small in a dock's window, which is narrow
@@ -30,7 +30,7 @@ type Props = {
   What Strategy Dance wrote, full width, in the Markdown the thread draws, through the design
   system's `Markdown`, which keeps it to that subset and never loads an image. A span web search
   cited is followed by its sources' numbers, each linking to its page, which the reply lists under
-  it. A link to knowledge draws the document's current title, and a link to a task the task's
+  it. A link to a document draws its current title, and a link to a task the task's
   current name, or the agent's words struck through once the document or the task is gone
 */
 function ConversationAgentMessage({

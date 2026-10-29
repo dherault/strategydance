@@ -30,7 +30,7 @@ type Props = {
   value: string
   /** `sm` is the dock's 14px, `md` the page's 16px */
   size?: 'sm' | 'md'
-  /** Draws a link to a knowledge document, `doc:<id>`, or a task, `task:<id>`. Without it, such a link is its words */
+  /** Draws a link to a document, `doc:<id>`, or a task, `task:<id>`. Without it, such a link is its words */
   renderLink?: (link: MarkdownLink) => ReactNode
   /** Where a cited span ends in `value`, by its offset, and the key `renderCitation` draws it by */
   citations?: MarkdownCitationMarker[]
@@ -97,7 +97,7 @@ const APP_PROTOCOLS = ['doc:', 'task:']
 
   The text is the agent's, and the agent reads the web, so nothing in it is trusted. HTML is drawn
   as the text it is, never as markup. A link keeps its address only when it is a web or mail one,
-  a knowledge document's, `doc:<id>`, or a task's, `task:<id>`, the last two drawn by `renderLink`,
+  a document's, `doc:<id>`, or a task's, `task:<id>`, the last two drawn by `renderLink`,
   and is its words otherwise. An
   image is its alt text and is never loaded, since loading one would send its address, and
   whatever was written into it, out from the reader's browser.

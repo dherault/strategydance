@@ -5,7 +5,7 @@ import { ERROR_CODE_CONFLICT } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
-import useRestoreDocumentRevision from '~hooks/knowledge/useRestoreDocumentRevision'
+import useRestoreDocumentRevision from '~hooks/document/useRestoreDocumentRevision'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import { ApiError } from '~data/api'
@@ -34,7 +34,7 @@ function ConversationDocumentUndo({ documentId, revisionId }: Props) {
 
   function openHistory() {
     navigate({
-      to: '/$organizationSlug/knowledge/$documentId',
+      to: '/$organizationSlug/documents/$documentId',
       params: { organizationSlug, documentId },
       search: { history: true },
     })

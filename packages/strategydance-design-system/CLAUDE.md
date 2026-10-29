@@ -22,7 +22,7 @@ the package imports itself by that name, mapped to `src/`.
 ## Rich text
 
 - The editor is BlockNote's, in its shadcn flavour, and `RichText` draws what it writes without it.
-  A post, a task's description and a knowledge document each have their list of blocks
+  A post, a task's description and a document each have their list of blocks
   (`RICH_TEXT_POST_BLOCKS`, `RICH_TEXT_TASK_BLOCKS`, `RICH_TEXT_EDITOR_BLOCKS`)
 - Custom blocks and mentions are BlockNote core's specs on plain DOM, never React, so the headless
   editor of the Yjs helpers loads no React. `RichTextEditor.css` dresses BlockNote's menus in the

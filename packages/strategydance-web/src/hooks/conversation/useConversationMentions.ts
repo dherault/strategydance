@@ -1,8 +1,8 @@
 import { type KeyboardEvent, type RefObject, useId, useState } from 'react'
 
-import type { KnowledgeDocumentSummary } from '~types'
+import type { DocumentSummary } from '~types'
 
-import useOrganizationKnowledgeDocuments from '~hooks/knowledge/useOrganizationKnowledgeDocuments'
+import useOrganizationDocuments from '~hooks/document/useOrganizationDocuments'
 
 import isComposingKeyPress from '~utils/common/isComposingKeyPress'
 import replaceTextareaRange from '~utils/common/replaceTextareaRange'
@@ -15,7 +15,7 @@ import findConversationMentionQuery, {
 import serializeConversationMentions from '~utils/conversation/serializeConversationMentions'
 
 /*
-  The knowledge the composer's field mentions, and the list that suggests it while a mention is
+  The documents the composer's field mentions, and the list that suggests it while a mention is
   typed.
 
   Typing `@` opens the list on the organization's documents, the latest changed first, and what
@@ -50,7 +50,7 @@ function useConversationMentions(
   const [dismissed, setDismissed] = useState<{ at: number; before: string } | null>(null)
   const [highlightedIndex, setHighlightedIndex] = useState(0)
   const [isEnabled, setIsEnabled] = useState(false)
-  const { data: documents, initialLoading, hasFailed } = useOrganizationKnowledgeDocuments({ isEnabled })
+  const { data: documents, initialLoading, hasFailed } = useOrganizationDocuments({ isEnabled })
 
   const openQuery =
     mentionQuery && mentionQuery.at !== dismissed?.at && !initialLoading && !hasFailed ? mentionQuery : null
@@ -92,7 +92,7 @@ function useConversationMentions(
 
   // Writes the document's title over the mention being typed. The field's change reads a mention
   // there before the pick is tracked, so the list is closed after it
-  function pick(document: KnowledgeDocumentSummary) {
+  function pick(document: DocumentSummary) {
     const textarea = textareaRef.current
 
     if (!textarea || !mentionQuery) return

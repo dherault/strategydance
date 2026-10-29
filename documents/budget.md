@@ -57,7 +57,7 @@ Left for later:
 
 ### The page
 
-`/$organizationSlug/budget`, under Guidance in the sidebar, after Knowledge, with lucide's
+`/$organizationSlug/budget`, under Guidance in the sidebar, after Documents, with lucide's
 `WalletIcon`.
 
 - **Its header** has the eyebrow "Every dollar counts", the title "Budget", and the lead "What the

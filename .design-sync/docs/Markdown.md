@@ -24,7 +24,7 @@ const reply = `Here is where the **launch plan** stands:
 </div>
 ```
 
-A link to a knowledge document, `doc:<id>`, or a task, `task:<id>`, is drawn by `renderLink`, and
+A link to a document, `doc:<id>`, or a task, `task:<id>`, is drawn by `renderLink`, and
 a span web search cited ends with the marker `renderCitation` draws:
 
 ```jsx
@@ -42,7 +42,7 @@ const text = 'Notion charges 10 per member a month. The rest is in [Pricing rese
       <CitationLink number={Number(key)} href="https://www.notion.com/pricing" label="Source 1: Notion pricing" />
     )}
     renderLink={({ href, children }) => (
-      <a href="#knowledge" className="font-medium text-primary no-underline">
+      <a href="#documents" className="font-medium text-primary no-underline">
         <FileTextIcon className="mr-1 inline-block size-4" />
         {children}
       </a>

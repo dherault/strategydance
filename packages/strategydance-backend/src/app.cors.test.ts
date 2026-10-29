@@ -41,7 +41,7 @@ describe('createApp in production', () => {
   test("answers any origin on the OAuth protocol's endpoints, without credentials", async () => {
     for (const path of [
       '/.well-known/oauth-authorization-server',
-      '/.well-known/oauth-protected-resource/mcp/knowledge',
+      '/.well-known/oauth-protected-resource/mcp/documents',
       '/.well-known/oauth-protected-resource/mcp/tasks',
       '/.well-known/oauth-protected-resource/mcp/budget',
       '/oauth/register',
@@ -62,13 +62,13 @@ describe('createApp in production', () => {
     expect(metadata.headers.get('access-control-allow-origin')).toBe('*')
     expect(((await metadata.json()) as { issuer: string }).issuer).toBe('https://api.strategydance.com')
 
-    const resourceMetadata = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/knowledge`, {
+    const resourceMetadata = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/documents`, {
       headers: { Origin: 'https://agent.example.com' },
     })
 
     expect(resourceMetadata.headers.get('access-control-allow-origin')).toBe('*')
     expect(await resourceMetadata.json()).toMatchObject({
-      resource: 'https://api.strategydance.com/mcp/knowledge',
+      resource: 'https://api.strategydance.com/mcp/documents',
       authorization_servers: ['https://api.strategydance.com'],
     })
   })
@@ -77,7 +77,7 @@ describe('createApp in production', () => {
     for (const path of [
       '/oauth/requests/abc',
       '/oauth/requests/abc/approve',
-      '/mcp/knowledge',
+      '/mcp/documents',
       '/mcp/tasks',
       '/mcp/budget',
       '/users/welcome-email',

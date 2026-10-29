@@ -191,19 +191,19 @@ export type ClaudeFiles = {
 }
 
 /* ---
-  KNOWLEDGE
+  DOCUMENTS
 --- */
 
 // An edit pushed to a document's text since its snapshot, as its `DocumentUpdate` row holds it: a Yjs update in base64
-export type KnowledgeDocumentUpdate = {
+export type DocumentUpdate = {
   id: string
   payload: string
 }
 
 // A document's shared text once it is seeded: its snapshot, in base64, and the updates pushed since
-export type SeededKnowledgeDocumentText = {
+export type SeededDocumentText = {
   state: string
-  updates: KnowledgeDocumentUpdate[]
+  updates: DocumentUpdate[]
 }
 
 /*
@@ -211,19 +211,19 @@ export type SeededKnowledgeDocumentText = {
   updates pushed since, and the copy of the text the last compaction wrote, which a document with
   no snapshot is seeded from
 */
-export type StoredKnowledgeDocumentText = Omit<SeededKnowledgeDocumentText, 'state'> & {
+export type StoredDocumentText = Omit<SeededDocumentText, 'state'> & {
   state: string | null
   content: string
 }
 
 // A top-level block of a document's shared text, as an agent reads it: the id an edit names it by, and its Markdown
-export type KnowledgeDocumentBlock = {
+export type DocumentBlock = {
   id: string
   markdown: string
 }
 
 // An edit an agent makes to a document's shared text, the blocks it writes in Markdown
-export type KnowledgeDocumentEdit =
+export type DocumentEdit =
   /** The whole text replaced */
   | { type: 'content'; markdown: string }
   /** Blocks added after the last one */
@@ -275,14 +275,14 @@ export type ModuleCall = {
 }
 
 /* ---
-  KNOWLEDGE MODULE
+  DOCUMENTS MODULE
 --- */
 
 /*
-  Why the Knowledge module refused a call, which its tool words for the model: each is something the
+  Why the Documents module refused a call, which its tool words for the model: each is something the
   model can act on, by telling the member, reading the document again, or changing what it sent
 */
-export type KnowledgeRefusal =
+export type DocumentsRefusal =
   /** The caller is no longer the member the module was built for */
   | { outcome: 'notMember' }
   /** The caller's connection may read but not write */
@@ -325,16 +325,16 @@ export type KnowledgeRefusal =
   /** An external agent's search past the member's search allowance, until the next one fits */
   | { outcome: 'tooManySearches'; retryAfterMs: number }
 
-// What a write of the Knowledge module answers: its result, or the one stored under its key when the
+// What a write of the Documents module answers: its result, or the one stored under its key when the
 // call was sent before, or why it was refused
-export type KnowledgeWriteResult<Result> =
+export type DocumentsWriteResult<Result> =
   | { outcome: 'written'; result: Result }
   | { outcome: 'answered'; result: unknown }
-  | KnowledgeRefusal
+  | DocumentsRefusal
 
-// What each of the Knowledge module's tools is registered with: who calls it, and the web address of
+// What each of the Documents module's tools is registered with: who calls it, and the web address of
 // a document for an external caller, whose results carry them, undefined for Strategy Dance's agent
-export type KnowledgeToolContext = {
+export type DocumentsToolContext = {
   caller: ModuleCaller
   toAddress: (documentId: string) => Promise<string | undefined>
 }

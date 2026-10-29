@@ -9,8 +9,8 @@ const { Tooltip, Button } = window.StrategyDanceDesignSystem
 const { SearchIcon, InfoIcon } = window.StrategyDanceDesignSystem.Icons
 
 <div className="flex items-center gap-6 p-12">
-  <Tooltip content="Search the knowledge" shortcut="⌘K">
-    <Button variant="outline" icon={<SearchIcon />} aria-label="Search the knowledge" />
+  <Tooltip content="Search the documents" shortcut="⌘K">
+    <Button variant="outline" icon={<SearchIcon />} aria-label="Search the documents" />
   </Tooltip>
   <Tooltip content="Monthly recurring revenue" side="bottom">
     MRR

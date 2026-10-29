@@ -2,7 +2,7 @@ import readConversationLinkId from '~utils/conversation/readConversationLinkId'
 
 export type ConversationMemberTextSegment =
   | { kind: 'text'; text: string }
-  // A knowledge mention, its words as the composer wrote them, escapes undone
+  // A document mention, its words as the composer wrote them, escapes undone
   | { kind: 'document'; href: string; label: string }
 
 // `[words](doc:<id>)`, unless its bracket is escaped, its words holding escaped brackets
@@ -12,7 +12,7 @@ const MENTION_PATTERN = /(?<!\\)\[((?:\\.|[^\\[\]])+)\]\((doc:[0-9a-f-]{32,36})\
 const ESCAPE_PATTERN = /\\([!-/:-@[-`{-~])/g
 
 /*
-  What a member wrote, cut into its plain text and the knowledge it mentions, which the composer
+  What a member wrote, cut into its plain text and the documents it mentions, which the composer
   sends as `[Title](doc:<id>)`. Only those are read: everything else, a web link and Markdown
   included, stays as the member typed it. A link naming no document's id stays text too
 */

@@ -6,41 +6,41 @@ import conversationMessages from '~data/intl/messages/conversation'
 type ToolStatus = Extract<ConversationPreview, { kind: 'TOOL_CALL' }>['toolStatus']
 
 // What each of the agent's tools is called while it runs, and once it is done: its own, then the
-// Knowledge module's, the Tasks module's, the Budget module's, its integrations' and the Subagents
+// Documents module's, the Tasks module's, the Budget module's, its integrations' and the Subagents
 // module's
 const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageDescriptor }>([
   ['web_search', { running: conversationMessages.toolWebSearchRunning, done: conversationMessages.toolWebSearchDone }],
   [
     'search_documents',
-    { running: conversationMessages.toolSearchKnowledgeRunning, done: conversationMessages.toolSearchKnowledgeDone },
+    { running: conversationMessages.toolSearchDocumentsRunning, done: conversationMessages.toolSearchDocumentsDone },
   ],
   [
     'list_documents',
-    { running: conversationMessages.toolListKnowledgeRunning, done: conversationMessages.toolListKnowledgeDone },
+    { running: conversationMessages.toolListDocumentsRunning, done: conversationMessages.toolListDocumentsDone },
   ],
   [
     'read_document',
-    { running: conversationMessages.toolReadKnowledgeRunning, done: conversationMessages.toolReadKnowledgeDone },
+    { running: conversationMessages.toolReadDocumentRunning, done: conversationMessages.toolReadDocumentDone },
   ],
   [
     'create_document',
-    { running: conversationMessages.toolCreateKnowledgeRunning, done: conversationMessages.toolCreateKnowledgeDone },
+    { running: conversationMessages.toolCreateDocumentRunning, done: conversationMessages.toolCreateDocumentDone },
   ],
   [
     'update_document',
-    { running: conversationMessages.toolUpdateKnowledgeRunning, done: conversationMessages.toolUpdateKnowledgeDone },
+    { running: conversationMessages.toolUpdateDocumentRunning, done: conversationMessages.toolUpdateDocumentDone },
   ],
   [
     'set_document_aspects',
-    { running: conversationMessages.toolTagKnowledgeRunning, done: conversationMessages.toolTagKnowledgeDone },
+    { running: conversationMessages.toolTagDocumentRunning, done: conversationMessages.toolTagDocumentDone },
   ],
   [
     'delete_document',
-    { running: conversationMessages.toolDeleteKnowledgeRunning, done: conversationMessages.toolDeleteKnowledgeDone },
+    { running: conversationMessages.toolDeleteDocumentRunning, done: conversationMessages.toolDeleteDocumentDone },
   ],
   [
     'restore_document',
-    { running: conversationMessages.toolRestoreKnowledgeRunning, done: conversationMessages.toolRestoreKnowledgeDone },
+    { running: conversationMessages.toolRestoreDocumentRunning, done: conversationMessages.toolRestoreDocumentDone },
   ],
   ['list_tasks', { running: conversationMessages.toolListTasksRunning, done: conversationMessages.toolListTasksDone }],
   ['read_task', { running: conversationMessages.toolReadTaskRunning, done: conversationMessages.toolReadTaskDone }],
@@ -122,7 +122,7 @@ const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageD
 
 /*
   What a tool call says it does, in the thread and in a conversation's preview: "Searching
-  knowledge" until it has succeeded, and "Searched knowledge" once it has. A call that failed or was
+  documents" until it has succeeded, and "Searched documents" once it has. A call that failed or was
   cancelled says what it tried. A call to an integration says which, "Calling Stripe", when its server
   is known. A tool the page has no words for, one a later release added, goes by its name
 */

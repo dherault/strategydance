@@ -33,12 +33,11 @@ const { default: resumeConversationRun } = await import('./resumeConversationRun
 const { default: retryConversationRun } = await import('./retryConversationRun')
 const { default: sendConversationMessage } = await import('./sendConversationMessage')
 const { default: createModuleTestKit } = await import('~modules/testing/createModuleTestKit')
-const { default: createKnowledgeTestDocuments } =
-  await import('~modules/knowledge/testing/createKnowledgeTestDocuments')
+const { default: createTestDocuments } = await import('~modules/documents/testing/createTestDocuments')
 
 const kit = createConversationTestKit(fake)
 const { start, expireLease, readRun, readThread, readMessages, readEntries, createClient } = kit
-const documents = createKnowledgeTestDocuments(fake.modules, ORGANIZATION_ID)
+const documents = createTestDocuments(fake.modules, ORGANIZATION_ID)
 
 function toolUse(id: string, name: string, input: unknown = {}): BetaContentBlock {
   return { type: 'tool_use', id, name, input }
@@ -109,10 +108,10 @@ async function crashAt(
   expect(readRun(reference)?.status).toBe('INTERRUPTED')
 }
 
-// The Knowledge module as another worker reaches it for the run's member, under the conversation's
+// The Documents module as another worker reaches it for the run's member, under the conversation's
 // scope, which a write a crashed worker landed late goes through
 function connectAsRun(reference: ConversationRunReference) {
-  return createModuleTestKit('knowledge', {
+  return createModuleTestKit('documents', {
     kind: 'agent',
     userId: reference.userId,
     organizationId: reference.organizationId,
@@ -128,7 +127,7 @@ beforeEach(() => {
   enqueueRun.mockClear()
 })
 
-describe('runConversation with the Knowledge module', () => {
+describe('runConversation with the Documents module', () => {
   test('writes through the module, its result going back to Claude, and a refusal as an error', async () => {
     const reference = await start()
     const client = createClient([

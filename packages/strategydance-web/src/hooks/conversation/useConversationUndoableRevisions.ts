@@ -32,7 +32,7 @@ function useConversationUndoableRevisions(conversationId: string, editCount: num
     queryFn: async () => {
       const { revisions } = await requestApi<UndoableDocumentRevisionsData>({
         method: 'GET',
-        path: `/organizations/${organizationId}/knowledge/revisions/undoable/${conversationId}`,
+        path: `/organizations/${organizationId}/documents/revisions/undoable/${conversationId}`,
       })
 
       return new Map(revisions.map(revision => [revision.callKey, revision]))

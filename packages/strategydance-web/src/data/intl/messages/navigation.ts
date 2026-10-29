@@ -47,7 +47,7 @@ const navigationMessages = defineMessages({
     id: 'navigation.guidance',
     defaultMessage: 'Guidance',
     description:
-      'Sidebar heading above the links to the team\'s tasks, its knowledge and the reader\'s conversations with Strategy Dance, the app\'s AI, which together guide the team as it builds its company. Translate it as the word closest to the English "guidance", the act of guiding somebody on their way, rather than as advice, accompaniment, coaching or consulting: "Guidage" in French.',
+      'Sidebar heading above the links to the team\'s tasks, its documents and the reader\'s conversations with Strategy Dance, the app\'s AI, which together guide the team as it builds its company. Translate it as the word closest to the English "guidance", the act of guiding somebody on their way, rather than as advice, accompaniment, coaching or consulting: "Guidage" in French.',
   },
   conversations: {
     id: 'navigation.conversations',
@@ -61,11 +61,11 @@ const navigationMessages = defineMessages({
     description:
       "What a screen reader says after the Conversations link of the sidebar, where a small count shows how many of the reader's conversations hold a question from Strategy Dance, the app's AI, waiting for their answer.",
   },
-  knowledge: {
-    id: 'navigation.knowledge',
-    defaultMessage: 'Knowledge',
+  documents: {
+    id: 'navigation.documents',
+    defaultMessage: 'Documents',
     description:
-      "Sidebar link to the page that lists everything the team wrote down about its company, such as notes, plans and decisions, and that page's title, and the title of the section of each aspect's page that lists the items tagged with that aspect.",
+      "Sidebar link to the page that lists everything the team wrote down about its company, such as notes, plans and decisions, and that page's title, and the title of the section of each aspect's page that lists the documents tagged with that aspect.",
   },
   budget: {
     id: 'navigation.budget',

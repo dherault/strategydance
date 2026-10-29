@@ -4,10 +4,10 @@ import { getUnindexedDocuments, indexDocumentText } from 'strategydance-database
 
 import { dataConnect } from '~firebase'
 
-import readKnowledgeDocumentContentText from '~domain/knowledge/readKnowledgeDocumentContentText'
+import readDocumentContentText from '~domain/documents/readDocumentContentText'
 
 /*
-  Fills the plain text the Knowledge module's search reads, `Document.contentText`, of every
+  Fills the plain text the Documents module's search reads, `Document.contentText`, of every
   document a release left without one, from its `content`, run by hand once the release that added
   it has deployed:
 
@@ -49,7 +49,7 @@ for (;;) {
     const { data: written } = await indexDocumentText(dataConnect, {
       id: document.id,
       revision: document.revision,
-      contentText: readKnowledgeDocumentContentText(document.content),
+      contentText: readDocumentContentText(document.content),
     })
 
     if (written.document_updateMany === 1) {

@@ -1197,7 +1197,7 @@ mutation RemoveTaskDependency($organizationId: UUID!, $taskId: UUID!, $dependenc
   )
 }
 
-# Adds a document to an organization's knowledge, which any of its members may do. The id is the
+# Adds a document to an organization, which any of its members may do. The id is the
 # page's, which opens a draft at its address and stores it only once it has a title or some text,
 # so a document never starts blank: a page that would add nothing adds nothing.
 #
@@ -1212,7 +1212,7 @@ mutation RemoveTaskDependency($organizationId: UUID!, $taskId: UUID!, $dependenc
 # shared from its first save and nobody seeds a second copy of it. Optional, since a page from
 # before the editor was shared sends none, and its document is seeded once somebody opens it.
 #
-# `$contentText` is the plain text of `$content`, which the Knowledge module's search reads, at
+# `$contentText` is the plain text of `$content`, which the Documents module's search reads, at
 # most as long. The refusals' messages are `CreateDocument`'s, which the page matches on: change
 # them together
 mutation CreateDocumentWithText(
@@ -1234,7 +1234,7 @@ mutation CreateDocumentWithText(
     data: { updatedAt_expr: "request.time" }
   )
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can add to its knowledge")
+    @check(expr: "this == 1", message: "Only a member of an organization can add to its documents")
     @check(
       expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
       message: "A document's title is at most 200 characters on one line"
@@ -1296,7 +1296,7 @@ mutation CreateDocument(
     data: { updatedAt_expr: "request.time" }
   )
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can add to its knowledge")
+    @check(expr: "this == 1", message: "Only a member of an organization can add to its documents")
     @check(
       expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
       message: "A document's title is at most 200 characters on one line"
@@ -1344,7 +1344,7 @@ mutation CreateDocument(
 mutation RenameDocument($organizationId: UUID!, $id: UUID!, $title: String!) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role
         @check(
           expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
@@ -1376,7 +1376,7 @@ mutation UpdateDocumentContent($organizationId: UUID!, $id: UUID!, $content: Str
 @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
     }
   }
@@ -1400,7 +1400,7 @@ mutation UpdateDocumentAspects($organizationId: UUID!, $id: UUID!, $aspects: [Co
 @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role
         @check(
           expr: "vars.aspects.all(aspect, vars.aspects.exists_one(other, other == aspect))"
@@ -1421,7 +1421,7 @@ mutation SetDocumentAiReadable($organizationId: UUID!, $id: UUID!, $isAiReadable
 @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role
     }
   }
@@ -1437,7 +1437,7 @@ mutation SetDocumentAiWritable($organizationId: UUID!, $id: UUID!, $isAiWritable
 @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role
     }
   }
@@ -1456,7 +1456,7 @@ mutation SetDocumentAiWritable($organizationId: UUID!, $id: UUID!, $isAiWritable
 mutation DeleteDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role
     }
   }
@@ -1483,7 +1483,7 @@ mutation RestoreDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) 
       userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
     }
     data: { updatedAt_expr: "request.time" }
-  ) @redact @check(expr: "this == 1", message: "Only a member of an organization can change its knowledge")
+  ) @redact @check(expr: "this == 1", message: "Only a member of an organization can change its documents")
   query @redact {
     documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
       @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
@@ -1513,7 +1513,7 @@ mutation RestoreDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) 
 mutation DiscardDocument($organizationId: UUID!, $id: UUID!, $sessionId: UUID) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role
     }
   }
@@ -1551,7 +1551,7 @@ mutation SeedDocumentState($organizationId: UUID!, $id: UUID!, $state: String!, 
 @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
     }
   }
@@ -1596,7 +1596,7 @@ mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUI
 @auth(level: USER) {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role
         @check(
           expr: "size(vars.payload) > 0 && size(vars.payload) <= 50000"
@@ -1635,7 +1635,7 @@ mutation PushDocumentUpdate($organizationId: UUID!, $documentId: UUID!, $id: UUI
 # when the revision moves, which brings back an update deleted before it reached them. A fold may
 # name none, to store an edit of the tab's own too long to push as an update, and then deletes none.
 #
-# `$contentText` is the plain text of `$content`, which the Knowledge module's search reads. The
+# `$contentText` is the plain text of `$content`, which the Documents module's search reads. The
 # refusals' messages are `CompactDocument`'s, which the page matches on: change them together
 mutation CompactDocumentWithText(
   $organizationId: UUID!
@@ -1648,7 +1648,7 @@ mutation CompactDocumentWithText(
 ) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role
         @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
         @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
@@ -1686,7 +1686,7 @@ mutation CompactDocument(
 ) @auth(level: USER) @transaction {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can change its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
       role
         @check(expr: "size(vars.state) <= 2000000", message: "A document's state is at most 2000000 characters")
         @check(expr: "size(vars.content) <= 200000", message: "A document's content is at most 200000 characters")
@@ -1727,7 +1727,7 @@ mutation UpdateDocumentPresence($organizationId: UUID!, $documentId: UUID!, $ses
 @auth(level: USER) {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can open its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can open its documents") {
       role
         @check(
           expr: "!has(vars.cursor) || vars.cursor == null || size(vars.cursor) <= 2000"
@@ -1767,7 +1767,7 @@ mutation UpdateDocumentPresence($organizationId: UUID!, $documentId: UUID!, $ses
 mutation LeaveDocument($organizationId: UUID!, $documentId: UUID!, $sessionId: UUID!) @auth(level: USER) {
   query @redact {
     userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can open its knowledge") {
+      @check(expr: "this != null", message: "Only a member of an organization can open its documents") {
       role
     }
   }

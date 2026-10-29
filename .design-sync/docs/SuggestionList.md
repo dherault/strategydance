@@ -1,4 +1,4 @@
-A list of suggestions floating over a field while it is typed in, as the knowledge documents a
+A list of suggestions floating over a field while it is typed in, as the documents a
 message mentions after `@`. It looks like a DropdownMenu, but the field keeps the focus throughout:
 the rows are never focused, and the field's own arrow keys move the highlight. For a menu of actions
 use DropdownMenu, and for a field that picks from a list use Combobox.
@@ -17,7 +17,7 @@ function MentionComposer() {
   return (
     <div className="relative mt-56 w-96">
       <SuggestionList className="absolute inset-x-0 bottom-[calc(100%+4px)] max-h-60">
-        <SuggestionListLabel id="mention-label">Knowledge</SuggestionListLabel>
+        <SuggestionListLabel id="mention-label">Documents</SuggestionListLabel>
         <SuggestionListOptions id="mention-options" aria-labelledby="mention-label">
           {titles.map((title, index) => (
             <SuggestionListItem
@@ -54,7 +54,7 @@ When nothing matches, the list holds the empty message alone:
 const { SuggestionList, SuggestionListEmpty } = window.StrategyDanceDesignSystem
 
 <SuggestionList className="w-96">
-  <SuggestionListEmpty>No knowledge matches “roadmap”</SuggestionListEmpty>
+  <SuggestionListEmpty>No document matches “roadmap”</SuggestionListEmpty>
 </SuggestionList>
 ```
 

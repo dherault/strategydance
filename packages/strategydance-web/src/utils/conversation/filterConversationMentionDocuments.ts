@@ -1,4 +1,4 @@
-// How many documents the list of knowledge to mention shows
+// How many documents the list of documents to mention shows
 const MAX_MENTION_SUGGESTIONS = 6
 
 /*

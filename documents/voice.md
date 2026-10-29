@@ -229,7 +229,7 @@ cookbook is this design. It is the control group the probe measures the fronts a
    Voice service (Cloud Run) ── creates the session ────────┘         │
         │  ◀──────────────────────────────────────────────────────────┘
         │  a delegation becomes a voice run of the conversation:
-        │  Claude Opus 5.5, the system prompt, Knowledge, Tasks, integrations, web search
+        │  Claude Opus 5.5, the system prompt, Documents, Tasks, integrations, web search
         │  Claude's text, sentence by sentence ──▶ session.commentary.append
         ▼
    Data Connect: transcript entries, thread messages, the call's row and usage

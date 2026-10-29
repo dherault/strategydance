@@ -16,7 +16,8 @@
 The ten milestones that built the Budget, each one pull request into `dev` that a Claude Code session
 implemented, with the conventions every one of them followed. [budget.md](budget.md) says how the
 Budget works and why, which each milestone read first, and which the review of M1 to M10 changed
-after them: where the two disagree, budget.md is how the Budget works now.
+after them: where the two disagree, budget.md is how the Budget works now. Knowledge became
+Documents on 2026-10-29, after these milestones, which keep the name they were built under.
 
 ## Conventions for every milestone
 

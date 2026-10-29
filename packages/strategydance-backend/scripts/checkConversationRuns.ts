@@ -471,7 +471,7 @@ async function checkClaiming(started: Started) {
   // Keys out of alphabetical order, as a model writes them, and U+0000, which `jsonb` would refuse
   const content = JSON.stringify([
     { type: 'text', text: 'Before\u0000after' },
-    { type: 'tool_use', id: 'toolu_1', name: 'read_knowledge', input: { zebra: 1, apple: { b: 2, a: 1 } } },
+    { type: 'tool_use', id: 'toolu_1', name: 'read_document', input: { zebra: 1, apple: { b: 2, a: 1 } } },
   ])
   const entryId = createId()
 

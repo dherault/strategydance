@@ -67,9 +67,9 @@ const { default: createOAuthRequestsRouter } = await import('./oauthRequests')
 const { default: createWellKnownRouter } = await import('./wellKnown')
 
 const ISSUER = 'http://localhost:3003'
-const KNOWLEDGE = `${ISSUER}/mcp/knowledge`
+const DOCUMENTS = `${ISSUER}/mcp/documents`
 const TASKS = `${ISSUER}/mcp/tasks`
-const RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/knowledge`
+const RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/documents`
 const TASKS_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/tasks`
 const BUDGET = `${ISSUER}/mcp/budget`
 const BUDGET_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/budget`
@@ -111,8 +111,8 @@ function encode(parameters: Record<string, string>) {
 
 // An agent the member connected, through the whole flow: authorization, Allow and the exchange
 async function connect({
-  scopes = ['knowledge:read', 'knowledge:write'],
-  resource = KNOWLEDGE,
+  scopes = ['documents:read', 'documents:write'],
+  resource = DOCUMENTS,
 }: { scopes?: string[]; resource?: string } = {}) {
   const { data } = await (
     fake.sdk.createOAuthAuthorizationRequest as (
@@ -153,7 +153,7 @@ async function connect({
 }
 
 // An external agent on a module's endpoint, as the SDK's client calls it over HTTP with its bearer token
-async function open(token: string, path = '/mcp/knowledge') {
+async function open(token: string, path = '/mcp/documents') {
   const client = new Client(
     { name: 'external-agent', version: '1.0.0' },
     { versionNegotiation: { mode: { pin: MODULE_PROTOCOL_VERSION } } },
@@ -169,14 +169,14 @@ async function open(token: string, path = '/mcp/knowledge') {
 }
 
 // One JSON-RPC request in a 2025 revision, which the handler serves statelessly, as raw HTTP, to the
-// Knowledge module's endpoint unless `path` names another
+// Documents module's endpoint unless `path` names another
 async function send(
   message: Record<string, unknown>,
   {
     token,
     headers = {},
     method = 'POST',
-    path = '/mcp/knowledge',
+    path = '/mcp/documents',
   }: { token?: string; headers?: Record<string, string>; method?: string; path?: string } = {},
 ): Promise<Answer> {
   const response = await fetch(`${origin}${path}`, {
@@ -229,7 +229,7 @@ beforeEach(() => {
   fake.addMember(MEMBER, ORGANIZATION_ID)
 })
 
-describe('the Knowledge module for external agents', () => {
+describe('the Documents module for external agents', () => {
   test("answers a request without a token 401, naming the module's protected resource metadata", async () => {
     const { status, headers, body } = await send({ jsonrpc: '2.0', id: 1, method: 'tools/list' })
 
@@ -239,14 +239,14 @@ describe('the Knowledge module for external agents', () => {
   })
 
   test('serves the protected resource metadata at the root, naming the authorization server', async () => {
-    const response = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/knowledge`)
+    const response = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/documents`)
 
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({
-      resource: KNOWLEDGE,
+      resource: DOCUMENTS,
       authorization_servers: [ISSUER],
-      scopes_supported: ['knowledge:read', 'knowledge:write'],
-      resource_name: 'Strategy Dance Knowledge',
+      scopes_supported: ['documents:read', 'documents:write'],
+      resource_name: 'Strategy Dance Documents',
     })
     expect(
       ((await (await fetch(`${origin}/.well-known/oauth-authorization-server`)).json()) as { issuer: string }).issuer,
@@ -277,25 +277,25 @@ describe('the Knowledge module for external agents', () => {
 
   test("refuses a Tasks token, a revoked one, a removed member's and a refresh token as a bearer token", async () => {
     const tasks = await connect({ scopes: ['tasks:read'], resource: TASKS })
-    const knowledge = await connect()
+    const documents = await connect()
     const list = { jsonrpc: '2.0', id: 1, method: 'tools/list' }
 
-    for (const token of [tasks.access_token, knowledge.refresh_token]) {
+    for (const token of [tasks.access_token, documents.refresh_token]) {
       const { status, headers } = await send(list, { token })
 
       expect(status).toBe(401)
       expect(headers.get('www-authenticate')).toContain(`resource_metadata="${RESOURCE_METADATA}"`)
     }
 
-    expect((await send(list, { token: knowledge.access_token })).status).toBe(200)
+    expect((await send(list, { token: documents.access_token })).status).toBe(200)
 
     await fetch(`${origin}/oauth/revoke`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: encode({ token: knowledge.refresh_token, client_id: CLIENT_ID }),
+      body: encode({ token: documents.refresh_token, client_id: CLIENT_ID }),
     })
 
-    expect((await send(list, { token: knowledge.access_token })).status).toBe(401)
+    expect((await send(list, { token: documents.access_token })).status).toBe(401)
 
     const removed = await connect()
 
@@ -305,9 +305,9 @@ describe('the Knowledge module for external agents', () => {
   })
 
   test("challenges a read-only connection's writes, still listing them, until a new consent allows them", async () => {
-    const readOnly = await connect({ scopes: ['knowledge:read'] })
+    const readOnly = await connect({ scopes: ['documents:read'] })
 
-    expect(readOnly.scope).toBe('knowledge:read')
+    expect(readOnly.scope).toBe('documents:read')
 
     const listed = await send({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { token: readOnly.access_token })
 
@@ -320,11 +320,11 @@ describe('the Knowledge module for external agents', () => {
     expect(challenged.status).toBe(403)
     expect(challenged.body.error).toBe('insufficient_scope')
     expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
-    expect(challenged.headers.get('www-authenticate')).toContain('scope="knowledge:write"')
+    expect(challenged.headers.get('www-authenticate')).toContain('scope="documents:write"')
     expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${RESOURCE_METADATA}"`)
     expect(documentsOfOrganization()).toEqual([])
 
-    const readWrite = await connect({ scopes: ['knowledge:read', 'knowledge:write'] })
+    const readWrite = await connect({ scopes: ['documents:read', 'documents:write'] })
 
     expect(fake.connectionsOf(MEMBER, ORGANIZATION_ID)).toHaveLength(1)
     expect((await send({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { token: readOnly.access_token })).status).toBe(
@@ -439,7 +439,7 @@ describe('the Knowledge module for external agents', () => {
       expect(body.jsonrpc).toBe('2.0')
     }
 
-    const malformed = await fetch(`${origin}/mcp/knowledge`, {
+    const malformed = await fetch(`${origin}/mcp/documents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: '{"jsonrpc": "2.0",',
@@ -527,7 +527,7 @@ describe('the Tasks module for external agents', () => {
   const READ_WRITE = ['tasks:read', 'tasks:write']
   const list = { jsonrpc: '2.0', id: 1, method: 'tools/list' }
 
-  test("serves its protected resource metadata at the root, beside the Knowledge module's", async () => {
+  test("serves its protected resource metadata at the root, beside the Documents module's", async () => {
     const response = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/tasks`)
 
     expect(response.status).toBe(200)
@@ -539,10 +539,10 @@ describe('the Tasks module for external agents', () => {
     })
   })
 
-  test("answers no token and a Knowledge token 401, naming the Tasks module's protected resource metadata", async () => {
-    const knowledge = await connect()
+  test("answers no token and a Documents token 401, naming the Tasks module's protected resource metadata", async () => {
+    const documents = await connect()
 
-    for (const token of [undefined, knowledge.access_token]) {
+    for (const token of [undefined, documents.access_token]) {
       const { status, headers } = await send(list, { token, path: TASKS_PATH })
 
       expect(status).toBe(401)
@@ -616,8 +616,8 @@ describe('the Tasks module for external agents', () => {
     expect(tasksOfOrganization()).toHaveLength(1)
   })
 
-  test("keeps a client's Knowledge and Tasks connections apart, revoking one leaving the other", async () => {
-    const knowledge = await connect()
+  test("keeps a client's Documents and Tasks connections apart, revoking one leaving the other", async () => {
+    const documents = await connect()
     const tasks = await connect({ scopes: READ_WRITE, resource: TASKS })
 
     expect(fake.connectionsOf(MEMBER, ORGANIZATION_ID)).toHaveLength(2)
@@ -629,7 +629,7 @@ describe('the Tasks module for external agents', () => {
     })
 
     expect((await send(list, { token: tasks.access_token, path: TASKS_PATH })).status).toBe(401)
-    expect((await send(list, { token: knowledge.access_token })).status).toBe(200)
+    expect((await send(list, { token: documents.access_token })).status).toBe(200)
   })
 
   test("answers a query past the member's allowance with a result saying so, and never counts a list without one", async () => {

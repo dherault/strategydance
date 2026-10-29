@@ -1,7 +1,7 @@
 import type { TextareaEdit } from '~utils/common/replaceTextareaRange'
 
 /*
-  What "Mention knowledge" writes at the caret, or over what is selected: an `@`, after a space
+  What "Mention a document" writes at the caret, or over what is selected: an `@`, after a space
   when it would otherwise follow a word, since a mention starts the text or follows a space
 */
 function buildConversationMentionTrigger(text: string, selectionStart: number, selectionEnd: number): TextareaEdit {

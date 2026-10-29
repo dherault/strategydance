@@ -9,7 +9,7 @@ import Loading from '~components/common/Loading'
   Holds the conversations list until its first read lands. `initialLoading` rather than `loading`,
   since the live query writes over the list while somebody is looking at it.
 
-  It keeps the team's live query open too, without waiting for it, as `KnowledgeDocumentsWait`
+  It keeps the team's live query open too, without waiting for it, as `OrganizationDocumentsWait`
   does: the team's pushes are what tell the app the reader was removed or the organization deleted
 */
 function ConversationsWait({ children }: PropsWithChildren) {

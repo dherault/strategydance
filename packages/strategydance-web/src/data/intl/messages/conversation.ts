@@ -6,7 +6,7 @@ import { defineMessages } from 'react-intl'
   sidebar and the dock read it on every page.
 
   A conversation is private: only its author sees it. A run is one go of the AI answering, and a
-  tool is something the AI uses along the way, such as searching the company's knowledge
+  tool is something the AI uses along the way, such as searching the company's documents
 */
 const conversationMessages = defineMessages({
   lead: {
@@ -425,7 +425,7 @@ const conversationMessages = defineMessages({
   retryDialogKept: {
     id: 'conversation.retryDialog.kept',
     defaultMessage:
-      '{total, plural, one {What it changed in your knowledge, tasks and bills stays as it is.} other {What they changed in your knowledge, tasks and bills stays as it is.}}',
+      '{total, plural, one {What it changed in your documents, tasks and bills stays as it is.} other {What they changed in your documents, tasks and bills stays as it is.}}',
     description:
       'In the dialog that asks before the AI answers the reader’s last message again: the documents, tasks and bills the discarded subagents created or changed are not undone. {total} is how many subagents.',
   },
@@ -461,94 +461,93 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Searched the web',
     description: 'What the AI did once it searched the web.',
   },
-  toolSearchKnowledgeRunning: {
-    id: 'conversation.tool.searchKnowledge.running',
-    defaultMessage: 'Searching knowledge',
+  toolSearchDocumentsRunning: {
+    id: 'conversation.tool.searchDocuments.running',
+    defaultMessage: 'Searching documents',
     description:
-      "What the AI is doing while it searches the team's knowledge, the notes, plans and decisions written down about the company.",
+      "What the AI is doing while it searches the team's documents, the notes, plans and decisions written down about the company.",
   },
-  toolSearchKnowledgeDone: {
-    id: 'conversation.tool.searchKnowledge.done',
-    defaultMessage: 'Searched knowledge',
+  toolSearchDocumentsDone: {
+    id: 'conversation.tool.searchDocuments.done',
+    defaultMessage: 'Searched documents',
     description:
-      "What the AI did once it searched the team's knowledge, the notes, plans and decisions written down about the company.",
+      "What the AI did once it searched the team's documents, the notes, plans and decisions written down about the company.",
   },
-  toolListKnowledgeRunning: {
-    id: 'conversation.tool.listKnowledge.running',
-    defaultMessage: 'Listing knowledge',
+  toolListDocumentsRunning: {
+    id: 'conversation.tool.listDocuments.running',
+    defaultMessage: 'Listing documents',
     description:
-      "What the AI is doing while it looks through the list of the team's knowledge, the notes, plans and decisions written down about the company.",
+      "What the AI is doing while it looks through the list of the team's documents, the notes, plans and decisions written down about the company.",
   },
-  toolListKnowledgeDone: {
-    id: 'conversation.tool.listKnowledge.done',
-    defaultMessage: 'Listed knowledge',
+  toolListDocumentsDone: {
+    id: 'conversation.tool.listDocuments.done',
+    defaultMessage: 'Listed documents',
     description:
-      "What the AI did once it looked through the list of the team's knowledge, the notes, plans and decisions written down about the company. Past tense.",
+      "What the AI did once it looked through the list of the team's documents, the notes, plans and decisions written down about the company. Past tense.",
   },
-  toolReadKnowledgeRunning: {
-    id: 'conversation.tool.readKnowledge.running',
-    defaultMessage: 'Opening knowledge',
-    description: "What the AI is doing while it opens an item of the team's knowledge, such as a note or a plan.",
+  toolReadDocumentRunning: {
+    id: 'conversation.tool.readDocument.running',
+    defaultMessage: 'Opening a document',
+    description: "What the AI is doing while it opens one of the team's documents, such as a note or a plan.",
   },
-  toolReadKnowledgeDone: {
-    id: 'conversation.tool.readKnowledge.done',
-    defaultMessage: 'Opened knowledge',
-    description: "What the AI did once it opened an item of the team's knowledge, such as a note or a plan.",
+  toolReadDocumentDone: {
+    id: 'conversation.tool.readDocument.done',
+    defaultMessage: 'Opened a document',
+    description: "What the AI did once it opened one of the team's documents, such as a note or a plan.",
   },
-  toolCreateKnowledgeRunning: {
-    id: 'conversation.tool.createKnowledge.running',
-    defaultMessage: 'Creating knowledge',
-    description: "What the AI is doing while it writes a new item of the team's knowledge, such as a note or a plan.",
+  toolCreateDocumentRunning: {
+    id: 'conversation.tool.createDocument.running',
+    defaultMessage: 'Creating a document',
+    description: 'What the AI is doing while it writes a new document for the team, such as a note or a plan.',
   },
-  toolCreateKnowledgeDone: {
-    id: 'conversation.tool.createKnowledge.done',
-    defaultMessage: 'Created knowledge',
-    description: "What the AI did once it wrote a new item of the team's knowledge, such as a note or a plan.",
+  toolCreateDocumentDone: {
+    id: 'conversation.tool.createDocument.done',
+    defaultMessage: 'Created a document',
+    description: 'What the AI did once it wrote a new document for the team, such as a note or a plan.',
   },
-  toolUpdateKnowledgeRunning: {
-    id: 'conversation.tool.updateKnowledge.running',
-    defaultMessage: 'Updating knowledge',
-    description: "What the AI is doing while it changes an item of the team's knowledge, such as a note or a plan.",
+  toolUpdateDocumentRunning: {
+    id: 'conversation.tool.updateDocument.running',
+    defaultMessage: 'Updating a document',
+    description: "What the AI is doing while it changes one of the team's documents, such as a note or a plan.",
   },
-  toolUpdateKnowledgeDone: {
-    id: 'conversation.tool.updateKnowledge.done',
-    defaultMessage: 'Updated knowledge',
-    description: "What the AI did once it changed an item of the team's knowledge, such as a note or a plan.",
+  toolUpdateDocumentDone: {
+    id: 'conversation.tool.updateDocument.done',
+    defaultMessage: 'Updated a document',
+    description: "What the AI did once it changed one of the team's documents, such as a note or a plan.",
   },
-  toolTagKnowledgeRunning: {
-    id: 'conversation.tool.tagKnowledge.running',
-    defaultMessage: 'Tagging knowledge',
+  toolTagDocumentRunning: {
+    id: 'conversation.tool.tagDocument.running',
+    defaultMessage: 'Tagging a document',
     description:
-      "What the AI is doing while it tags an item of the team's knowledge with the aspects of the company it is about, such as strategy or sales.",
+      "What the AI is doing while it tags one of the team's documents with the aspects of the company it is about, such as strategy or sales.",
   },
-  toolTagKnowledgeDone: {
-    id: 'conversation.tool.tagKnowledge.done',
-    defaultMessage: 'Tagged knowledge',
+  toolTagDocumentDone: {
+    id: 'conversation.tool.tagDocument.done',
+    defaultMessage: 'Tagged a document',
     description:
-      "What the AI did once it tagged an item of the team's knowledge with the aspects of the company it is about, such as strategy or sales. Past tense.",
+      "What the AI did once it tagged one of the team's documents with the aspects of the company it is about, such as strategy or sales. Past tense.",
   },
-  toolDeleteKnowledgeRunning: {
-    id: 'conversation.tool.deleteKnowledge.running',
-    defaultMessage: 'Deleting knowledge',
-    description: "What the AI is doing while it deletes an item of the team's knowledge, such as a note or a plan.",
+  toolDeleteDocumentRunning: {
+    id: 'conversation.tool.deleteDocument.running',
+    defaultMessage: 'Deleting a document',
+    description: "What the AI is doing while it deletes one of the team's documents, such as a note or a plan.",
   },
-  toolDeleteKnowledgeDone: {
-    id: 'conversation.tool.deleteKnowledge.done',
-    defaultMessage: 'Deleted knowledge',
+  toolDeleteDocumentDone: {
+    id: 'conversation.tool.deleteDocument.done',
+    defaultMessage: 'Deleted a document',
+    description: "What the AI did once it deleted one of the team's documents, such as a note or a plan. Past tense.",
+  },
+  toolRestoreDocumentRunning: {
+    id: 'conversation.tool.restoreDocument.running',
+    defaultMessage: 'Restoring a document',
     description:
-      "What the AI did once it deleted an item of the team's knowledge, such as a note or a plan. Past tense.",
+      "What the AI is doing while it brings back one of the team's documents that was deleted, such as a note or a plan.",
   },
-  toolRestoreKnowledgeRunning: {
-    id: 'conversation.tool.restoreKnowledge.running',
-    defaultMessage: 'Restoring knowledge',
+  toolRestoreDocumentDone: {
+    id: 'conversation.tool.restoreDocument.done',
+    defaultMessage: 'Restored a document',
     description:
-      "What the AI is doing while it brings back an item of the team's knowledge that was deleted, such as a note or a plan.",
-  },
-  toolRestoreKnowledgeDone: {
-    id: 'conversation.tool.restoreKnowledge.done',
-    defaultMessage: 'Restored knowledge',
-    description:
-      "What the AI did once it brought back an item of the team's knowledge that was deleted, such as a note or a plan. Past tense.",
+      "What the AI did once it brought back one of the team's documents that was deleted, such as a note or a plan. Past tense.",
   },
   toolListTasksRunning: {
     id: 'conversation.tool.listTasks.running',
@@ -948,9 +947,9 @@ const conversationMessages = defineMessages({
   },
   threadEmpty: {
     id: 'conversation.threadEmpty',
-    defaultMessage: 'Ask about your company, a decision, or what to do next. Type @ to mention knowledge.',
+    defaultMessage: 'Ask about your company, a decision, or what to do next. Type @ to mention a document.',
     description:
-      'What a new conversation shows before its first message. Knowledge is what the organization keeps written down, such as notes, plans and decisions; typing @ in the message field lists it.',
+      'What a new conversation shows before its first message. Documents are what the organization keeps written down, such as notes, plans and decisions; typing @ in the message field lists them.',
   },
   olderError: {
     id: 'conversation.olderError',
@@ -966,7 +965,7 @@ const conversationMessages = defineMessages({
     id: 'conversation.toolBadge',
     defaultMessage: 'Tool',
     description:
-      'Small badge beside something the AI used while answering, such as a search of the knowledge, to tell it from a message.',
+      'Small badge beside something the AI used while answering, such as a search of the documents, to tell it from a message.',
   },
   toolStatusRunning: {
     id: 'conversation.toolStatus.running',
@@ -1052,9 +1051,9 @@ const conversationMessages = defineMessages({
   },
   documentGone: {
     id: 'conversation.documentGone',
-    defaultMessage: "(no longer in the team's knowledge)",
+    defaultMessage: "(no longer among the team's documents)",
     description:
-      "Read by screen readers after a link in the AI's reply to an item of the team's knowledge, such as a note or a plan, that was deleted since. Shown crossed out to sighted readers.",
+      "Read by screen readers after a link in the AI's reply to one of the team's documents, such as a note or a plan, that was deleted since. Shown crossed out to sighted readers.",
   },
   taskGone: {
     id: 'conversation.taskGone',
@@ -1066,13 +1065,13 @@ const conversationMessages = defineMessages({
     id: 'conversation.restoreDocument',
     defaultMessage: 'Restore',
     description:
-      "Button on the line saying the AI deleted an item of the team's knowledge, such as a note or a plan, which brings the item back. Offered for a day after the delete.",
+      "Button on the line saying the AI deleted one of the team's documents, such as a note or a plan, which brings the document back. Offered for a day after the delete.",
   },
   restoreDocumentError: {
     id: 'conversation.restoreDocumentError',
-    defaultMessage: 'The knowledge could not be brought back.',
+    defaultMessage: 'The document could not be brought back.',
     description:
-      "Notification when bringing back an item of the team's knowledge the AI deleted failed, for instance once a day has passed since the delete.",
+      "Notification when bringing back one of the team's documents the AI deleted failed, for instance once a day has passed since the delete.",
   },
   restoreTask: {
     id: 'conversation.restoreTask',
@@ -1102,43 +1101,43 @@ const conversationMessages = defineMessages({
     id: 'conversation.undoDocumentEdit',
     defaultMessage: 'Undo',
     description:
-      "Button on the line saying the AI changed an item of the team's knowledge, such as a note or a plan, which puts its text back as it was before. Offered while nobody has written in the item since.",
+      "Button on the line saying the AI changed one of the team's documents, such as a note or a plan, which puts its text back as it was before. Offered while nobody has written in the document since.",
   },
   documentEditUndone: {
     id: 'conversation.documentEditUndone',
-    defaultMessage: 'The knowledge is back as it was before this change',
+    defaultMessage: 'The document is back as it was before this change',
     description:
-      "Notification once the text of an item of the team's knowledge, such as a note or a plan, is put back as it was before the AI changed it.",
+      "Notification once the text of one of the team's documents, such as a note or a plan, is put back as it was before the AI changed it.",
   },
   redoDocumentEdit: {
     id: 'conversation.redoDocumentEdit',
     defaultMessage: 'Redo',
     description:
-      "Button in the notification saying an AI change to an item of the team's knowledge was undone, which makes the change again.",
+      "Button in the notification saying an AI change to one of the team's documents was undone, which makes the change again.",
   },
   documentEditChangedSince: {
     id: 'conversation.documentEditChangedSince',
     defaultMessage: 'Somebody wrote in it since. Its history can still bring back the text from before this change.',
     description:
-      "Notification when the AI change to an item of the team's knowledge could not be undone because somebody wrote in the item since. Its history is the list of earlier versions on the item's page.",
+      "Notification when the AI change to one of the team's documents could not be undone because somebody wrote in the document since. Its history is the list of earlier versions on the document's page.",
   },
   openDocumentHistory: {
     id: 'conversation.openDocumentHistory',
     defaultMessage: 'Open history',
     description:
-      "Button in a notification that opens the list of earlier versions of an item of the team's knowledge, on the item's page.",
+      "Button in a notification that opens the list of earlier versions of one of the team's documents, on the document's page.",
   },
   redoDocumentEditError: {
     id: 'conversation.redoDocumentEditError',
     defaultMessage: 'This change could not be made again.',
     description:
-      "Notification when making an undone AI change to an item of the team's knowledge again failed, for instance once somebody wrote in the item since.",
+      "Notification when making an undone AI change to one of the team's documents again failed, for instance once somebody wrote in the document since.",
   },
   undoDocumentEditError: {
     id: 'conversation.undoDocumentEditError',
     defaultMessage: 'This change could not be undone.',
     description:
-      "Notification when putting back the text of an item of the team's knowledge, as it was before an AI change, failed, for instance once the item is deleted.",
+      "Notification when putting back the text of one of the team's documents, as it was before an AI change, failed, for instance once the document is deleted.",
   },
   toolCall: {
     id: 'conversation.toolCall',
@@ -1759,13 +1758,13 @@ const conversationMessages = defineMessages({
     id: 'conversation.composer.attach',
     defaultMessage: 'Attach',
     description:
-      "Accessible name and tooltip of the + button beside the message field, whose menu adds something to the message, such as a mention of the team's knowledge.",
+      "Accessible name and tooltip of the + button beside the message field, whose menu adds something to the message, such as a mention of one of the team's documents.",
   },
-  composerMentionKnowledge: {
-    id: 'conversation.composer.mentionKnowledge',
-    defaultMessage: 'Mention knowledge',
+  composerMentionDocument: {
+    id: 'conversation.composer.mentionDocument',
+    defaultMessage: 'Mention a document',
     description:
-      "Item of the + menu beside the message field. It writes @ in the message and lists the team's knowledge documents, such as a note or a plan, to mention, so the AI reads them.",
+      "Item of the + menu beside the message field. It writes @ in the message and lists the team's documents, such as a note or a plan, to mention, so the AI reads them.",
   },
   composerTooLong: {
     id: 'conversation.composer.tooLong',
@@ -1871,15 +1870,15 @@ const conversationMessages = defineMessages({
   },
   mentionListLabel: {
     id: 'conversation.mention.listLabel',
-    defaultMessage: 'Knowledge',
+    defaultMessage: 'Documents',
     description:
-      "Heading of the list that opens above the message field when the reader types @, suggesting the team's knowledge documents, such as a note or a plan, to mention in the message.",
+      "Heading of the list that opens above the message field when the reader types @, suggesting the team's documents, such as a note or a plan, to mention in the message.",
   },
   mentionEmpty: {
     id: 'conversation.mention.empty',
-    defaultMessage: 'No knowledge matches “{query}”',
+    defaultMessage: 'No document matches “{query}”',
     description:
-      "Shown in the list above the message field when no knowledge document's title holds what the reader typed after @. {query} is what they typed, kept as typed.",
+      "Shown in the list above the message field when no document's title holds what the reader typed after @. {query} is what they typed, kept as typed.",
   },
   tooMany: {
     id: 'conversation.tooMany',

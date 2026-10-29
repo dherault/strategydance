@@ -163,7 +163,7 @@ function messageAt(position: number) {
   if (position === toolCallPosition) {
     return {
       kind: 'TOOL_CALL',
-      toolName: 'search_knowledge',
+      toolName: 'search_documents',
       toolStatus: 'SUCCEEDED',
       toolInput: '{"query":"pricing"}',
       toolOutput: '{"results":[]}',

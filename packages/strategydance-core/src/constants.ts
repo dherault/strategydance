@@ -401,11 +401,11 @@ export const MAX_TASK_DESCRIPTION_LENGTH = 20000
 export const MAX_TASK_DEPENDENCIES = 50
 
 /* ---
-  KNOWLEDGE
+  DOCUMENTS
 --- */
 
 /*
-  How many documents an organization keeps in its knowledge, how long a document's title may be,
+  How many documents an organization keeps, how long a document's title may be,
   on one line, and how long its serialized blocks may run, which is room for a long plan in
   formatted text. Written out again in `CreateDocument`'s, `RestoreDocument`'s, `RenameDocument`'s
   and `UpdateDocumentContent`'s checks and in `GetOrganizationDocuments`' limit, which cannot import
@@ -619,7 +619,7 @@ export const MAX_PENDING_CONVERSATION_ATTACHMENTS = 30
 
 /*
   How long a search may be, in characters and in words, the conversations field and the agent's
-  knowledge search alike. Every word has to match, so a longer query finds nothing a shorter one
+  document search alike. Every word has to match, so a longer query finds nothing a shorter one
   would miss
 */
 export const MAX_SEARCH_QUERY_LENGTH = 100
@@ -687,10 +687,10 @@ export const MAX_SUBAGENT_RUNS = 4
 */
 export const MODULES = [
   {
-    name: 'knowledge',
-    path: '/mcp/knowledge',
-    title: 'Strategy Dance Knowledge',
-    scopes: { read: 'knowledge:read', write: 'knowledge:write' },
+    name: 'documents',
+    path: '/mcp/documents',
+    title: 'Strategy Dance Documents',
+    scopes: { read: 'documents:read', write: 'documents:write' },
   },
   {
     name: 'tasks',
@@ -717,13 +717,13 @@ export const MODULES = [
 /*
   The modules the public backend serves to external agents, each at its own address under its
   `/mcp` path, behind the bearer check, with its protected resource metadata at the app's root:
-  Knowledge, Tasks and Budget, in `MODULES`' order. The authorization server reads them alone, its
+  Documents, Tasks and Budget, in `MODULES`' order. The authorization server reads them alone, its
   resources and `scopes_supported`, and so does the consent page, so a client asking for a module
   served to nobody is refused as for an address no module has, and no consent makes a connection
   that no endpoint serves. A module added to `MODULES` later joins them by its name here, once its
   write tools are challenged and its searches counted
 */
-export const SERVED_MODULE_NAMES: readonly ModuleName[] = ['knowledge', 'tasks', 'budget']
+export const SERVED_MODULE_NAMES: readonly ModuleName[] = ['documents', 'tasks', 'budget']
 
 export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.includes(module.name))
 

@@ -115,7 +115,7 @@ through the `strategydance-tasks` MCP server, which acts as the person in produc
 
 - What follows "task" is an id, which `read_task` takes hyphenated or not, or a piece of its name,
   which `list_tasks` finds with `query`. Several matches are a question for the person, never a pick
-- The description is the brief: `read_task` opens a `task:<id>` link, and the Knowledge module's
+- The description is the brief: `read_task` opens a `task:<id>` link, and the Documents module's
   `read_document` a `doc:<id>` one. A task it waits on that is not done blocks it: say so first
 - Without `strategydance-tasks` tools, or when they ask to sign in, say so and stop: the person
   runs `claude mcp add --transport http strategydance-tasks https://api.strategydance.com/mcp/tasks`,

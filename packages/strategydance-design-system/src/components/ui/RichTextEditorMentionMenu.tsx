@@ -62,7 +62,7 @@ function RichTextEditorMentionMenuController() {
 
       return {
         title: item.title,
-        group: isDocument ? dictionary.rich_text.mention_knowledge : dictionary.rich_text.mention_tasks,
+        group: isDocument ? dictionary.rich_text.mention_documents : dictionary.rich_text.mention_tasks,
         icon: isDocument ? <FileTextIcon size={18} /> : <SquareKanbanIcon size={18} />,
         onItemClick: () => {
           const mention = isDocument

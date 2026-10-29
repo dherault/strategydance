@@ -5,9 +5,9 @@ import parseModuleResource from './parseModuleResource'
 // The tests run as neither development nor production, under the development backend's issuer
 describe('parseModuleResource', () => {
   test("names a module by its address under the issuer, in the address's one form", () => {
-    expect(parseModuleResource('http://localhost:3003/mcp/knowledge')).toEqual({
-      module: expect.objectContaining({ name: 'knowledge' }),
-      resource: 'http://localhost:3003/mcp/knowledge',
+    expect(parseModuleResource('http://localhost:3003/mcp/documents')).toEqual({
+      module: expect.objectContaining({ name: 'documents' }),
+      resource: 'http://localhost:3003/mcp/documents',
     })
     expect(parseModuleResource('HTTP://LOCALHOST:3003/mcp/tasks')).toEqual({
       module: expect.objectContaining({ name: 'tasks' }),
@@ -27,18 +27,18 @@ describe('parseModuleResource', () => {
       'http://localhost:3003/mcp/unknown',
       // A module served to no external agent
       'http://localhost:3003/mcp/subagents',
-      'http://localhost:3003/mcp/knowledge/',
-      'http://localhost:3003/mcp/knowledge?x=1',
-      'http://localhost:3003/mcp/knowledge?',
-      'http://localhost:3003/mcp/knowledge#part',
-      'http://user@localhost:3003/mcp/knowledge',
-      'https://localhost:3003/mcp/knowledge',
-      'http://localhost:3004/mcp/knowledge',
-      'https://api.strategydance.com/mcp/knowledge',
-      'http://localhost:3003/MCP/knowledge',
-      'http://local\nhost:3003/mcp/knowledge',
-      'http://localhost:3003/mcp/knowl\tedge',
-      ' http://localhost:3003/mcp/knowledge',
+      'http://localhost:3003/mcp/documents/',
+      'http://localhost:3003/mcp/documents?x=1',
+      'http://localhost:3003/mcp/documents?',
+      'http://localhost:3003/mcp/documents#part',
+      'http://user@localhost:3003/mcp/documents',
+      'https://localhost:3003/mcp/documents',
+      'http://localhost:3004/mcp/documents',
+      'https://api.strategydance.com/mcp/documents',
+      'http://localhost:3003/MCP/documents',
+      'http://local\nhost:3003/mcp/documents',
+      'http://localhost:3003/mcp/docu\tments',
+      ' http://localhost:3003/mcp/documents',
     ]) {
       expect(parseModuleResource(value)).toBeNull()
     }

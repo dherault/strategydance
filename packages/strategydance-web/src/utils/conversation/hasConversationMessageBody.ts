@@ -16,7 +16,7 @@ export const CALL_INTEGRATION_TOOL_NAME = 'call_integration_tool'
 // by the call's id its body holds
 export const LAUNCH_SUBAGENT_TOOL_NAME = 'launch_subagent'
 
-// The Knowledge module's tool whose calls edit a document, whose row offers Undo, found by the call's
+// The Documents module's tool whose calls edit a document, whose row offers Undo, found by the call's
 // id its body holds while nobody has written over the edit
 export const UPDATE_DOCUMENT_TOOL_NAME = 'update_document'
 

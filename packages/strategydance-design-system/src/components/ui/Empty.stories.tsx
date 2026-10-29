@@ -31,7 +31,7 @@ export const Default: Story = {
         <EmptyMedia>
           <BookOpenIcon />
         </EmptyMedia>
-        <EmptyTitle>No knowledge yet</EmptyTitle>
+        <EmptyTitle>No documents yet</EmptyTitle>
         <EmptyDescription>
           Add notes, plans and decisions about your company. Tag each item with aspects so it shows up on those pages.
         </EmptyDescription>
@@ -41,7 +41,7 @@ export const Default: Story = {
           size="sm"
           icon={<PlusIcon />}
         >
-          Add knowledge
+          New document
         </Button>
       </EmptyContent>
     </Empty>
@@ -59,7 +59,7 @@ export const Small: Story = {
         <EmptyMedia>
           <CompanyAspectIcon aspect="strategy" />
         </EmptyMedia>
-        <EmptyTitle>No knowledge for Strategy yet</EmptyTitle>
+        <EmptyTitle>No documents for Strategy yet</EmptyTitle>
         <EmptyDescription>Items tagged with Strategy appear here.</EmptyDescription>
       </EmptyHeader>
     </Empty>

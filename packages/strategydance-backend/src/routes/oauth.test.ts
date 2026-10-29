@@ -25,7 +25,7 @@ mock.module('strategydance-database/backend', () => fake.sdk)
 const { default: createOAuthRouter } = await import('./oauth')
 
 const ISSUER = 'http://localhost:3003'
-const KNOWLEDGE = `${ISSUER}/mcp/knowledge`
+const DOCUMENTS = `${ISSUER}/mcp/documents`
 const CONSENT = 'http://localhost:5173/oauth/consent?request='
 const CLIENT_ID_URL = 'https://client.example.com/oauth/metadata.json'
 const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'
@@ -69,7 +69,7 @@ function authorize(parameters: Record<string, string | null>, raw = '') {
     redirect_uri: 'https://client.example.com/callback',
     code_challenge: CHALLENGE,
     code_challenge_method: 'S256',
-    resource: KNOWLEDGE,
+    resource: DOCUMENTS,
     state: 'opaque state',
     ...parameters,
   })) {
@@ -202,7 +202,7 @@ describe('GET /oauth/authorize', () => {
   })
 
   test('stores a client ID metadata document’s request, fetching nothing, and sends the browser to the consent page', async () => {
-    const response = await authorize({ scope: 'knowledge:read' })
+    const response = await authorize({ scope: 'documents:read' })
     const location = response.headers.get('location') ?? ''
     const [request] = [...fake.requests.values()]
 
@@ -214,8 +214,8 @@ describe('GET /oauth/authorize', () => {
         registeredClientId: null,
         redirectUri: 'https://client.example.com/callback',
         codeChallenge: CHALLENGE,
-        resource: KNOWLEDGE,
-        scopes: ['knowledge:read'],
+        resource: DOCUMENTS,
+        scopes: ['documents:read'],
         state: 'opaque state',
         decidedAt: null,
       }),
@@ -227,7 +227,7 @@ describe('GET /oauth/authorize', () => {
   test('asks for read and write when the request names no scope', async () => {
     await authorize({})
 
-    expect([...fake.requests.values()][0]?.scopes).toEqual(['knowledge:read', 'knowledge:write'])
+    expect([...fake.requests.values()][0]?.scopes).toEqual(['documents:read', 'documents:write'])
   })
 
   test('stores a registered client’s request on any loopback port, and marks the client used', async () => {
@@ -285,7 +285,7 @@ describe('GET /oauth/authorize', () => {
       await authorize({ response_type: 'token' }),
       await authorize({ code_challenge_method: 'plain' }),
       await authorize({ resource: null }),
-      await authorize({ scope: 'knowledge:write' }),
+      await authorize({ scope: 'documents:write' }),
     ]) {
       expect(response.status).toBe(400)
       expect(response.headers.get('location')).toBeNull()
@@ -308,10 +308,10 @@ describe('GET /oauth/authorize', () => {
       [{ resource: `${ISSUER}/mcp/unknown` }, 'invalid_target'],
       // A module served to no external agent, refused as one no module has
       [{ resource: `${ISSUER}/mcp/subagents`, scope: 'subagents:read' }, 'invalid_target'],
-      [{ resource: `${KNOWLEDGE}/` }, 'invalid_target'],
-      [{ scope: 'knowledge:read tasks:read' }, 'invalid_scope'],
-      [{ scope: 'knowledge:write' }, 'invalid_scope'],
-      [{ resource: `${ISSUER}/mcp/tasks`, scope: 'knowledge:read' }, 'invalid_scope'],
+      [{ resource: `${DOCUMENTS}/` }, 'invalid_target'],
+      [{ scope: 'documents:read tasks:read' }, 'invalid_scope'],
+      [{ scope: 'documents:write' }, 'invalid_scope'],
+      [{ resource: `${ISSUER}/mcp/tasks`, scope: 'documents:read' }, 'invalid_scope'],
     ] as const) {
       const response = await authorize({ ...registered, ...parameters })
       const { location, parameters: answer } = readRedirect(response)
@@ -333,7 +333,7 @@ describe('GET /oauth/authorize', () => {
     const clientId = await registerLoopbackClient()
 
     for (const raw of [
-      `&resource=${encodeURIComponent(KNOWLEDGE)}`,
+      `&resource=${encodeURIComponent(DOCUMENTS)}`,
       '&response_type=code',
       `&code_challenge=${CHALLENGE}`,
       '&code_challenge_method=S256',
@@ -355,8 +355,8 @@ describe('GET /oauth/authorize', () => {
         registeredClientId: clientId,
         redirectUri: 'http://127.0.0.1/callback',
         codeChallenge: CHALLENGE,
-        resource: KNOWLEDGE,
-        scopes: ['knowledge:read'],
+        resource: DOCUMENTS,
+        scopes: ['documents:read'],
         state: null,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         decidedAt: null,

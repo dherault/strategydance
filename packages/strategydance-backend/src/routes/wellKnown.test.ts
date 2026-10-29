@@ -33,8 +33,8 @@ describe('GET /.well-known/oauth-authorization-server', () => {
       revocation_endpoint: 'http://localhost:3003/oauth/revoke',
       // The served modules' alone: Subagents is served to no external agent
       scopes_supported: [
-        'knowledge:read',
-        'knowledge:write',
+        'documents:read',
+        'documents:write',
         'tasks:read',
         'tasks:write',
         'budget:read',

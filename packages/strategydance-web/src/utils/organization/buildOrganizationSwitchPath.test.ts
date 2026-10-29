@@ -10,13 +10,13 @@ describe('buildOrganizationSwitchPath', () => {
   })
 
   it("goes back to the list from a document or a conversation, which are the organization's own", () => {
-    expect(buildOrganizationSwitchPath('/acme-ab12/knowledge/0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f', 'globex-cd34')).toBe(
-      '/globex-cd34/knowledge',
+    expect(buildOrganizationSwitchPath('/acme-ab12/documents/0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f', 'globex-cd34')).toBe(
+      '/globex-cd34/documents',
     )
     expect(
       buildOrganizationSwitchPath('/acme-ab12/conversations/0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f', 'globex-cd34'),
     ).toBe('/globex-cd34/conversations')
-    expect(buildOrganizationSwitchPath('/acme-ab12/knowledge/', 'globex-cd34')).toBe('/globex-cd34/knowledge')
+    expect(buildOrganizationSwitchPath('/acme-ab12/documents/', 'globex-cd34')).toBe('/globex-cd34/documents')
   })
 
   it("leads to today from the organization's own address", () => {

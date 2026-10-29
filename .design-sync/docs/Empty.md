@@ -13,14 +13,14 @@ const { BookOpenIcon, PlusIcon } = window.StrategyDanceDesignSystem.Icons
     <EmptyMedia>
       <BookOpenIcon />
     </EmptyMedia>
-    <EmptyTitle>No knowledge yet</EmptyTitle>
+    <EmptyTitle>No documents yet</EmptyTitle>
     <EmptyDescription>
       Add notes, plans and decisions about your company. Tag each with aspects so it shows on their pages.
     </EmptyDescription>
   </EmptyHeader>
   <EmptyContent>
     <Button size="sm" icon={<PlusIcon />} onClick={() => console.log('add')}>
-      Add knowledge
+      New document
     </Button>
   </EmptyContent>
 </Empty>
@@ -36,7 +36,7 @@ const { CompanyAspectIcon, Empty, EmptyDescription, EmptyHeader, EmptyMedia, Emp
     <EmptyMedia>
       <CompanyAspectIcon aspect="marketing" />
     </EmptyMedia>
-    <EmptyTitle>No knowledge for Marketing yet</EmptyTitle>
+    <EmptyTitle>No documents for Marketing yet</EmptyTitle>
     <EmptyDescription>Documents tagged with Marketing appear here.</EmptyDescription>
   </EmptyHeader>
 </Empty>

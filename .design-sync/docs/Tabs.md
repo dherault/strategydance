@@ -1,5 +1,5 @@
 A row of tabs, underlined in blue on the one selected, that switches between related views of one
-context: an aspect's tasks, knowledge and people, or the account's profile and security. For a
+context: an aspect's tasks, documents and people, or the account's profile and security. For a
 choice that filters or sets a value rather than switching views, use a Select or Radio buttons.
 
 ## Usage
@@ -13,7 +13,7 @@ const { BookOpenIcon, ListTodoIcon, UsersIcon } = window.StrategyDanceDesignSyst
   className="max-w-2xl"
   items={[
     { value: 'tasks', label: 'Tasks', icon: <ListTodoIcon />, count: 12, content: <p>12 tasks, 3 of them due this week.</p> },
-    { value: 'knowledge', label: 'Knowledge', icon: <BookOpenIcon />, count: 4, content: <p>4 documents tagged with Marketing.</p> },
+    { value: 'documents', label: 'Documents', icon: <BookOpenIcon />, count: 4, content: <p>4 documents tagged with Marketing.</p> },
     { value: 'people', label: 'People', icon: <UsersIcon />, content: <p>Maya and Tom work on marketing.</p> },
     { value: 'archive', label: 'Archive', disabled: true, content: <p>Nothing archived yet.</p> },
   ]}

@@ -147,7 +147,7 @@ Transcript and thread:
   so every lookup, count and prune of `ConversationAttachment` also matches `userId` and
   `organizationId`
 - A search's query travels in the body, never the address, and is never logged
-- A knowledge write carries the text twice, so it is measured first (`isKnowledgeWriteTooLarge`),
+- A document write carries the text twice, so it is measured first (`isDocumentWriteTooLarge`),
   and refused rather than written without its revision
 
 A new tool takes:
@@ -223,7 +223,7 @@ members' own agents at `/mcp/<name>` (conversations.md § Modules).
 | `send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message through `dev:backend` and prints the conversation's address |
 | `launch:subagent <email> --conversation <id> [--count <n>] <brief>` | Launches subagents as the module does, printing each report |
 | `measure:subagents` | Prices briefs run as subagents on each model weighed, capped at $15 in all |
-| `mcp:knowledge <email>`, `mcp:tasks <email>`, `mcp:budget <email>` | A module over stdio, as that account, for `claude mcp add … -- bun run mcp:knowledge <email>`. Over HTTP, the local backend serves `http://localhost:3003/mcp/<name>` |
+| `mcp:documents <email>`, `mcp:tasks <email>`, `mcp:budget <email>` | A module over stdio, as that account, for `claude mcp add … -- bun run mcp:documents <email>`. Over HTTP, the local backend serves `http://localhost:3003/mcp/<name>` |
 | `seed:budget <email>`, `sync:exchange-rates` | Fills an organization's Budget; syncs the ECB's rates, which the emulators need once |
 | `check:directories` | Runs the directories' check, about $0.10 a directory, into this checkout or, with `--publish`, the pull request |
 | `emulators:postgres` | The races' stack, four emulators on one Postgres, until Ctrl-C |

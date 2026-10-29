@@ -109,13 +109,15 @@ describe('list_bills', () => {
     book.add({ name: 'Running', recurrence: 'MONTHLY', paidOn: '2026-01-10' })
     book.add({ name: 'Ended', recurrence: 'MONTHLY', paidOn: '2025-01-10', endsOn: '2026-06-30' })
     book.add({ name: 'Once', paidOn: '2026-03-02' })
+    // A subscription starting three years ahead, which pays nothing within two
+    book.add({ name: 'Later', recurrence: 'MONTHLY', paidOn: '2029-06-01' })
 
     const names = async (filters: Record<string, unknown>) =>
       (await kit.answer<Page>('list_bills', filters)).bills.map(bill => bill.name).sort()
 
-    expect(await names({ active: true })).toEqual(['Running'])
+    expect(await names({ active: true })).toEqual(['Later', 'Running'])
     expect(await names({ active: false })).toEqual(['Ended', 'Once'])
-    expect(await names({ recurring: true })).toEqual(['Ended', 'Running'])
+    expect(await names({ recurring: true })).toEqual(['Ended', 'Later', 'Running'])
     expect(await names({ recurring: false })).toEqual(['Once'])
   })
 
@@ -133,6 +135,8 @@ describe('list_bills', () => {
     expect(await names({ paidFrom: '2026-03-01', paidTo: '2026-03-05' })).toEqual(['March'])
     expect(await names({ paidFrom: '2026-03-01', paidTo: '2026-03-31' })).toEqual(['March', 'Monthly'])
     expect(await names({ paidFrom: '2026-09-01' })).toEqual(['Monthly', 'September'])
+    // A start past the caller's ten years still finds a bill that keeps going
+    expect(await names({ paidFrom: '2040-01-01' })).toEqual(['Monthly'])
     expect(await names({ paidBy: 'member:other' })).toEqual(['March'])
     expect(await names({ paidBy: 'me' })).toEqual(['Monthly', 'September'])
   })

@@ -113,4 +113,22 @@ describe('the caller', () => {
 
     expect(added.url).toBe(`http://localhost:5173/acme-studio-x7k2/budget/${added.id}`)
   })
+
+  it('answers a write that went through without its address when the organization cannot be read', async () => {
+    const external = await book.connect({ kind: 'external', idempotencyScope: 'connection:checked' })
+
+    fake.beforeOperation = async name => {
+      if (name === 'GetOrganizationForAgent') throw new Error('connection reset')
+    }
+
+    const added = await external.answer<{ id: string; url?: string }>('add_bill', {
+      name: 'Notion',
+      company: 'Notion Labs',
+      amount: '10.00',
+      currency: 'USD',
+    })
+
+    expect(added).not.toHaveProperty('url')
+    expect(fake.bills.has(added.id)).toBe(true)
+  })
 })

@@ -166,6 +166,17 @@ describe('update_bill', () => {
     ])
   })
 
+  it("keeps a day past the caller's ten years that another member's today took, holding a new one to them", async () => {
+    const kit = await book.connect()
+    // A day after the caller's last, 2036-10-18 on their 2026-10-19
+    const bill = book.add({ paidOn: '2036-10-19' })
+
+    expect(await kit.answer('update_bill', { id: bill.id, name: 'Renamed' })).toMatchObject({ paidOn: '2036-10-19' })
+    expect(await kit.refusal('update_bill', { id: bill.id, paidOn: '2036-10-19' })).toBe(
+      'A bill is first paid from 1999-01-01 to 2036-10-18.',
+    )
+  })
+
   it('takes its end off with its recurrence, and refuses a currency its amount does not fit', async () => {
     const kit = await book.connect()
     const bill = book.add({ amountMinor: 1234, recurrence: 'MONTHLY', paidOn: '2026-01-01', endsOn: '2026-12-31' })

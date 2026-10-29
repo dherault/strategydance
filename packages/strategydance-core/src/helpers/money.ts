@@ -38,14 +38,19 @@ export function parseMoney(text: string, currency: Currency) {
 /*
   The decimal string minor units say, with the currency's digits, as 31240 cents is "312.40" and
   1500 yen "1500": what `parseMoney` reads back to the same number. A negative is written with its
-  sign, as a budget's amount left can be. A fraction of a minor unit is a mistake upstream, and
-  throws
+  sign, as a budget's amount left can be. A sum or a conversion of amounts within `MAX_MONEY_MINOR`
+  can pass 2^53, as a year of a large weekly bill or a dollar bill converted to rupiah does, and is
+  written whole, its digits as exact as the number holds them, rather than refused. A fraction of a
+  minor unit is a mistake upstream, and throws
 */
 export function formatMoneyAmount(minor: number, currency: Currency) {
-  if (!Number.isSafeInteger(minor)) throw new RangeError(`${minor} is not a whole number of minor units`)
+  if (!Number.isInteger(minor)) throw new RangeError(`${minor} is not a whole number of minor units`)
 
   const { exponent } = CURRENCIES[currency]
-  const digits = String(Math.abs(minor)).padStart(exponent + 1, '0')
+  // Through `BigInt`, since `String` writes a number past 10^21 with an exponent
+  const digits = BigInt(Math.abs(minor))
+    .toString()
+    .padStart(exponent + 1, '0')
   const sign = minor < 0 ? '-' : ''
 
   if (exponent === 0) return sign + digits

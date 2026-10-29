@@ -65,6 +65,11 @@ async function updateBill(
   input: UpdateBillInput,
   call: ModuleCall | null,
 ): Promise<BudgetWriteResult<WrittenBill>> {
+  // A call its key answered reads nothing, a receipt's bytes included
+  const answered = await answerFromModuleCall(caller, call)
+
+  if (answered) return answered
+
   const earlierReceiptId =
     input.receipt && 'earlierReceiptId' in input.receipt ? toCanonicalUuid(input.receipt.earlierReceiptId) : null
   const receipt =
@@ -73,10 +78,6 @@ async function updateBill(
       : await readAgentBillReceipt(caller, input.receipt)
 
   if (receipt && receipt.outcome !== 'read' && receipt.outcome !== 'named') return receipt
-
-  const answered = await answerFromModuleCall(caller, call)
-
-  if (answered) return answered
 
   const billId = toCanonicalUuid(input.id)
   // The receipt the save gives the bill: null to detach it, undefined to keep the bill's own
@@ -103,6 +104,8 @@ async function updateBill(
     const paidOn = input.paidOn ?? current.paidOn
     const recurrence = input.recurrence === undefined ? current.recurrence : input.recurrence
     const endsOn = input.endsOn !== undefined ? input.endsOn : recurrence === null ? null : current.endsOn
+    // The day the bill is paid on is held to the caller's today only when the call changes it: one
+    // kept was taken on another member's today, which may be a day ahead
     const checked = checkBillFields(
       {
         amount: input.amount ?? formatMoneyAmount(current.amountMinor, current.currency),
@@ -112,6 +115,7 @@ async function updateBill(
         endsOn,
       },
       state.today,
+      { isPaidOnKept: input.paidOn === undefined },
     )
 
     if (checked.outcome !== 'checked') return checked

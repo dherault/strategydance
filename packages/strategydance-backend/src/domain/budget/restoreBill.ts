@@ -52,7 +52,8 @@ async function restoreBill(
 
   const [row] = data.bills
 
-  if (!row) return { outcome: 'notFound' }
+  // No row tells a wrong id from a bill the sweep removed past its day: the refusal says both
+  if (!row) return { outcome: 'notRestorable' }
   if (!row.deletedAt) return { outcome: 'notDeleted' }
   if (Date.parse(row.deletedAt) <= Date.now() - RESTORE_WINDOW_MS) return { outcome: 'goneForGood' }
   if (read.state.bills.length >= MAX_BILLS) return { outcome: 'full' }
@@ -81,7 +82,7 @@ async function restoreBill(
     const [current] = again.bills
 
     if (again.membership.length === 0) return { outcome: 'notMember' }
-    if (!current) return { outcome: 'notFound' }
+    if (!current) return { outcome: 'goneForGood' }
     if (!current.deletedAt) return { outcome: 'notDeleted' }
 
     return { outcome: isFull ? 'full' : 'goneForGood' }

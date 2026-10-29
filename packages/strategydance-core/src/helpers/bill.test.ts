@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 
 import type { BillRecurrence, BillSchedule } from '../types'
 
-import { getLastBillPayment, getNextBillPayment, isBillActive, listBillPayments } from './bill'
+import { getLastBillPayment, getNextBillPayment, hasBillPaymentWithin, isBillActive, listBillPayments } from './bill'
 import { addCalendarDays } from './calendarDay'
 
 function makeBill(
@@ -170,5 +170,39 @@ describe('getNextBillPayment and isBillActive', () => {
 
   it('find a weekly bill past its 3000th payment ended', () => {
     expect(getNextBillPayment(makeBill('1990-01-01', 'WEEKLY'), '2050-01-01')).toBeNull()
+    expect(isBillActive(makeBill('1990-01-01', 'WEEKLY'), '2050-01-01')).toBe(false)
+  })
+
+  it('count a subscription starting over two years ahead active, which has no next payment within them', () => {
+    expect(isBillActive(makeBill('2029-06-01', 'MONTHLY'), '2026-10-19')).toBe(true)
+    expect(isBillActive(makeBill('2029-06-01', 'MONTHLY', '2029-06-01'), '2026-10-19')).toBe(true)
+    expect(isBillActive(makeBill('2026-10-19', 'MONTHLY', '2026-10-19'), '2026-10-19')).toBe(false)
+  })
+})
+
+describe('hasBillPaymentWithin', () => {
+  it('tells whether a bill pays within a stretch, as listing its payments would', () => {
+    const bills = [
+      makeBill('2026-01-31', 'MONTHLY'),
+      makeBill('2025-01-15', 'QUARTERLY', '2026-02-01'),
+      makeBill('2026-03-10'),
+      makeBill('1999-01-04', 'WEEKLY'),
+      makeBill('2024-02-29', 'YEARLY'),
+    ]
+    const stretches = [
+      ['2026-02-01', '2026-02-27'],
+      ['2026-02-28', '2026-02-28'],
+      ['2026-04-01', '2026-12-31'],
+      ['2026-03-10', '2026-03-10'],
+      ['1999-01-05', '1999-01-10'],
+      ['2025-02-28', '2025-02-28'],
+      ['2027-01-01', '2026-01-01'],
+    ] as const
+
+    for (const bill of bills) {
+      for (const [from, to] of stretches) {
+        expect(hasBillPaymentWithin(bill, from, to)).toBe(from <= to && listBillPayments(bill, from, to).length > 0)
+      }
+    }
   })
 })

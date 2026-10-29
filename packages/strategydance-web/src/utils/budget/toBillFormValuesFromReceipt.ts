@@ -1,5 +1,7 @@
-import { type BillReceiptFields, parseMoney } from 'strategydance-core'
+import type { BillReceiptFields } from 'strategydance-core'
 
+import formatAmountInput from '~utils/budget/formatAmountInput'
+import { readAmountMinor } from '~utils/budget/readAmountInput'
 import toBillFormValues, { type BillFormDefaults, type BillFormValues } from '~utils/budget/toBillFormValues'
 
 /*
@@ -19,14 +21,14 @@ function toBillFormValuesFromReceipt(
   if (!fields) return values
 
   const currency = fields.currency ?? defaults.currency
-  const amount = fields.amount ?? ''
+  const amountMinor = readAmountMinor(fields.amount ?? '', currency)
 
   return {
     ...values,
     name: fields.name,
     description: fields.description,
     company: fields.company,
-    amount: (parseMoney(amount, currency) ?? 0) > 0 ? amount : '',
+    amount: amountMinor === null ? '' : formatAmountInput(amountMinor, currency, defaults.locale),
     currency,
     paidOn: fields.paidOn,
     isRecurring: fields.recurrence !== null,

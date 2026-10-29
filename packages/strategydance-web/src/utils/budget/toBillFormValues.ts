@@ -1,6 +1,8 @@
-import { type BillRecurrence, type Currency, formatMoneyAmount } from 'strategydance-core'
+import type { BillRecurrence, Currency } from 'strategydance-core'
 
 import type { Bill } from '~types'
+
+import formatAmountInput from '~utils/budget/formatAmountInput'
 
 // What the bill's dialog holds while it is written: the amount as typed, and the recurrence kept
 // while the switch is off, so turning it back on finds the period picked before
@@ -26,13 +28,16 @@ type BillFormDefaults = {
   today: string
   // A new bill's payer, the reader
   viewerId: string
+  // The reader's language, whose decimal separator an amount is shown with
+  locale: string
 }
 
 /*
-  The bill's dialog's values: a bill's own, its amount written back in its currency's digits, or a
-  new bill's, paid today by the reader in the budget's currency, monthly once it is made recurring
+  The bill's dialog's values: a bill's own, its amount written back in its currency's digits with
+  the reader's decimal separator, or a new bill's, paid today by the reader in the budget's
+  currency, monthly once it is made recurring
 */
-function toBillFormValues(bill: Bill | null, { currency, today, viewerId }: BillFormDefaults): BillFormValues {
+function toBillFormValues(bill: Bill | null, { currency, today, viewerId, locale }: BillFormDefaults): BillFormValues {
   if (!bill) {
     return {
       name: '',
@@ -53,7 +58,7 @@ function toBillFormValues(bill: Bill | null, { currency, today, viewerId }: Bill
     name: bill.name,
     description: bill.description,
     company: bill.company,
-    amount: formatMoneyAmount(bill.amountMinor, bill.currency),
+    amount: formatAmountInput(bill.amountMinor, bill.currency, locale),
     currency: bill.currency,
     paidOn: bill.paidOn,
     // Always set: the SDK types a reference's column as optional

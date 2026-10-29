@@ -501,12 +501,24 @@
         "hash": "d3d3ffe693f206c6",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "budget.amountDecimals": {
+        "hash": "fd588e4f82ce39b0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.amountGrouped": {
+        "hash": "4d6bf85101a25493",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "budget.amountInvalid": {
-        "hash": "f31d5c17ca9387ad",
+        "hash": "efdd2a13d5b3f441",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.amountLabel": {
         "hash": "511d9d98f4b26372",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "budget.amountTooLarge": {
+        "hash": "e23b1265657c13b5",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.attachReceipt": {
@@ -574,7 +586,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.billStale": {
-        "hash": "5a8705b44428a172",
+        "hash": "57ed586e4a539019",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.billsEmptyText": {

@@ -191,8 +191,10 @@ function useBillReceiptDraft(initial: BillReceiptData | null, onChange: (receipt
 
   /*
     Whether the receipt is stored once its upload, the last one started, is done. An upload that
-    failed answers false to the save waiting on it, and none after; one aborted was replaced,
-    removed or reset, so the save waits on whatever took its place
+    failed answers false to the save waiting on it, and none after. One aborted and replaced,
+    removed or reset leaves the save to wait on whatever took its place; one aborted and still the
+    last, which only the dialog closing leaves, answers false, so a save the closed dialog outlived
+    never names a receipt still going up
   */
   async function settle() {
     let run = runRef.current
@@ -201,8 +203,9 @@ function useBillReceiptDraft(initial: BillReceiptData | null, onChange: (receipt
       const isStored = await run.done
 
       if (!run.controller.signal.aborted) return isStored
+      if (runRef.current === run) return false
 
-      run = runRef.current === run ? null : runRef.current
+      run = runRef.current
     }
 
     return true

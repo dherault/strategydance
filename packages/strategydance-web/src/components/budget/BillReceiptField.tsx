@@ -27,14 +27,17 @@ type Props = {
   details: string[]
   onAttach: (file: File) => void
   onRemove: () => void
+  // While the bill saves, which carries the receipt as it was when Save was pressed
+  isDisabled?: boolean
 }
 
 /*
   A bill's receipt in its dialog: a zone to drop one on or click, which takes a PDF, a text file or
   a photo; then the file's name and size, or how far its upload has gone, with View once it is
-  stored, Replace and Remove, the last after a second click
+  stored, Replace and Remove, the last after a second click. Nothing changes the receipt while the
+  bill saves, since the save carries the receipt it had when it started
 */
-function BillReceiptField({ draft, billName, details, onAttach, onRemove }: Props) {
+function BillReceiptField({ draft, billName, details, onAttach, onRemove, isDisabled = false }: Props) {
   const intl = useIntl()
   const { formatMessage, formatNumber } = intl
   const inputRef = useRef<HTMLInputElement>(null)
@@ -47,6 +50,7 @@ function BillReceiptField({ draft, billName, details, onAttach, onRemove }: Prop
           label={formatMessage(budgetMessages.attachReceipt)}
           icon={<UploadIcon />}
           accept={ACCEPT}
+          disabled={isDisabled}
           prompt={
             <>
               {formatMessage(budgetMessages.receiptDrop, { strong: chunks => <strong>{chunks}</strong> })}
@@ -110,6 +114,7 @@ function BillReceiptField({ draft, billName, details, onAttach, onRemove }: Prop
                 size="sm"
                 icon={<UploadIcon />}
                 aria-label={formatMessage(budgetMessages.replaceReceipt)}
+                disabled={isDisabled}
                 onClick={() => inputRef.current?.click()}
               />
             </Tooltip>
@@ -120,6 +125,7 @@ function BillReceiptField({ draft, billName, details, onAttach, onRemove }: Prop
                 icon={<Trash2Icon />}
                 aria-label={formatMessage(budgetMessages.removeReceipt)}
                 confirm={formatMessage(budgetMessages.removeReceiptConfirm)}
+                disabled={isDisabled}
                 onClick={onRemove}
               />
             </Tooltip>

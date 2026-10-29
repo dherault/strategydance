@@ -9,6 +9,7 @@ import {
   type BillReceiptFields,
   type BillRecurrence,
   type Currency,
+  CURRENCIES,
   FIRST_BILL_DAY,
   MAX_BILL_COMPANY_LENGTH,
   MAX_BILL_DESCRIPTION_LENGTH,
@@ -16,7 +17,6 @@ import {
   addCalendarDays,
   addCalendarMonths,
   isCurrency,
-  parseMoney,
 } from 'strategydance-core'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
@@ -42,8 +42,11 @@ import useDeleteBill from '~hooks/budget/useDeleteBill'
 import useSaveBill from '~hooks/budget/useSaveBill'
 import useLocalDate from '~hooks/common/useLocalDate'
 
+import { formatAmountPlaceholder } from '~utils/budget/formatAmountInput'
 import formatBudgetAmount from '~utils/budget/formatBudgetAmount'
 import listBillCompanies from '~utils/budget/listBillCompanies'
+import listChangedBillFields from '~utils/budget/listChangedBillFields'
+import readAmountInput, { AMOUNT_INPUT_ERRORS, readAmountMinor } from '~utils/budget/readAmountInput'
 import toBillDraft from '~utils/budget/toBillDraft'
 import toBillFormValues, { type BillFormValues } from '~utils/budget/toBillFormValues'
 import toBillFormValuesFromReceipt from '~utils/budget/toBillFormValuesFromReceipt'
@@ -64,8 +67,8 @@ import budgetMessages from '~data/intl/messages/budget'
 const BILL_RECURRENCES = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY'] as const satisfies readonly BillRecurrence[]
 
 // zod carries a key of the budget catalogue rather than a sentence, formatted in the reader's
-// language at render. The amount is checked in its currency, whose digits it may not pass, and
-// an end only while the bill recurs
+// language at render. The amount is read as `readAmountInput` reads it, in its currency, whose
+// digits it may not pass, and an end only while the bill recurs
 const billFormSchema = z
   .object({
     name: z.string().refine(name => name.trim() !== '', 'nameRequired'),
@@ -83,9 +86,12 @@ const billFormSchema = z
     endsOn: z.string().nullable(),
     receiptId: z.string().nullable(),
   })
-  .refine(({ amount, currency }) => (parseMoney(amount.trim(), currency) ?? 0) > 0, {
-    message: 'amountInvalid',
-    path: ['amount'],
+  .superRefine(({ amount, currency }, context) => {
+    const read = readAmountInput(amount, currency)
+
+    if (read.outcome !== 'amount') {
+      context.addIssue({ code: 'custom', message: AMOUNT_INPUT_ERRORS[read.outcome], path: ['amount'] })
+    }
   })
   .refine(({ isRecurring, paidOn, endsOn }) => !isRecurring || !paidOn || !endsOn || endsOn >= paidOn, {
     message: 'endsInvalid',
@@ -144,7 +150,7 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
   const [isStale, setIsStale] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const defaults = { currency: settings.currency, today, viewerId: viewer?.uid ?? '' }
+  const defaults = { currency: settings.currency, today, viewerId: viewer?.uid ?? '', locale }
   const form = useForm<BillFormValues>({
     resolver: zodResolver(billFormSchema),
     defaultValues:
@@ -166,15 +172,19 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
   const payerOptions = payers
     .filter(payer => !payer.hasLeft || payer.id === payerId || payer.id === bill?.paidById)
     .map(payer => ({ value: payer.id, label: <BillPayerOption payer={payer} /> }))
-  const amountMinor = parseMoney(amount.trim(), currency)
+  const amountMinor = readAmountMinor(amount, currency)
   const receiptDetails = [
     company.trim(),
     amountMinor ? formatBudgetAmount(amountMinor, currency, locale, { exact: true }) : '',
   ]
   const lastDay = addCalendarDays(today, BILL_DAYS_AHEAD)
 
+  // An amount's error names its currency and the decimals it takes, which the others ignore
   function formatError(key: string) {
-    return formatMessage(budgetMessages[key as keyof typeof budgetMessages])
+    return formatMessage(budgetMessages[key as keyof typeof budgetMessages], {
+      currency,
+      count: CURRENCIES[currency].exponent,
+    })
   }
 
   async function save(values: BillFormValues) {
@@ -192,16 +202,35 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
       return
     }
 
+    // Somebody saved the bill meanwhile: the dialog shows it as they saved it, with what the reader
+    // changed since the dialog read it laid over, as an agent's update lays its fields, so neither
+    // change is lost, and the next save goes through on it
     if (outcome.kind === 'stale') {
+      const typed = form.getValues()
+      const changed = listChangedBillFields(form.formState.defaultValues as BillFormValues, typed)
+
       form.reset(toBillFormValues(outcome.bill, defaults))
-      receipt.reset(outcome.bill.receipt ?? null)
+
+      for (const field of changed) form.setValue(field, typed[field], { shouldDirty: true })
+
+      if (!changed.includes('receiptId')) receipt.reset(outcome.bill.receipt ?? null)
+
       setUpdatedAt(outcome.bill.updatedAt)
       setIsStale(true)
 
       return
     }
 
-    if (outcome.kind === 'receipt') receipt.remove()
+    // The receipt attached can no longer be: a bill goes back to its own, which the reader can replace
+    // again, and a new one to none
+    if (outcome.kind === 'receipt') {
+      if (bill?.receipt) {
+        receipt.reset(bill.receipt)
+        form.setValue('receiptId', bill.receipt.id, { shouldDirty: true })
+      } else {
+        receipt.remove()
+      }
+    }
   }
 
   function remove() {
@@ -293,7 +322,7 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
             formatError={formatError}
             inputMode="decimal"
             autoComplete="off"
-            placeholder="0.00"
+            placeholder={formatAmountPlaceholder(currency, locale)}
           />
           <Controller
             control={form.control}
@@ -413,6 +442,7 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
           details={receiptDetails}
           onAttach={receipt.attach}
           onRemove={receipt.remove}
+          isDisabled={isSubmitting || isDeleting}
         />
         {bill ? (
           <BillEarlierReceipts
@@ -421,6 +451,7 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
             billName={name.trim()}
             details={receiptDetails}
             onTakeBack={receipt.takeBack}
+            isDisabled={isSubmitting || isDeleting}
           />
         ) : null}
       </div>

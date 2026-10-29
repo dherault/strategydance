@@ -33,6 +33,7 @@ import {
 import { getRichTextSlashMenuItems } from 'strategydance-design-system/lib/richTextEditorMenus'
 import { createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
 import { RichTextMentionsExtension } from 'strategydance-design-system/lib/richTextMentionsExtension'
+import { RichTextReplacementsExtension } from 'strategydance-design-system/lib/richTextReplacementsExtension'
 import { cn } from 'strategydance-design-system/lib/utils'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
@@ -151,7 +152,8 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
   A rich text field: BlockNote's block editor, for a post of a few paragraphs. "/" opens a menu of
   the blocks it writes, the handle beside a block drags it, turns it into another or deletes it, and
   a selection raises a toolbar of the five styles, a link and the block it is in. Markdown's
-  shortcuts work as typed.
+  shortcuts work as typed, and so do arrows: `->` and `<-` write a short one, `-->` and `<--` a long
+  one, outside code, and the Backspace right after takes one back to its text.
   It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
   nested by Tab, text in bold, italic, underline, strikethrough and inline code, which text typed
   between backticks writes, links, code, colored in the language picked over it, tables, grown and headed from the handles on their edges, pictures,
@@ -357,6 +359,8 @@ function createEditor({
     autofocus: autoFocus ? ('end' as const) : false,
     trailingBlock: false,
     extensions: [
+      // Arrows for the text that types them, which Backspace takes back
+      RichTextReplacementsExtension(),
       // Colors code as shiki does, each language's grammar loaded the first time a block is in it
       ...(blocks.includes('code') ? [syntaxHighlighter] : []),
       // What the mentions draw from, seeded so they draw what they name from the start

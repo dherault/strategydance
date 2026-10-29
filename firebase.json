@@ -19,7 +19,7 @@
         "type": 301
       },
       {
-        "regex": "^/(?P<organization>[A-Za-z0-9][A-Za-z0-9-]*)/knowledge/(?P<document>[A-Za-z0-9-]+)$",
+        "regex": "^/(?P<organization>[A-Za-z0-9][A-Za-z0-9-]*)/knowledge/(?P<document>[A-Za-z0-9-]+)/?$",
         "destination": "/:organization/documents/:document",
         "type": 301
       }

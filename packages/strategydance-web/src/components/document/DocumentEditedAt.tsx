@@ -2,7 +2,7 @@ import { useIntl } from 'react-intl'
 
 import getTimeAgo from '~utils/date/getTimeAgo'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type Props = {
   updatedAt: string
@@ -20,17 +20,17 @@ function DocumentEditedAt({ updatedAt, now, className }: Props) {
   const timeAgo = getTimeAgo(updatedAt, now)
 
   function getLabel() {
-    if (timeAgo.unit === 'justNow') return formatMessage(knowledgeMessages.editedJustNow)
+    if (timeAgo.unit === 'justNow') return formatMessage(documentMessages.editedJustNow)
 
     if (timeAgo.unit === 'date') {
       const isThisYear = new Date(updatedAt).getFullYear() === new Date(now).getFullYear()
 
-      return formatMessage(knowledgeMessages.editedOn, {
+      return formatMessage(documentMessages.editedOn, {
         date: formatDate(updatedAt, { month: 'short', day: 'numeric', year: isThisYear ? undefined : 'numeric' }),
       })
     }
 
-    return formatMessage(knowledgeMessages.editedAgo, {
+    return formatMessage(documentMessages.editedAgo, {
       time: formatRelativeTime(-timeAgo.value, timeAgo.unit, { numeric: 'auto' }),
     })
   }

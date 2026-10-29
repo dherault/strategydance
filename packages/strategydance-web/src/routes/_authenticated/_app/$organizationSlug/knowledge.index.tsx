@@ -9,7 +9,7 @@ import OrganizationDocumentsWait from '~components/document/OrganizationDocument
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 
 // At module scope so the reference is stable across renders
-const KNOWLEDGE_MESSAGE_TYPES: MessageType[] = ['knowledge']
+const DOCUMENT_MESSAGE_TYPES: MessageType[] = ['document']
 
 // Every document of the current organization's knowledge
 export const Route = createFileRoute('/_authenticated/_app/$organizationSlug/knowledge/')({
@@ -20,7 +20,7 @@ function DocumentsRoute() {
   const { organization } = useCurrentOrganization()
 
   return (
-    <IntlMessagesRegistration messageTypes={KNOWLEDGE_MESSAGE_TYPES}>
+    <IntlMessagesRegistration messageTypes={DOCUMENT_MESSAGE_TYPES}>
       <OrganizationDocumentsWait key={organization?.id ?? 'none'}>
         <OrganizationDocuments />
       </OrganizationDocumentsWait>

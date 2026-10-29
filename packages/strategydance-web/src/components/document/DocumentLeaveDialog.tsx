@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from 'strategydance-design-system/components/ui/Dialog'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type Props = {
   onStay: () => void
@@ -27,25 +27,25 @@ function DocumentLeaveDialog({ onStay, onLeave }: Props) {
     >
       <DialogContent
         role="alertdialog"
-        closeLabel={formatMessage(knowledgeMessages.close)}
+        closeLabel={formatMessage(documentMessages.close)}
         className="sm:max-w-[420px]"
       >
         <DialogHeader>
-          <DialogTitle>{formatMessage(knowledgeMessages.leaveTitle)}</DialogTitle>
-          <DialogDescription>{formatMessage(knowledgeMessages.leaveText)}</DialogDescription>
+          <DialogTitle>{formatMessage(documentMessages.leaveTitle)}</DialogTitle>
+          <DialogDescription>{formatMessage(documentMessages.leaveText)}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="-mx-6 -mb-6 border-t border-border px-6 py-4">
           <Button
             variant="transparent"
             onClick={onStay}
           >
-            {formatMessage(knowledgeMessages.stay)}
+            {formatMessage(documentMessages.stay)}
           </Button>
           <Button
             variant="danger"
             onClick={onLeave}
           >
-            {formatMessage(knowledgeMessages.leave)}
+            {formatMessage(documentMessages.leave)}
           </Button>
         </DialogFooter>
       </DialogContent>

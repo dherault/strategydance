@@ -13,7 +13,7 @@ import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
 import type { DocumentFields } from '~types'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type Props = Pick<DocumentFields, 'isAiReadable' | 'isAiWritable'> & {
   onChange: (fields: Partial<Pick<DocumentFields, 'isAiReadable' | 'isAiWritable'>>) => void
@@ -38,10 +38,10 @@ function DocumentAiMenu({ isAiReadable, isAiWritable, onChange }: Props) {
   const isWritable = isAiReadable && isAiWritable
 
   function getTooltip() {
-    if (isWritable) return knowledgeMessages.aiReadWrite
-    if (isAiReadable) return knowledgeMessages.aiReadOnly
+    if (isWritable) return documentMessages.aiReadWrite
+    if (isAiReadable) return documentMessages.aiReadOnly
 
-    return knowledgeMessages.aiNoAccess
+    return documentMessages.aiNoAccess
   }
 
   return (
@@ -64,18 +64,18 @@ function DocumentAiMenu({ isAiReadable, isAiWritable, onChange }: Props) {
             variant="transparent"
             size="sm"
             icon={<SparklesIcon />}
-            aria-label={formatMessage(knowledgeMessages.aiPermissions)}
+            aria-label={formatMessage(documentMessages.aiPermissions)}
           />
         </DropdownMenuTrigger>
       </Tooltip>
       <DropdownMenuContent className="w-48">
-        <DropdownMenuLabel>{formatMessage(knowledgeMessages.aiPermissions)}</DropdownMenuLabel>
+        <DropdownMenuLabel>{formatMessage(documentMessages.aiPermissions)}</DropdownMenuLabel>
         <DropdownMenuCheckboxItem
           checked={isAiReadable}
           onCheckedChange={checked => onChange({ isAiReadable: checked })}
           onSelect={keepOpen}
         >
-          {formatMessage(knowledgeMessages.aiRead)}
+          {formatMessage(documentMessages.aiRead)}
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={isWritable}
@@ -83,7 +83,7 @@ function DocumentAiMenu({ isAiReadable, isAiWritable, onChange }: Props) {
           onCheckedChange={checked => onChange({ isAiWritable: checked })}
           onSelect={keepOpen}
         >
-          {formatMessage(knowledgeMessages.aiWrite)}
+          {formatMessage(documentMessages.aiWrite)}
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>

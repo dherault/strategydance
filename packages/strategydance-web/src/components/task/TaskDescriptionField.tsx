@@ -173,7 +173,7 @@ function TaskDescriptionField({
               onSubmit={save}
               labels={{
                 turnInto: formatMessage(taskMessages.editorTurnInto),
-                mentionKnowledge: formatMessage(taskMessages.editorMentionKnowledge),
+                mentionDocuments: formatMessage(taskMessages.editorMentionDocuments),
                 mentionTasks: formatMessage(taskMessages.editorMentionTasks),
                 mentionItem: formatMessage(taskMessages.editorMentionItem),
                 mentionItemSubtext: formatMessage(taskMessages.editorMentionItemSubtext),

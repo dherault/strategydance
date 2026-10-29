@@ -16,7 +16,7 @@ import useDocumentRevisions from '~hooks/document/useDocumentRevisions'
 import Spinner from '~components/common/Spinner'
 import DocumentHistoryEntry from '~components/document/DocumentHistoryEntry'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type Props = {
   organizationId: string
@@ -44,13 +44,13 @@ function DocumentHistory({ organizationId, documentId, isRestoreHeld, mentions, 
     if (isLoading) return <Spinner className="mx-auto my-6" />
 
     if (hasFailed) {
-      return <p className="m-0 text-sm text-muted-foreground">{formatMessage(knowledgeMessages.historyError)}</p>
+      return <p className="m-0 text-sm text-muted-foreground">{formatMessage(documentMessages.historyError)}</p>
     }
 
     if (!revisions.length) {
       return (
         <p className="m-0 text-sm text-muted-foreground">
-          {formatMessage(knowledgeMessages.historyEmpty, { days: DOCUMENT_REVISION_LIFETIME_DAYS })}
+          {formatMessage(documentMessages.historyEmpty, { days: DOCUMENT_REVISION_LIFETIME_DAYS })}
         </p>
       )
     }
@@ -81,13 +81,13 @@ function DocumentHistory({ organizationId, documentId, isRestoreHeld, mentions, 
       onOpenChange={open => !open && onClose()}
     >
       <DialogContent
-        closeLabel={formatMessage(knowledgeMessages.historyClose)}
+        closeLabel={formatMessage(documentMessages.historyClose)}
         className="max-h-[calc(100dvh-3rem)] min-w-0 overflow-y-auto sm:max-w-[560px]"
       >
         <DialogHeader>
-          <DialogTitle>{formatMessage(knowledgeMessages.historyTitle)}</DialogTitle>
+          <DialogTitle>{formatMessage(documentMessages.historyTitle)}</DialogTitle>
           <DialogDescription>
-            {formatMessage(knowledgeMessages.historyDescription, { days: DOCUMENT_REVISION_LIFETIME_DAYS })}
+            {formatMessage(documentMessages.historyDescription, { days: DOCUMENT_REVISION_LIFETIME_DAYS })}
           </DialogDescription>
         </DialogHeader>
         {renderBody()}

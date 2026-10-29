@@ -5,7 +5,7 @@ import { Button } from 'strategydance-design-system/components/ui/Button'
 
 import Spinner from '~components/common/Spinner'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type Props = {
   message: ReactNode
@@ -32,7 +32,7 @@ function DocumentLoadFailed({ message, isRetrying, onRetry }: Props) {
         icon={isRetrying ? <Spinner tone="current" /> : undefined}
         onClick={onRetry}
       >
-        {formatMessage(knowledgeMessages.retry)}
+        {formatMessage(documentMessages.retry)}
       </Button>
     </div>
   )

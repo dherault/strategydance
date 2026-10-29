@@ -9,7 +9,7 @@ import DocumentPage from '~components/document/DocumentPage'
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 
 // At module scope so the reference is stable across renders
-const KNOWLEDGE_MESSAGE_TYPES: MessageType[] = ['knowledge']
+const DOCUMENT_MESSAGE_TYPES: MessageType[] = ['document']
 
 type DocumentSearch = {
   // A draft at the id the document will have, opened by an "Add knowledge" button
@@ -50,7 +50,7 @@ function DocumentRoute() {
   const { isNew, aspect, history } = Route.useSearch()
 
   return (
-    <IntlMessagesRegistration messageTypes={KNOWLEDGE_MESSAGE_TYPES}>
+    <IntlMessagesRegistration messageTypes={DOCUMENT_MESSAGE_TYPES}>
       <DocumentPage
         key={documentId}
         documentId={documentId}

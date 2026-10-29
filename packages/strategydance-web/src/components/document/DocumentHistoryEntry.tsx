@@ -17,7 +17,7 @@ import DocumentRevisionPreview from '~components/document/DocumentRevisionPrevie
 import DocumentRevisionTime from '~components/document/DocumentRevisionTime'
 
 import { ApiError } from '~data/api'
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type DocumentRevision = GetDocumentRevisionsData['documentRevisions'][number]
 
@@ -68,7 +68,7 @@ function DocumentHistoryEntry({
   const source = readDocumentRevisionSource(revision.scope)
   const name = revision.user
     ? revision.user.displayName || revision.user.email
-    : formatMessage(knowledgeMessages.revisionFormerMember)
+    : formatMessage(documentMessages.revisionFormerMember)
   const isOwnConversation = source.kind === 'conversation' && revision.user?.id === viewerId
 
   function formatMoment(date: string) {
@@ -76,10 +76,10 @@ function DocumentHistoryEntry({
   }
 
   function getTitle() {
-    if (source.kind === 'conversation') return formatMessage(knowledgeMessages.revisionByStrategyDance, { name })
-    if (source.kind === 'connection') return formatMessage(knowledgeMessages.revisionByAgent, { name })
+    if (source.kind === 'conversation') return formatMessage(documentMessages.revisionByStrategyDance, { name })
+    if (source.kind === 'connection') return formatMessage(documentMessages.revisionByAgent, { name })
 
-    return formatMessage(knowledgeMessages.revisionRestored, {
+    return formatMessage(documentMessages.revisionRestored, {
       name,
       date: revision.restoredVersionAt ? formatMoment(revision.restoredVersionAt) : '',
     })
@@ -90,7 +90,7 @@ function DocumentHistoryEntry({
       await restore({ documentId, revisionId: restoredId, isUndo: true })
     } catch (error) {
       console.error('The restore of a version could not be undone', error)
-      toast.error(formatMessage(knowledgeMessages.restoreUndoError))
+      toast.error(formatMessage(documentMessages.restoreUndoError))
     }
   }
 
@@ -101,9 +101,9 @@ function DocumentHistoryEntry({
       const restoredId = await restore({ documentId, revisionId: revision.id, isUndo: false })
 
       toast(
-        formatMessage(knowledgeMessages.versionRestored, { date: formatMoment(revision.createdAt) }),
+        formatMessage(documentMessages.versionRestored, { date: formatMoment(revision.createdAt) }),
         restoredId
-          ? { action: { label: formatMessage(knowledgeMessages.undoRestore), onClick: () => undoRestore(restoredId) } }
+          ? { action: { label: formatMessage(documentMessages.undoRestore), onClick: () => undoRestore(restoredId) } }
           : undefined,
       )
       onRestored()
@@ -111,11 +111,11 @@ function DocumentHistoryEntry({
       console.error('A version of a document could not be restored', error)
 
       if (error instanceof ApiError && error.code === ERROR_CODE_NOT_FOUND) {
-        toast.error(formatMessage(knowledgeMessages.versionGone))
+        toast.error(formatMessage(documentMessages.versionGone))
       } else if (error instanceof ApiError && error.status === 409) {
-        toast.error(formatMessage(knowledgeMessages.versionUnrestorable))
+        toast.error(formatMessage(documentMessages.versionUnrestorable))
       } else {
-        toast.error(formatMessage(knowledgeMessages.versionRestoreError))
+        toast.error(formatMessage(documentMessages.versionRestoreError))
       }
 
       setIsRestoring(false)
@@ -145,7 +145,7 @@ function DocumentHistoryEntry({
                 params={{ organizationSlug, conversationId: source.conversationId }}
                 className="underline underline-offset-2 hover:text-foreground"
               >
-                {formatMessage(knowledgeMessages.revisionOpenConversation)}
+                {formatMessage(documentMessages.revisionOpenConversation)}
               </Link>
             ) : null}
           </p>
@@ -157,7 +157,7 @@ function DocumentHistoryEntry({
             aria-expanded={isOpen}
             onClick={() => setIsOpen(open => !open)}
           >
-            {formatMessage(isOpen ? knowledgeMessages.revisionHide : knowledgeMessages.revisionView)}
+            {formatMessage(isOpen ? documentMessages.revisionHide : documentMessages.revisionView)}
           </Button>
           {isConfirming ? null : (
             <Button
@@ -165,22 +165,22 @@ function DocumentHistoryEntry({
               size="sm"
               onClick={() => setIsConfirming(true)}
             >
-              {formatMessage(knowledgeMessages.restoreVersion)}
+              {formatMessage(documentMessages.restoreVersion)}
             </Button>
           )}
         </div>
         {isConfirming ? (
           <div
             role="group"
-            aria-label={formatMessage(knowledgeMessages.restoreVersion)}
+            aria-label={formatMessage(documentMessages.restoreVersion)}
             className="flex flex-col gap-3 rounded-md border border-neutral-200 px-4 py-3"
           >
             <p className="m-0 text-sm text-foreground">
-              {formatMessage(knowledgeMessages.restoreVersionWarning, { count: laterCount })}
+              {formatMessage(documentMessages.restoreVersionWarning, { count: laterCount })}
             </p>
             {isRestoreHeld ? (
               <p className="m-0 text-sm text-muted-foreground">
-                {formatMessage(knowledgeMessages.restoreVersionWaiting)}
+                {formatMessage(documentMessages.restoreVersionWaiting)}
               </p>
             ) : null}
             <div className="flex flex-wrap justify-end gap-2">
@@ -190,14 +190,14 @@ function DocumentHistoryEntry({
                 disabled={isRestoring}
                 onClick={() => setIsConfirming(false)}
               >
-                {formatMessage(knowledgeMessages.restoreVersionCancel)}
+                {formatMessage(documentMessages.restoreVersionCancel)}
               </Button>
               <Button
                 size="sm"
                 disabled={isRestoring || isRestoreHeld}
                 onClick={handleRestore}
               >
-                {formatMessage(knowledgeMessages.restoreVersionConfirm)}
+                {formatMessage(documentMessages.restoreVersionConfirm)}
               </Button>
             </div>
           </div>

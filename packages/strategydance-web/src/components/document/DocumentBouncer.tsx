@@ -19,7 +19,7 @@ import DocumentLayout from '~components/document/DocumentLayout'
 import DocumentLoadFailed from '~components/document/DocumentLoadFailed'
 import DocumentsBackLink from '~components/document/DocumentsBackLink'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type Props = PropsWithChildren<{
   organizationId: string
@@ -52,7 +52,7 @@ function DocumentBouncer({ organizationId, documentId, isEnabled, children }: Pr
           <DocumentsBackLink />
         </div>
         <DocumentLoadFailed
-          message={formatMessage(knowledgeMessages.documentLoadError)}
+          message={formatMessage(documentMessages.documentLoadError)}
           isRetrying={loading}
           onRetry={refetch}
         />
@@ -71,8 +71,8 @@ function DocumentBouncer({ organizationId, documentId, isEnabled, children }: Pr
             <EmptyMedia>
               <FileTextIcon />
             </EmptyMedia>
-            <EmptyTitle>{formatMessage(knowledgeMessages.notFoundTitle)}</EmptyTitle>
-            <EmptyDescription>{formatMessage(knowledgeMessages.notFoundText)}</EmptyDescription>
+            <EmptyTitle>{formatMessage(documentMessages.notFoundTitle)}</EmptyTitle>
+            <EmptyDescription>{formatMessage(documentMessages.notFoundText)}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Link
@@ -80,7 +80,7 @@ function DocumentBouncer({ organizationId, documentId, isEnabled, children }: Pr
               params={{ organizationSlug }}
               className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
-              {formatMessage(knowledgeMessages.goToAll)}
+              {formatMessage(documentMessages.goToAll)}
             </Link>
           </EmptyContent>
         </Empty>

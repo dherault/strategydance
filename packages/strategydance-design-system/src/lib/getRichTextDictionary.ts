@@ -22,8 +22,8 @@ type RichTextLabels = {
   linkPreviewButton: string
   /** What the panel says of what is not a web address */
   linkPreviewInvalid: string
-  /** The mentions menu's group of documents, the team's knowledge */
-  mentionKnowledge: string
+  /** The mentions menu's group of the team's documents */
+  mentionDocuments: string
   /** The mentions menu's group of tasks */
   mentionTasks: string
   /** The slash menu's item that opens the mentions menu */
@@ -47,12 +47,12 @@ const ENGLISH_LABELS: RichTextLabels = {
   linkPreviewAdd: 'Add a link preview',
   linkPreviewButton: 'Preview link',
   linkPreviewInvalid: 'Paste a web address, starting with https://',
-  mentionKnowledge: 'Knowledge',
+  mentionDocuments: 'Documents',
   mentionTasks: 'Tasks',
   mentionItem: 'Mention',
   mentionItemSubtext: 'A document or a task',
   mentionUntitled: 'Untitled',
-  mentionDocumentGone: "(no longer in the team's knowledge)",
+  mentionDocumentGone: "(no longer among the team's documents)",
   mentionTaskGone: "(no longer on the team's board)",
 }
 
@@ -72,7 +72,7 @@ type RichTextDictionary = Dictionary & {
     link_preview_add: string
     link_preview_button: string
     link_preview_invalid: string
-    mention_knowledge: string
+    mention_documents: string
     mention_tasks: string
     mention_item: string
     mention_item_subtext: string
@@ -107,7 +107,7 @@ function getRichTextDictionary(
       link_preview_add: labels.linkPreviewAdd,
       link_preview_button: labels.linkPreviewButton,
       link_preview_invalid: labels.linkPreviewInvalid,
-      mention_knowledge: labels.mentionKnowledge,
+      mention_documents: labels.mentionDocuments,
       mention_tasks: labels.mentionTasks,
       mention_item: labels.mentionItem,
       mention_item_subtext: labels.mentionItemSubtext,

@@ -57,16 +57,16 @@ import DocumentsBackLink from '~components/document/DocumentsBackLink'
 
 import { dataConnect } from '~data/firebase'
 import aspectMessages from '~data/intl/aspectMessages'
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 // The aspects dialog's words, for a document. At module scope so the reference is stable
 const DOCUMENT_ASPECTS_DIALOG_MESSAGES = {
-  title: knowledgeMessages.aspectsTitle,
-  description: knowledgeMessages.aspectsDescription,
-  selected: knowledgeMessages.aspectsSelected,
-  cancel: knowledgeMessages.cancel,
-  save: knowledgeMessages.save,
-  close: knowledgeMessages.close,
+  title: documentMessages.aspectsTitle,
+  description: documentMessages.aspectsDescription,
+  selected: documentMessages.aspectsSelected,
+  cancel: documentMessages.cancel,
+  save: documentMessages.save,
+  close: documentMessages.close,
 }
 
 type Props = {
@@ -223,7 +223,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
   const hasSaveFailed = status === 'error' || syncStatus === 'error'
 
   useEffect(() => {
-    if (hasSaveFailed) toast.error(formatMessage(knowledgeMessages.saveError))
+    if (hasSaveFailed) toast.error(formatMessage(documentMessages.saveError))
   }, [hasSaveFailed, formatMessage])
 
   function changeTitle(value: string) {
@@ -250,14 +250,14 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
   */
   async function uploadImage(file: File) {
     if (!RICH_TEXT_IMAGE_CONTENT_TYPES.includes(file.type)) {
-      toast.error(formatMessage(knowledgeMessages.editorImageTypeError))
+      toast.error(formatMessage(documentMessages.editorImageTypeError))
 
       throw new Error(`Not a picture: ${file.type || file.name}`)
     }
 
     if (file.size > MAX_RICH_TEXT_IMAGE_SIZE) {
       toast.error(
-        formatMessage(knowledgeMessages.editorImageSizeError, { megabytes: MAX_RICH_TEXT_IMAGE_SIZE / 1024 / 1024 }),
+        formatMessage(documentMessages.editorImageSizeError, { megabytes: MAX_RICH_TEXT_IMAGE_SIZE / 1024 / 1024 }),
       )
 
       throw new Error(`A picture too large: ${file.size} bytes`)
@@ -266,7 +266,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
     try {
       return await uploadRichTextImage(organizationId, file)
     } catch (error) {
-      toast.error(formatMessage(knowledgeMessages.editorImageUploadError))
+      toast.error(formatMessage(documentMessages.editorImageUploadError))
 
       throw error
     }
@@ -293,7 +293,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
   async function handleDelete() {
     const listKey = ['GetOrganizationDocuments', organizationId]
     const rowKey = `document:${documentId}`
-    const deletedTitle = title.trim() || formatMessage(knowledgeMessages.untitled)
+    const deletedTitle = title.trim() || formatMessage(documentMessages.untitled)
 
     // What was typed goes first, so an Undo brings it back, and a send that fails keeps the
     // document, which the failed send has already said
@@ -321,15 +321,15 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
       console.error('The document could not be deleted', error)
       saver.resume()
       sync.resume()
-      toast.error(formatMessage(knowledgeMessages.deleteError))
+      toast.error(formatMessage(documentMessages.deleteError))
 
       return
     }
 
     navigate({ to: '/$organizationSlug/knowledge', params: { organizationSlug } })
-    toast(formatMessage(knowledgeMessages.deleted, { title: deletedTitle }), {
+    toast(formatMessage(documentMessages.deleted, { title: deletedTitle }), {
       action: {
-        label: formatMessage(knowledgeMessages.undo),
+        label: formatMessage(documentMessages.undo),
         onClick: () => {
           writeOptimistically({
             queryClient,
@@ -340,7 +340,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
             write: () => restoreDocument(dataConnect, { organizationId, id: documentId }),
           }).catch(error => {
             console.error('The document could not be restored', error)
-            toast.error(formatMessage(knowledgeMessages.restoreError))
+            toast.error(formatMessage(documentMessages.restoreError))
           })
         },
       },
@@ -361,14 +361,14 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
   }
 
   function renderMeta() {
-    if (isGone) return formatMessage(knowledgeMessages.notSaved)
+    if (isGone) return formatMessage(documentMessages.notSaved)
     if (status === 'pending' || status === 'saving' || syncStatus === 'pending' || syncStatus === 'saving') {
-      return formatMessage(knowledgeMessages.saving)
+      return formatMessage(documentMessages.saving)
     }
     if (status === 'error' || status === 'tooLong' || status === 'full' || hasSaveFailed || syncStatus === 'tooLong') {
-      return formatMessage(knowledgeMessages.notSaved)
+      return formatMessage(documentMessages.notSaved)
     }
-    if (!isStored || !updatedAt) return formatMessage(knowledgeMessages.draft)
+    if (!isStored || !updatedAt) return formatMessage(documentMessages.draft)
 
     return (
       <DocumentEditedAt
@@ -411,11 +411,11 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
               size="sm"
               onClick={() => navigate({ to: '/$organizationSlug/knowledge', params: { organizationSlug } })}
             >
-              {formatMessage(knowledgeMessages.goToAll)}
+              {formatMessage(documentMessages.goToAll)}
             </Button>
           }
         >
-          {formatMessage(knowledgeMessages.deletedElsewhere)}
+          {formatMessage(documentMessages.deletedElsewhere)}
         </Alert>
       ) : null}
       {/* Laid out as if it were not there, so its fields keep the page's gaps */}
@@ -429,8 +429,8 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
           rows={1}
           value={title}
           maxLength={MAX_DOCUMENT_TITLE_LENGTH}
-          placeholder={formatMessage(knowledgeMessages.untitled)}
-          aria-label={formatMessage(knowledgeMessages.titleLabel)}
+          placeholder={formatMessage(documentMessages.untitled)}
+          aria-label={formatMessage(documentMessages.titleLabel)}
           onChange={event => changeTitle(event.target.value)}
           onKeyDown={event => {
             if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
@@ -446,7 +446,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
             type="button"
             aria-label={
               aspects.length
-                ? formatMessage(knowledgeMessages.editAspects, {
+                ? formatMessage(documentMessages.editAspects, {
                     aspects: formatList(aspectNames, { type: 'conjunction' }),
                   })
                 : undefined
@@ -461,7 +461,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
                 className="gap-2 px-1"
               />
             ) : (
-              <span className="px-2">{formatMessage(knowledgeMessages.addAspects)}</span>
+              <span className="px-2">{formatMessage(documentMessages.addAspects)}</span>
             )}
           </button>
           <span
@@ -479,7 +479,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
             role="alert"
             className="m-0 text-sm text-danger"
           >
-            {formatMessage(knowledgeMessages.draftFull, { max: MAX_DOCUMENTS })}
+            {formatMessage(documentMessages.draftFull, { max: MAX_DOCUMENTS })}
           </p>
         ) : null}
         {status === 'tooLong' || syncStatus === 'tooLong' ? (
@@ -487,7 +487,7 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
             role="alert"
             className="m-0 text-sm text-danger"
           >
-            {formatMessage(knowledgeMessages.tooLong)}
+            {formatMessage(documentMessages.tooLong)}
           </p>
         ) : null}
         {RichTextEditor && isTextReady && awareness ? (
@@ -502,25 +502,25 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
                 color: getPresenceColor(viewer?.uid ?? ''),
               },
             }}
-            placeholder={formatMessage(knowledgeMessages.bodyPlaceholder)}
-            aria-label={formatMessage(knowledgeMessages.bodyLabel)}
+            placeholder={formatMessage(documentMessages.bodyPlaceholder)}
+            aria-label={formatMessage(documentMessages.bodyLabel)}
             locale={locale}
             labels={{
-              turnInto: formatMessage(knowledgeMessages.editorTurnInto),
-              videoEmbedSubtext: formatMessage(knowledgeMessages.editorVideoSubtext),
-              videoEmbedUnsupported: formatMessage(knowledgeMessages.editorVideoUnsupported),
-              linkPreviewTitle: formatMessage(knowledgeMessages.editorLinkPreviewTitle),
-              linkPreviewSubtext: formatMessage(knowledgeMessages.editorLinkPreviewSubtext),
-              linkPreviewAdd: formatMessage(knowledgeMessages.editorLinkPreviewAdd),
-              linkPreviewButton: formatMessage(knowledgeMessages.editorLinkPreviewButton),
-              linkPreviewInvalid: formatMessage(knowledgeMessages.editorLinkPreviewInvalid),
-              mentionKnowledge: formatMessage(knowledgeMessages.editorMentionKnowledge),
-              mentionTasks: formatMessage(knowledgeMessages.editorMentionTasks),
-              mentionItem: formatMessage(knowledgeMessages.editorMentionItem),
-              mentionItemSubtext: formatMessage(knowledgeMessages.editorMentionItemSubtext),
-              mentionUntitled: formatMessage(knowledgeMessages.untitled),
-              mentionDocumentGone: formatMessage(knowledgeMessages.editorMentionDocumentGone),
-              mentionTaskGone: formatMessage(knowledgeMessages.editorMentionTaskGone),
+              turnInto: formatMessage(documentMessages.editorTurnInto),
+              videoEmbedSubtext: formatMessage(documentMessages.editorVideoSubtext),
+              videoEmbedUnsupported: formatMessage(documentMessages.editorVideoUnsupported),
+              linkPreviewTitle: formatMessage(documentMessages.editorLinkPreviewTitle),
+              linkPreviewSubtext: formatMessage(documentMessages.editorLinkPreviewSubtext),
+              linkPreviewAdd: formatMessage(documentMessages.editorLinkPreviewAdd),
+              linkPreviewButton: formatMessage(documentMessages.editorLinkPreviewButton),
+              linkPreviewInvalid: formatMessage(documentMessages.editorLinkPreviewInvalid),
+              mentionDocuments: formatMessage(documentMessages.editorMentionDocuments),
+              mentionTasks: formatMessage(documentMessages.editorMentionTasks),
+              mentionItem: formatMessage(documentMessages.editorMentionItem),
+              mentionItemSubtext: formatMessage(documentMessages.editorMentionItemSubtext),
+              mentionUntitled: formatMessage(documentMessages.untitled),
+              mentionDocumentGone: formatMessage(documentMessages.editorMentionDocumentGone),
+              mentionTaskGone: formatMessage(documentMessages.editorMentionTaskGone),
             }}
             uploadImage={uploadImage}
             previewLink={readLinkPreview}
@@ -532,14 +532,14 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
           // Holds the editor's height and its gutter while it loads, so the page does not jump when it arrives
           <div className="min-h-[360px] border-t border-neutral-200 pt-4 text-sm text-muted-foreground max-md:pl-[58px]">
             {hasEditorFailed || hasTextFailed ? (
-              formatMessage(knowledgeMessages.editorError)
+              formatMessage(documentMessages.editorError)
             ) : (
               <div className="flex items-center gap-2">
                 <Spinner
                   size="sm"
                   tone="muted"
                 />
-                {formatMessage(knowledgeMessages.loadingEditor)}
+                {formatMessage(documentMessages.loadingEditor)}
               </div>
             )}
           </div>

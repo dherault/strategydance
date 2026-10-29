@@ -120,7 +120,7 @@ function ConversationComposerMenu({ onMentionDocuments, onFilesOpen, onFilesPick
             }}
           >
             <LightbulbIcon />
-            {formatMessage(conversationMessages.composerMentionKnowledge)}
+            {formatMessage(conversationMessages.composerMentionDocument)}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

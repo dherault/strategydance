@@ -7,7 +7,7 @@ import useDocumentRevisionContent from '~hooks/document/useDocumentRevisionConte
 
 import Spinner from '~components/common/Spinner'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type Props = {
   organizationId: string
@@ -27,11 +27,11 @@ function DocumentRevisionPreview({ organizationId, revisionId, mentions }: Props
   if (isPending) return <Spinner className="mx-auto my-4" />
 
   if (isError || content === null) {
-    return <p className="text-sm text-muted-foreground">{formatMessage(knowledgeMessages.revisionTextError)}</p>
+    return <p className="text-sm text-muted-foreground">{formatMessage(documentMessages.revisionTextError)}</p>
   }
 
   if (!content) {
-    return <p className="text-sm text-muted-foreground">{formatMessage(knowledgeMessages.revisionTextEmpty)}</p>
+    return <p className="text-sm text-muted-foreground">{formatMessage(documentMessages.revisionTextEmpty)}</p>
   }
 
   return (
@@ -41,9 +41,9 @@ function DocumentRevisionPreview({ organizationId, revisionId, mentions }: Props
         blocks={RICH_TEXT_EDITOR_BLOCKS}
         mentions={mentions}
         labels={{
-          mentionUntitled: formatMessage(knowledgeMessages.untitled),
-          mentionDocumentGone: formatMessage(knowledgeMessages.editorMentionDocumentGone),
-          mentionTaskGone: formatMessage(knowledgeMessages.editorMentionTaskGone),
+          mentionUntitled: formatMessage(documentMessages.untitled),
+          mentionDocumentGone: formatMessage(documentMessages.editorMentionDocumentGone),
+          mentionTaskGone: formatMessage(documentMessages.editorMentionTaskGone),
         }}
         className="text-sm"
       />

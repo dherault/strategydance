@@ -9,7 +9,7 @@ import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizati
 import CompanyAspectIcons from '~components/company/CompanyAspectIcons'
 import DocumentEditedAt from '~components/document/DocumentEditedAt'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type Props = {
   organizationDocument: DocumentSummary
@@ -34,7 +34,7 @@ function DocumentCard({ organizationDocument, now }: Props) {
           !title && 'font-medium text-muted-foreground',
         )}
       >
-        {title || formatMessage(knowledgeMessages.untitled)}
+        {title || formatMessage(documentMessages.untitled)}
       </h3>
       <div className="mt-auto flex items-center gap-3 pt-2 text-xs text-muted-foreground">
         <CompanyAspectIcons

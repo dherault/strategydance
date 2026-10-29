@@ -10,14 +10,14 @@ describe('getConversationToolLabel', () => {
   it('says what each of the agent’s tools does, then what it did', () => {
     const tools = [
       ['web_search', 'Searching the web', 'Searched the web'],
-      ['search_documents', 'Searching knowledge', 'Searched knowledge'],
-      ['list_documents', 'Listing knowledge', 'Listed knowledge'],
-      ['read_document', 'Opening knowledge', 'Opened knowledge'],
-      ['create_document', 'Creating knowledge', 'Created knowledge'],
-      ['update_document', 'Updating knowledge', 'Updated knowledge'],
-      ['set_document_aspects', 'Tagging knowledge', 'Tagged knowledge'],
-      ['delete_document', 'Deleting knowledge', 'Deleted knowledge'],
-      ['restore_document', 'Restoring knowledge', 'Restored knowledge'],
+      ['search_documents', 'Searching documents', 'Searched documents'],
+      ['list_documents', 'Listing documents', 'Listed documents'],
+      ['read_document', 'Opening a document', 'Opened a document'],
+      ['create_document', 'Creating a document', 'Created a document'],
+      ['update_document', 'Updating a document', 'Updated a document'],
+      ['set_document_aspects', 'Tagging a document', 'Tagged a document'],
+      ['delete_document', 'Deleting a document', 'Deleted a document'],
+      ['restore_document', 'Restoring a document', 'Restored a document'],
       ['list_tasks', 'Listing tasks', 'Listed tasks'],
       ['read_task', 'Opening a task', 'Opened a task'],
       ['create_task', 'Creating a task', 'Created a task'],
@@ -49,8 +49,8 @@ describe('getConversationToolLabel', () => {
   })
 
   it('says what a failed or cancelled call tried', () => {
-    expect(getConversationToolLabel(intl, 'update_document', 'FAILED')).toBe('Updating knowledge')
-    expect(getConversationToolLabel(intl, 'update_document', 'CANCELLED')).toBe('Updating knowledge')
+    expect(getConversationToolLabel(intl, 'update_document', 'FAILED')).toBe('Updating a document')
+    expect(getConversationToolLabel(intl, 'update_document', 'CANCELLED')).toBe('Updating a document')
   })
 
   it('names a tool it has no words for by its name, a key of an object included', () => {

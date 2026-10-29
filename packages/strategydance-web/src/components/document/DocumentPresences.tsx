@@ -4,7 +4,7 @@ import { Tooltip } from 'strategydance-design-system/components/ui/Tooltip'
 
 import type { DocumentPresent } from '~utils/document/createDocumentPresence'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 // How many faces show before the rest are counted
 const MAX_FACES = 4
@@ -29,7 +29,7 @@ function DocumentPresences({ people }: Props) {
   return (
     <AvatarGroup
       role="group"
-      aria-label={formatMessage(knowledgeMessages.alsoHere, {
+      aria-label={formatMessage(documentMessages.alsoHere, {
         names: formatList(
           people.map(person => person.name),
           { type: 'conjunction' },
@@ -57,7 +57,7 @@ function DocumentPresences({ people }: Props) {
           aria-hidden="true"
           className="grid size-6 place-items-center rounded-full bg-neutral-100 text-[10px] font-semibold text-neutral-600 shadow-[0_0_0_2px_var(--color-white)]"
         >
-          {formatMessage(knowledgeMessages.moreHere, { count: hiddenCount })}
+          {formatMessage(documentMessages.moreHere, { count: hiddenCount })}
         </span>
       ) : null}
     </AvatarGroup>

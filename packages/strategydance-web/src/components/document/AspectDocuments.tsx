@@ -22,7 +22,7 @@ import DocumentLoadFailed from '~components/document/DocumentLoadFailed'
 import PageSection from '~components/layout/PageSection'
 
 import aspectMessages from '~data/intl/aspectMessages'
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 import navigationMessages from '~data/intl/messages/navigation'
 
 // How many documents an aspect's page shows, the latest changed, before "All documents"
@@ -50,7 +50,7 @@ function AspectDocuments({ aspect }: Props) {
     if (hasFailed) {
       return (
         <DocumentLoadFailed
-          message={formatMessage(knowledgeMessages.loadError)}
+          message={formatMessage(documentMessages.loadError)}
           isRetrying={loading}
           onRetry={refetch}
         />
@@ -64,9 +64,9 @@ function AspectDocuments({ aspect }: Props) {
             <EmptyMedia>
               <CompanyAspectIcon aspect={toAspectSlug(aspect)} />
             </EmptyMedia>
-            <EmptyTitle>{formatMessage(knowledgeMessages.aspectEmptyTitle, { aspect: aspectName })}</EmptyTitle>
+            <EmptyTitle>{formatMessage(documentMessages.aspectEmptyTitle, { aspect: aspectName })}</EmptyTitle>
             <EmptyDescription>
-              {formatMessage(knowledgeMessages.aspectEmptyText, { aspect: aspectName })}
+              {formatMessage(documentMessages.aspectEmptyText, { aspect: aspectName })}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -78,7 +78,7 @@ function AspectDocuments({ aspect }: Props) {
 
   return (
     <PageSection
-      title={formatMessage(navigationMessages.knowledge)}
+      title={formatMessage(navigationMessages.documents)}
       actions={<AddDocumentButton aspect={aspect} />}
     >
       {renderBody()}
@@ -89,7 +89,7 @@ function AspectDocuments({ aspect }: Props) {
             params={{ organizationSlug }}
             className="inline-flex items-center gap-1.5 text-sm font-medium no-underline"
           >
-            {formatMessage(knowledgeMessages.allKnowledge)}
+            {formatMessage(documentMessages.allDocuments)}
             <ArrowRightIcon className="size-4" />
           </Link>
         </div>

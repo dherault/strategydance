@@ -25,7 +25,7 @@ import PageHeader from '~components/layout/PageHeader'
 import PageToolbar from '~components/layout/PageToolbar'
 import ModuleAgentsButton from '~components/module/ModuleAgentsButton'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 import navigationMessages from '~data/intl/messages/navigation'
 
 /*
@@ -53,7 +53,7 @@ function OrganizationDocuments() {
     if (hasFailed) {
       return (
         <DocumentLoadFailed
-          message={formatMessage(knowledgeMessages.loadError)}
+          message={formatMessage(documentMessages.loadError)}
           isRetrying={loading}
           onRetry={refetch}
         />
@@ -67,8 +67,8 @@ function OrganizationDocuments() {
             <EmptyMedia>
               <BookOpenIcon />
             </EmptyMedia>
-            <EmptyTitle>{formatMessage(knowledgeMessages.emptyTitle)}</EmptyTitle>
-            <EmptyDescription>{formatMessage(knowledgeMessages.emptyText)}</EmptyDescription>
+            <EmptyTitle>{formatMessage(documentMessages.emptyTitle)}</EmptyTitle>
+            <EmptyDescription>{formatMessage(documentMessages.emptyText)}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <AddDocumentButton />
@@ -84,8 +84,8 @@ function OrganizationDocuments() {
             <EmptyMedia>
               <SearchIcon />
             </EmptyMedia>
-            <EmptyTitle>{formatMessage(knowledgeMessages.noMatchTitle)}</EmptyTitle>
-            <EmptyDescription>{formatMessage(knowledgeMessages.noMatchText)}</EmptyDescription>
+            <EmptyTitle>{formatMessage(documentMessages.noMatchTitle)}</EmptyTitle>
+            <EmptyDescription>{formatMessage(documentMessages.noMatchText)}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button
@@ -93,7 +93,7 @@ function OrganizationDocuments() {
               size="sm"
               onClick={clearFilters}
             >
-              {formatMessage(knowledgeMessages.clearFilters)}
+              {formatMessage(documentMessages.clearFilters)}
             </Button>
           </EmptyContent>
         </Empty>
@@ -106,11 +106,11 @@ function OrganizationDocuments() {
   return (
     <ContainerLayout className="gap-8">
       <PageHeader
-        eyebrow={formatMessage(knowledgeMessages.eyebrow)}
-        title={formatMessage(navigationMessages.knowledge)}
+        eyebrow={formatMessage(documentMessages.eyebrow)}
+        title={formatMessage(navigationMessages.documents)}
         lead={
           organizationDocuments.length
-            ? formatMessage(knowledgeMessages.lead, { count: organizationDocuments.length })
+            ? formatMessage(documentMessages.lead, { count: organizationDocuments.length })
             : undefined
         }
       />

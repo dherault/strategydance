@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from 'strategydance-design-system/components/ui/DropdownMenu'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 // How long an armed Delete waits for its second click, as the design system's `confirm` does
 const CONFIRM_TIMEOUT_MS = 3000
@@ -52,7 +52,7 @@ function DocumentMoreMenu({ onOpenHistory, onDelete }: Props) {
           variant="transparent"
           size="sm"
           icon={<EllipsisIcon />}
-          aria-label={formatMessage(knowledgeMessages.moreActions)}
+          aria-label={formatMessage(documentMessages.moreActions)}
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -61,7 +61,7 @@ function DocumentMoreMenu({ onOpenHistory, onDelete }: Props) {
       >
         <DropdownMenuItem onSelect={onOpenHistory}>
           <HistoryIcon />
-          {formatMessage(knowledgeMessages.history)}
+          {formatMessage(documentMessages.history)}
         </DropdownMenuItem>
         <DropdownMenuItem
           variant="destructive"
@@ -77,7 +77,7 @@ function DocumentMoreMenu({ onOpenHistory, onDelete }: Props) {
           }}
         >
           <Trash2Icon />
-          {formatMessage(isArmed ? knowledgeMessages.confirm : knowledgeMessages.delete)}
+          {formatMessage(isArmed ? documentMessages.confirm : documentMessages.delete)}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -2,7 +2,7 @@ import { useIntl } from 'react-intl'
 
 import getTimeAgo from '~utils/date/getTimeAgo'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type Props = {
   createdAt: string
@@ -20,7 +20,7 @@ function DocumentRevisionTime({ createdAt, now }: Props) {
   const timeAgo = getTimeAgo(createdAt, now)
 
   function getLabel() {
-    if (timeAgo.unit === 'justNow') return formatMessage(knowledgeMessages.revisionJustNow)
+    if (timeAgo.unit === 'justNow') return formatMessage(documentMessages.revisionJustNow)
 
     if (timeAgo.unit === 'date') {
       const isThisYear = new Date(createdAt).getFullYear() === new Date(now).getFullYear()

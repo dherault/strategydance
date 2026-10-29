@@ -5,7 +5,7 @@ import { buttonVariants } from 'strategydance-design-system/components/ui/Button
 
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 // Back to the list of every document, from the top of one's page
 function DocumentsBackLink() {
@@ -19,7 +19,7 @@ function DocumentsBackLink() {
       className={buttonVariants({ variant: 'transparent', size: 'sm' })}
     >
       <ChevronLeftIcon />
-      {formatMessage(knowledgeMessages.allKnowledge)}
+      {formatMessage(documentMessages.allDocuments)}
     </Link>
   )
 }

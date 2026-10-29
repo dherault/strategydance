@@ -78,7 +78,7 @@ function SidebarNavigation() {
           <NavigationLink
             path={`/${organizationSlug}/knowledge`}
             isNested
-            label={formatMessage(navigationMessages.knowledge)}
+            label={formatMessage(navigationMessages.documents)}
             icon={<FileTextIcon />}
             link={{ to: '/$organizationSlug/knowledge', params: { organizationSlug } }}
           />

@@ -12,7 +12,7 @@ import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizati
 
 import createId from '~utils/common/createId'
 
-import knowledgeMessages from '~data/intl/messages/knowledge'
+import documentMessages from '~data/intl/messages/document'
 
 type Props = {
   // The aspect whose page it is on, which the new document starts tagged with
@@ -36,7 +36,7 @@ function AddDocumentButton({ aspect, size = 'sm' }: Props) {
 
   function add() {
     if (organizationDocuments.length >= MAX_DOCUMENTS) {
-      toast.error(formatMessage(knowledgeMessages.addFull, { max: MAX_DOCUMENTS }))
+      toast.error(formatMessage(documentMessages.addFull, { max: MAX_DOCUMENTS }))
 
       return
     }
@@ -54,7 +54,7 @@ function AddDocumentButton({ aspect, size = 'sm' }: Props) {
       icon={<PlusIcon />}
       onClick={add}
     >
-      {formatMessage(knowledgeMessages.add)}
+      {formatMessage(documentMessages.add)}
     </Button>
   )
 }

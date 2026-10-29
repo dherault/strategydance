@@ -1,5 +1,6 @@
-// The Budget page's tabs, in their order, each kept in the address as `view`
-const BUDGET_VIEWS = ['revenue', 'expenses', 'bills'] as const
+// The Budget page's tabs, in their order, each kept in the address as `view`. Revenue joins them
+// once there is any to show
+const BUDGET_VIEWS = ['expenses', 'bills'] as const
 
 type BudgetView = (typeof BUDGET_VIEWS)[number]
 

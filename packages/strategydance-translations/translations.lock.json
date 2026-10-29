@@ -1133,18 +1133,6 @@
         "hash": "333c2ce02d31d9b7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "budget.revenueTab": {
-        "hash": "841b7e3a031a03b3",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "budget.revenueText": {
-        "hash": "c3ee45cbb04076d2",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "budget.revenueTitle": {
-        "hash": "3e25709f99cb00be",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "budget.save": {
         "hash": "765e8679f15b2f33",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -1182,7 +1170,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.tabsLabel": {
-        "hash": "157390cc95f535b1",
+        "hash": "8e51ae8330431d12",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "budget.thisMonth": {

@@ -16,7 +16,6 @@ import BudgetBills from '~components/budget/BudgetBills'
 import BudgetDialog from '~components/budget/BudgetDialog'
 import BudgetExpenses from '~components/budget/BudgetExpenses'
 import BudgetLoadFailed from '~components/budget/BudgetLoadFailed'
-import BudgetRevenue from '~components/budget/BudgetRevenue'
 import ContainerLayout from '~components/layout/ContainerLayout'
 import PageHeader from '~components/layout/PageHeader'
 import ModuleAgentsButton from '~components/module/ModuleAgentsButton'
@@ -26,7 +25,7 @@ import navigationMessages from '~data/intl/messages/navigation'
 
 /*
   The Budget page: its header, with the budget's settings on the Expenses tab and the agents button
-  on every tab, then its three tabs, Revenue, Expenses and Bills, the one open kept in the address,
+  on every tab, then its two tabs, Expenses and Bills, the one open kept in the address,
   Expenses when it names none, or Bills under a bill's dialog. While a read has failed the settings
   are not offered, since a budget read as none would be set over the real one, but the agents
   button, which reads nothing, still is
@@ -53,8 +52,6 @@ function BudgetPage() {
         />
       )
     }
-
-    if (view === 'revenue') return <BudgetRevenue />
 
     if (view === 'bills') return <BudgetBills />
 
@@ -98,7 +95,6 @@ function BudgetPage() {
             })
           }
           items={[
-            { value: 'revenue', label: formatMessage(budgetMessages.revenueTab) },
             { value: 'expenses', label: formatMessage(budgetMessages.expensesTab) },
             { value: 'bills', label: formatMessage(budgetMessages.billsTab), count: bills.length },
           ]}

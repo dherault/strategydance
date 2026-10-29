@@ -22,9 +22,9 @@ type Props = {
   billId: string
   // The receipt the dialog holds now, which is no longer among the earlier ones once taken back
   heldId: string | null
-  // What the receipt's dialog says of it: the bill's name, then the company and the amount
+  // What a receipt's dialog is titled with, beside nothing of the bill's company or amount, which
+  // the bill may have changed since the receipt was its own
   billName: string
-  details: string[]
   onTakeBack: (receipt: BillReceiptData) => void
   // While the bill saves, which carries the receipt as it was when Save was pressed
   isDisabled?: boolean
@@ -36,7 +36,7 @@ type Props = {
   puts it back as the bill's receipt once the bill is saved. The newest five, then five more each
   time the reader asks for older ones, however many it keeps. Nothing while the bill has none
 */
-function BillEarlierReceipts({ billId, heldId, billName, details, onTakeBack, isDisabled = false }: Props) {
+function BillEarlierReceipts({ billId, heldId, billName, onTakeBack, isDisabled = false }: Props) {
   const intl = useIntl()
   const { formatMessage } = intl
   const [count, setCount] = useState(EARLIER_RECEIPTS_PAGE)
@@ -73,7 +73,7 @@ function BillEarlierReceipts({ billId, heldId, billName, details, onTakeBack, is
               <BillReceiptDialog
                 receipt={receipt}
                 billName={billName}
-                details={details}
+                details={[]}
               >
                 <Tooltip content={formatMessage(budgetMessages.viewReceipt)}>
                   <DialogTrigger asChild>

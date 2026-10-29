@@ -52,7 +52,9 @@ Taken with David on 2026-10-24:
   `delete_bill` and `restore_bill`.
 - **The page's upload takes PDF, text and photos** (JPEG, PNG and WebP). The prototype took PDF and
   text only.
-- **The Revenue tab ships as the prototype's placeholder.**
+- **The Revenue tab waits for Revenue.** It shipped as the prototype's "coming soon" placeholder, the
+  first tab, and David chose on 2026-10-28 to hide it until there is revenue to show: an old
+  address naming it opens Expenses.
 
 Left for later:
 - **The over-budget email and the red dot** on the nav's Budget. They need a daily check, since a
@@ -74,8 +76,7 @@ Left for later:
   company spends, and where it is headed." Its actions are:
   - an icon button that opens the budget's settings, shown on the Expenses tab only;
   - the agents button.
-- **Three tabs**, kept in the search as `view`:
-  - Revenue, a "coming soon" empty state;
+- **Two tabs**, kept in the search as `view`:
   - Expenses, the default, with the stats, the year's chart, the next 30 days and the spending by
     company;
   - Bills, with a count of all bills: the table, its search and its filter by payer.

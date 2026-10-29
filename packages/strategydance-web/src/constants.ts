@@ -200,6 +200,10 @@ export const CONVERSATION_IMAGE_QUALITY = 0.9
 export const BILL_RECEIPT_PHOTO_LONG_SIDE = 2000
 export const BILL_RECEIPT_PHOTO_QUALITY = 0.9
 
+// The bytes a JPEG within that side goes up as it is under: the receipt reader takes a photo of 5 MB
+// counted in base64, some 3.75 MB of bytes, so a larger one is drawn again
+export const BILL_RECEIPT_PHOTO_MAX_KEPT_SIZE = 3.5 * 1024 * 1024
+
 // How many files a tab uploads to conversations at once. The rest wait their turn, so ten files
 // picked together each move rather than all crawl
 export const CONVERSATION_ATTACHMENT_UPLOADS_AT_ONCE = 3

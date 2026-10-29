@@ -449,7 +449,6 @@ function BillDialogForm({ bill, draft = null, onClose }: Props) {
             billId={bill.id}
             heldId={receipt.draft.status === 'none' ? null : receipt.draft.receipt.id}
             billName={name.trim()}
-            details={receiptDetails}
             onTakeBack={receipt.takeBack}
             isDisabled={isSubmitting || isDeleting}
           />

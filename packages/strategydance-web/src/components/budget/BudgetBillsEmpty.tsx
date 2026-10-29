@@ -11,11 +11,10 @@ import {
   EmptyTitle,
 } from 'strategydance-design-system/components/ui/Empty'
 
-import BillUploadDialog from '~components/budget/BillUploadDialog'
-
 import budgetMessages from '~data/intl/messages/budget'
 
-// The Bills tab with no bill, and the way to add the first
+// The Bills tab with no bill, and the way to add the first: a trigger of the tab's one New bill
+// dialog, which `BudgetBills` holds above it
 function BudgetBillsEmpty() {
   const { formatMessage } = useIntl()
 
@@ -29,16 +28,14 @@ function BudgetBillsEmpty() {
         <EmptyDescription>{formatMessage(budgetMessages.billsEmptyText)}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <BillUploadDialog>
-          <DialogTrigger asChild>
-            <Button
-              size="sm"
-              icon={<PlusIcon />}
-            >
-              {formatMessage(budgetMessages.newBill)}
-            </Button>
-          </DialogTrigger>
-        </BillUploadDialog>
+        <DialogTrigger asChild>
+          <Button
+            size="sm"
+            icon={<PlusIcon />}
+          >
+            {formatMessage(budgetMessages.newBill)}
+          </Button>
+        </DialogTrigger>
       </EmptyContent>
     </Empty>
   )

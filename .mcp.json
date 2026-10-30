@@ -3,6 +3,10 @@
     "strategydance-tasks": {
       "type": "http",
       "url": "https://api.strategydance.com/mcp/tasks"
+    },
+    "strategydance-documents": {
+      "type": "http",
+      "url": "https://api.strategydance.com/mcp/documents"
     }
   }
 }

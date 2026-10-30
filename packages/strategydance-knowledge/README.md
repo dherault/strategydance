@@ -71,6 +71,29 @@ through the same three, so its files pass the tests. The formatter leaves both f
 put a short array, such as a directory's one category, on one line, which `JSON.stringify` never
 does.
 
+## Marketing tactics
+
+Ways to market a product, in `src/marketingTactics/marketingTactics.json`, exported as
+`MARKETING_TACTICS`. Read on 2026-10-30 from the first Strategy Dance's list,
+[`app/src/data/marketingTactics.json`](https://github.com/dherault/strategy.dance-old/blob/main/app/src/data/marketingTactics.json),
+then rewritten: overlapping tactics merged into one, such as the two sponsorships or the three ways
+of running a community, and each given a channel, a time to results and its metrics. Each holds:
+
+- `id` and `name`
+- `description`: what the tactic is, one sentence of `MAX_KNOWLEDGE_DESCRIPTION_LENGTH` characters
+  at most
+- `howTo`: how to run it, in a few sentences a founder can follow
+- `channel`: where it reaches people, a `MarketingTacticChannel`, which
+  `MARKETING_TACTIC_CHANNEL_DESCRIPTIONS` describes
+- `effort`: how much of the team's time it takes, `LOW`, `MEDIUM` or `HIGH`, which
+  `MARKETING_TACTIC_EFFORT_DESCRIPTIONS` describes
+- `paid`: whether it costs money beyond time, such as ads, sponsorships, rewards or prizes
+- `timeToResults`: how soon it shows results, `DAYS`, `WEEKS` or `MONTHS`, which
+  `MARKETING_TACTIC_TIME_TO_RESULTS_DESCRIPTIONS` describes
+- `technical`: whether it takes building something, a page, a tool, code or an integration
+- `metrics`: what to measure to tell whether it works, each something a run can set a target for
+  and read back
+
 ## Strategic frameworks
 
 Proven ways to think a company's question through, from simple ideas to whole methods, in

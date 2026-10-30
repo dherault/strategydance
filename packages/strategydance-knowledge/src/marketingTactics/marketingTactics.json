@@ -1,0 +1,789 @@
+[
+  {
+    "id": "answer-journalists-requests-for-sources",
+    "name": "Answer journalists' requests for sources",
+    "description": "Reply to journalists looking for sources on platforms such as HARO, to earn mentions and links.",
+    "howTo": "Sign up for HARO or a similar service and read the requests on topics you know. When one fits, send a short answer with a quotable insight, a one-line bio and a link to your company.",
+    "channel": "PRESS",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Answers sent",
+      "Mentions published",
+      "Links to your site"
+    ]
+  },
+  {
+    "id": "answer-questions-on-quora",
+    "name": "Answer questions on Quora",
+    "description": "Write helpful answers to questions in your field, which keep bringing readers long after they are posted.",
+    "howTo": "Search for questions about the problem you solve, sorted by views or by date. Write clear, complete answers that help on their own, and link your site in your profile, or at the end of an answer when the link adds something.",
+    "channel": "COMMUNITIES",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": false,
+    "metrics": [
+      "Answer views",
+      "Visits from Quora",
+      "Signups from Quora"
+    ]
+  },
+  {
+    "id": "answer-questions-on-reddit",
+    "name": "Answer questions on Reddit",
+    "description": "Help people in the subreddits where your audience asks questions, and mention your product only where it truly fits.",
+    "howTo": "Find a few subreddits where your audience is active and read their rules first. Answer questions regularly and in depth, without promoting, and mention your product only when it directly solves the question and the community allows it.",
+    "channel": "COMMUNITIES",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Answers posted",
+      "Upvotes on your answers",
+      "Visits from Reddit"
+    ]
+  },
+  {
+    "id": "be-a-guest-on-podcasts",
+    "name": "Be a guest on podcasts",
+    "description": "Speak on the shows your customers listen to, and tell their listeners about your product.",
+    "howTo": "Find the podcasts your customers listen to and where your expertise fits their themes. Pitch each host with a short, personal email: who you are, a few topics, and why their listeners would care.",
+    "channel": "PRESS",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Pitches sent",
+      "Episodes recorded",
+      "Visits from the episodes"
+    ]
+  },
+  {
+    "id": "build-a-free-tool-or-calculator",
+    "name": "Build a free tool or calculator",
+    "description": "Offer a small free tool that solves a problem your users have, and leads them to your product.",
+    "howTo": "Find a repetitive task or a calculation your users often need, such as working out savings or time saved. Build the smallest version that works, with a clean interface, host it on your site and lead users from it to your product, with an optional email field to save or export their results.",
+    "channel": "PRODUCT",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": true,
+    "metrics": [
+      "People using the tool",
+      "Visits from search",
+      "Tool users who go on to your product"
+    ]
+  },
+  {
+    "id": "build-integrations-with-popular-tools",
+    "name": "Build integrations with popular tools",
+    "description": "Connect your product to the tools your users already use, and get listed in their marketplaces.",
+    "howTo": "List the tools your users already use, and look at their APIs and integration marketplaces. Pick the one or two that matter most, build a simple use case, test it, then announce it with the partner and list it in their marketplace.",
+    "channel": "PRODUCT",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": true,
+    "metrics": [
+      "Integrations live",
+      "Installs from marketplaces",
+      "Signups through integrations"
+    ]
+  },
+  {
+    "id": "build-sharing-into-your-product",
+    "name": "Build sharing into your product",
+    "description": "Design features that lead users to share your product as they use it.",
+    "howTo": "Look at where users get value and where sharing would come naturally, such as a report, a result or work done together. Build features around those moments: results worth sharing, invitations, or work that takes several people.",
+    "channel": "PRODUCT",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": true,
+    "metrics": [
+      "Invitations sent per user",
+      "Signups from shared links or invitations",
+      "New users each user brings in"
+    ]
+  },
+  {
+    "id": "call-prospects-or-send-them-voice-messages",
+    "name": "Call prospects or send them voice messages",
+    "description": "Add a human voice to your outreach with calls, or voice messages on LinkedIn.",
+    "howTo": "Write a short outline about the prospect's challenges and the results they want, not your features. Reach out with brief, respectful calls or voice notes, and follow up in writing with a summary and a clear next step.",
+    "channel": "OUTREACH",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Calls or voice messages sent",
+      "Conversations held",
+      "Meetings booked"
+    ]
+  },
+  {
+    "id": "collect-emails-on-a-waitlist-page",
+    "name": "Collect emails on a waitlist page",
+    "description": "Put up a page that says what is coming and collects the emails of the people who want it.",
+    "howTo": "Build a simple page with a clear promise, a short description of the product and a single email field. Say what joining brings, such as early access or a launch discount, and keep the addresses in an email tool for your launch.",
+    "channel": "EMAIL",
+    "effort": "LOW",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": true,
+    "metrics": [
+      "Waitlist signups",
+      "Conversion rate of the page",
+      "Signups at launch"
+    ]
+  },
+  {
+    "id": "create-an-email-course",
+    "name": "Create an email course",
+    "description": "Teach something your audience wants in a short series of emails that builds their trust in you.",
+    "howTo": "Pick one outcome your audience wants and break it into 5 to 7 short lessons. Write each as a clear, practical email, set them up as an automated sequence in your email tool, and offer the course for free on your site.",
+    "channel": "EMAIL",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Signups to the course",
+      "Completion rate",
+      "Course takers who sign up for the product"
+    ]
+  },
+  {
+    "id": "create-comparison-and-alternative-pages",
+    "name": "Create comparison and alternative pages",
+    "description": "Write pages comparing your product with its competitors, for the people searching for an alternative.",
+    "howTo": "List your main competitors and look for searches such as \"X vs Y\" or \"X alternative\". Write honest, detailed pages comparing features, prices and uses, say plainly who your product suits best, and invite readers to try it.",
+    "channel": "SEO",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": true,
+    "metrics": [
+      "Rankings for the comparison searches",
+      "Visits to the pages",
+      "Signups from the pages"
+    ]
+  },
+  {
+    "id": "create-seo-landing-pages",
+    "name": "Create SEO landing pages",
+    "description": "Build pages for the searches your buyers make, so they find you while they are looking.",
+    "howTo": "Find a handful of searches with buying intent using a basic SEO tool, and group them by what the searcher wants. Write one focused page per intent, with a clear headline, the benefits, proof from customers and one call to action, and check that search engines can index it.",
+    "channel": "SEO",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": true,
+    "metrics": [
+      "Rankings for the target searches",
+      "Visits from search",
+      "Signups from the pages"
+    ]
+  },
+  {
+    "id": "grow-an-audience-on-x-linkedin-instagram-or-tiktok",
+    "name": "Grow an audience on X, LinkedIn, Instagram or TikTok",
+    "description": "Post useful things often on one network to build visibility, trust and interest in your product.",
+    "howTo": "Pick the one network where your audience spends its time and post there on a schedule you can keep. Mix what you teach, what you think and what you are building, and answer comments and messages: the relationships matter as much as the posts.",
+    "channel": "SOCIAL_MEDIA",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": false,
+    "metrics": [
+      "Followers",
+      "Impressions per post",
+      "Clicks to your site",
+      "Signups from the network"
+    ]
+  },
+  {
+    "id": "help-out-in-niche-communities-and-forums",
+    "name": "Help out in niche communities and forums",
+    "description": "Join the Slack groups, forums and communities where your users discuss the problems you solve, and become someone they trust.",
+    "howTo": "Join a handful of communities that match your niche, with a profile that says who you help. Answer questions, share guides and resources, and take part in discussions for weeks before you ever mention your product, then link it only where it backs your advice.",
+    "channel": "COMMUNITIES",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Helpful posts and replies",
+      "Visits from communities",
+      "Conversations started with potential users"
+    ]
+  },
+  {
+    "id": "host-a-virtual-summit",
+    "name": "Host a virtual summit",
+    "description": "Invite several experts to speak online, and reach their audiences as they promote it.",
+    "howTo": "Pick a theme and list the speakers whose audiences match yours. Invite them with a clear reason to join, schedule the talks over one or more days, set up a registration page, and give the speakers ready-made posts to share.",
+    "channel": "EVENTS",
+    "effort": "HIGH",
+    "paid": true,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Speakers confirmed",
+      "Registrations",
+      "Attendees who sign up"
+    ]
+  },
+  {
+    "id": "host-amas",
+    "name": "Host AMAs",
+    "description": "Answer anyone's questions in an \"ask me anything\" session, to start conversations and show your expertise.",
+    "howTo": "Pick a place, such as your community, Reddit, X or LinkedIn, and announce the session with a theme and a time. Collect questions beforehand, answer them live or in a thread, and turn the best answers into content afterwards.",
+    "channel": "EVENTS",
+    "effort": "LOW",
+    "paid": false,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Questions asked",
+      "Views of the session",
+      "Visits to your site"
+    ]
+  },
+  {
+    "id": "host-webinars-or-live-workshops",
+    "name": "Host webinars or live workshops",
+    "description": "Teach something useful live, to attract potential users and show what you know.",
+    "howTo": "Pick a specific topic with a clear outcome and prepare a short outline or deck. Set up a registration page, promote it to your list and on social media, run it live with questions, and follow up with the replay and a clear next step.",
+    "channel": "EVENTS",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Registrations",
+      "Attendance rate",
+      "Attendees who sign up"
+    ]
+  },
+  {
+    "id": "launch-a-podcast",
+    "name": "Launch a podcast",
+    "description": "Publish a regular show to build authority, reach new listeners and share what you know.",
+    "howTo": "Decide who the show is for and what it is about, then outline a first batch of 5 to 10 episodes. Record with simple equipment, edit, publish through a podcast host and promote every episode on your other channels.",
+    "channel": "CONTENT",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": false,
+    "metrics": [
+      "Downloads per episode",
+      "Subscribers",
+      "Visits from the show notes"
+    ]
+  },
+  {
+    "id": "launch-on-product-hunt-and-similar-sites",
+    "name": "Launch on Product Hunt and similar sites",
+    "description": "Make a launch day on a launch site, to reach early adopters and get a burst of traffic.",
+    "howTo": "Prepare the launch: screenshots, a tagline, a description, a video or GIF, and a clear promise. Pick the day, tell your audience and supporters ahead of it, and stay active in the comments and on your social accounts all day.",
+    "channel": "LAUNCHES",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Rank of the day",
+      "Visits on launch day",
+      "Signups from the launch"
+    ]
+  },
+  {
+    "id": "list-on-directories-and-marketplaces",
+    "name": "List on directories and marketplaces",
+    "description": "Submit your product to the directories and marketplaces where your kind of product is found.",
+    "howTo": "Prepare one set of assets: a logo, a description, screenshots and a summary of your prices. Pick the directories that list your kind of product, submit to them steadily, fill in each profile with care and keep track of where you are listed.",
+    "channel": "LAUNCHES",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Listings live",
+      "Visits from directories",
+      "Links to your site"
+    ]
+  },
+  {
+    "id": "make-comparison-videos",
+    "name": "Make comparison videos",
+    "description": "Show how your product compares with the alternatives people search for on YouTube.",
+    "howTo": "List your main competitors and the comparisons people search for, such as \"X vs Y\" or \"best tools for Z\". Record straightforward screen recordings or talking videos that explain the differences honestly, and end each with how to try your product.",
+    "channel": "CONTENT",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": false,
+    "metrics": [
+      "Views",
+      "Clicks to your site",
+      "Signups from the videos"
+    ]
+  },
+  {
+    "id": "offer-a-lead-magnet",
+    "name": "Offer a lead magnet",
+    "description": "Give away a useful checklist, template or guide in exchange for an email address.",
+    "howTo": "Pick a pain point or a goal your audience has and package an answer as a checklist, a template or a short guide. Put it behind an email form on a landing page, and point to it from your posts, your social accounts and your site.",
+    "channel": "EMAIL",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Downloads",
+      "Conversion rate of the landing page",
+      "Emails collected"
+    ]
+  },
+  {
+    "id": "offer-a-limited-time-discount",
+    "name": "Offer a limited-time discount",
+    "description": "Make an offer with an end date, to push hesitant visitors to buy or start a trial.",
+    "howTo": "Choose a clear offer, such as a percentage off or a longer trial, and a firm end date. Announce it by email, on social media and with a banner on your site, and make sure your pricing and checkout pages show it.",
+    "channel": "PROMOTIONS",
+    "effort": "LOW",
+    "paid": true,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Conversions during the offer",
+      "Revenue during the offer",
+      "Customers kept after it ends"
+    ]
+  },
+  {
+    "id": "offer-exclusive-early-access",
+    "name": "Offer exclusive early access",
+    "description": "Let a limited first wave of users in, so access feels special and they tell you what they think.",
+    "howTo": "Invite people to an early-access group through a simple page or an email. Say what they get and what you expect of them, let in a limited number, and give them a place to send feedback and invite others.",
+    "channel": "PROMOTIONS",
+    "effort": "LOW",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Requests for access",
+      "Early users active each week",
+      "Invitations sent by early users"
+    ]
+  },
+  {
+    "id": "offer-free-consultations-or-audits",
+    "name": "Offer free consultations or audits",
+    "description": "Offer prospects a free review of their situation that shows where your product helps.",
+    "howTo": "Shape a clear offer, a free consultation or audit of the problem your product solves, and set up a booking form. On each call, walk through the prospect's situation, give real recommendations, and show where your product fits.",
+    "channel": "OUTREACH",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Calls booked",
+      "Calls held",
+      "Prospects who become customers"
+    ]
+  },
+  {
+    "id": "partner-with-complementary-products",
+    "name": "Partner with complementary products",
+    "description": "Team up with products that serve your audience without competing with you, and reach each other's users.",
+    "howTo": "List the products your users already use beside yours that do not overlap with it. Propose a small first step, such as a joint webinar or guide, a bundle, or a mention in each other's emails, agree on who does what and when, and grow what works.",
+    "channel": "PARTNERSHIPS",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Partners signed",
+      "Reach of the joint campaigns",
+      "Signups from partners"
+    ]
+  },
+  {
+    "id": "pitch-the-press-with-a-press-kit",
+    "name": "Pitch the press with a press kit",
+    "description": "Prepare what journalists need, and pitch them your story for coverage and credibility.",
+    "howTo": "Build a press page with your logos, the founders' bios, a product overview, screenshots and your key numbers or angles. Find the journalists who cover your field, send each a pitch written for them with a link to the page, and follow up politely once or twice.",
+    "channel": "PRESS",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Pitches sent",
+      "Articles published",
+      "Visits from the articles"
+    ]
+  },
+  {
+    "id": "publish-a-data-report",
+    "name": "Publish a data report",
+    "description": "Share numbers nobody else has about your market, which journalists and bloggers quote and link to.",
+    "howTo": "Gather the data from your product, or from a short survey sent to your list, your followers and your communities. Pull out the trends and the surprising numbers, write them up with charts and a short commentary, publish the report on your site and send it to the journalists and creators of your field.",
+    "channel": "CONTENT",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Responses or data points collected",
+      "Visits to the report",
+      "Mentions in the press or by creators",
+      "Links to the report"
+    ]
+  },
+  {
+    "id": "publish-a-public-roadmap",
+    "name": "Publish a public roadmap",
+    "description": "Share what you are building next, to engage early adopters and show that you listen.",
+    "howTo": "Pick a simple tool or page, and sort what is coming into now, next and later. Publish your main plans, invite users to vote and comment, and update it as you ship or change course.",
+    "channel": "PRODUCT",
+    "effort": "LOW",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Visits to the roadmap",
+      "Votes and comments",
+      "Feature requests received"
+    ]
+  },
+  {
+    "id": "reply-to-posts-on-x-with-a-useful-link",
+    "name": "Reply to posts on X with a useful link",
+    "description": "Join conversations on X and share a link when it genuinely helps the person asking.",
+    "howTo": "Set up searches or alerts for the topics and accounts of your niche. When a thread asks something your content or product answers, reply with a short, helpful comment and the link that fits, never a bare link.",
+    "channel": "SOCIAL_MEDIA",
+    "effort": "LOW",
+    "paid": false,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Replies posted",
+      "Clicks on the links",
+      "Signups from X"
+    ]
+  },
+  {
+    "id": "run-a-community-challenge",
+    "name": "Run a community challenge",
+    "description": "Start a themed challenge that gets people taking part, and sharing, around your product.",
+    "howTo": "Define a simple challenge tied to what your product does, such as a 7-day goal or habit, with clear rules and dates. Announce it, send daily prompts or reminders, and share the participants' progress and results publicly.",
+    "channel": "EVENTS",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Participants",
+      "Completion rate",
+      "Posts shared by participants"
+    ]
+  },
+  {
+    "id": "run-a-giveaway-or-contest",
+    "name": "Run a giveaway or contest",
+    "description": "Offer a prize to get people sharing and following, and grow your audience fast.",
+    "howTo": "Pick a prize your ideal customer wants, not one anybody would, and keep the entry simple, such as following, sharing or tagging. Promote it on all your channels, run it for a short time and announce the winners openly.",
+    "channel": "PROMOTIONS",
+    "effort": "MEDIUM",
+    "paid": true,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Entries",
+      "Followers gained",
+      "Entrants who become users"
+    ]
+  },
+  {
+    "id": "run-ads-on-google-meta-or-x",
+    "name": "Run ads on Google, Meta or X",
+    "description": "Pay to put your product in front of a chosen audience, and bring traffic or signups quickly.",
+    "howTo": "Start with one network and one goal, such as signups. Set a small test budget, narrow the audience, write a few ads and send the clicks to a focused landing page, then watch what each signup costs and cut what does not pay.",
+    "channel": "ADVERTISING",
+    "effort": "MEDIUM",
+    "paid": true,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Cost per click",
+      "Conversion rate of the landing page",
+      "Cost per signup"
+    ]
+  },
+  {
+    "id": "run-quick-content-experiments-on-social-media",
+    "name": "Run quick content experiments on social media",
+    "description": "Post several bold ideas fast, see which ones catch on and do more of what works.",
+    "howTo": "Write 5 to 10 bold ideas, such as a strong opinion, a clear framework or a surprising number, and turn each into a short post or visual. Publish them over a week or two, compare their reach and engagement, and build on the formats that win.",
+    "channel": "SOCIAL_MEDIA",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Reach per post",
+      "Engagement rate",
+      "Followers gained"
+    ]
+  },
+  {
+    "id": "run-retargeting-ads",
+    "name": "Run retargeting ads",
+    "description": "Show ads to the people who visited your site without signing up, to bring them back.",
+    "howTo": "Install the networks' tracking pixels on your site, such as Meta's or Google's, and build audiences from your visitors or from those who took a given step. Show them simple reminders or offers that bring them back to finish signing up, book a demo or buy.",
+    "channel": "ADVERTISING",
+    "effort": "MEDIUM",
+    "paid": true,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Visitors brought back",
+      "Conversion rate of returning visitors",
+      "Cost per conversion"
+    ]
+  },
+  {
+    "id": "run-your-own-community",
+    "name": "Run your own community",
+    "description": "Build a group on Discord, Slack, LinkedIn or Facebook where your users meet, help each other and learn.",
+    "howTo": "Pick a clear theme tied to your users' problems and set up a small space: a few channels, such as help, wins and resources, and simple rules. Invite the first members yourself, start the discussions, host office hours or small events, thank the members who help most, and show up every week so it stays alive.",
+    "channel": "COMMUNITIES",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": false,
+    "metrics": [
+      "Members",
+      "Members active each week",
+      "Posts by members rather than you",
+      "Signups from the community"
+    ]
+  },
+  {
+    "id": "send-cold-emails",
+    "name": "Send cold emails",
+    "description": "Email prospects who fit your customer profile with a short, personal message about their problem.",
+    "howTo": "Define your ideal customer and build a list of prospects with verified addresses. Write a short, personal sequence about their problems and the results they want, send it in small batches, track the replies and rewrite what does not work.",
+    "channel": "OUTREACH",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Emails sent",
+      "Reply rate",
+      "Calls or trials booked"
+    ]
+  },
+  {
+    "id": "send-cold-messages-on-social-networks",
+    "name": "Send cold messages on social networks",
+    "description": "Reach potential users directly with personal messages that start a conversation.",
+    "howTo": "Find profiles that match your ideal customer and engage with what they post before reaching out. Send a short message that mentions something specific about them and offers a quick win, feedback or a resource, never a hard pitch.",
+    "channel": "OUTREACH",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Messages sent",
+      "Reply rate",
+      "Conversations that lead to a trial"
+    ]
+  },
+  {
+    "id": "sponsor-newsletters-podcasts-or-videos",
+    "name": "Sponsor newsletters, podcasts or videos",
+    "description": "Pay creators whose audience matches your customers to feature your product.",
+    "howTo": "Find newsletters, podcasts and channels whose audience matches your customers, and look at their media kits and past sponsors. Start with a small test placement, give a short brief with one clear benefit, and track it with its own link or code.",
+    "channel": "ADVERTISING",
+    "effort": "MEDIUM",
+    "paid": true,
+    "timeToResults": "DAYS",
+    "technical": false,
+    "metrics": [
+      "Clicks from the placement",
+      "Signups per placement",
+      "Cost per signup"
+    ]
+  },
+  {
+    "id": "start-a-blog",
+    "name": "Start a blog",
+    "description": "Publish helpful articles on your own site to bring in search traffic and show what you know.",
+    "howTo": "List the questions your audience asks and plan a few themes from them. Publish in-depth, practical posts on your own domain on a steady schedule, and look after the basics of search: clear titles and headings, links between your posts and a description for each.",
+    "channel": "CONTENT",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": false,
+    "metrics": [
+      "Articles published",
+      "Visits from search",
+      "Signups from the blog"
+    ]
+  },
+  {
+    "id": "start-a-newsletter",
+    "name": "Start a newsletter",
+    "description": "Send regular insights or news to a list of people who asked for them.",
+    "howTo": "Choose a clear promise: what readers get and how often. Set up a signup page, send every issue on schedule with practical insights, news or curated links, and share the signup link on your site and your social accounts.",
+    "channel": "EMAIL",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": false,
+    "metrics": [
+      "Subscribers",
+      "Open rate",
+      "Clicks per issue"
+    ]
+  },
+  {
+    "id": "start-a-referral-program",
+    "name": "Start a referral program",
+    "description": "Reward the users who invite friends, and the friends who join.",
+    "howTo": "Pick a simple reward for both sides, such as credits, a discount or a feature. Add referral links or codes to your product, show them at the moments users are happiest, and track every referral so rewards arrive on time.",
+    "channel": "REFERRALS",
+    "effort": "MEDIUM",
+    "paid": true,
+    "timeToResults": "WEEKS",
+    "technical": true,
+    "metrics": [
+      "Users who share a link",
+      "Signups from referrals",
+      "Cost per referred customer"
+    ]
+  },
+  {
+    "id": "start-a-youtube-channel",
+    "name": "Start a YouTube channel",
+    "description": "Publish videos that teach or show your product, which search keeps finding for years.",
+    "howTo": "Pick a format that suits you, such as tutorials, explainers or teardowns, and a schedule you can keep. Outline your first videos, record them with simple equipment, take care over titles and thumbnails, and link to your product in each description.",
+    "channel": "CONTENT",
+    "effort": "HIGH",
+    "paid": false,
+    "timeToResults": "MONTHS",
+    "technical": false,
+    "metrics": [
+      "Views",
+      "Subscribers",
+      "Clicks from descriptions to your site"
+    ]
+  },
+  {
+    "id": "start-an-affiliate-program",
+    "name": "Start an affiliate program",
+    "description": "Pay partners a commission on the customers they send you.",
+    "howTo": "Choose an affiliate platform or a simple tracking system, and set the commission and the payout rules. Make a page inviting partners, give them their own links and ready-made material, and keep them posted on their results.",
+    "channel": "REFERRALS",
+    "effort": "MEDIUM",
+    "paid": true,
+    "timeToResults": "MONTHS",
+    "technical": true,
+    "metrics": [
+      "Active affiliates",
+      "Customers from affiliates",
+      "Commission paid per customer"
+    ]
+  },
+  {
+    "id": "start-an-ambassador-program",
+    "name": "Start an ambassador program",
+    "description": "Recruit your most enthusiastic users to promote your product in exchange for perks.",
+    "howTo": "Find your most engaged users and invite them to apply, with clear criteria and benefits. Give ambassadors early news, merchandise or rewards for what they do, such as writing content, hosting events or bringing in new users.",
+    "channel": "REFERRALS",
+    "effort": "HIGH",
+    "paid": true,
+    "timeToResults": "MONTHS",
+    "technical": false,
+    "metrics": [
+      "Ambassadors",
+      "Content and events by ambassadors",
+      "Signups through ambassadors"
+    ]
+  },
+  {
+    "id": "work-with-micro-influencers",
+    "name": "Work with micro-influencers",
+    "description": "Partner with small creators whose engaged followers match your customers.",
+    "howTo": "Look for creators in your niche with 1,000 to 20,000 followers and strong engagement. Offer free access, a commission or a small fee for an honest post about your product, and agree on what they publish and how it is tracked before they start.",
+    "channel": "PARTNERSHIPS",
+    "effort": "MEDIUM",
+    "paid": true,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Posts published",
+      "Clicks from the posts",
+      "Signups per creator"
+    ]
+  },
+  {
+    "id": "write-an-onboarding-email-sequence",
+    "name": "Write an onboarding email sequence",
+    "description": "Send new signups a few automated emails that take them to the moment your product proves itself.",
+    "howTo": "Map what a new user's first week should look like, and write 4 to 7 emails that guide them through setup, the first result and the habit. Set the sequence up in your email or product messaging tool, starting at signup or at a key action.",
+    "channel": "EMAIL",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Activation rate",
+      "Open and click rates",
+      "Users still active after a week"
+    ]
+  },
+  {
+    "id": "write-case-studies",
+    "name": "Write case studies",
+    "description": "Tell real customers' success stories to build credibility and help prospects decide.",
+    "howTo": "Ask a few happy customers whether you may tell their story. Interview them or send a short questionnaire, then write what their problem was, what they did with your product and what came of it, in numbers where you can. Publish it on your site and use it when you sell.",
+    "channel": "CONTENT",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Case studies published",
+      "Views of the case studies",
+      "Signups or sales from their pages"
+    ]
+  },
+  {
+    "id": "write-guest-posts-for-other-blogs",
+    "name": "Write guest posts for other blogs",
+    "description": "Write for established blogs in your niche to reach their readers and earn links to your site.",
+    "howTo": "Find blogs in your niche that take guest posts, and read their guidelines and recent articles. Pitch a few specific ideas, then deliver a solid article with a short bio and a link to your site or product.",
+    "channel": "CONTENT",
+    "effort": "MEDIUM",
+    "paid": false,
+    "timeToResults": "WEEKS",
+    "technical": false,
+    "metrics": [
+      "Posts published",
+      "Visits from the posts",
+      "Links to your site"
+    ]
+  }
+]

@@ -7,7 +7,8 @@ import logger from '~utils/logger'
 
 /*
   The daily sweep's: deletes the external agents' connections to a module no endpoint serves any
-  more, renamed or retired, with their tokens, which nothing accepts. A member sees them on the
+  more, renamed or retired, with their tokens, which nothing accepts, once neither made nor used for
+  a week, so a worker on an older release never takes a newer module's. A member sees them on the
   Connected agents tab under the old module's name until then, and connects the agent again to the
   module that took its place. Deleting them twice deletes nothing, so a sweep that failed is
   finished by the next

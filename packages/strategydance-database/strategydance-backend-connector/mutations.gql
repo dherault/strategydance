@@ -7799,9 +7799,23 @@ mutation PruneOAuthAuthorizationRequests @auth(level: NO_ACCESS) {
 
 # The daily sweep's: deletes the connections to a module no endpoint serves any more, with their
 # tokens, which no endpoint accepts, so a renamed or retired module's connections leave the Connected
-# agents tab and stop counting toward `MAX_AGENT_CONNECTIONS`. `$modules` is every module served
+# agents tab and stop counting toward `MAX_AGENT_CONNECTIONS`. `$modules` is every module the
+# sweep's release serves.
+#
+# Only those neither made nor used for a week. A connection no endpoint serves is never used again,
+# so it ages past that. A worker left on an older release, since the deploy updates it after the
+# backend, can know fewer modules than the backend serves: the week keeps it from taking a
+# connection the backend made and its agent uses
 mutation PruneUnservedAgentConnections($modules: [String!]!) @auth(level: NO_ACCESS) {
-  agentConnection_deleteMany(where: { module: { nin: $modules } })
+  agentConnection_deleteMany(
+    where: {
+      _and: [
+        { module: { nin: $modules } }
+        { createdAt: { lt_time: { now: true, sub: { days: 7 } } } }
+        { _or: [{ lastUsedAt: { isNull: true } }, { lastUsedAt: { lt_time: { now: true, sub: { days: 7 } } } }] }
+      ]
+    }
+  )
 }
 
 # The daily sweep's: deletes the tokens past their expiry, a refresh token spent or not

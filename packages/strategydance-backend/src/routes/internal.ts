@@ -140,7 +140,7 @@ function createInternalRouter() {
     runs may have cost, over a day old, go, documents' revisions over 30 days old, the module call
     results past their expiry, members' Connects to MCP servers expired over an hour ago, and the
     authorization server's requests expired over a day ago, the connections to a module no endpoint
-    serves any more, its tokens past their expiry and the registrations nobody uses.
+    serves any more idle for a week, its tokens past their expiry and the registrations nobody uses.
 
     Each step runs whatever the steps before it met (`runSweepSteps`), so a prune that fails, or one
     that takes long, never keeps the keys and tokens after it from going. Every step is idempotent,

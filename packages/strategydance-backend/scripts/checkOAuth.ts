@@ -1237,14 +1237,20 @@ async function checkTokens() {
 async function checkPrunes() {
   const clientId = `https://check-${checkId}-unserved.example.com/agent.json`
 
-  // The other member's, since the member was removed: one connection to a module no endpoint serves,
-  // and one to a module served
+  // The other member's, since the member was removed, all made over a week ago but one: to a module
+  // no endpoint serves, to one a newer release may serve, made a moment ago, and to a module served
   await write(
-    `mutation Unserved($userId: String!, $organizationId: UUID!, $clientId: String!) {
-      unserved: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "retired", scopes: ["retired:read"] })
-      served: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "documents", scopes: ["documents:read"] })
+    `mutation Unserved($userId: String!, $organizationId: UUID!, $clientId: String!, $weekAgo: Timestamp!) {
+      unserved: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "retired", scopes: ["retired:read"], createdAt: $weekAgo })
+      recent: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "newer", scopes: ["newer:read"] })
+      served: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "documents", scopes: ["documents:read"], createdAt: $weekAgo })
     }`,
-    { userId: otherUserId, organizationId, clientId },
+    {
+      userId: otherUserId,
+      organizationId,
+      clientId,
+      weekAgo: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    },
   )
 
   const prune = async () => {
@@ -1265,8 +1271,11 @@ async function checkPrunes() {
   )
 
   check(
-    "the sweep deletes a connection to a module no endpoint serves, and keeps a served module's",
-    agentConnections.map(({ module }) => module).join() === 'documents',
+    "the sweep deletes a connection to a module no endpoint serves idle for a week, and keeps a recent one and a served module's",
+    agentConnections
+      .map(({ module }) => module)
+      .sort()
+      .join() === 'documents,newer',
   )
 }
 

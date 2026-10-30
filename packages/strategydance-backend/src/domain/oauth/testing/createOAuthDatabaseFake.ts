@@ -546,7 +546,10 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       let deleted = 0
 
       for (const [connectionId, connection] of connections) {
-        if (!(variables.modules as string[]).includes(connection.module)) deleted += deleteConnection(connectionId)
+        const isUnserved = !(variables.modules as string[]).includes(connection.module)
+        const isIdle = Date.parse(connection.lastUsedAt ?? connection.createdAt) < now() - 7 * DAY_MS
+
+        if (isUnserved && isIdle) deleted += deleteConnection(connectionId)
       }
 
       return { agentConnection_deleteMany: deleted }

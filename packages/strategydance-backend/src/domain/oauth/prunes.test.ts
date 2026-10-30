@@ -17,6 +17,7 @@ const { default: pruneOAuthClients } = await import('./pruneOAuthClients')
 const { default: pruneUnservedAgentConnections } = await import('./pruneUnservedAgentConnections')
 
 const HOUR_MS = 60 * 60 * 1000
+const DAY_MS = 24 * HOUR_MS
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 
 function ago(milliseconds: number) {
@@ -48,7 +49,11 @@ function insertRequest(id: string, expiresAt: string) {
   })
 }
 
-function insertConnection(id: string, registeredClientId: string | null, module = 'documents') {
+function insertConnection(
+  id: string,
+  registeredClientId: string | null,
+  { module = 'documents', createdAt = ago(0), lastUsedAt = null as string | null } = {},
+) {
   fake.addMember('member', ORGANIZATION_ID)
   fake.connections.set(id, {
     id,
@@ -59,8 +64,8 @@ function insertConnection(id: string, registeredClientId: string | null, module 
     clientName: null,
     module,
     scopes: [`${module}:read`],
-    createdAt: ago(0),
-    lastUsedAt: null,
+    createdAt,
+    lastUsedAt,
   })
 }
 
@@ -101,16 +106,24 @@ describe('pruneOAuthAuthorizationRequests', () => {
 })
 
 describe('pruneUnservedAgentConnections', () => {
-  test('deletes the connections to a module no endpoint serves, with their tokens, and keeps the rest', async () => {
-    insertConnection('connection', null, 'retired')
+  test('deletes the connections to a module no endpoint serves, idle for a week, with their tokens', async () => {
+    insertConnection('connection', null, { module: 'retired', createdAt: ago(8 * DAY_MS) })
     insertToken('retired-token', new Date(Date.now() + HOUR_MS).toISOString())
 
-    for (const module of SERVED_MODULE_NAMES) insertConnection(module, null, module)
+    for (const module of SERVED_MODULE_NAMES) insertConnection(module, null, { module, createdAt: ago(8 * DAY_MS) })
 
     expect(await pruneUnservedAgentConnections()).toEqual({ deleted: 1 })
     expect([...fake.connections.keys()].sort()).toEqual([...SERVED_MODULE_NAMES].sort())
     expect(fake.tokens.size).toBe(0)
     expect(await pruneUnservedAgentConnections()).toEqual({ deleted: 0 })
+  })
+
+  test('keeps a connection to a module no endpoint serves made or used within the week, as a newer release may serve it', async () => {
+    insertConnection('recent', null, { module: 'newer', createdAt: ago(HOUR_MS) })
+    insertConnection('used', null, { module: 'newer', createdAt: ago(30 * DAY_MS), lastUsedAt: ago(6 * DAY_MS) })
+
+    expect(await pruneUnservedAgentConnections()).toEqual({ deleted: 0 })
+    expect([...fake.connections.keys()].sort()).toEqual(['recent', 'used'])
   })
 })
 

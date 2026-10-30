@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { type Directory, DirectoryType, type InactiveDirectory } from 'strategydance-directories'
+import { type Directory, DirectoryType, type InactiveDirectory } from 'strategydance-knowledge'
 
 import selectDirectoriesToCheck from '~domain/directories/selectDirectoriesToCheck'
 import { createDirectory, createInactiveDirectory } from '~domain/directories/testing/directoryFixtures'

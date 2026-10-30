@@ -488,10 +488,11 @@ export const DIRECTORY_CHECK_BASE_BRANCH = 'dev'
 // How long one call to GitHub's API may take, which a run's budget counts on
 export const GITHUB_REQUEST_TIMEOUT_MS = 15 * 1000
 
-// The directories package's two lists, from the repository's root
-export const DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/directories.json'
+// The knowledge package's two directory lists, from the repository's root
+export const DIRECTORIES_FILE_PATH = 'packages/strategydance-knowledge/src/directories/directories.json'
 
-export const INACTIVE_DIRECTORIES_FILE_PATH = 'packages/strategydance-directories/src/inactiveDirectories.json'
+export const INACTIVE_DIRECTORIES_FILE_PATH =
+  'packages/strategydance-knowledge/src/directories/inactiveDirectories.json'
 
 /* ---
   EXCHANGE RATES

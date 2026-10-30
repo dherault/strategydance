@@ -43,7 +43,7 @@ const CUT_NOTE = '\n\nThe report was cut here: its commit holds it whole.'
 // On the comment that says the branch conflicts with its base, so it is left once
 const CONFLICT_MARKER = '<!-- directories-check conflict -->'
 
-const PULL_REQUEST_HEADER = `The daily check of the directories package's lists, run by the worker's \`/internal/directories-check\` and described in \`documents/directories.md\`. Each run adds a commit, and its report as a comment below. Merge it whenever the changes read right: the next run then opens another.`
+const PULL_REQUEST_HEADER = `The daily check of the knowledge package's directory lists, run by the worker's \`/internal/directories-check\` and described in \`documents/directories.md\`. Each run adds a commit, and its report as a comment below. Merge it whenever the changes read right: the next run then opens another.`
 
 const COMMIT_MUTATION = `mutation CommitDirectoryCheck($input: CreateCommitOnBranchInput!) {
   createCommitOnBranch(input: $input) {
@@ -84,7 +84,7 @@ async function publishDirectoryCheck({
       body: {
         base: DIRECTORY_CHECK_BRANCH,
         head: DIRECTORY_CHECK_BASE_BRANCH,
-        commit_message: `[directories] Merge ${DIRECTORY_CHECK_BASE_BRANCH} into ${DIRECTORY_CHECK_BRANCH}`,
+        commit_message: `[knowledge] Merge ${DIRECTORY_CHECK_BASE_BRANCH} into ${DIRECTORY_CHECK_BRANCH}`,
       },
       allowedStatuses: [409],
     })
@@ -127,7 +127,7 @@ async function publishDirectoryCheck({
         github,
         head,
         files,
-        `[directories] Check ${result.checks.length} directories on ${today}`,
+        `[knowledge] Check ${result.checks.length} directories on ${today}`,
         report,
       )
 
@@ -176,7 +176,7 @@ async function publishDirectoryCheck({
         github,
         committed,
         serializeDirectoryLists(await readLists(github, await readBranchHead(github, DIRECTORY_CHECK_BASE_BRANCH))),
-        `[directories] Leave the check of ${today}, its pull request closed`,
+        `[knowledge] Leave the check of ${today}, its pull request closed`,
         `Pull request #${pullRequest.number} was closed while the check ran, so its lists go back to ${DIRECTORY_CHECK_BASE_BRANCH}'s.`,
       )
     } catch (error) {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { DIRECTORY_FIELDS, INACTIVE_DIRECTORY_FIELDS } from 'strategydance-directories'
+import { DIRECTORY_FIELDS, INACTIVE_DIRECTORY_FIELDS } from 'strategydance-knowledge'
 
 import { DIRECTORIES_FILE_PATH, INACTIVE_DIRECTORIES_FILE_PATH } from '~constants'
 

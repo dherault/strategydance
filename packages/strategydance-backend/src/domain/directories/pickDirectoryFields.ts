@@ -3,7 +3,7 @@ import {
   type Directory,
   INACTIVE_DIRECTORY_FIELDS,
   type InactiveDirectory,
-} from 'strategydance-directories'
+} from 'strategydance-knowledge'
 
 // An entry's own fields, in the order its file holds them, without whatever else the object carries
 function pickDirectoryFields(directory: Directory): Directory {

@@ -65,9 +65,9 @@
     "strategydance-core": "workspace:*",
     "strategydance-database": "workspace:*",
     "strategydance-design-system": "workspace:*",
-    "strategydance-directories": "workspace:*",
     "strategydance-emails": "workspace:*",
     "strategydance-external-mcp-servers": "workspace:*",
+    "strategydance-knowledge": "workspace:*",
     "yjs": "^13.6.33",
     "zod": "^4.6.7"
   },

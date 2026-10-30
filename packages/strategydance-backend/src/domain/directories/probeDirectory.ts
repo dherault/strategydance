@@ -1,4 +1,4 @@
-import type { Directory } from 'strategydance-directories'
+import type { Directory } from 'strategydance-knowledge'
 
 import type { DirectoryProbe } from '~types'
 

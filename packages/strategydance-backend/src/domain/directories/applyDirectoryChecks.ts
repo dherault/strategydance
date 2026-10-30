@@ -1,9 +1,4 @@
-import {
-  type Directory,
-  DirectoryInactiveReason,
-  DirectoryType,
-  type InactiveDirectory,
-} from 'strategydance-directories'
+import { type Directory, DirectoryInactiveReason, DirectoryType, type InactiveDirectory } from 'strategydance-knowledge'
 
 import type {
   DirectoryCheck,

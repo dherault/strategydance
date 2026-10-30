@@ -2942,7 +2942,9 @@ query GetConversationBriefAttachments($organizationId: UUID!, $conversationId: U
 # organization names only the administrator deleting it, while every member's connections there go
 # with it, so it refreshes every reader, a rare enough event. Never the write of `lastUsedAt`, which
 # an agent's call makes as often as once a minute, nor a revocation or a reused code, which the
-# backend's protocol endpoints make knowing no `$userId`: the tab reads them on its next read
+# backend's protocol endpoints make knowing no `$userId`, nor the daily sweep's prune of the
+# connections to a module no endpoint serves, which deletes nothing most days: the tab reads them on
+# its next read
 query GetAgentConnections
 @auth(level: USER)
 @refresh(

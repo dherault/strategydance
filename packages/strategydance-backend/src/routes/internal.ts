@@ -32,6 +32,7 @@ import pruneModuleCallResults from '~domain/modules/pruneModuleCallResults'
 import pruneAgentConnectionTokens from '~domain/oauth/pruneAgentConnectionTokens'
 import pruneOAuthAuthorizationRequests from '~domain/oauth/pruneOAuthAuthorizationRequests'
 import pruneOAuthClients from '~domain/oauth/pruneOAuthClients'
+import pruneUnservedAgentConnections from '~domain/oauth/pruneUnservedAgentConnections'
 import sweepSubagentReactions from '~domain/subagents/sweepSubagentReactions'
 import sweepSubagentRuns from '~domain/subagents/sweepSubagentRuns'
 import pruneDeletedTasks from '~domain/tasks/pruneDeletedTasks'
@@ -138,8 +139,8 @@ function createInternalRouter() {
     record for a while, as the conversation searches, the starts the daily caps counted and what
     runs may have cost, over a day old, go, documents' revisions over 30 days old, the module call
     results past their expiry, members' Connects to MCP servers expired over an hour ago, and the
-    authorization server's requests expired over a day ago, its tokens past their expiry and the
-    registrations nobody uses.
+    authorization server's requests expired over a day ago, the connections to a module no endpoint
+    serves any more idle for a week, its tokens past their expiry and the registrations nobody uses.
 
     Each step runs whatever the steps before it met (`runSweepSteps`), so a prune that fails, or one
     that takes long, never keeps the keys and tokens after it from going. Every step is idempotent,
@@ -165,6 +166,7 @@ function createInternalRouter() {
       pruneIntegrationAuthorizations,
       pruneModuleCallResults,
       pruneOAuthAuthorizationRequests,
+      pruneUnservedAgentConnections,
       pruneAgentConnectionTokens,
       pruneOAuthClients,
     })

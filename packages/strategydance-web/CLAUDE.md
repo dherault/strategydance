@@ -81,9 +81,8 @@ The app's conventions, beside the root `CLAUDE.md`. Imports go through the `~` a
 - `/oauth` and `/integrations` are never framed (`firebase.json`): their pages sit under
   `_authenticated`, outside `_app`. The consent page reads its request once, never again on focus,
   reconnecting or retry, since a read after the decision finds it gone
-- `firebase.json` redirects `/-/<path>`, and the old `/<organization>/knowledge` addresses, through
-  a `regex` whose capture starts with a letter or a digit, or `/-//evil.example` would send a
-  browser to another host
+- `firebase.json` redirects `/-/<path>` through a `regex` whose capture starts with a letter or a
+  digit, or `/-//evil.example` would send a browser to another host
 - `notFound()` and an unmatched address render `NotFound`, its strings in `global`
 
 ## Internationalization

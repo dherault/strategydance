@@ -542,6 +542,16 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       return { oAuthAuthorizationRequest_deleteMany: deleted }
     },
 
+    PruneUnservedAgentConnections: variables => {
+      let deleted = 0
+
+      for (const [connectionId, connection] of connections) {
+        if (!(variables.modules as string[]).includes(connection.module)) deleted += deleteConnection(connectionId)
+      }
+
+      return { agentConnection_deleteMany: deleted }
+    },
+
     PruneAgentConnectionTokens: () => {
       let deleted = 0
 

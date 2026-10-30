@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 
+import { SERVED_MODULE_NAMES } from 'strategydance-core'
+
 import createModuleDatabaseFakeBase from '~domain/modules/testing/createModuleDatabaseFakeBase'
 import createOAuthDatabaseFake from '~domain/oauth/testing/createOAuthDatabaseFake'
 
@@ -12,6 +14,7 @@ mock.module('strategydance-database/backend', () => fake.sdk)
 const { default: pruneAgentConnectionTokens } = await import('./pruneAgentConnectionTokens')
 const { default: pruneOAuthAuthorizationRequests } = await import('./pruneOAuthAuthorizationRequests')
 const { default: pruneOAuthClients } = await import('./pruneOAuthClients')
+const { default: pruneUnservedAgentConnections } = await import('./pruneUnservedAgentConnections')
 
 const HOUR_MS = 60 * 60 * 1000
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
@@ -45,7 +48,7 @@ function insertRequest(id: string, expiresAt: string) {
   })
 }
 
-function insertConnection(id: string, registeredClientId: string | null) {
+function insertConnection(id: string, registeredClientId: string | null, module = 'documents') {
   fake.addMember('member', ORGANIZATION_ID)
   fake.connections.set(id, {
     id,
@@ -54,8 +57,8 @@ function insertConnection(id: string, registeredClientId: string | null) {
     clientId: registeredClientId ?? 'https://client.example.com/oauth/metadata.json',
     registeredClientId,
     clientName: null,
-    module: 'documents',
-    scopes: ['documents:read'],
+    module,
+    scopes: [`${module}:read`],
     createdAt: ago(0),
     lastUsedAt: null,
   })
@@ -94,6 +97,20 @@ describe('pruneOAuthAuthorizationRequests', () => {
     expect(await pruneOAuthAuthorizationRequests()).toEqual({ deleted: 1 })
     expect([...fake.requests.keys()].sort()).toEqual(['expired', 'pending'])
     expect(await pruneOAuthAuthorizationRequests()).toEqual({ deleted: 0 })
+  })
+})
+
+describe('pruneUnservedAgentConnections', () => {
+  test('deletes the connections to a module no endpoint serves, with their tokens, and keeps the rest', async () => {
+    insertConnection('connection', null, 'retired')
+    insertToken('retired-token', new Date(Date.now() + HOUR_MS).toISOString())
+
+    for (const module of SERVED_MODULE_NAMES) insertConnection(module, null, module)
+
+    expect(await pruneUnservedAgentConnections()).toEqual({ deleted: 1 })
+    expect([...fake.connections.keys()].sort()).toEqual([...SERVED_MODULE_NAMES].sort())
+    expect(fake.tokens.size).toBe(0)
+    expect(await pruneUnservedAgentConnections()).toEqual({ deleted: 0 })
   })
 })
 

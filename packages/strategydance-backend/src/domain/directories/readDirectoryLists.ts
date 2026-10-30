@@ -1,5 +1,5 @@
 import {
-  DIRECTORY_ID_PATTERN,
+  KNOWLEDGE_ID_PATTERN,
   DirectoryBusinessModel,
   DirectoryCategory,
   DirectoryInactiveReason,
@@ -13,7 +13,7 @@ import type { DirectoryLists } from '~types'
 const daySchema = z.iso.date()
 
 const directorySchema = z.strictObject({
-  id: z.string().regex(DIRECTORY_ID_PATTERN),
+  id: z.string().regex(KNOWLEDGE_ID_PATTERN),
   name: z.string().min(1),
   type: z.enum(Object.values(DirectoryType)),
   rootUrl: z.url(),

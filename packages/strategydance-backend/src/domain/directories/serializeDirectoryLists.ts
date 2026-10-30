@@ -1,4 +1,4 @@
-import { compareDirectoryNames } from 'strategydance-knowledge'
+import { compareKnowledgeNames } from 'strategydance-knowledge'
 
 import type { DirectoryLists } from '~types'
 
@@ -12,9 +12,9 @@ import pickDirectoryFields, { pickInactiveDirectoryFields } from '~domain/direct
 */
 function serializeDirectoryLists({ directories, inactiveDirectories }: DirectoryLists) {
   return {
-    directoriesText: serialize(directories.toSorted(compareDirectoryNames).map(pickDirectoryFields)),
+    directoriesText: serialize(directories.toSorted(compareKnowledgeNames).map(pickDirectoryFields)),
     inactiveDirectoriesText: serialize(
-      inactiveDirectories.toSorted(compareDirectoryNames).map(pickInactiveDirectoryFields),
+      inactiveDirectories.toSorted(compareKnowledgeNames).map(pickInactiveDirectoryFields),
     ),
   }
 }

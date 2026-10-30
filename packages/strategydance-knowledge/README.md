@@ -23,7 +23,7 @@ each with the reason its note gave, a `DirectoryInactiveReason`.
 Each entry holds:
 
 - `id`: a slug of the name the entry was first given, lowercase letters and digits in words joined
-  by dashes (`DIRECTORY_ID_PATTERN`), unique across both lists. It never changes, even when the
+  by dashes (`KNOWLEDGE_ID_PATTERN`), unique across both lists. It never changes, even when the
   directory is renamed, so whatever refers to a directory keeps finding it. A directory added by
   hand takes the slug of its name: diacritics and apostrophes dropped, every other run of
   characters but letters and digits a dash
@@ -58,7 +58,7 @@ describes:
 - `CLOSED_TO_PROMOTION`: a community whose rules ban promotion, or that Reddit banned
 
 A directory is in one list or the other, never both: the tests hold ids, names, submission URLs
-and websites' roots unique across the two. Both files are sorted by name, as `compareDirectoryNames`
+and websites' roots unique across the two. Both files are sorted by name, as `compareKnowledgeNames`
 orders them, each entry's fields in the order `DIRECTORY_FIELDS` and `INACTIVE_DIRECTORY_FIELDS`
 give, and written as `JSON.stringify(list, null, 2)` writes them. The daily check writes them
 through the same three, so its files pass the tests. The formatter leaves both files alone: it would

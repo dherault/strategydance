@@ -128,7 +128,7 @@ still found, and left, as any entry changed meanwhile is. A run changes only wha
   always fails is not paid for every day. A failure of the API, or a directory the run had no time
   for, leaves the entry as it was, to be picked again the next day.
 
-Both files are written sorted by name, as the package's `compareDirectoryNames` orders them, each
+Both files are written sorted by name, as the package's `compareKnowledgeNames` orders them, each
 entry's fields in the order its `DIRECTORY_FIELDS` and `INACTIVE_DIRECTORY_FIELDS` give, as
 `JSON.stringify(list, null, 2)` writes them, which `.oxfmtrc.json` keeps oxfmt from rewriting,
 since oxfmt puts a short array, a directory's one category, on one line. The package's tests

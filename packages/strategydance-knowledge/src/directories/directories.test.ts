@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'bun:test'
 
 import {
-  compareDirectoryNames,
+  compareKnowledgeNames,
   DIRECTORIES,
   DIRECTORY_BUSINESS_MODEL_PRECEDENCE,
   DIRECTORY_FIELDS,
-  DIRECTORY_ID_PATTERN,
   DirectoryBusinessModel,
   DirectoryCategory,
   DirectoryInactiveReason,
@@ -13,8 +12,9 @@ import {
   INACTIVE_DIRECTORIES,
   INACTIVE_DIRECTORY_FIELDS,
   isDirectoryCategoryListValid,
+  KNOWLEDGE_ID_PATTERN,
   MAX_DIRECTORY_DESCRIPTION_LENGTH,
-} from './index'
+} from '../index'
 
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
@@ -78,7 +78,7 @@ describe.each(LISTS)('$name', ({ directories, text, fields }) => {
   })
 
   it('identifies each entry by a slug', () => {
-    for (const { id } of directories) expect(id).toMatch(DIRECTORY_ID_PATTERN)
+    for (const { id } of directories) expect(id).toMatch(KNOWLEDGE_ID_PATTERN)
   })
 
   it('names each entry without spaces around its name', () => {
@@ -122,7 +122,7 @@ describe.each(LISTS)('$name', ({ directories, text, fields }) => {
   it('is sorted by name', () => {
     const names = directories.map(({ name }) => name)
 
-    expect(names).toEqual(directories.toSorted(compareDirectoryNames).map(({ name }) => name))
+    expect(names).toEqual(directories.toSorted(compareKnowledgeNames).map(({ name }) => name))
   })
 
   // As a script writes it. The formatter would lay it out otherwise, so `.oxfmtrc.json` ignores it

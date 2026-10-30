@@ -116,6 +116,3 @@ export const INACTIVE_DIRECTORY_FIELDS = [
 
 // The longest description, in characters: one sentence
 export const MAX_DIRECTORY_DESCRIPTION_LENGTH = 200
-
-// What a directory's id is made of: lowercase letters and digits, in words joined by single dashes
-export const DIRECTORY_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/

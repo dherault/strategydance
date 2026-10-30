@@ -1926,7 +1926,10 @@ authorization server from M18 and a consent page from M19:
   `DeleteOrganization` for every reader, since it names only the administrator deleting and every
   member's connections go with it; never by `lastUsedAt`: each with its client, organization, module
   and access, when it connected and when it was last used, and Disconnect, which deletes it with its
-  tokens.
+  tokens. A connection to a module no endpoint serves any more, renamed or retired, goes with its
+  tokens in the daily sweep (`pruneUnservedAgentConnections`) once neither made nor used for a week,
+  so a worker left on an older release, which the deploy updates after the backend, never takes a
+  newer module's; its agent connects again to the module that took its place.
 - **Use with your agents**, an icon button after the Documents page's own action, its tooltip saying
   what an agent may do there, opens a dialog with the module's
   address, a copy button, and how to add it to claude.ai (Settings, Connectors, Add custom

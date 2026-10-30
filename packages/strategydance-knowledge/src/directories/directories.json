@@ -717,10 +717,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aitop10.tools/",
     "submissionUrl": "https://aitop10.tools/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, such as chatbots, writing, image, video, audio, coding and SEO, where makers submit their own tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-30",
     "unreachableSince": null
   },
   {
@@ -2247,10 +2249,15 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.everydev.ai/",
     "submissionUrl": "https://www.everydev.ai/create/tool",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Community directory of AI developer tools, such as coding assistants, agent frameworks and MCP servers, where builders submit, rate and discuss tools.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS",
+      "MCP_SERVERS",
+      "DEVELOPER_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-10-30",
     "unreachableSince": null
   },
   {
@@ -2396,11 +2403,14 @@
     "name": "findyouragent.ai",
     "type": "WEBSITE",
     "rootUrl": "https://findyouragent.ai/",
-    "submissionUrl": "https://findyouragent.ai/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://findyouragent.ai/agents/new",
+    "description": "Directory of AI agents and AI tools sorted by category, such as content creation, design and developer tools, where makers can submit their own agents.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-30",
     "unreachableSince": null
   },
   {
@@ -2875,10 +2885,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://index.dodopayments.com/",
     "submissionUrl": "https://index.dodopayments.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of startups, indie hacker projects and SaaS tools, with listings, reviews and alternatives, run by Dodo Payments.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-10-30",
     "unreachableSince": null
   },
   {
@@ -3510,7 +3522,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-30",
     "unreachableSince": null
   },
   {
@@ -4880,7 +4892,7 @@
     "description": "",
     "categories": [],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-30",
     "unreachableSince": null
   },
   {
@@ -4930,10 +4942,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://shipybara.com/",
     "submissionUrl": "https://shipybara.com/projects/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
+    "description": "Weekly launch platform where makers submit tech products, mostly AI, SaaS and productivity tools, which are featured on the homepage each Monday and upvoted.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_LONG_QUEUE",
+    "lastChecked": "2026-10-30",
     "unreachableSince": null
   },
   {
@@ -5863,10 +5877,14 @@
     "type": "WEBSITE",
     "rootUrl": "https://theresanaiforthat.com/",
     "submissionUrl": "https://theresanaiforthat.com/launch/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools, agents, MCPs and GPTs, sorted by task, where makers of AI products submit their tools for a staff-reviewed listing.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS",
+      "MCP_SERVERS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-30",
     "unreachableSince": null
   },
   {
@@ -5899,10 +5917,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://thingtesting.com/",
     "submissionUrl": "https://thingtesting.com/submit-brand",
-    "description": "",
-    "categories": [],
+    "description": "Review site for online consumer brands selling physical products, such as beauty, home, food and wellness, where founders and customers can submit brands.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-30",
     "unreachableSince": null
   },
   {
@@ -6464,10 +6484,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://weliketools.com/",
     "submissionUrl": "https://weliketools.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of software tools in categories like productivity, marketing, design, AI and development, where makers sign in to submit their own tools for review.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-30",
     "unreachableSince": null
   },
   {

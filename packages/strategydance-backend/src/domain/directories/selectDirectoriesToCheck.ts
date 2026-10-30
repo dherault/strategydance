@@ -1,4 +1,4 @@
-import { type Directory, DirectoryType, type InactiveDirectory } from 'strategydance-directories'
+import { type Directory, DirectoryType, type InactiveDirectory } from 'strategydance-knowledge'
 
 import type { DirectoryLists } from '~types'
 

@@ -1,5 +1,5 @@
 import type { BetaContentBlock, BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import type { Directory, InactiveDirectory } from 'strategydance-directories'
+import type { Directory, InactiveDirectory } from 'strategydance-knowledge'
 
 import type { ClaudeClient, DirectoryCheckUsage, DirectoryProbe, DirectoryReview } from '~types'
 

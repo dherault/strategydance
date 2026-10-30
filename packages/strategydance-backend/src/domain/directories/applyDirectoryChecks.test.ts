@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { type Directory, DirectoryCategory, type InactiveDirectory } from 'strategydance-directories'
+import { type Directory, DirectoryCategory, type InactiveDirectory } from 'strategydance-knowledge'
 
 import type { DirectoryCheck, DirectoryLists, DirectoryPage, DirectoryPageProbe, DirectoryReviewAnswer } from '~types'
 

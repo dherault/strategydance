@@ -1,9 +1,10 @@
 # Directories: the daily check
 
-`packages/strategydance-directories` lists the places a startup can be submitted to, in two files:
-`directories.json`, those open today, and `inactiveDirectories.json`, those nothing can be
-submitted to today, each with its `DirectoryInactiveReason`. Both were read on 2026-10-13 from the
-README of [where-to-submit-your-startup](https://github.com/mmmmingos/where-to-submit-your-startup).
+`packages/strategydance-knowledge/src/directories` lists the places a startup can be submitted to,
+in two files: `directories.json`, those open today, and `inactiveDirectories.json`, those nothing
+can be submitted to today, each with its `DirectoryInactiveReason`. Both were read on 2026-10-13
+from the README of
+[where-to-submit-your-startup](https://github.com/mmmmingos/where-to-submit-your-startup).
 Sites change: they go down, get parked, change what they charge, close their submissions. The daily
 check keeps the lists true, and writes each directory's description and the kinds of product it
 lists, its `categories`, which the import left empty. Each entry also has an `id`, a slug of the
@@ -127,7 +128,7 @@ still found, and left, as any entry changed meanwhile is. A run changes only wha
   always fails is not paid for every day. A failure of the API, or a directory the run had no time
   for, leaves the entry as it was, to be picked again the next day.
 
-Both files are written sorted by name, as the package's `compareDirectoryNames` orders them, each
+Both files are written sorted by name, as the package's `compareKnowledgeNames` orders them, each
 entry's fields in the order its `DIRECTORY_FIELDS` and `INACTIVE_DIRECTORY_FIELDS` give, as
 `JSON.stringify(list, null, 2)` writes them, which `.oxfmtrc.json` keeps oxfmt from rewriting,
 since oxfmt puts a short array, a directory's one category, on one line. The package's tests
@@ -174,7 +175,7 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
 - The pull request is read again once the commit lands. One a person closed while the run ran
   stays closed, since a new one would undo the rejection: the next run starts the branch again from
   `dev`.
-- Each commit is `[directories] Check N directories on <day>`. No hook runs on an API commit, so the
+- Each commit is `[knowledge] Check N directories on <day>`. No hook runs on an API commit, so the
   prefix is written by the code. The day's report is the commit's body, and a comment of its own on
   the pull request, so runs that overlap each add theirs and never write over another's, as a shared
   description would.

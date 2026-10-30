@@ -1,10 +1,10 @@
 import {
-  DIRECTORY_ID_PATTERN,
+  KNOWLEDGE_ID_PATTERN,
   DirectoryBusinessModel,
   DirectoryCategory,
   DirectoryInactiveReason,
   DirectoryType,
-} from 'strategydance-directories'
+} from 'strategydance-knowledge'
 import { z } from 'zod'
 
 import type { DirectoryLists } from '~types'
@@ -13,7 +13,7 @@ import type { DirectoryLists } from '~types'
 const daySchema = z.iso.date()
 
 const directorySchema = z.strictObject({
-  id: z.string().regex(DIRECTORY_ID_PATTERN),
+  id: z.string().regex(KNOWLEDGE_ID_PATTERN),
   name: z.string().min(1),
   type: z.enum(Object.values(DirectoryType)),
   rootUrl: z.url(),
@@ -30,7 +30,7 @@ const inactiveDirectorySchema = directorySchema.extend({
 })
 
 /*
-  The directories package's two lists, from the text of their files. Strict: a field or a value this
+  The knowledge package's two directory lists, from the text of their files. Strict: a field or a value this
   code does not know throws, since the worker runs the code of the last release on the lists of
   `dev`, which may already hold what a newer release added, and writing them back would drop it
 */

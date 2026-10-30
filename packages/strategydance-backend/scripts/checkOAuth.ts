@@ -3,7 +3,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
-import { DEVELOPMENT_API_URL, MAX_AGENT_CONNECTIONS } from 'strategydance-core'
+import { DEVELOPMENT_API_URL, MAX_AGENT_CONNECTIONS, SERVED_MODULE_NAMES } from 'strategydance-core'
 import {
   approveOAuthAuthorizationRequest,
   connectorConfig,
@@ -15,6 +15,7 @@ import {
   pruneAgentConnectionTokens,
   pruneOAuthAuthorizationRequests,
   pruneOAuthClients,
+  pruneUnservedAgentConnections,
   recordAgentConnectionUse,
   revokeAgentConnection,
   rotateAgentConnectionRefreshToken,
@@ -60,7 +61,8 @@ import readModuleCaller from '~modules/readModuleCaller'
 
   It makes a throwaway organization with a member, removes everything it made, then exits non-zero
   naming each check that failed. The sweep's deletes take no organization: they remove every expired
-  request and token, and every unused registration, in the emulator.
+  request and token, every connection to a module no endpoint serves, and every unused registration,
+  in the emulator.
 
   Like `checkConversationSearch.ts`, it refuses to run unless it points at the emulators
 */
@@ -1233,14 +1235,48 @@ async function checkTokens() {
 }
 
 async function checkPrunes() {
+  const clientId = `https://check-${checkId}-unserved.example.com/agent.json`
+
+  // The other member's, since the member was removed, all made over a week ago but one: to a module
+  // no endpoint serves, to one a newer release may serve, made a moment ago, and to a module served
+  await write(
+    `mutation Unserved($userId: String!, $organizationId: UUID!, $clientId: String!, $weekAgo: Timestamp!) {
+      unserved: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "retired", scopes: ["retired:read"], createdAt: $weekAgo })
+      recent: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "newer", scopes: ["newer:read"] })
+      served: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "documents", scopes: ["documents:read"], createdAt: $weekAgo })
+    }`,
+    {
+      userId: otherUserId,
+      organizationId,
+      clientId,
+      weekAgo: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+  )
+
   const prune = async () => {
     await pruneOAuthAuthorizationRequests(dataConnect)
+    await pruneUnservedAgentConnections(dataConnect, { modules: [...SERVED_MODULE_NAMES] })
     await pruneAgentConnectionTokens(dataConnect)
     await pruneOAuthClients(dataConnect)
   }
 
   check('the sweep prunes go through', (await refusal(prune())) === null)
   check('the sweep prunes go through again', (await refusal(prune())) === null)
+
+  const { agentConnections } = await read<{ agentConnections: { module: string }[] }>(
+    `query Pruned($userId: String!, $clientId: String!) {
+      agentConnections(where: { membershipUserId: { eq: $userId }, clientId: { eq: $clientId } }) { module }
+    }`,
+    { userId: otherUserId, clientId },
+  )
+
+  check(
+    "the sweep deletes a connection to a module no endpoint serves idle for a week, and keeps a recent one and a served module's",
+    agentConnections
+      .map(({ module }) => module)
+      .sort()
+      .join() === 'documents,newer',
+  )
 }
 
 try {

@@ -542,6 +542,20 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       return { oAuthAuthorizationRequest_deleteMany: deleted }
     },
 
+    PruneUnservedAgentConnections: variables => {
+      let deleted = 0
+
+      for (const [connectionId, connection] of connections) {
+        const isUnserved = !(variables.modules as string[]).includes(connection.module)
+        const isOld = Date.parse(connection.createdAt) < now() - 7 * DAY_MS
+        const isIdle = connection.lastUsedAt === null || Date.parse(connection.lastUsedAt) < now() - 7 * DAY_MS
+
+        if (isUnserved && isOld && isIdle) deleted += deleteConnection(connectionId)
+      }
+
+      return { agentConnection_deleteMany: deleted }
+    },
+
     PruneAgentConnectionTokens: () => {
       let deleted = 0
 

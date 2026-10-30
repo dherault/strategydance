@@ -4,7 +4,7 @@ import {
   DirectoryCategory,
   isDirectoryCategoryListValid,
   MAX_DIRECTORY_DESCRIPTION_LENGTH,
-} from 'strategydance-directories'
+} from 'strategydance-knowledge'
 import { z } from 'zod'
 
 import type { DirectoryReviewAnswer } from '~types'

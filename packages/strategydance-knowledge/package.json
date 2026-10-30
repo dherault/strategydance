@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "strategydance-directories",
+  "name": "strategydance-knowledge",
   "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",

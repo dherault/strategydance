@@ -20,7 +20,7 @@ import type {
   DirectoryCategory,
   DirectoryInactiveReason,
   InactiveDirectory,
-} from 'strategydance-directories'
+} from 'strategydance-knowledge'
 
 export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategydance-core'
 
@@ -671,10 +671,10 @@ export type SubagentsToolContext = {
 /* ---
   DIRECTORIES
 
-  The daily check of the directories package's lists, `domain/directories/`
+  The daily check of the knowledge package's directory lists, `domain/directories/`
 --- */
 
-// Both lists of the directories package, as a check reads and writes them
+// Both directory lists of the knowledge package, as a check reads and writes them
 export type DirectoryLists = {
   directories: Directory[]
   inactiveDirectories: InactiveDirectory[]

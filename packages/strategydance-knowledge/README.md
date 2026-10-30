@@ -75,9 +75,9 @@ does.
 
 Ways to market a product, in `src/marketingTactics/marketingTactics.json`, exported as
 `MARKETING_TACTICS`. Read on 2026-10-30 from the first Strategy Dance's list,
-[`app/src/data/marketingTactics.json`](https://github.com/dherault/strategy.dance-old/blob/main/app/src/data/marketingTactics.json),
-then rewritten: overlapping tactics merged into one, such as the two sponsorships or the three ways
-of running a community, and each given a channel, a time to results and its metrics. Each holds:
+`app/src/data/marketingTactics.json` in `dherault/strategy.dance-old`, a private repository, then
+rewritten: overlapping tactics merged into one, such as the two sponsorships or the three ways of
+running a community, and each given a channel, a time to results and its metrics. Each holds:
 
 - `id` and `name`
 - `description`: what the tactic is, one sentence of `MAX_KNOWLEDGE_DESCRIPTION_LENGTH` characters

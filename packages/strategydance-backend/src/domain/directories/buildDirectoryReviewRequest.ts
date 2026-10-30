@@ -10,7 +10,7 @@ import {
   DirectoryBusinessModel,
   DirectoryCategory,
   type InactiveDirectory,
-} from 'strategydance-directories'
+} from 'strategydance-knowledge'
 
 import type { DirectoryPageProbe, DirectoryProbe } from '~types'
 

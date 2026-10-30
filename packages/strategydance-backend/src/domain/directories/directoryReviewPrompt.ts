@@ -7,7 +7,7 @@ import {
   DirectoryCategory,
   DirectoryInactiveReason,
   MAX_DIRECTORY_DESCRIPTION_LENGTH,
-} from 'strategydance-directories'
+} from 'strategydance-knowledge'
 
 import { DIRECTORY_REVIEW_MAX_FETCHES } from '~domain/directories/directoryCheckSettings'
 
@@ -23,7 +23,7 @@ export const DIRECTORY_REVIEW_INACTIVE_REASONS = [
 const MODELS = [...DIRECTORY_BUSINESS_MODEL_PRECEDENCE, DirectoryBusinessModel.PAID]
 
 /*
-  What Claude is told when it reviews a directory, built from the directories package's own words
+  What Claude is told when it reviews a directory, built from the knowledge package's own words
   for each category, each business model and each reason, so the review and the list never mean
   different things
 */

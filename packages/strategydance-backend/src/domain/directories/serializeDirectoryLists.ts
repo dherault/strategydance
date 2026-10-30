@@ -1,14 +1,14 @@
-import { compareDirectoryNames } from 'strategydance-directories'
+import { compareDirectoryNames } from 'strategydance-knowledge'
 
 import type { DirectoryLists } from '~types'
 
 import pickDirectoryFields, { pickInactiveDirectoryFields } from '~domain/directories/pickDirectoryFields'
 
 /*
-  The text of the directories package's two files: each list sorted by name, each entry's fields in
-  the package's order, so a moved entry keeps its lines, and the JSON written as `JSON.stringify`
-  writes it, which the formatter leaves alone in these two files. The package's tests hold the files
-  to all three
+  The text of the knowledge package's two directory files: each list sorted by name, each entry's
+  fields in the package's order, so a moved entry keeps its lines, and the JSON written as
+  `JSON.stringify` writes it, which the formatter leaves alone in these two files. The package's
+  tests hold the files to all three
 */
 function serializeDirectoryLists({ directories, inactiveDirectories }: DirectoryLists) {
   return {

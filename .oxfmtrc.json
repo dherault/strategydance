@@ -62,7 +62,7 @@
     "packages/strategydance-translations/translations.lock.json",
     // Written by the directories' daily check as `JSON.stringify` writes them, which the package's
     // tests hold them to: the formatter would put a short array on one line, which it never does
-    "packages/strategydance-directories/src/directories.json",
-    "packages/strategydance-directories/src/inactiveDirectories.json"
+    "packages/strategydance-knowledge/src/directories/directories.json",
+    "packages/strategydance-knowledge/src/directories/inactiveDirectories.json"
   ]
 }

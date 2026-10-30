@@ -1,4 +1,4 @@
-import type { Directory, InactiveDirectory } from 'strategydance-directories'
+import type { Directory, InactiveDirectory } from 'strategydance-knowledge'
 
 import type { ClaudeClient, DirectoryCheck } from '~types'
 

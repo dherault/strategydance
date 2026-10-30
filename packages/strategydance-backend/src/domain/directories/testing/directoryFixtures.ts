@@ -5,7 +5,7 @@ import {
   DirectoryInactiveReason,
   DirectoryType,
   type InactiveDirectory,
-} from 'strategydance-directories'
+} from 'strategydance-knowledge'
 
 import type { DirectoryPageProbe, DirectoryReviewAnswer } from '~types'
 

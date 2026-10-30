@@ -1,15 +1,22 @@
-# strategydance-directories
+# strategydance-knowledge
+
+What Strategy Dance's agents know of companies in general, as data, one folder of `src/` per kind,
+all exported from the package's entry.
+
+## Directories
 
 The places a startup can be submitted to, websites and Reddit communities, in
-`src/directories.json`, exported as `DIRECTORIES`, and the ones nothing can be submitted to today,
-in `src/inactiveDirectories.json`, exported as `INACTIVE_DIRECTORIES`.
+`src/directories/directories.json`, exported as `DIRECTORIES`, and the ones nothing can be
+submitted to today, in `src/directories/inactiveDirectories.json`, exported as
+`INACTIVE_DIRECTORIES`. [directories.md](../../documents/directories.md) says how the daily check
+keeps them true.
 
 Both lists were read on 2026-10-13 from the README of
 [mmmmingos/where-to-submit-your-startup](https://github.com/mmmmingos/where-to-submit-your-startup).
 `DIRECTORIES` holds its directories, the ones only for some startups, and its Reddit communities,
 without its notes and dates. Each business model was read from those notes:
-`DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS`, in `src/constants.ts`, says what each one means, and
-`DIRECTORY_BUSINESS_MODEL_PRECEDENCE` which one a site takes when it has several catches.
+`DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS`, in `src/directories/constants.ts`, says what each one
+means, and `DIRECTORY_BUSINESS_MODEL_PRECEDENCE` which one a site takes when it has several catches.
 `INACTIVE_DIRECTORIES` holds the sites and communities under its "Reported submission problems",
 each with the reason its note gave, a `DirectoryInactiveReason`.
 

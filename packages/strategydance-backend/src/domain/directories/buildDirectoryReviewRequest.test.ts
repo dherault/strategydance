@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import type { BetaContentBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { DIRECTORY_CATEGORY_DESCRIPTIONS, DirectoryCategory } from 'strategydance-directories'
+import { DIRECTORY_CATEGORY_DESCRIPTIONS, DirectoryCategory } from 'strategydance-knowledge'
 
 import buildDirectoryReviewRequest, { DIRECTORY_REVIEW_SCHEMA } from '~domain/directories/buildDirectoryReviewRequest'
 import {

@@ -4,7 +4,7 @@ import {
   DirectoryCategory,
   DirectoryInactiveReason,
   DirectoryType,
-} from 'strategydance-directories'
+} from 'strategydance-knowledge'
 import { z } from 'zod'
 
 import type { DirectoryLists } from '~types'
@@ -30,7 +30,7 @@ const inactiveDirectorySchema = directorySchema.extend({
 })
 
 /*
-  The directories package's two lists, from the text of their files. Strict: a field or a value this
+  The knowledge package's two directory lists, from the text of their files. Strict: a field or a value this
   code does not know throws, since the worker runs the code of the last release on the lists of
   `dev`, which may already hold what a newer release added, and writing them back would drop it
 */

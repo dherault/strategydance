@@ -3,6 +3,12 @@
 What Strategy Dance's agents know of companies in general, as data, one folder of `src/` per kind,
 all exported from the package's entry.
 
+Every entry has an `id`, a slug of the name it was first given (`KNOWLEDGE_ID_PATTERN`), which
+never changes, even when the entry is renamed, so whatever refers to it keeps finding it. Every list
+is sorted by name, as `compareKnowledgeNames` orders it, each entry's fields in the order its kind's
+`…_FIELDS` gives, and written as `JSON.stringify(list, null, 2)` writes it, which the formatter
+leaves alone. The tests hold each file to all that.
+
 ## Directories
 
 The places a startup can be submitted to, websites and Reddit communities, in
@@ -64,3 +70,17 @@ give, and written as `JSON.stringify(list, null, 2)` writes them. The daily chec
 through the same three, so its files pass the tests. The formatter leaves both files alone: it would
 put a short array, such as a directory's one category, on one line, which `JSON.stringify` never
 does.
+
+## Strategic frameworks
+
+Proven ways to think a company's question through, from simple ideas to whole methods, in
+`src/strategicFrameworks/strategicFrameworks.json`, exported as `STRATEGIC_FRAMEWORKS`. Empty until
+the first ones are written. Each is written so an agent can apply it, holding:
+
+- `id` and `name`
+- `description`: what the framework is, one sentence of `MAX_KNOWLEDGE_DESCRIPTION_LENGTH`
+  characters at most
+- `whenToUse`: the situation it helps with, which tells an agent when to reach for it
+- `inputs`: what it needs to know of the company before it can be applied
+- `questions`: what it asks the team, each a question an agent can put to them as it is
+- `output`: what applying it produces, such as a decision, a plan or a document

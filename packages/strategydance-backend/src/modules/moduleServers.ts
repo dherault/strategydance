@@ -5,6 +5,7 @@ import type { ModuleCaller } from '~types'
 
 import createBudgetServer from '~modules/budget/createBudgetServer'
 import createDocumentsServer from '~modules/documents/createDocumentsServer'
+import createKnowledgeServer from '~modules/knowledge/createKnowledgeServer'
 import createSubagentsServer from '~modules/subagents/createSubagentsServer'
 import createTasksServer from '~modules/tasks/createTasksServer'
 
@@ -14,6 +15,7 @@ const MODULE_SERVERS: Record<ModuleName, (caller: ModuleCaller) => McpServer> = 
   tasks: createTasksServer,
   budget: createBudgetServer,
   subagents: createSubagentsServer,
+  knowledge: createKnowledgeServer,
 }
 
 export default MODULE_SERVERS

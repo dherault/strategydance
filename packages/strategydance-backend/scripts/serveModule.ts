@@ -22,6 +22,9 @@ import MODULE_SERVERS from '~modules/moduleServers'
     claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>
     claude mcp add strategydance-budget-local -- bun run mcp:budget <email>
 
+  A module served to no external agent, as Knowledge is, has no script, since no member adds it: run
+  `bun scripts/serveModule.ts knowledge <email>` with the three emulators' variables set.
+
   It acts as the account with that address, which has to have signed in to the app once, in the
   organization named, or in the only one the account belongs to, with every scope of the module, as
   an external agent would: its results carry each document's or task's address on the local web app.

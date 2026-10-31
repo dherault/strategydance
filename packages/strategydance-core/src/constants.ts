@@ -712,6 +712,14 @@ export const MODULES = [
     title: 'Strategy Dance Subagents',
     scopes: { read: 'subagents:read', write: 'subagents:write' },
   },
+  // Strategy Dance's own agents' alone too, as Subagents is: its address is reserved until a later
+  // plan serves it to external agents, and the authorization server refuses it meanwhile
+  {
+    name: 'knowledge',
+    path: '/mcp/knowledge',
+    title: 'Strategy Dance Knowledge',
+    scopes: { read: 'knowledge:read', write: 'knowledge:write' },
+  },
 ] as const satisfies readonly ModuleDefinition[]
 
 /*

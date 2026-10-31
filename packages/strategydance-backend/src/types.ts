@@ -20,6 +20,8 @@ import type {
   DirectoryCategory,
   DirectoryInactiveReason,
   InactiveDirectory,
+  MarketingTactic,
+  StrategicFramework,
 } from 'strategydance-knowledge'
 
 export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategydance-core'
@@ -667,6 +669,30 @@ export type SubagentsWriteResult<Result> =
 export type SubagentsToolContext = {
   caller: ModuleCaller
 }
+
+/* ---
+  KNOWLEDGE MODULE
+
+  The knowledge package's catalogue, read by Strategy Dance's own agents alone
+  (`documents/knowledge.md`)
+--- */
+
+// An item of the knowledge package, with the kind that tells its fields: a directory may be one of
+// the inactive ones, which has an `inactiveReason`
+export type KnowledgeEntry =
+  | { kind: 'STRATEGIC_FRAMEWORK'; item: StrategicFramework }
+  | { kind: 'MARKETING_TACTIC'; item: MarketingTactic }
+  | { kind: 'DIRECTORY'; item: Directory | InactiveDirectory }
+
+/*
+  Why the Knowledge module refused a call, which its tool words for the model: each is something the
+  model can act on by changing what it sent
+*/
+export type KnowledgeRefusal =
+  /** A cursor no list gave, or one it gave under another kind, query or filters */
+  | { outcome: 'invalidCursor' }
+  /** A filter of directories, given to list another kind */
+  | { outcome: 'otherKindFilter'; filter: 'categories' | 'businessModels' }
 
 /* ---
   DIRECTORIES

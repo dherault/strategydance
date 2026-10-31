@@ -728,6 +728,19 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "ctrlalt-cc",
+    "name": "CtrlAlt.cc",
+    "type": "WEBSITE",
+    "rootUrl": "https://ctrlalt.cc/",
+    "submissionUrl": "https://ctrlalt.cc/",
+    "description": "",
+    "categories": [],
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": "2026-10-31",
+    "unreachableSince": null,
+    "inactiveReason": "NO_SUBMISSION"
+  },
+  {
     "id": "demos-co",
     "name": "Demos.co",
     "type": "WEBSITE",
@@ -1711,7 +1724,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-10-31",
     "unreachableSince": null,
     "inactiveReason": "BROKEN_SUBMISSION"
   },

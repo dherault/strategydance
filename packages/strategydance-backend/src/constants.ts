@@ -383,6 +383,14 @@ export const BILL_LIST_PAGE_SIZE = 50
 export const BILL_LIST_PAGE_LENGTH = 40000
 export const BILL_UPDATE_ATTEMPTS = 3
 
+/*
+  The Knowledge module's bounds. A list answers at most 40000 characters of JSON a page, as the Tasks
+  module's does, short of the 50000 characters a tool result is cut at. A read answers at most 10
+  items whole, which the ten longest of any kind keep well within it
+*/
+export const KNOWLEDGE_LIST_PAGE_LENGTH = 40000
+export const MAX_KNOWLEDGE_READ_IDS = 10
+
 /* ---
   OAUTH
 

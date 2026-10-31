@@ -2,8 +2,8 @@
 
 The backend's conventions, beside the root `CLAUDE.md`. What its features do and why is in
 [conversations.md](../../documents/conversations.md), for conversations, modules, OAuth and
-integrations, and [budget.md](../../documents/budget.md): read the one for what you change first.
-This file keeps the rules a change must keep.
+integrations, [budget.md](../../documents/budget.md) and [knowledge.md](../../documents/knowledge.md):
+read the one for what you change first. This file keeps the rules a change must keep.
 
 ## Code
 

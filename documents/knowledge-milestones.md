@@ -164,8 +164,8 @@ The company's state, the four tables of What the company uses, and the three too
   - `SetKnowledgeInUseForAgent`, an upsert writing `changedAt` and `changedBy`;
   - `LinkKnowledgeDocumentForAgent`, `LinkKnowledgeTaskForAgent` and `LinkKnowledgeMemberForAgent`:
     each locks the organization's row, holds its target to the organization under its checks, the
-    document also to `isAiReadable` and both to `deletedAt`, then counts the item's links of that
-    target under `MAX_KNOWLEDGE_LINKS`, 100, before its upsert;
+    document also to `isAiReadable` and both to `deletedAt`, then counts the item's links in its own
+    table, its documents, tasks or members, under `MAX_KNOWLEDGE_LINKS`, 100, before its upsert;
   - `UnlinkKnowledgeDocumentForAgent`, `UnlinkKnowledgeTaskForAgent` and
     `UnlinkKnowledgeMemberForAgent`, each a `deleteMany` answering its count.
 - The operations cannot read the package: the domain holds every id to the catalogue before it calls
@@ -209,7 +209,8 @@ conditions against the emulators:
   - `"me"` and `"member:<id>"`, and a member of another organization refused;
   - a document kept from AI refused with a sentence the agent can act on;
   - a deleted task refused;
-  - the cap, refused at 101;
+  - the cap: an item's 101st task link refused while a document and a member can still be linked to
+    it, and one task linked to 101 items accepted;
   - unlinking what is not linked answering that nothing was removed.
 - **The reads:**
   - `inUse` keeping the items in use, and false keeping the rest, those never marked among them;

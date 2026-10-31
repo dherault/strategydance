@@ -120,8 +120,10 @@ writes none of them, so no live query watches them until a page does.
   - a task or a document deleted within its Undo window keeps its links, which reads skip, as
     `TaskDependency` is read, so a restore brings them back;
   - a row naming an id the release's catalogue no longer has stays, and reads skip it.
-- **At most 100 links per item and per target** (`MAX_KNOWLEDGE_LINKS`), counted under the
-  organization's lock.
+- **At most 100 links from one item to each kind of target** (`MAX_KNOWLEDGE_LINKS`): 100
+  documents, 100 tasks and 100 members, counted under the organization's lock. A document, a task or
+  a member can be linked to any number of items: nothing grows with it but the catalogue, which is
+  bounded.
 - **The agent's writes record no `ActivityDay`**, as no agent's write does.
 
 ### The Knowledge module

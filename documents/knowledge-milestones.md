@@ -117,7 +117,8 @@ verified, so M1 reads nothing: rows carry no `inUse`, and items no `use` or link
 - **`read_knowledge`:**
   - every field of each kind, in the package's order;
   - each enum value with its meaning;
-  - ids the kind has not named in `missing`, and a framework's id read as a tactic among them;
+  - ids absent from the kind's catalogue named in `missing`, a framework's id read as a tactic among
+    them;
   - an inactive directory, with its reason;
   - eleven ids refused, and an id given twice answered once.
 
@@ -202,7 +203,7 @@ conditions against the emulators:
 - **`set_knowledge_in_use`:**
   - set, then cleared, the row kept with its `changedAt`;
   - set again to what it holds, nothing written, `changedAt` kept;
-  - an id the kind has not refused, and an inactive directory set.
+  - an id absent from the kind's catalogue refused, nothing written, and an inactive directory set.
 - **`link_knowledge` and `unlink_knowledge`:**
   - each target linked, then unlinked, and linking twice keeping one;
   - `"me"` and `"member:<id>"`, and a member of another organization refused;
@@ -214,7 +215,7 @@ conditions against the emulators:
   - `inUse` keeping the items in use, and false keeping the rest, those never marked among them;
   - a link to a document since kept from AI left out, its total too;
   - a deleted task's link skipped, then read again once the task is restored;
-  - a row naming an id the catalogue has not skipped.
+  - a row naming an id absent from the catalogue skipped.
 
 **CLAUDE.md:** the backend's file starts `## Knowledge`:
 - the catalogue is the package's as of the release, and the module never writes it;

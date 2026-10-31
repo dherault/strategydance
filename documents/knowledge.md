@@ -140,7 +140,7 @@ Its tools, in their frozen order:
 | Tool | Input | Answers | Kind |
 | --- | --- | --- | --- |
 | `list_knowledge` | `{ kind, query?, inUse?, categories?, businessModels?, cursor? }` | the kind's items as compact rows, by name, paged within `KNOWLEDGE_LIST_PAGE_LENGTH` (40,000 characters), and `cursor` while more remain | read |
-| `read_knowledge` | `{ kind, ids }`, 10 ids at most (`MAX_KNOWLEDGE_READ_IDS`) | each item whole, its enums' meanings, an inactive directory's reason, the company's `use`, and its links; `missing` names the ids the kind has not | read |
+| `read_knowledge` | `{ kind, ids }`, 10 ids at most (`MAX_KNOWLEDGE_READ_IDS`) | each item whole, its enums' meanings, an inactive directory's reason, the company's `use`, and its links; `missing` names the ids absent from the kind's catalogue | read |
 | `set_knowledge_in_use` | `{ kind, id, inUse }` | the item's `use` | write |
 | `link_knowledge` | `{ kind, id, documentId?, taskId?, member? }`, exactly one target | the link, with its target's title or name | write |
 | `unlink_knowledge` | the same | whether a link was removed | write |

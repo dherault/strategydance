@@ -2,7 +2,7 @@
 
 | # | Milestone | Packages | Depends on | Implementation PR |
 | --- | --- | --- | --- | --- |
-| M1 | The Knowledge module, reading the catalogue | core, backend, web | | |
+| M1 | The Knowledge module, reading the catalogue | core, backend, web | | #288 |
 | M2 | What the company uses | database, backend | M1 | |
 | M3 | Knowledge in conversations | backend, web, root | M2 | |
 

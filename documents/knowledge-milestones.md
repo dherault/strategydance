@@ -157,8 +157,8 @@ The company's state, the four tables of What the company uses, and the three too
 - **Reads:**
   - `GetKnowledgeUsesForAgent`: a kind's uses, for `list_knowledge`'s `inUse`;
   - `GetKnowledgeItemsForAgent`: for the ids read, their uses and their links, each list the 20
-    newest with its count. Documents are those the agent may read, and every target is filtered on
-    `deletedAt`.
+    newest with its count. Documents are those the agent may read, and documents and tasks are
+    filtered on `deletedAt`. A membership has none: its links go with it.
 - **Writes**, each an `@transaction` inserting its `ModuleCallResult` under
   `@include(if: $isKeyed)`:
   - `SetKnowledgeInUseForAgent`, an upsert writing `changedAt` and `changedBy`;

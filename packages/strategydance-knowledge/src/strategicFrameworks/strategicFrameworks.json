@@ -179,9 +179,10 @@
       "Is cause-and-effect separated by time/space requiring expert analysis (Complicated: Sense - Analyze - Respond)?",
       "Is cause-and-effect only visible in hindsight (Complex: Probe - Sense - Respond)?",
       "Is there no cause-and-effect relationship discernible and immediate action is required (Chaotic: Act - Sense - Respond)?",
+      "Is it unclear which of these contexts applies (Confused: break the situation into parts and place each in its own domain)?",
       "Which domain does this challenge belong to, and are we misapplying standard practices?"
     ],
-    "output": "Contextual domain classification with prescribed response modes (Apply Best Practice, Analyze, Conduct Safe-to-Fail Experiments, or Act to Stabilize)."
+    "output": "Contextual domain classification with prescribed response modes (Apply Best Practice, Analyze, Conduct Safe-to-Fail Experiments, Act to Stabilize, or Break Down and Classify Each Part)."
   },
   {
     "id": "disruptive-innovation",
@@ -246,7 +247,8 @@
     "inputs": [
       "Target early adopter profiles and observed customer friction",
       "Top customer problems and current alternatives",
-      "Proposed solution capabilities and pricing concepts"
+      "Proposed solution capabilities and pricing concepts",
+      "Cost drivers per customer, such as acquisition and delivery costs"
     ],
     "questions": [
       "What are the top 3 critical problems experienced by our target early adopters?",
@@ -255,6 +257,7 @@
       "What single, clear Unique Value Proposition explains why we are different and worth attention?",
       "What Unfair Advantage does the business possess that cannot be easily copied or bought?",
       "What single key metric best indicates that value is being delivered?",
+      "What will each customer cost to acquire and serve, and what margin does the price leave?",
       "Which assumption, if wrong, completely invalidates the concept?"
     ],
     "output": "A one-page Lean Canvas prioritizing core hypotheses, an initial unit economic outline, and a staged validation roadmap."

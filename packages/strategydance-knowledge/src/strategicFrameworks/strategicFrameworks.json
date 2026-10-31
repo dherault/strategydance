@@ -11,13 +11,13 @@
       "Unit economics and fixed vs. variable cost behavior with scale"
     ],
     "questions": [
-      "Do fixed costs spread over higher volume reduce per-unit costs faster than competitors can match?",
-      "Does the product's value to each user increase as the total network of users expands?",
-      "Is the company pursuing a superior business model that incumbents cannot copy without damaging their core business?",
-      "What financial, operational, or emotional costs do customers incur by switching to an alternative?",
-      "Does the brand command higher pricing or conversion for an otherwise identical offering due to trust?",
-      "Does the business hold exclusive, permanent access to a valuable asset, talent, patent, or resource?",
-      "Has the company developed embedded operational process complexities that yield superior quality or cost structures over time?"
+      "Scale economies: as you grow, does each customer cost you less, faster than your competitors' costs can fall?",
+      "Network economies: does your product get more valuable to each user as more people use it?",
+      "Counter-positioning: is your business model one the big players cannot copy without hurting their own business?",
+      "Switching costs: what would customers lose, in money, time or effort, by leaving you for an alternative?",
+      "Branding: do people pay more for you, or choose you more often, because they trust your name?",
+      "Cornered resource: do you have exclusive access to something valuable, such as a person, a patent, data or a deal?",
+      "Process power: have you built ways of working, over time, that give you better quality or lower costs others cannot easily copy?"
     ],
     "output": "An assessment of present and latent powers across the business model, paired with a staged strategic roadmap to build at least one durable power before market arbitrage occurs."
   },
@@ -33,12 +33,12 @@
       "Referral loop mechanics, viral coefficients, and LTV/pricing metrics"
     ],
     "questions": [
-      "Acquisition: Which channels drive high-intent users efficiently?",
-      "Activation: What specific action signals that a user experienced their initial 'Aha!' moment?",
-      "Retention: What percentage of users stay active over time, and where does cohort decay flatten out?",
-      "Referral: Do active users refer others, and what is the viral loop factor?",
-      "Revenue: How effectively do active users transition into paying accounts?",
-      "Which stage of the lifecycle exhibits the largest drop-off and represents the primary bottleneck to growth?"
+      "Acquisition: which channels bring you people who really want what you offer, at a cost you can afford?",
+      "Activation: what action shows a new user has felt the value of your product for the first time?",
+      "Retention: how many users are still active after a week, a month and three months, and where does it level off?",
+      "Referral: do your users bring others, and how many does each one bring?",
+      "Revenue: how many active users become paying customers?",
+      "At which of these steps do you lose the most people?"
     ],
     "output": "A lifecycle funnel conversion dashboard identifying the top growth bottleneck, supported by a prioritized backlog of growth hypotheses and experiments."
   },
@@ -54,11 +54,11 @@
       "Corporate risk tolerance and R&D/GTM capacity"
     ],
     "questions": [
-      "Can growth targets be achieved by increasing market share of existing products in current markets (Market Penetration)?",
-      "Can existing products be introduced into new geographic areas, verticals, or demographics (Market Development)?",
-      "Can new products or features be developed to sell to our existing customer base (Product Development)?",
-      "Should the business introduce new products into entirely new markets, and what risk does this entail (Diversification)?",
-      "Which path offers the optimal balance of return on investment versus execution risk?"
+      "Can you reach your growth goal by selling more of what you have to the customers you already target?",
+      "Could you sell what you have to new customers: another country, industry or kind of buyer?",
+      "Could you build something new for the customers you already have?",
+      "Should you build something new for an entirely new market, and how much more risk would that be?",
+      "Which of these paths gives you the best return for the risk you can take?"
     ],
     "output": "A categorized portfolio of growth options mapped by risk profile, complete with prioritized allocation of capital, resources, and validation milestones."
   },
@@ -74,11 +74,11 @@
       "Employee capabilities, culture, and infrastructure status"
     ],
     "questions": [
-      "Financial: To succeed financially, how should we appear to our shareholders?",
-      "Customer: To achieve our vision, how should we appear to our customers?",
-      "Internal Processes: To satisfy our shareholders and customers, at what business processes must we excel?",
-      "Learning & Growth: To achieve our vision, how will we sustain our ability to change and improve?",
-      "What cause-and-effect linkages connect performance across these four dimensions?"
+      "Money: what financial results would tell you the business is on track?",
+      "Customers: what must customers think of you for your vision to come true?",
+      "Processes: what must you be excellent at, day to day, to deliver those results?",
+      "Learning: how will you, and your team, keep learning and improving?",
+      "How does progress in one of these lead to progress in the others?"
     ],
     "output": "A Strategy Map linking objectives across all four perspectives, paired with an integrated performance scorecard of metrics, targets, and strategic initiatives."
   },
@@ -94,12 +94,12 @@
       "Revenue, contribution margin, and cash generation/consumption profiles per unit"
     ],
     "questions": [
-      "Which offerings operate in rapidly growing markets and hold dominant market share (Stars)?",
-      "Which mature products generate steady cash flows well beyond their reinvestment needs (Cash Cows)?",
-      "Which offerings in high-growth markets have low market share and consume heavy cash with uncertain outcomes (Question Marks)?",
-      "Which products exhibit weak market share in stagnant or declining markets (Dogs)?",
-      "How can cash generated from Cash Cows be deployed to convert Question Marks into Stars?",
-      "Which underperforming products or business units should be harvested or divested?"
+      "Which of your products lead a market that is growing fast? These are your stars.",
+      "Which bring in steady money in a mature market, more than they need to keep going? These are your cash cows.",
+      "Which sit in a growing market with few customers yet, eating time and money for an uncertain result? These are your question marks.",
+      "Which have few customers in a market that has stopped growing? These are your dogs.",
+      "How could the money from your cash cows turn a question mark into a star?",
+      "Which products should you stop investing in, or drop?"
     ],
     "output": "A portfolio matrix mapping each unit into a quadrant, accompanied by clear capital allocation directives: Invest, Maintain/Hold, Harvest, or Divest."
   },
@@ -115,12 +115,12 @@
       "Internal cost structures and operational levers"
     ],
     "questions": [
-      "Which factors that the industry takes for granted should be eliminated entirely?",
-      "Which factors should be reduced well below the industry standard?",
-      "Which factors should be raised well above the industry standard?",
-      "Which factors should be created that the industry has never offered?",
-      "Which tier of non-customers are currently avoiding the industry, and what fundamental barriers block them?",
-      "Does the resulting Strategy Canvas reveal a distinct, focused, and compelling tag line?"
+      "What does everyone in your market offer that customers would not miss if you dropped it?",
+      "What could you offer much less of than the norm without losing customers?",
+      "What should you offer much more of than the norm?",
+      "What could you offer that nobody in your market offers yet?",
+      "Who stays away from your market altogether today, and what keeps them away?",
+      "Put together, does this give you a clear, focused offer you can describe in one line?"
     ],
     "output": "An Eliminate-Reduce-Raise-Create (ERRC) grid, a Strategy Canvas comparing current vs. new Value Curves, and a validated value proposition unlocking new market demand."
   },
@@ -136,12 +136,12 @@
       "Cost structure components (fixed and variable)"
     ],
     "questions": [
-      "Who are our target customer segments, and what value proposition do we deliver to each?",
-      "Through which channels do we interact with, sell to, and support customers?",
-      "How do we generate revenue streams, and what is customer willingness to pay?",
-      "Which key activities and assets are mandatory to operate our value chain?",
-      "Who are key partners, and what dependencies exist?",
-      "What are the major cost drivers of this model?"
+      "Who are your customers, and what do you offer each of them?",
+      "How do you reach them, sell to them and support them?",
+      "How do you make money, and how much are customers willing to pay?",
+      "What work and what assets do you need to make it all run?",
+      "Who are your key partners, and what do you depend on them for?",
+      "What are your biggest costs?"
     ],
     "output": "A completed nine-block Business Model Canvas detailing interdependencies, operational risks, and priority assumptions for testing."
   },
@@ -156,11 +156,11 @@
       "Product status vs. 'Whole Product' requirements (integrations, support, partners)"
     ],
     "questions": [
-      "Which single, highly specific customer niche exhibits the most compelling, urgent problem?",
-      "What is required to deliver a complete 'Whole Product' solution that leaves zero risk for pragmatic buyers in that niche?",
-      "Who are the trusted references within this niche that will influence neighboring segments?",
-      "How can we position ourselves as the undisputed dominant leader in this specific beachhead segment?",
-      "Which adjacent segments should we target once the beachhead is secured?"
+      "Which narrow group of customers has the most urgent need for what you solve?",
+      "What would it take to give them a complete solution, with the integrations, support and partners that make buying feel safe?",
+      "Who do those customers trust, and could vouch for you to their peers?",
+      "How could you become the obvious choice for that one group?",
+      "Which neighboring group would you go after once you have won the first?"
     ],
     "output": "A defined Beachhead Market choice, a Whole Product architecture blueprint, pragmatic positioning statements, and a sequential segment expansion plan."
   },
@@ -175,12 +175,12 @@
       "Historical precedents and expertise availability"
     ],
     "questions": [
-      "Is cause-and-effect clear to everyone (Clear: Sense - Categorize - Respond)?",
-      "Is cause-and-effect separated by time/space requiring expert analysis (Complicated: Sense - Analyze - Respond)?",
-      "Is cause-and-effect only visible in hindsight (Complex: Probe - Sense - Respond)?",
-      "Is there no cause-and-effect relationship discernible and immediate action is required (Chaotic: Act - Sense - Respond)?",
-      "Is it unclear which of these contexts applies (Confused: break the situation into parts and place each in its own domain)?",
-      "Which domain does this challenge belong to, and are we misapplying standard practices?"
+      "Clear: is it obvious what causes what, so you can follow what is known to work?",
+      "Complicated: could an expert work out the cause, and the answer, with enough analysis?",
+      "Complex: do causes only make sense looking back, so you have to try small, safe experiments and learn as you go?",
+      "Chaotic: is there no visible cause at all, so you have to act now to steady things first?",
+      "Confused: is it unclear which of these fits, so you should break the situation into parts and place each one?",
+      "Which of these fits your situation, and are you using the wrong approach for it?"
     ],
     "output": "Contextual domain classification with prescribed response modes (Apply Best Practice, Analyze, Conduct Safe-to-Fail Experiments, Act to Stabilize, or Break Down and Classify Each Part)."
   },
@@ -195,10 +195,10 @@
       "Underserved or non-consuming customer demographics"
     ],
     "questions": [
-      "Are mainstream customers overserved by incumbents and paying for performance features they don't use?",
-      "Does a market segment of non-consumers exist who lack the money or skill to buy current industry offerings?",
-      "Does the new entrant start with a simpler, lower-margin business model that incumbents prefer to yield rather than defend?",
-      "Is the entrant's improvement trajectory fast enough to satisfy mainstream market demands over time?"
+      "Are the big players' customers paying for features they never use?",
+      "Who can't afford today's products, or finds them too hard to use, and goes without?",
+      "Does the newcomer, possibly you, start with a simpler, cheaper offer the big players would rather give up than fight for?",
+      "Is that offer getting better fast enough to satisfy mainstream customers in time?"
     ],
     "output": "A diagnostic evaluation of disruptive potential, paired with strategic response choices: spin off an autonomous unit, launch a low-end offering, or yield non-core tiers."
   },
@@ -212,11 +212,11 @@
       "Empirical facts, underlying physics, economics, or technical constraints"
     ],
     "questions": [
-      "What is the precise problem we are trying to solve?",
-      "What claims about this problem are fundamental, verifiable facts versus inherited assumptions?",
-      "Why is the current solution structured this way, and which parts are merely convention?",
-      "If we built a solution from scratch using only fundamental truths, what would it look like?",
-      "What cheap experiment can validate the feasibility of this reconstructed solution?"
+      "What exactly is the problem you are trying to solve?",
+      "What do you know for sure about it, and what are you only assuming because everyone does?",
+      "Why is today's solution built the way it is, and which parts are only habit?",
+      "If you started from scratch with only what you know for sure, what would you build?",
+      "What cheap experiment would show whether that could work?"
     ],
     "output": "A problem breakdown separating core truths from conventional assumptions, accompanied by radical alternative solutions and a validation experiment design."
   },
@@ -231,11 +231,11 @@
       "Workarounds and alternative solutions currently 'hired' by users"
     ],
     "questions": [
-      "What specific circumstance or trigger caused the customer to seek a new solution?",
-      "What functional, emotional, and social progress is the customer trying to achieve?",
-      "What existing tools or behaviors were they using, and what made them unsatisfactory?",
-      "What anxieties, habits, or switching costs created friction during adoption?",
-      "What other solutions, including doing nothing, compete for the same job?"
+      "What happened that made your customer start looking for a solution?",
+      "What are they trying to get done, and how do they want to feel, or be seen, once it is done?",
+      "What were they using before, and why did it fall short?",
+      "What worried them, held them back or made switching hard?",
+      "What else competes for the same job, doing nothing included?"
     ],
     "output": "A series of Job Statements outlining customer circumstances, desired outcomes, push/pull forces, and an actionable roadmap for product design and messaging."
   },
@@ -251,14 +251,14 @@
       "Cost drivers per customer, such as acquisition and delivery costs"
     ],
     "questions": [
-      "What are the top 3 critical problems experienced by our target early adopters?",
-      "How do early adopters solve these problems today (existing alternatives)?",
-      "What simple, high-value solution features address these problems directly?",
-      "What single, clear Unique Value Proposition explains why we are different and worth attention?",
-      "What Unfair Advantage does the business possess that cannot be easily copied or bought?",
-      "What single key metric best indicates that value is being delivered?",
+      "What are the three biggest problems your first customers have?",
+      "How do they solve those problems today?",
+      "What is the simplest solution that solves them?",
+      "In one sentence, why is your product different and worth their attention?",
+      "What advantage do you have that nobody can easily copy or buy?",
+      "What one number shows best that customers are getting value?",
       "What will each customer cost to acquire and serve, and what margin does the price leave?",
-      "Which assumption, if wrong, completely invalidates the concept?"
+      "Which assumption, if it proves wrong, kills the idea?"
     ],
     "output": "A one-page Lean Canvas prioritizing core hypotheses, an initial unit economic outline, and a staged validation roadmap."
   },
@@ -273,14 +273,14 @@
       "Cultural values, leadership style behaviors, talent baseline, and skills inventory"
     ],
     "questions": [
-      "Strategy: Is our strategy clear, and do all elements reinforce it?",
-      "Structure: Does the organizational hierarchy support or impede strategic goals?",
-      "Systems: Do operational processes and tools monitor and support execution?",
-      "Shared Values: What core beliefs unify the culture, and do they align with strategic needs?",
-      "Style: How do leaders make decisions, communicate, and manage?",
-      "Staff: Do we have the right talent pool in key positions?",
-      "Skills: What institutional competencies exist, and where are critical gaps?",
-      "Where are these seven elements out of alignment with one another?"
+      "Strategy: is your strategy clear, and does everything else support it?",
+      "Structure: does the way you, or your team, are organized help or get in the way?",
+      "Systems: do your tools and routines help you get the work done and see how it is going?",
+      "Shared values: what do you, and your team, believe in, and does it fit where you are going?",
+      "Style: how do you make decisions, communicate and lead?",
+      "Staff: do you have the people, or the help, you need where it matters most?",
+      "Skills: what are you good at, and which missing skills hold you back?",
+      "Where do these seven pull against each other?"
     ],
     "output": "A diagnostic report illustrating internal alignment gaps across the 7 elements, accompanied by an integrated organizational change implementation plan."
   },
@@ -295,11 +295,11 @@
       "Financial revenue drivers and subscription dynamics"
     ],
     "questions": [
-      "What specific user action proves that a customer received core value from our product?",
-      "Does growth in this metric directly lead to sustained retention and long-term revenue?",
-      "Can cross-functional teams directly influence this metric through product and marketing levers?",
-      "What 3–5 input metrics directly drive this North Star Metric?",
-      "What guardrail metrics must be monitored to ensure we don't optimize this metric in ways that harm the business?"
+      "What action by a customer proves they got real value from your product?",
+      "When that number grows, do customers stay longer and pay more?",
+      "Can you move that number through what you build and how you market it?",
+      "What 3 to 5 smaller numbers drive it?",
+      "What other numbers should you watch, so that chasing this one never hurts the business?"
     ],
     "output": "A defined North Star Metric, an input metric hierarchy for product teams, guardrail measures, and an operational dashboard structure."
   },
@@ -314,11 +314,11 @@
       "Team operational bandwidth, dependencies, and capacity constraints"
     ],
     "questions": [
-      "What key qualitative achievement will yield the highest strategic impact over the upcoming period (Objective)?",
-      "What 3–5 quantitative outcomes will conclusively prove that this Objective was realized (Key Results)?",
-      "What baseline values are we starting from, and what aggressive targets represent success?",
-      "What non-essential initiatives must be explicitly deprioritized to guarantee focus?",
-      "Which team and individual owners hold accountability for each Key Result?"
+      "What is the one thing you most want to achieve over the next three months?",
+      "What 3 to 5 measurable results would prove you achieved it?",
+      "Where do those numbers stand today, and what targets would count as a success?",
+      "What will you put aside so you can stay focused?",
+      "Who is responsible for each result?"
     ],
     "output": "A set of aligned Objectives paired with 3–5 quantifiable Key Results per objective, accompanied by baseline/target metrics, clear ownership assignments, and a review cadence."
   },
@@ -336,13 +336,13 @@
       "Emerging technological advancements and societal shifts"
     ],
     "questions": [
-      "Which current or upcoming laws, political decisions, or trade regulations could alter how we operate or sell?",
-      "How would macroeconomic shifts (recession, interest rate changes, inflation) impact customer spending?",
-      "Which demographic, cultural, or behavioral shifts make our product more or less essential to society?",
-      "Which emerging technologies could make our offering obsolete, cheaper to copy, or radically more efficient?",
-      "What environmental or sustainability expectations are customers, regulators, or investors holding us to?",
-      "Which external factors carry the highest likelihood and potential operational impact?",
-      "What strategic actions or pivots should the business execute in response?"
+      "Which laws, regulations or political decisions, already here or coming, could change how you work or sell?",
+      "How would a recession, rising interest rates or inflation change what your customers spend?",
+      "Which changes in how people live, work or think make your product more needed, or less?",
+      "Which new technologies could make your product obsolete, easier to copy, or much cheaper to run?",
+      "What do customers, regulators or investors expect of you on the environment?",
+      "Of all these outside changes, which are the most likely, and which would matter most to you?",
+      "What should you change in your plans in response?"
     ],
     "output": "A categorized assessment of external macro factors rated by likelihood and impact, highlighting emerging opportunities/threats alongside actionable strategic responses."
   },
@@ -358,12 +358,12 @@
       "Customer willingness to pay and economics"
     ],
     "questions": [
-      "What does winning look like for this enterprise (concrete, customer-focused ambition)?",
-      "Where will we play (specific customer segments, channels, geographies, product lines) and explicitly not play?",
-      "How will we win in those chosen areas (low-cost structure or differentiation leadership)?",
-      "What set of interconnected capabilities must be built and maintained to win there?",
-      "What management systems, metrics, and structures must support those capabilities?",
-      "What would have to be true for this set of strategic choices to be successful?"
+      "What does winning look like for you, in terms of the customers you serve?",
+      "Where will you play: which customers, channels, places and products, and which will you leave aside on purpose?",
+      "How will you win there: by being cheaper, or by being different in a way customers value?",
+      "What abilities must you build, and keep, to win there?",
+      "What routines, numbers and ways of working will keep those abilities strong?",
+      "What would have to be true for these choices to work?"
     ],
     "output": "A one-page Strategy Cascade document outlining the 5 reinforced choices, explicit trade-offs/exclusions, and key underlying assumptions to validate."
   },
@@ -381,13 +381,13 @@
       "Capital requirements, regulatory barriers, and structural entry barriers"
     ],
     "questions": [
-      "How intense is price competition and product differentiation among existing industry rivals?",
-      "What financial, structural, or regulatory barriers prevent well-funded newcomers from entering the market?",
-      "What viable non-industry alternative solutions exist, and how easily could customers switch to them?",
-      "How much leverage do key buyer segments hold over pricing, customization, and contract terms?",
-      "How strong is supplier concentration, and how much power do suppliers hold over key input costs?",
-      "Which of these forces exert the greatest pressure on industry margins, and which are strengthening or weakening over time?",
-      "Where can the company position itself to shield its business from the strongest competitive forces?"
+      "How hard do your competitors fight on price, and how different are their products from one another?",
+      "What stops a well-funded newcomer from entering your market tomorrow?",
+      "What could customers use instead of any product like yours, and how easily could they switch to it?",
+      "How much can your customers push you on price or terms?",
+      "How much do you depend on a few suppliers or platforms, and could they raise their prices on you?",
+      "Which of these pressures squeezes your margins most, and which is getting stronger?",
+      "Where could you position yourself to escape the strongest of them?"
     ],
     "output": "An industry profitability and structure assessment rating each force's strength with empirical evidence, identifying key margin risks, and delivering strategic positioning recommendations to minimize competitive pressures."
   },
@@ -401,11 +401,11 @@
       "Cross-functional team members involved in design and execution"
     ],
     "questions": [
-      "Imagine we are 12–24 months in the future, and this initiative has failed catastrophically. What went wrong?",
-      "Which customer, technical, competitive, or operational assumptions proved fatally incorrect?",
-      "What early warning signals did we overlook or ignore during execution?",
-      "Which identified failure modes carry the highest probability and impact?",
-      "What preventative adjustments or contingency plans must we incorporate into the live plan today?"
+      "Imagine it's a year or two from now, and this plan has failed badly. What went wrong?",
+      "Which of your assumptions about customers, technology, competitors or operations turned out to be wrong?",
+      "What warning signs did you miss or ignore along the way?",
+      "Which of these failures is the most likely, and which would hurt the most?",
+      "What will you change in the plan today, or prepare in case it happens?"
     ],
     "output": "A prioritized risk register mapping plausible failure causes, early warning indicators, preventative mitigations, and pre-planned decision triggers."
   },
@@ -422,11 +422,11 @@
       "Implementation resource requirements (Effort)"
     ],
     "questions": [
-      "Reach: How many users/customers will this initiative impact over a given time period?",
-      "Impact: How much will this increase our core metric for each user reached (0.25=Minimal, 1=Medium, 3=Massive)?",
-      "Confidence: How confident are we in our Reach and Impact estimates based on available evidence (100%=High, 80%=Medium, 50%=Low)?",
-      "Effort: How many person-months will be required across engineering, design, and GTM to complete this?",
-      "What is the final calculated RICE Score: (Reach × Impact × Confidence) / Effort?"
+      "Reach: how many customers would each idea touch over the next few months?",
+      "Impact: how much would it move your main goal for each of them: a little (0.25), a fair amount (1) or a lot (3)?",
+      "Confidence: how sure are you of those guesses: very (100%), fairly (80%) or not much (50%)?",
+      "Effort: how many weeks of work would it take, counting building, designing and launching it?",
+      "Multiplying reach, impact and confidence, then dividing by effort, which ideas come out on top, and does that match your gut?"
     ],
     "output": "A scored and prioritized initiative backlog with explicit confidence weights, rationale, and recommended resource allocations."
   },
@@ -441,12 +441,12 @@
       "Key driving forces categorized by impact and uncertainty"
     ],
     "questions": [
-      "What fundamental forces and trends will shape our operating environment over the target timeline?",
-      "Which two driving forces possess the highest potential impact and the highest degree of uncertainty?",
-      "What 4 distinct plausible scenario worlds emerge when plotting these two uncertainties on a 2x2 matrix?",
-      "How resilient is our current business model and strategy in each of these scenario worlds?",
-      "What no-regret strategic choices create value regardless of which scenario unfolds?",
-      "What early-warning indicators signal which scenario world is becoming reality?"
+      "What big trends and forces will shape your market over the next few years?",
+      "Which two of them would matter most to you, and are the hardest to predict?",
+      "Crossing those two, what four different futures could play out?",
+      "How would your business hold up in each of them?",
+      "What could you do now that helps in every one of those futures?",
+      "What early signs would tell you which future is arriving?"
     ],
     "output": "Four distinct scenario narratives, a strategy stress-test assessment matrix, a list of 'no-regret' strategic moves, and early-warning monitoring signposts."
   },
@@ -463,13 +463,13 @@
       "Macro-environmental factors (regulatory, technological, economic)"
     ],
     "questions": [
-      "What advantages, unique resources, or capabilities does the company possess that customers value over alternatives?",
-      "Where are current operational bottlenecks, resource gaps, or competitive vulnerabilities that cause lost deals or people?",
-      "What emerging market trends, technological shifts, or unserved customer needs present new avenues for growth?",
-      "What external shifts, market dynamics, or competitive moves could imperil current revenue or business operations?",
-      "Which strengths can be directly leveraged to capture the most attractive opportunities?",
-      "Which weaknesses leave the company most exposed to critical external threats?",
-      "Which top 3 strategic issues deserve immediate executive attention?"
+      "What do you do better than the alternatives, in your customers' eyes?",
+      "Where are you weak: what makes you lose customers, deals or time?",
+      "What changes in your market, or needs nobody serves yet, could help you grow?",
+      "What changes outside your control, or moves by competitors, could hurt your revenue?",
+      "Which of your strengths could help you seize your best opportunity?",
+      "Which of your weaknesses leave you most exposed to those threats?",
+      "Which three issues need your attention first?"
     ],
     "output": "A structured SWOT matrix pairing internal capabilities with external dynamics, resulting in a prioritized list of strategic initiatives to capitalize on strengths, address weaknesses, and mitigate threats."
   },
@@ -484,11 +484,11 @@
       "Feedback from frontline teams on execution roadblocks"
     ],
     "questions": [
-      "What is the single critical challenge or barrier standing in the company's path?",
-      "Why is this challenge hard, and what underlying forces perpetuate it?",
-      "What overarching Guiding Policy or approach will we adopt to address this diagnosis?",
-      "What specific, coordinated Coherent Actions will carry out this policy?",
-      "What competing initiatives or goals must we stop pursuing to concentrate energy on this challenge?"
+      "What is the one biggest obstacle standing in your way?",
+      "Why is it hard, and what keeps it in place?",
+      "What overall approach will you take to get past it?",
+      "What specific actions, working together, will carry out that approach?",
+      "What will you stop doing so you can focus on this?"
     ],
     "output": "A concise strategy document identifying the core Diagnosis, the unifying Guiding Policy, and a set of mutually reinforcing Coherent Actions."
   },
@@ -503,11 +503,11 @@
       "R&D budget, talent distribution, and long-term strategic ambition"
     ],
     "questions": [
-      "What critical initiatives are required in the next 0–12 months to optimize and defend our core revenue engines (Horizon 1)?",
-      "Which emerging initiatives could scale into high-margin revenue drivers in 1–3 years (Horizon 2)?",
-      "What high-upside options or disruptive bets should we seed for 3–5 years out (Horizon 3)?",
-      "How is leadership attention, budget, and talent distributed across these three horizons today versus where it should be?",
-      "Are we managing each horizon with metrics and management styles appropriate to its maturity?"
+      "What must you do in the next 12 months to protect and improve what brings in money today?",
+      "Which new ideas could grow into real revenue within 1 to 3 years?",
+      "Which bold bets, uncertain but with a big upside, should you start exploring for 3 to 5 years out?",
+      "How do you split your time and money across these three today, and how should you split them?",
+      "Are you judging each by the right measures, since a new bet cannot be held to the numbers of what already works?"
     ],
     "output": "A strategic portfolio map categorizing initiatives into three time horizons, complete with target resource ratios (e.g., 70/20/10) and distinct governance metrics for each."
   },
@@ -521,11 +521,11 @@
       "Company strategic objectives, resource limits, and execution constraints"
     ],
     "questions": [
-      "How can we deploy internal Strengths to capitalize on external Opportunities (SO Strategies)?",
-      "How can we leverage Opportunities to overcome or bypass internal Weaknesses (WO Strategies)?",
-      "How can we use internal Strengths to protect against or mitigate external Threats (ST Strategies)?",
-      "How can we minimize internal Weaknesses and avoid severe exposure to external Threats (WT Strategies)?",
-      "Which combinations yield the highest strategic return given current capabilities?"
+      "How can you use your strengths to seize your opportunities?",
+      "Which opportunities could help you get past your weaknesses?",
+      "How can your strengths protect you from your threats?",
+      "How can you shrink your weaknesses, so threats cannot hit you where you are weakest?",
+      "Of all these moves, which pays off most with what you have today?"
     ],
     "output": "A TOWS Matrix generating four explicit strategic action lists (SO, WO, ST, WT) prioritized by fit, impact, and feasibility."
   },
@@ -540,11 +540,11 @@
       "Customer willingness-to-pay drivers and competitive benchmarks"
     ],
     "questions": [
-      "What are the primary activities (Inbound, Operations, Outbound, Marketing/Sales, Service) that create our product/service?",
-      "What support activities (Infrastructure, HR, Tech, Procurement) enable those primary steps?",
-      "Which specific activities account for the largest proportion of total operating costs?",
-      "In which activities do we create distinctive value that customers recognize and pay a premium for?",
-      "Which non-core activities could be performed better, faster, or cheaper by specialized external partners?"
+      "What steps does it take to make your product, deliver it, sell it and support your customers?",
+      "What supports those steps behind the scenes: tools, hiring, buying and running the company?",
+      "Which steps cost you the most?",
+      "In which steps do you create something customers notice and will pay more for?",
+      "Which steps could someone else do better, faster or cheaper for you?"
     ],
     "output": "A Value Chain Map breaking down costs and value contributions per activity, paired with operational optimization and outsourcing recommendations."
   },
@@ -559,11 +559,11 @@
       "Existing or planned product feature specifications"
     ],
     "questions": [
-      "What functional, social, and emotional jobs is the customer trying to accomplish?",
-      "What severe pains, risks, or roadblocks do customers encounter while attempting these jobs?",
-      "What positive gains, outcomes, or delights do customers expect or desire?",
-      "How precisely do our product features act as pain relievers?",
-      "How do our product features produce the exact gains customers care about most?"
+      "What are your customers trying to get done, and how do they want to feel doing it?",
+      "What frustrates them, blocks them or worries them along the way?",
+      "What results do they expect at the very least, and what would delight them?",
+      "How exactly does your product take those frustrations away?",
+      "How does it bring the results they care about most?"
     ],
     "output": "A detailed Customer Profile and Value Map alignment diagram identifying high-fit features, messaging angles, and critical gaps in customer value."
   },
@@ -579,12 +579,12 @@
       "Organizational governance structure, capital allocation, and operating processes"
     ],
     "questions": [
-      "Which assets or capabilities enable the business to exploit market opportunities or neutralize threats?",
-      "Which of these valuable resources are possessed by few or no competing players?",
-      "How difficult, expensive, or time-consuming would it be for competitors to imitate or substitute these capabilities?",
-      "Is the company structured, funded, and managed to fully exploit these resources?",
-      "Which capabilities provide only parity or temporary advantage, and which offer a defensible, sustained advantage?",
-      "Where should the firm allocate resources to reinforce its most defensible advantage?"
+      "What do you have, such as a skill, data, a brand, people or partners, that helps you win customers or fend off threats?",
+      "Which of these do few or none of your competitors have?",
+      "How hard, costly or slow would it be for a competitor to copy them, or to find something that does the same job?",
+      "Do you have the time, money and focus to make the most of them?",
+      "Which of them only keep you level with competitors, or ahead for a while, and which give you an edge that lasts?",
+      "Where should you put your time and money to strengthen the edge that lasts?"
     ],
     "output": "A matrix classifying each core resource as a competitive disadvantage, parity, temporary advantage, or sustained competitive advantage, paired with actionable recommendations on capital allocation and defense."
   },
@@ -599,11 +599,11 @@
       "Market maturity state of each component in the ecosystem"
     ],
     "questions": [
-      "Who is the target user, and what primary need anchors this value chain?",
-      "What sub-components, services, and infrastructure are required to deliver that need?",
-      "Where does each component lie on the evolutionary axis (Genesis, Custom, Product, Commodity)?",
-      "Are we spending engineering resources custom-building components that have become standardized products or commodities?",
-      "Which components are evolving rapidly, and what strategic moves can we execute to exploit that movement?"
+      "Who is your user, and what do they need most from you?",
+      "What does it take to meet that need: which parts, services and infrastructure?",
+      "How mature is each part: brand new, built to order, a product you can buy, or a commodity anyone supplies?",
+      "Are you building by hand something you could now buy or rent off the shelf?",
+      "Which parts are changing fastest, and how could you take advantage of that?"
     ],
     "output": "A visual Wardley Map of the value chain displaying component evolution, identifying strategic waste, and highlighting high-leverage build/buy/outsource actions."
   }

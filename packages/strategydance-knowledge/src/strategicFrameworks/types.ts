@@ -13,7 +13,8 @@ export type StrategicFramework = {
   whenToUse: string
   // What it needs to know of the company before it can be applied
   inputs: string[]
-  // What it asks the team, each a question an agent can put to them as it is
+  // What it asks the founder or the team, each a question an agent can put to them as it is: in plain
+  // words, to "you", the framework's own terms explained where they appear
   questions: string[]
   // What applying it produces, such as a decision, a plan or a document
   output: string

@@ -5261,6 +5261,22 @@
         "hash": "3fb0f5196115dc3b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.knowledgeAgentsButton": {
+        "hash": "212780850659275f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.knowledgeName": {
+        "hash": "61603555dc265859",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.knowledgeReadAccess": {
+        "hash": "1894d0da56fc78fa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.knowledgeWriteAccess": {
+        "hash": "90974bea27048b60",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.lastUsedAgo": {
         "hash": "f7bb9251a0ecbfae",
         "locales": "DE,ES,FR,JA,PT,ZH"

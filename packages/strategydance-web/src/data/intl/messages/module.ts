@@ -99,6 +99,31 @@ const moduleMessages = defineMessages({
     description:
       "Tooltip and accessible name of an icon button that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to the Subagents module. Subagents are runs of Strategy Dance's agent that each carry out a piece of work in parallel.",
   },
+  knowledgeName: {
+    id: 'module.knowledgeName',
+    defaultMessage: 'Knowledge',
+    description:
+      "The name of the module that lets an agent read what Strategy Dance knows of companies in general: proven strategic frameworks, marketing tactics and the directories a startup can be listed in, and keep track of which ones the member's company uses.",
+  },
+  knowledgeReadAccess: {
+    id: 'module.knowledgeReadAccess',
+    defaultMessage:
+      "Read Strategy Dance's strategic frameworks, marketing tactics and directories, and what your company uses of them.",
+    description:
+      'What an agent allowed to read the Knowledge module can do. A strategic framework is a proven way to think a business question through, such as a SWOT analysis; a directory is a site or community where a startup can list its product.',
+  },
+  knowledgeWriteAccess: {
+    id: 'module.knowledgeWriteAccess',
+    defaultMessage: 'Mark what your company uses, and link it to documents, tasks and members.',
+    description:
+      "What an agent allowed to write in the Knowledge module can do, beside reading: mark which frameworks, tactics and directories the company uses, and link each to the team's documents and tasks and to the members involved.",
+  },
+  knowledgeAgentsButton: {
+    id: 'module.knowledgeAgentsButton',
+    defaultMessage: "Allow your agents to use Strategy Dance's knowledge",
+    description:
+      "Tooltip and accessible name of an icon button that opens a dialog explaining how to connect an AI agent of the member's own, such as Claude or ChatGPT, to the Knowledge module: Strategy Dance's strategic frameworks, marketing tactics and directories.",
+  },
   readAccess: {
     id: 'module.readAccess',
     defaultMessage: 'Read',

@@ -35,9 +35,9 @@
     "questions": [
       "Acquisition: which channels bring you people who really want what you offer, at a cost you can afford?",
       "Activation: what action shows a new user has felt the value of your product for the first time?",
-      "Retention: how many users are still active after a week, a month and three months, and where does it level off?",
+      "Retention: out of every 100 new users, how many are still active after a week, a month and three months, and where does it level off?",
       "Referral: do your users bring others, and how many does each one bring?",
-      "Revenue: how many active users become paying customers?",
+      "Revenue: out of every 100 active users, how many become paying customers?",
       "At which of these steps do you lose the most people?"
     ],
     "output": "A lifecycle funnel conversion dashboard identifying the top growth bottleneck, supported by a prioritized backlog of growth hypotheses and experiments."
@@ -95,9 +95,9 @@
     ],
     "questions": [
       "Which of your products lead a market that is growing fast? These are your stars.",
-      "Which bring in steady money in a mature market, more than they need to keep going? These are your cash cows.",
-      "Which sit in a growing market with few customers yet, eating time and money for an uncertain result? These are your question marks.",
-      "Which have few customers in a market that has stopped growing? These are your dogs.",
+      "Which lead a mature market and bring in steady money, more than they need to keep going? These are your cash cows.",
+      "Which sit in a growing market where competitors sell far more than you, eating time and money for an uncertain result? These are your question marks.",
+      "Which sell far less than competitors in a market that has stopped growing? These are your dogs.",
       "How could the money from your cash cows turn a question mark into a star?",
       "Which products should you stop investing in, or drop?"
     ],
@@ -314,7 +314,7 @@
       "Team operational bandwidth, dependencies, and capacity constraints"
     ],
     "questions": [
-      "What is the one thing you most want to achieve over the next three months?",
+      "What is the one thing you most want to achieve over the period you are planning, such as the next three months?",
       "What 3 to 5 measurable results would prove you achieved it?",
       "Where do those numbers stand today, and what targets would count as a success?",
       "What will you put aside so you can stay focused?",
@@ -422,10 +422,10 @@
       "Implementation resource requirements (Effort)"
     ],
     "questions": [
-      "Reach: how many customers would each idea touch over the next few months?",
+      "Reach: how many people, customers or not, would each idea touch over the next few months?",
       "Impact: how much would it move your main goal for each of them: a little (0.25), a fair amount (1) or a lot (3)?",
       "Confidence: how sure are you of those guesses: very (100%), fairly (80%) or not much (50%)?",
-      "Effort: how many weeks of work would it take, counting building, designing and launching it?",
+      "Effort: how many weeks of work would it take, adding up everyone's time across building, designing and launching it?",
       "Multiplying reach, impact and confidence, then dividing by effort, which ideas come out on top, and does that match your gut?"
     ],
     "output": "A scored and prioritized initiative backlog with explicit confidence weights, rationale, and recommended resource allocations."

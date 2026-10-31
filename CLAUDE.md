@@ -27,15 +27,15 @@ A [Bun](https://bun.com) workspaces monorepo. A package imports another by its n
 | `strategydance-database` | Firebase Data Connect: the Postgres schema, one connector per caller, the SDK generated from them |
 | `strategydance-design-system` | The components, shadcn on Radix, in Storybook, and the rich text's editor, renderer and helpers |
 | `strategydance-core` | Types, enums and constants every package shares, and the Budget's computations. It has no runtime dependency, so the browser and Node both load it: keep it so |
-| `strategydance-knowledge` | What the agents know of companies in general, as data: strategic frameworks, marketing tactics and where a startup can be submitted ([directories.md](documents/directories.md)). An entry's `id` never changes, and every list stays sorted by name as `JSON.stringify(list, null, 2)` writes it |
+| `strategydance-knowledge` | What the agents know of companies in general, as data: strategic frameworks, marketing tactics and where a startup can be submitted ([knowledge.md](documents/knowledge.md), [directories.md](documents/directories.md)). An entry's `id` never changes, and every list stays sorted by name as `JSON.stringify(list, null, 2)` writes it |
 | `strategydance-external-mcp-servers` | The MCP servers an organization adds in a click, as data. Its README says how one is added |
 | `strategydance-emails` | The transactional emails, as React Email templates the backend renders |
 | `strategydance-translations` | The Gemini CLI that fills the locale catalogues. Node only |
 
 `documents/` holds what people read, in Markdown alone. A feature with a document,
 [conversations.md](documents/conversations.md), [budget.md](documents/budget.md),
-[directories.md](documents/directories.md) or [design-sync.md](documents/design-sync.md), is read
-there before it is changed: this file keeps the rules, the documents the reasons.
+[knowledge.md](documents/knowledge.md), [directories.md](documents/directories.md) or
+[design-sync.md](documents/design-sync.md), is read there before it is changed: this file keeps the rules, the documents the reasons.
 
 `bunfig.toml` holds installs to versions published at least a week ago.
 

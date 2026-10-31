@@ -45,7 +45,8 @@ Documents since 2026-10-29.
     (M2), never by a `*.test.ts`.
 - **A milestone that sets a convention later sessions must follow** adds it to the backend's
   `CLAUDE.md`, under a `## Knowledge` section that M2 starts. The root's stays as short as it is.
-- **Every milestone ends with the four checks green.**
+- **Every milestone ends with the four checks green.** Its **To verify** list is what its session
+  runs before handing the pull request over, and the pull request says how each went.
 
 ## Milestones
 
@@ -123,14 +124,14 @@ verified, so M1 reads nothing: rows carry no `inUse`, and items no `use` or link
 **CLAUDE.md:** the backend's file names knowledge.md among the documents to read, beside
 conversations.md and budget.md.
 
-**Verified:**
+**To verify, once implemented:**
 - Over stdio, from Claude Code (`claude -p` with a scratch `--mcp-config` running
   `bun scripts/serveModule.ts knowledge <email>` against the emulators), with no `mcp:knowledge`
   script, since no member adds the module:
   - "Which framework helps me decide what to build next?", answered from `list_knowledge` and
     `read_knowledge`;
   - "Which free directories list developer tools?", answered from the directory filters.
-- The four checks pass.
+- The four checks.
 
 ### M2: What the company uses
 
@@ -221,13 +222,13 @@ conditions against the emulators:
 - links follow the documents' AI permission;
 - `check:knowledge-module` joins the scripts' `check:<area>` row.
 
-**Verified:**
-- `check:knowledge-module` passes against a scratch suite on the branch's schema.
+**To verify, once implemented:**
+- `check:knowledge-module` against a scratch suite on the branch's schema.
 - Over stdio, from Claude Code as M1's verification does:
   - "We started cold emailing last week, the task for it is <name>", which marks the tactic in use and
     links the task;
   - "What marketing are we doing?", answered from `list_knowledge` with `inUse`.
-- The four checks pass.
+- The four checks.
 
 ### M3: Knowledge in conversations
 
@@ -264,7 +265,7 @@ knowledge.md, in place of the directories and marketing tactics it says David ha
 
 **CLAUDE.md:** the backend's `## Knowledge` says Strategy Dance's agents reach the module from M3.
 
-**Verified:**
+**To verify, once implemented:**
 - `bun run probe:claude`, which sends the new list to the API and counts the tools exactly.
 - Through `dev:backend` on the real model, by `send:conversation`, capped at $3 in all:
   - "Which framework should I use to price my product?", working through its questions;
@@ -273,6 +274,6 @@ knowledge.md, in place of the directories and marketing tactics it says David ha
     linking the task it creates.
 - In a browser, against the backend with a scripted Claude client, the five labels drawn at desktop
   and phone widths.
-- The four checks pass.
+- The four checks.
 - **Left for David:** the release that ships M3 costs every conversation its earlier reasoning once,
   as every change of the tools does, so it ships when that is meant.

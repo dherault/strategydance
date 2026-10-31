@@ -68,9 +68,13 @@ Left for later:
 
 ## How it works
 
+What follows is what the milestones build, and none of it exists before them but the catalogue: each
+section names the milestone that builds it, and a type or table it names is new until then.
+
 ### The catalogue
 
-`strategydance-knowledge` holds three lists, each an item kind, `KnowledgeKind` in core:
+`strategydance-knowledge` holds three lists, each an item kind, which `KnowledgeKind`, added to core
+by M1, names:
 
 | Kind | List | Items on 2026-10-31 | What an item holds |
 | --- | --- | --- | --- |
@@ -94,7 +98,7 @@ Left for later:
 - **A release ships the lists as they stand.** The backend reads the package when it starts, so the
   agent knows the items of the code it runs.
 
-### What the company uses
+### What the company uses (M2)
 
 Four tables, which only the backend's connector writes, through the module. The browser reads and
 writes none of them, so no live query watches them until a page does.
@@ -126,7 +130,7 @@ writes none of them, so no live query watches them until a page does.
   bounded.
 - **The agent's writes record no `ActivityDay`**, as no agent's write does.
 
-### The Knowledge module
+### The Knowledge module (M1, its writes M2)
 
 `knowledge` in `MODULES`:
 - its path is `/mcp/knowledge`, reserved;
@@ -190,7 +194,10 @@ Its tools, in their frozen order:
 - **What a served module keeps, it does not.** No write takes `requireModuleWriteScope`, a list counts
   on no search allowance, and no page has `ModuleAgentsButton`: that waits for external agents.
 
-### In conversations
+### In conversations (M3)
+
+Until M3 ships, no conversation reaches the module: `CONVERSATION_MODULES` and both system prompts
+stay as they are.
 
 - **`CONVERSATION_MODULES` gains `knowledge`**, last, in `MODULES`' order.
 - **Subagents get all five tools.** None deletes what anybody wrote, so none joins

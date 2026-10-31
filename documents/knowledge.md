@@ -68,8 +68,9 @@ Left for later:
 
 ## How it works
 
-What follows is what the milestones build, and none of it exists before them but the catalogue: each
-section names the milestone that builds it, and a type or table it names is new until then.
+What follows is what the milestones build. Before them there are only the catalogue and the old
+module's `knowledge` connections, which Left for later names and which stay swept and refused as they
+are. Each section names the milestone that builds it, and a type or table it names is new until then.
 
 ### The catalogue
 

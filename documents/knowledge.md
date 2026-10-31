@@ -146,7 +146,7 @@ Its tools, in their frozen order:
 
 | Tool | Input | Answers | Kind |
 | --- | --- | --- | --- |
-| `list_knowledge` | `{ kind, query?, inUse?, categories?, businessModels?, cursor? }` | the kind's items as compact rows, by name, paged within `KNOWLEDGE_LIST_PAGE_LENGTH` (40,000 characters), and `cursor` while more remain | read |
+| `list_knowledge` | `{ kind, query?, inUse?, categories?, businessModels?, cursor? }` | the kind's items as compact rows, by name, paged within `KNOWLEDGE_LIST_PAGE_LENGTH` (40,000 characters), with their `total`, and `cursor` while more remain | read |
 | `read_knowledge` | `{ kind, ids }`, 10 ids at most (`MAX_KNOWLEDGE_READ_IDS`) | each item whole, its enums' meanings, an inactive directory's reason, the company's `use`, and its links; `missing` names the ids absent from the kind's catalogue | read |
 | `set_knowledge_in_use` | `{ kind, id, inUse }` | the item's `use` | write |
 | `link_knowledge` | `{ kind, id, documentId?, taskId?, member? }`, exactly one target | the link, with its target's title or name | write |
@@ -168,9 +168,12 @@ Its tools, in their frozen order:
 - **`categories` and `businessModels`** keep the directories with one of the categories or models
   given. Either filter with another kind is refused, naming the kind it is for.
 - **`cursor`** is the offset where the page stopped, through `encodeCursor` and `decodeCursor`, with
-  the query and filters it was read under: a cursor read under others is refused.
-- **An item read whole** has every field of its kind, in the package's order, each enum value given as
-  `{ value, meaning }`. It also has:
+  a hash of the kind, query and filters it was read under, since written out they could pass the
+  1,000 characters a cursor takes: a cursor read under others is refused. The same words in another
+  order or case, and the same filters in another order, are the same.
+- **An item read whole** has every field of its kind, in the package's order, each value the package
+  gives a meaning given as `{ value, meaning }`. A directory's `type`, a website or a Reddit
+  community, has none, and stays as it is. It also has:
   - `use`: `{ inUse, changedAt }`, or null when the agent never marked it;
   - `documents`, `tasks` and `members`, each the 20 newest links (`MAX_KNOWLEDGE_READ_LINKS`) and the
     total. A document is `{ id, title }`, a task `{ id, name, status }`, a member

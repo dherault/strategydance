@@ -86,16 +86,16 @@ describe('list_knowledge', () => {
     }
   })
 
-  it('pages the 532 directories within 40000 characters, each once, the inactive ones on none', async () => {
+  it('pages the directories within 40000 characters, each once, the inactive ones on none', async () => {
     const pages = await readPages({ kind: 'DIRECTORY' })
     const ids = pages.flatMap(page => page.items.map(row => row.id))
     const inactive = new Set(INACTIVE_DIRECTORIES.map(({ id }) => id))
 
-    expect(DIRECTORIES).toHaveLength(532)
+    // The daily check moves directories between the two lists, so the count is the catalogue's
     expect(pages.length).toBeGreaterThan(1)
-    expect(pages.every(page => page.length <= 40000 && page.total === 532)).toBe(true)
-    expect(ids).toHaveLength(532)
-    expect(new Set(ids).size).toBe(532)
+    expect(pages.every(page => page.length <= 40000 && page.total === DIRECTORIES.length)).toBe(true)
+    expect(ids).toHaveLength(DIRECTORIES.length)
+    expect(new Set(ids).size).toBe(DIRECTORIES.length)
     expect(ids.some(id => inactive.has(id))).toBe(false)
   })
 

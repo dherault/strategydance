@@ -97,8 +97,9 @@ running a community, and each given a channel, a time to results and its metrics
 ## Strategic frameworks
 
 Proven ways to think a company's question through, from simple ideas to whole methods, in
-`src/strategicFrameworks/strategicFrameworks.json`, exported as `STRATEGIC_FRAMEWORKS`. Empty until
-the first ones are written. Each is written so an agent can apply it, holding:
+`src/strategicFrameworks/strategicFrameworks.json`, exported as `STRATEGIC_FRAMEWORKS`: 30 of them,
+written on 2026-10-31, from SWOT and Porter's Five Forces to Jobs to Be Done, the Lean Canvas and
+the pre-mortem. Each is written so an agent can apply it, holding:
 
 - `id` and `name`
 - `description`: what the framework is, one sentence of `MAX_KNOWLEDGE_DESCRIPTION_LENGTH`

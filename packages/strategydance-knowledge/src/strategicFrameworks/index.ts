@@ -5,5 +5,5 @@ export * from './constants'
 
 export type * from './types'
 
-// Empty until the first frameworks are written
+// Written on 2026-10-31, from SWOT and Porter's Five Forces to Jobs to Be Done and the pre-mortem
 export const STRATEGIC_FRAMEWORKS = strategicFrameworks as StrategicFramework[]

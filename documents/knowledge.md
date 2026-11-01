@@ -219,12 +219,19 @@ Its tools, in their frozen order:
 
 ### In conversations (M3)
 
-Until M3 ships, no conversation reaches the module: `CONVERSATION_MODULES` and both system prompts
-stay as they are.
+Strategy Dance's agent and its subagents reach the module from M3, in process, as they reach the
+other modules.
 
-- **`CONVERSATION_MODULES` gains `knowledge`**, last, in `MODULES`' order.
-- **Subagents get all five tools.** None deletes what anybody wrote, so none joins
-  `SUBAGENT_WITHHELD_TOOLS`.
+- **`CONVERSATION_MODULES` is `['documents', 'tasks', 'budget', 'subagents', 'knowledge']`**, in
+  `MODULES`' order, so the five tools come last in the list, after the Subagents module's.
+- **What they weigh.** Converted as the worker sends them, the five are 8,459 characters,
+  `list_knowledge` the heaviest at 2,869. At the 2.2 to 3.0 characters a token the earlier modules
+  counted, that is some 2,800 to 3,800 tokens, taking the list from 32 tools and 39,995 characters to
+  37 and 48,454. They join the list as the other modules' did, since Claude's tool search would cost
+  conversations their earlier reasoning once all the same (conversations.md § Modules).
+- **Subagents get all five.** None deletes what anybody wrote, so none joins
+  `SUBAGENT_WITHHELD_TOOLS`. A subagent's report names a knowledge write by its tool alone, as it
+  names a bill's: `toSubagentWrite` finds no document or task in its result.
 - **The agent's system prompt gains a paragraph** after the budget's:
 
   > You can read Strategy Dance's knowledge with the knowledge tools: proven strategic frameworks,
@@ -237,17 +244,21 @@ stay as they are.
   > rather than suggest it again. When the member takes something up, mark it in use and link it to
   > the documents, tasks and members it involves, and when they drop it, mark that too.
 
-- **The subagent's gains a line:**
+- **The subagent's gains a line** after the budget's:
 
   > You can read Strategy Dance's knowledge, its strategic frameworks, marketing tactics and
   > directories, with the knowledge tools, and mark what the company uses or link it to documents,
   > tasks and members when the brief says so.
 
-- **Both prompts name the directories' descriptions among what others wrote.** The catalogue is
-  Strategy Dance's, but a directory's description is read from its site by the daily check.
+- **Both prompts name the directories' descriptions among what others wrote**, as "a directory's
+  description claims". The catalogue is Strategy Dance's, but a directory's description is read from
+  its site by the daily check.
 - **Labels.** The `conversation` catalogue words each tool, running and done: "Browsing the
-  knowledge", "Reading the knowledge", "Marking what the company uses", "Linking knowledge" and
-  "Unlinking knowledge".
+  knowledge" and "Browsed the knowledge", "Reading the knowledge" and "Read the knowledge", "Marking
+  what the company uses" and "Marked what the company uses", "Linking knowledge" and "Linked
+  knowledge", "Unlinking knowledge" and "Unlinked knowledge". Retry's dialog still names documents,
+  tasks and bills alone: what a discarded subagent marked or linked stays too, but nothing in the app
+  shows it.
 
 ### For the orchestrator
 

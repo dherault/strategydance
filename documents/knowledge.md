@@ -230,10 +230,10 @@ other modules.
 
 - **`CONVERSATION_MODULES` is `['documents', 'tasks', 'budget', 'subagents', 'knowledge']`**, in
   `MODULES`' order, so the five tools come last in the list, after the Subagents module's.
-- **What they weigh.** Converted as the worker sends them, the five are 8,679 characters,
-  `list_knowledge` the heaviest at 3,089. At the 2.2 to 3.0 characters a token the earlier modules
-  counted, that is some 2,900 to 3,900 tokens, taking the list from 32 tools and 39,995 characters to
-  37 and 48,674, and a subagent's from 24 tools and 33,346 characters to 29 and 42,025. They join the list as the other modules' did, since Claude's tool search would cost
+- **What they weigh.** Converted as the worker sends them, the five are 8,719 characters,
+  `list_knowledge` the heaviest at 3,129. At the 2.2 to 3.0 characters a token the earlier modules
+  counted, that is some 2,900 to 4,000 tokens, taking the list from 32 tools and 39,995 characters to
+  37 and 48,714, and a subagent's from 24 tools and 33,346 characters to 29 and 42,065. They join the list as the other modules' did, since Claude's tool search would cost
   conversations their earlier reasoning once all the same (conversations.md § Modules).
 - **Subagents get all five.** None deletes what anybody wrote, so none joins
   `SUBAGENT_WITHHELD_TOOLS`. A subagent's report names a knowledge write by its tool alone, as it

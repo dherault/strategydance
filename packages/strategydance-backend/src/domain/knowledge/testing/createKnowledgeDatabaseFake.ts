@@ -39,9 +39,14 @@ export type FakeKnowledgeLink = {
 type Base = ModuleDatabaseFakeBase & { documents: Map<string, FakeDocument>; tasks: Map<string, FakeTask> }
 
 function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
-  const { stamp, id, isMember, membersOf, membershipOf } = base
+  const { stamp, id, isMember, membersOf, membershipOf, insertResult, storeResult, checkKey } = base
   const uses: FakeKnowledgeUse[] = []
   const links: FakeKnowledgeLink[] = []
+
+  // Declared here rather than read off the base, so a call narrows what follows it
+  function refuse(message: string): never {
+    throw new Error(message)
+  }
 
   // A use written straight into its table, whatever its id, as an earlier release may have written one
   function insertUse(fields: Partial<FakeKnowledgeUse> & { organizationId: string; kind: string; itemId: string }) {
@@ -174,6 +179,35 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
             user: { displayName: membersOf(organizationId).find(member => member.userId === targetId)!.displayName },
           },
         })),
+      }
+    },
+
+    SetKnowledgeInUseForAgent: variables => {
+      if (!isMember(variables)) refuse('The caller is no longer a member of the organization')
+
+      checkKey(variables)
+      insertResult(variables)
+      storeResult(variables)
+
+      const use = findUse(variables, variables.itemId)
+      const fields = { isInUse: Boolean(variables.isInUse), changedAt: stamp(), changedById: String(variables.userId) }
+
+      if (use) Object.assign(use, fields)
+      else {
+        insertUse({
+          organizationId: String(variables.organizationId),
+          kind: String(variables.kind),
+          itemId: String(variables.itemId),
+          ...fields,
+        })
+      }
+
+      return {
+        knowledgeUse_upsert: {
+          organizationId: id(variables.organizationId),
+          kind: variables.kind,
+          itemId: variables.itemId,
+        },
       }
     },
   })

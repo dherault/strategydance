@@ -11,6 +11,7 @@ import type {
   BudgetScope,
   BudgetBill,
   Currency,
+  KnowledgeKind,
   ModuleScope,
 } from 'strategydance-core'
 import type { CompanyAspect, GetConversationCallsData, TaskStatus } from 'strategydance-database/backend'
@@ -691,10 +692,24 @@ export type KnowledgeEntry =
 export type KnowledgeRefusal =
   /** The caller left the organization, or left and came back, since the module read them */
   | { outcome: 'notMember' }
+  /** A write through a connection granted read alone */
+  | { outcome: 'readOnly' }
+  /** An idempotency key already used with another call */
+  | { outcome: 'keyConflict' }
   /** A cursor no list gave, or one it gave under another kind, query or filters */
   | { outcome: 'invalidCursor' }
   /** A filter of directories, given to list another kind */
   | { outcome: 'otherKindFilter'; filter: 'categories' | 'businessModels' }
+  /** An id the release's catalogue does not hold for the kind */
+  | { outcome: 'unknownItem'; kind: KnowledgeKind; id: string }
+
+// What a write of the Knowledge module answers: its result, the one stored under its key when the
+// call was sent before, or why it was refused. A write that would change nothing writes nothing, and
+// answers so
+export type KnowledgeWriteResult<Result> =
+  | { outcome: 'written' | 'unchanged'; result: Result }
+  | { outcome: 'answered'; result: unknown }
+  | KnowledgeRefusal
 
 // What each of the Knowledge module's tools is registered with: who calls it. Its results carry no
 // web address, since no page shows the knowledge

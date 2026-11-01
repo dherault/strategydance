@@ -20,11 +20,13 @@ mock.module('strategydance-database/backend', () => fake.sdk)
 
 const { default: createModuleTestKit } = await import('~modules/testing/createModuleTestKit')
 
+const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
+
 const CALLER: ModuleCaller = {
   kind: 'agent',
   userId: 'member',
-  organizationId: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
-  membershipCreatedAt: '2026-10-09T10:00:00.000000Z',
+  organizationId: ORGANIZATION_ID,
+  membershipCreatedAt: fake.addMember('member', ORGANIZATION_ID),
   scopes: ['knowledge:read', 'knowledge:write'],
   idempotencyScope: 'conversation:checked',
 }
@@ -61,24 +63,24 @@ async function readRows(filters: Record<string, unknown>) {
 }
 
 describe('list_knowledge', () => {
-  it("lists each kind's rows by name, with their kind's fields alone", async () => {
+  it("lists each kind's rows by name, with their kind's fields alone and whether the company uses each", async () => {
     const frameworks = await readPages({ kind: 'STRATEGIC_FRAMEWORK' })
     const tactics = await readPages({ kind: 'MARKETING_TACTIC' })
     const directories = await readRows({ kind: 'DIRECTORY' })
 
     expect(frameworks).toHaveLength(1)
     expect(frameworks[0]!.items.map(row => row.id)).toEqual(STRATEGIC_FRAMEWORKS.map(({ id }) => id))
-    expect(frameworks[0]!.items.every(row => Object.keys(row).join() === 'id,name,description')).toBe(true)
+    expect(frameworks[0]!.items.every(row => Object.keys(row).join() === 'id,name,description,inUse')).toBe(true)
     expect(tactics).toHaveLength(1)
     expect(tactics[0]!.items.map(row => row.id)).toEqual(MARKETING_TACTICS.map(({ id }) => id))
     expect(
       tactics[0]!.items.every(
-        row => Object.keys(row).join() === 'id,name,description,channel,effort,paid,timeToResults,technical',
+        row => Object.keys(row).join() === 'id,name,description,inUse,channel,effort,paid,timeToResults,technical',
       ),
     ).toBe(true)
     expect(directories.map(row => row.id)).toEqual(DIRECTORIES.map(({ id }) => id))
     expect(
-      directories.every(row => Object.keys(row).join() === 'id,name,description,type,categories,businessModel'),
+      directories.every(row => Object.keys(row).join() === 'id,name,description,inUse,type,categories,businessModel'),
     ).toBe(true)
 
     for (const rows of [frameworks[0]!.items, tactics[0]!.items, directories]) {

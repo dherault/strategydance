@@ -9625,3 +9625,461 @@ mutation ReserveAttachmentBillReceiptForAgent(
     }
   )
 }
+
+# The Knowledge module's writes follow, named `…ForAgent`, as its reads are: see `queries.gql`.
+#
+# Each runs as one transaction that checks the membership the module read, then, when the call
+# carries an idempotency key (`$isKeyed`), inserts its `ModuleCallResult`, `$result` being what the
+# module answers, and only then writes, as the Tasks module's writes do. The module calls one only
+# when it changes something: a flag it holds already, a link there already and one that is not are
+# answered from its read, writing nothing. No live query reads these tables, since no page shows them
+# yet, and none records an `ActivityDay`
+
+# Marks an item in use, or no longer, for the member the agent acts as. Keeps the row when the flag
+# goes back to false, so an item the company stopped using is told apart from one it never tried
+mutation SetKnowledgeInUseForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $isInUse: Boolean!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  knowledgeUse_upsert(
+    data: {
+      organizationId: $organizationId
+      kind: $kind
+      itemId: $itemId
+      isInUse: $isInUse
+      changedAt_expr: "request.time"
+      changedById: $userId
+    }
+  )
+}
+
+# Links a document of the organization the agent may read to an item, under the 100 documents an item
+# links (`MAX_KNOWLEDGE_LINKS`), counted under the lock on the organization's row: the count and the
+# membership read the lock's response, so they run as a statement of their own and see every link
+# another call committed while the lock was waited for (CLAUDE.md § The database). The document
+# itself is not counted, though a link there already never reaches this: one landing meanwhile is
+# refused on its key, and the module answers it as there
+mutation LinkKnowledgeDocumentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $documentId: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    documents(
+      where: {
+        id: { eq: $documentId }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+        isAiReadable: { eq: true }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "No document agents may read by that id in the organization") {
+      id
+    }
+    others: knowledgeDocumentLinks(
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        kind: { eq: $kind }
+        itemId: { eq: $itemId }
+        documentId: { ne: $documentId }
+      }
+      limit: 100
+    ) @check(expr: "size(this) < 100", message: "An item links at most 100 documents") {
+      documentId
+    }
+  }
+  knowledgeDocumentLink_insert(
+    data: { organizationId: $organizationId, kind: $kind, itemId: $itemId, documentId: $documentId }
+  )
+}
+
+# Links a live task of the organization to an item, as `LinkKnowledgeDocumentForAgent` links a
+# document, under the 100 tasks an item links
+mutation LinkKnowledgeTaskForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $taskId: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    tasks(
+      where: { id: { eq: $taskId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
+      id
+    }
+    others: knowledgeTaskLinks(
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        kind: { eq: $kind }
+        itemId: { eq: $itemId }
+        taskId: { ne: $taskId }
+      }
+      limit: 100
+    ) @check(expr: "size(this) < 100", message: "An item links at most 100 tasks") {
+      taskId
+    }
+  }
+  knowledgeTaskLink_insert(data: { organizationId: $organizationId, kind: $kind, itemId: $itemId, taskId: $taskId })
+}
+
+# Links a member of the organization to an item, as `LinkKnowledgeDocumentForAgent` links a document,
+# under the 100 members an item links. The link belongs to the membership, so removing the member
+# removes it
+mutation LinkKnowledgeMemberForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $memberId: String!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
+    @check(
+      expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+      message: "An idempotency key is 1 to 200 characters"
+    )
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    members: userOrganizations(where: { userId: { eq: $memberId }, organizationId: { eq: $organizationId } }, limit: 1)
+      @check(expr: "size(this) == 1", message: "An item links a member of its organization") {
+      userId
+    }
+    others: knowledgeMemberLinks(
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        kind: { eq: $kind }
+        itemId: { eq: $itemId }
+        membershipUserId: { ne: $memberId }
+      }
+      limit: 100
+    ) @check(expr: "size(this) < 100", message: "An item links at most 100 members") {
+      membershipUserId
+    }
+  }
+  knowledgeMemberLink_insert(
+    data: {
+      organizationId: $organizationId
+      kind: $kind
+      itemId: $itemId
+      membershipUserId: $memberId
+      membershipOrganizationId: $organizationId
+    }
+  )
+}
+
+# Unlinks a document from an item, held to the one link the module read, so the result it keeps under
+# the call's key, that the link was removed, holds: a link removed meanwhile is refused, and the module
+# answers that nothing was. Only a document the agent may read is unlinked, as only one is linked
+mutation UnlinkKnowledgeDocumentForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $documentId: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  knowledgeDocumentLink_deleteMany(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { eq: $itemId }
+      documentId: { eq: $documentId }
+      document: { deletedAt: { isNull: true }, isAiReadable: { eq: true } }
+    }
+  ) @check(expr: "this == 1", message: "The item is not linked to that document")
+}
+
+# Unlinks a live task from an item, as `UnlinkKnowledgeDocumentForAgent` unlinks a document
+mutation UnlinkKnowledgeTaskForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $taskId: UUID!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  knowledgeTaskLink_deleteMany(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { eq: $itemId }
+      taskId: { eq: $taskId }
+      task: { deletedAt: { isNull: true } }
+    }
+  ) @check(expr: "this == 1", message: "The item is not linked to that task")
+}
+
+# Unlinks a member from an item, as `UnlinkKnowledgeDocumentForAgent` unlinks a document
+mutation UnlinkKnowledgeMemberForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $memberId: String!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  knowledgeMemberLink_deleteMany(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { eq: $itemId }
+      membershipUserId: { eq: $memberId }
+    }
+  ) @check(expr: "this == 1", message: "The item is not linked to that member")
+}

@@ -126,7 +126,9 @@ writes none of them, so no live query watches them until a page does.
     `TaskDependency` is read, so a restore brings them back;
   - a row naming an id the release's catalogue no longer has stays, and reads skip it.
 - **At most 100 links from one item to each kind of target** (`MAX_KNOWLEDGE_LINKS`): 100
-  documents, 100 tasks and 100 members, counted under the organization's lock. A document, a task or
+  documents, 100 tasks and 100 members, counted under the organization's lock, every link counted,
+  those to a document since kept from AI or a task deleted within its Undo window included. A
+  document, a task or
   a member can be linked to any number of items: nothing grows with it but the catalogue, which is
   bounded.
 - **The agent's writes record no `ActivityDay`**, as no agent's write does.
@@ -148,9 +150,9 @@ Its tools, in their frozen order:
 | --- | --- | --- | --- |
 | `list_knowledge` | `{ kind, query?, inUse?, categories?, businessModels?, cursor? }` | the kind's items as compact rows, by name, paged within `KNOWLEDGE_LIST_PAGE_LENGTH` (40,000 characters), with their `total`, and `cursor` while more remain | read |
 | `read_knowledge` | `{ kind, ids }`, 10 ids at most (`MAX_KNOWLEDGE_READ_IDS`) | each item whole, its enums' meanings, an inactive directory's reason, the company's `use`, and its links; `missing` names the ids absent from the kind's catalogue | read |
-| `set_knowledge_in_use` | `{ kind, id, inUse }` | the item's `use` | write |
-| `link_knowledge` | `{ kind, id, documentId?, taskId?, member? }`, exactly one target | the link, with its target's title or name | write |
-| `unlink_knowledge` | the same | whether a link was removed | write |
+| `set_knowledge_in_use` | `{ kind, id, inUse }` | `{ kind, id, use }`: the item's `use` | write |
+| `link_knowledge` | `{ kind, id, documentId?, taskId?, member? }`, exactly one target | `{ kind, id, isNew }` with one of `document`, `task` and `member`: the link, with its target's title or name, and whether it is new | write |
+| `unlink_knowledge` | the same | `{ kind, id, isRemoved }` with its target: whether a link was removed | write |
 
 - **`kind`** is one of `KnowledgeKind`, required: every list is for one kind, and an id is unique
   within one alone.
@@ -175,19 +177,36 @@ Its tools, in their frozen order:
   gives a meaning given as `{ value, meaning }`. A directory's `type`, a website or a Reddit
   community, has none, and stays as it is. It also has:
   - `use`: `{ inUse, changedAt }`, or null when the agent never marked it;
-  - `documents`, `tasks` and `members`, each the 20 newest links (`MAX_KNOWLEDGE_READ_LINKS`) and the
-    total. A document is `{ id, title }`, a task `{ id, name, status }`, a member
-    `{ member: "member:<id>", name }`.
+  - `documents`, `tasks` and `members`, each `{ items, total }`, the 20 newest links
+    (`MAX_KNOWLEDGE_READ_LINKS`) and the total. A document is `{ id, title }`, a task `{ id, name,
+    status }`, a member `{ member: "member:<id>", name }`.
+
+  `GetKnowledgeItemsForAgent` reads every link of the ids read at once, newest first, at most 1000 of
+  each kind of target, 10 ids of 100 links, and the module keeps each item's 20 newest, since a
+  list's limit in Data Connect is the whole list's, not each item's share.
 - **A link's target** is one of:
   - `documentId`: a document of the organization the agent may read (`isAiReadable`), not deleted;
   - `taskId`: a task of the organization, not deleted;
   - `member`: `"me"` or `"member:<id>"`, as a task's assignee is named, a member of the organization.
 
-  Linking twice keeps one link. Unlinking what is not linked removes nothing, and says so.
+  Linking twice keeps one link. Unlinking what is not linked removes nothing, and says so. Unlinking
+  holds its target to what linking does, so a document kept from AI, which no read shows linked, is
+  not unlinked either.
 - **The writes check the item first**: its id must be one of the release's catalogue for its kind,
   inactive directories included. The operations cannot read the package, so the domain holds them to
   it.
-- **Setting the flag it already holds writes nothing**, so `changedAt` keeps the day it last changed.
+- **Setting the flag it already holds writes nothing**, so `changedAt` keeps the day it last changed,
+  and neither does `false` on an item never marked, which answers `use: null`, so an item never
+  tried is not told as one dropped. A change answers the time the module wrote it, and the row takes
+  the database's own a moment later, as `delete_task` answers when a task can be restored until.
+- **A write reads what it answers first.** A write keeps its result under its idempotency key within
+  the write itself, so it reads first: the item's state for a flag, and for a link or an unlink the
+  target and the item's links in its table (`GetKnowledgeDocumentLinkForAgent`,
+  `GetKnowledgeTaskLinkForAgent` and `GetKnowledgeMemberLinkForAgent`). What would change nothing, a
+  flag held, a link there already or one not there, writes nothing and keeps no key. A write refused
+  for what changed meanwhile, a link landing or going, the target deleted or the 100th link taken, is
+  read again and answered from what it finds, since Data Connect reports a foreign key before any
+  check.
 - **What every module's tool keeps:**
   - an idempotency key per write, under `com.strategydance/idempotencyKey`;
   - `…ForAgent` operations matching the membership on `membershipCreatedAt`, from M2;

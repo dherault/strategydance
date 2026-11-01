@@ -7,6 +7,7 @@ import {
   BILL_RECURRENCES,
   BUDGET_PERIOD_MONTHS,
   Currency,
+  KnowledgeKind,
   MAX_BILL_COMPANY_LENGTH,
   MAX_BILL_DESCRIPTION_LENGTH,
   MAX_BILL_NAME_LENGTH,
@@ -32,10 +33,10 @@ const backendMutations = await Bun.file(
 const backendQueries = await Bun.file(new URL('./strategydance-backend-connector/queries.gql', import.meta.url)).text()
 
 /*
-  `Locale` and `Currency` are declared twice, once here and once in strategydance-core, because
-  neither side can read the other: Data Connect's schema is GraphQL SDL that a Go binary parses, and
-  core is the TypeScript the catalogues, the language picker and the Budget's computations are built
-  from.
+  `Locale`, `Currency` and `KnowledgeKind` are declared twice, once here and once in
+  strategydance-core, because neither side can read the other: Data Connect's schema is GraphQL SDL
+  that a Go binary parses, and core is the TypeScript the catalogues, the language picker, the
+  Budget's computations and the knowledge's kinds are built from.
 
   Two declarations of one set is a drift waiting to happen, so this is the thing that fails when
   a value is added to one and not the other. It reads the SDL as text rather than parsing it,
@@ -60,6 +61,11 @@ describe('schema.gql', () => {
   // In order, since an enum's order is the Postgres enum's
   it('declares the same currencies as strategydance-core, in the same order', () => {
     expect(readEnumValues('Currency')).toEqual(Object.values(Currency))
+  })
+
+  // In order, as the currencies are
+  it("declares the knowledge's kinds strategydance-core lists, in the same order", () => {
+    expect(readEnumValues('KnowledgeKind')).toEqual(Object.values(KnowledgeKind))
   })
 
   it("declares the budget's periods strategydance-core counts the months of", () => {

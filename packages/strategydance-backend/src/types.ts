@@ -11,6 +11,7 @@ import type {
   BudgetScope,
   BudgetBill,
   Currency,
+  KnowledgeKind,
   ModuleScope,
 } from 'strategydance-core'
 import type { CompanyAspect, GetConversationCallsData, TaskStatus } from 'strategydance-database/backend'
@@ -684,15 +685,52 @@ export type KnowledgeEntry =
   | { kind: 'MARKETING_TACTIC'; item: MarketingTactic }
   | { kind: 'DIRECTORY'; item: Directory | InactiveDirectory }
 
+// What a knowledge item can be linked to: a document, a task, or a member of the organization
+export type KnowledgeLinkTarget = 'document' | 'task' | 'member'
+
 /*
   Why the Knowledge module refused a call, which its tool words for the model: each is something the
-  model can act on by changing what it sent
+  model can act on, by changing what it sent, telling the member, or ending its turn
 */
 export type KnowledgeRefusal =
+  /** The caller left the organization, or left and came back, since the module read them */
+  | { outcome: 'notMember' }
+  /** A write through a connection granted read alone */
+  | { outcome: 'readOnly' }
+  /** An idempotency key already used with another call */
+  | { outcome: 'keyConflict' }
   /** A cursor no list gave, or one it gave under another kind, query or filters */
   | { outcome: 'invalidCursor' }
   /** A filter of directories, given to list another kind */
   | { outcome: 'otherKindFilter'; filter: 'categories' | 'businessModels' }
+  /** An id the release's catalogue does not hold for the kind */
+  | { outcome: 'unknownItem'; kind: KnowledgeKind; id: string }
+  /** A link or an unlink naming no target, or more than one */
+  | { outcome: 'noTarget' }
+  /** A document the organization does not hold, or deleted */
+  | { outcome: 'documentNotFound' }
+  /** A document the team keeps from AI */
+  | { outcome: 'documentKeptFromAi' }
+  /** A task the organization does not hold, or deleted */
+  | { outcome: 'taskNotFound' }
+  /** Somebody who is not a member of the organization */
+  | { outcome: 'memberNotFound' }
+  /** An item linked to as many targets of that kind as it may be */
+  | { outcome: 'tooManyLinks'; target: KnowledgeLinkTarget }
+
+// What a write of the Knowledge module answers: its result, the one stored under its key when the
+// call was sent before, or why it was refused. A write that would change nothing writes nothing, and
+// answers so
+export type KnowledgeWriteResult<Result> =
+  | { outcome: 'written' | 'unchanged'; result: Result }
+  | { outcome: 'answered'; result: unknown }
+  | KnowledgeRefusal
+
+// What each of the Knowledge module's tools is registered with: who calls it. Its results carry no
+// web address, since no page shows the knowledge
+export type KnowledgeToolContext = {
+  caller: ModuleCaller
+}
 
 /* ---
   DIRECTORIES

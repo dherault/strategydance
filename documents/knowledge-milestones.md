@@ -3,7 +3,7 @@
 | # | Milestone | Packages | Depends on | Implementation PR |
 | --- | --- | --- | --- | --- |
 | M1 | The Knowledge module, reading the catalogue | core, backend, web | | #288 |
-| M2 | What the company uses | database, backend | M1 | |
+| M2 | What the company uses | database, backend | M1 | #290 |
 | M3 | Knowledge in conversations | backend, web, root | M2 | |
 
 The three milestones that build the Knowledge module, each one pull request into `dev` that a Claude
@@ -156,9 +156,13 @@ The company's state, the four tables of What the company uses, and the three too
 **Backend-connector operations**, each matching the membership on `membershipCreatedAt`:
 - **Reads:**
   - `GetKnowledgeUsesForAgent`: a kind's uses, for `list_knowledge`'s `inUse`;
-  - `GetKnowledgeItemsForAgent`: for the ids read, their uses and their links, each list the 20
-    newest with its count. Documents are those the agent may read, and documents and tasks are
-    filtered on `deletedAt`. A membership has none: its links go with it.
+  - `GetKnowledgeItemsForAgent`: for the ids read, their uses and every link of theirs, newest first,
+    from which the module keeps each list's 20 newest with its count. Documents are those the agent
+    may read, and documents and tasks are filtered on `deletedAt`. A membership has none: its links
+    go with it;
+  - `GetKnowledgeDocumentLinkForAgent`, `GetKnowledgeTaskLinkForAgent` and
+    `GetKnowledgeMemberLinkForAgent`, read before a link or an unlink writes, since the result kept
+    under the call's key is written with it: the target, and the item's links in its table.
 - **Writes**, each an `@transaction` inserting its `ModuleCallResult` under
   `@include(if: $isKeyed)`:
   - `SetKnowledgeInUseForAgent`, an upsert writing `changedAt` and `changedBy`;
@@ -168,7 +172,8 @@ The company's state, the four tables of What the company uses, and the three too
     is, and counts nothing. A new one is counted with the item's links in its own table, its
     documents, tasks or members, under `MAX_KNOWLEDGE_LINKS`, 100, before its insert;
   - `UnlinkKnowledgeDocumentForAgent`, `UnlinkKnowledgeTaskForAgent` and
-    `UnlinkKnowledgeMemberForAgent`, each a `deleteMany` answering its count.
+    `UnlinkKnowledgeMemberForAgent`, each a `deleteMany` held to the one link the module read, so a
+    link removed meanwhile refuses it and the module answers that nothing was.
 - The operations cannot read the package: the domain holds every id to the catalogue before it calls
   one.
 
@@ -224,7 +229,8 @@ conditions against the emulators:
 - the catalogue is the package's as of the release, and the module never writes it;
 - the state is keyed by kind and id, and an id the catalogue lost is skipped;
 - links follow the documents' AI permission;
-- `check:knowledge-module` joins the scripts' `check:<area>` row.
+- `check:knowledge-module` is named in the section, as the Budget's names its checks, since the
+  scripts' `check:<area>` row names no area.
 
 **To verify, once implemented:**
 - `check:knowledge-module` against a scratch suite on the branch's schema.

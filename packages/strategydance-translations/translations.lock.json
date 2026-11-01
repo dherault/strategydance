@@ -3227,6 +3227,14 @@
         "hash": "f9e57681c290b67d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.linkKnowledge.done": {
+        "hash": "39f735b75663e378",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.linkKnowledge.running": {
+        "hash": "421afcdae8a52c21",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.linkTasks.done": {
         "hash": "d24cd134aa3eecd3",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3257,6 +3265,14 @@
       },
       "conversation.tool.listIntegrations.running": {
         "hash": "d630fac0907144c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listKnowledge.done": {
+        "hash": "46b358f11cc6a548",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.listKnowledge.running": {
+        "hash": "3f6ee8868ba38b00",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.listSubagents.done": {
@@ -3297,6 +3313,14 @@
       },
       "conversation.tool.readDocument.running": {
         "hash": "bcc714b51d69c858",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readKnowledge.done": {
+        "hash": "008299e632a1503c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.readKnowledge.running": {
+        "hash": "c822d087966b2d67",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.readSubagent.done": {
@@ -3347,6 +3371,14 @@
         "hash": "1196e7b07ce0cc1a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.setKnowledgeInUse.done": {
+        "hash": "bf1d434f49d414d6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.setKnowledgeInUse.running": {
+        "hash": "839ed480e4ed85bb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.stopSubagent.done": {
         "hash": "7efc38c7a3c08815",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3361,6 +3393,14 @@
       },
       "conversation.tool.tagDocument.running": {
         "hash": "f58b7eed4b829784",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.unlinkKnowledge.done": {
+        "hash": "acb373c00a8588ec",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.unlinkKnowledge.running": {
+        "hash": "13b7df2574a66499",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.unlinkTasks.done": {

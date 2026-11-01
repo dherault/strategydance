@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 
 import { type KnowledgeKind, splitSearchTerms } from 'strategydance-core'
-import { DirectoryBusinessModel, DirectoryCategory } from 'strategydance-knowledge'
+import { compareKnowledgeNames, DirectoryBusinessModel, DirectoryCategory } from 'strategydance-knowledge'
 import { z } from 'zod'
 
 import type { KnowledgeEntry, KnowledgeRefusal, ModuleCaller } from '~types'
@@ -48,11 +48,12 @@ export type ListKnowledgeResult =
 /*
   A kind's items as compact rows, by name, each saying whether the organization uses it, those
   matching the query and filters, a page within `KNOWLEDGE_LIST_PAGE_LENGTH` characters of JSON with
-  a cursor while more remain. The inactive directories take no submission today, so no list shows
-  them. The catalogue is the release's, the same on every page, so a cursor is an offset, held to the
-  filters it was read under: with `inUse`, an item marked or cleared between two pages can move the
-  rest by one, which a list of the few items a company uses rarely spans. A caller who is no longer
-  the member the module read is refused
+  a cursor while more remain. The inactive directories take no submission today, so no list offers
+  them, but one the organization uses is listed among the rest, since it submitted there before. The
+  catalogue is the release's, the same on every page, so a cursor is an offset, held to the filters
+  it was read under: with `inUse`, an item marked or cleared between two pages can move the rest by
+  one, which a list of the few items a company uses rarely spans. A caller who is no longer the
+  member the module read is refused
 */
 async function listKnowledge(
   caller: ModuleCaller,
@@ -81,7 +82,12 @@ async function listKnowledge(
 
   if (uses.outcome !== 'read') return uses
 
-  const listed = readKnowledgeCatalogue(kind).items.filter(
+  const { items: active, inactive } = readKnowledgeCatalogue(kind)
+  // The inactive directories the organization uses, among the rest by name, unless it asks for others
+  const used = inUse === false ? [] : inactive.filter(entry => uses.inUse.has(entry.item.id))
+  const catalogue =
+    used.length === 0 ? active : [...active, ...used].toSorted((a, b) => compareKnowledgeNames(a.item, b.item))
+  const listed = catalogue.filter(
     entry =>
       (inUse === undefined || uses.inUse.has(entry.item.id) === inUse)
       && matchesKnowledgeQuery(entry.item, words)
@@ -111,8 +117,12 @@ async function listKnowledge(
   }
 }
 
-// Whether a directory has one of the categories and one of the business models given, either filter
-// left out keeping every one. Another kind is given neither
+/*
+  Whether a directory has one of the categories and one of the business models given, either filter
+  left out keeping every one. One taking any startup lists every kind of product, so it has each
+  category but `REGIONAL`, a region's alone. One whose categories the daily check has not written
+  yet has none, so no category keeps it. Another kind is given neither filter
+*/
 function matchesDirectoryFilters(
   entry: KnowledgeEntry,
   categories: DirectoryCategory[] | undefined,
@@ -120,8 +130,14 @@ function matchesDirectoryFilters(
 ) {
   if (entry.kind !== 'DIRECTORY') return true
 
+  const isAnyStartup = entry.item.categories.includes(DirectoryCategory.ANY_STARTUP)
+
   return (
-    (!categories || entry.item.categories.some(category => categories.includes(category)))
+    (!categories
+      || categories.some(
+        category =>
+          entry.item.categories.includes(category) || (isAnyStartup && category !== DirectoryCategory.REGIONAL),
+      ))
     && (!businessModels || businessModels.includes(entry.item.businessModel))
   )
 }

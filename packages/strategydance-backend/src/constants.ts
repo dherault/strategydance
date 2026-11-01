@@ -386,10 +386,12 @@ export const BILL_UPDATE_ATTEMPTS = 3
 /*
   The Knowledge module's bounds. A list answers at most 40000 characters of JSON a page, as the Tasks
   module's does, short of the 50000 characters a tool result is cut at. A read answers at most 10
-  items whole, which the ten longest of any kind keep well within it, each with the 20 newest of its
-  links to documents, to tasks and to members, and their totals. An item links at most 100 of each,
-  which its link operations hold under the organization's lock, while a document, a task or a member
-  is linked to any number of items: nothing grows with it but the catalogue, which is bounded
+  items whole, some 15000 characters for the ten longest of any kind, each with the 20 newest of its
+  links to documents, to tasks and to members, and their totals. A few links an item keep a read
+  well within the cut, but 20 of each at their longest titles and names take some 11000 characters
+  an item, so a read of ten such items is cut, as any tool result is. An item links at most 100 of
+  each, which its link operations hold under the organization's lock, while a document, a task or a
+  member is linked to any number of items: nothing grows with it but the catalogue, which is bounded
 */
 export const KNOWLEDGE_LIST_PAGE_LENGTH = 40000
 export const MAX_KNOWLEDGE_READ_IDS = 10

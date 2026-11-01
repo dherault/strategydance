@@ -20,7 +20,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-01",
     "unreachableSince": null
   },
   {
@@ -237,11 +237,13 @@
     "name": "AI Depot",
     "type": "WEBSITE",
     "rootUrl": "https://aidepot.co/",
-    "submissionUrl": "https://aidepot.co/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://aidepot.co/submit/start",
+    "description": "Directory of AI tools and companies across industries and use cases, where makers submit their own tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-01",
     "unreachableSince": null
   },
   {
@@ -326,10 +328,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aihubs.ai/",
     "submissionUrl": "https://aihubs.ai/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
+    "description": "Directory of AI tools sorted by category and tag, where makers submit their own AI products after signing in.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": "2026-11-01",
     "unreachableSince": null
   },
   {
@@ -1505,10 +1509,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.betterlaunch.co/",
     "submissionUrl": "https://www.betterlaunch.co/submit",
-    "description": "",
-    "categories": [],
+    "description": "Product launch platform where makers and startups submit their products to be featured on a daily homepage feed, collect upvotes, and keep a permanent product page.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-01",
     "unreachableSince": null
   },
   {
@@ -1826,10 +1832,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://curated.design/",
     "submissionUrl": "https://curated.design/submit/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "description": "Gallery of live websites and landing pages, filed by industry and style, for designers looking for web design inspiration.",
+    "categories": [
+      "DESIGN"
+    ],
+    "businessModel": "PAID",
+    "lastChecked": "2026-11-01",
     "unreachableSince": null
   },
   {
@@ -2364,11 +2372,13 @@
     "name": "Findly.tools",
     "type": "WEBSITE",
     "rootUrl": "https://findly.tools/",
-    "submissionUrl": "https://findly.tools/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://findly.tools/submit",
+    "description": "Directory of software tools, including AI, productivity, marketing, developer and SaaS products, where makers submit their own tools for listing.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-01",
     "unreachableSince": null
   },
   {
@@ -2699,8 +2709,8 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
-    "unreachableSince": null
+    "lastChecked": "2026-11-01",
+    "unreachableSince": "2026-11-01"
   },
   {
     "id": "goodfirms",
@@ -3944,10 +3954,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://open-launch.com/",
     "submissionUrl": "https://open-launch.com/projects/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "description": "Daily launch platform where makers submit tech products, mostly SaaS and AI tools, which are ranked by community upvotes and categorized.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "PAID",
+    "lastChecked": "2026-11-01",
     "unreachableSince": null
   },
   {
@@ -4633,10 +4645,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.romanianstartups.com/",
     "submissionUrl": "https://www.romanianstartups.com/register/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of Romanian tech and Internet startups, founders, accelerators, events and co-working spaces, where founders register and add their own listings.",
+    "categories": [
+      "ANY_STARTUP",
+      "REGIONAL"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-01",
     "unreachableSince": null
   },
   {
@@ -5495,10 +5510,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.startupblink.com/",
     "submissionUrl": "https://www.startupblink.com/startups",
-    "description": "",
-    "categories": [],
+    "description": "Global map and database of startups, ranked by city and country and sorted by industry, where founders can add their own startup.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-01",
     "unreachableSince": null
   },
   {

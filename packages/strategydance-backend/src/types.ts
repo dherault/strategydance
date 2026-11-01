@@ -685,6 +685,9 @@ export type KnowledgeEntry =
   | { kind: 'MARKETING_TACTIC'; item: MarketingTactic }
   | { kind: 'DIRECTORY'; item: Directory | InactiveDirectory }
 
+// What a knowledge item can be linked to: a document, a task, or a member of the organization
+export type KnowledgeLinkTarget = 'document' | 'task' | 'member'
+
 /*
   Why the Knowledge module refused a call, which its tool words for the model: each is something the
   model can act on, by changing what it sent, telling the member, or ending its turn
@@ -702,6 +705,18 @@ export type KnowledgeRefusal =
   | { outcome: 'otherKindFilter'; filter: 'categories' | 'businessModels' }
   /** An id the release's catalogue does not hold for the kind */
   | { outcome: 'unknownItem'; kind: KnowledgeKind; id: string }
+  /** A link or an unlink naming no target, or more than one */
+  | { outcome: 'noTarget' }
+  /** A document the organization does not hold, or deleted */
+  | { outcome: 'documentNotFound' }
+  /** A document the team keeps from AI */
+  | { outcome: 'documentKeptFromAi' }
+  /** A task the organization does not hold, or deleted */
+  | { outcome: 'taskNotFound' }
+  /** Somebody who is not a member of the organization */
+  | { outcome: 'memberNotFound' }
+  /** An item linked to as many targets of that kind as it may be */
+  | { outcome: 'tooManyLinks'; target: KnowledgeLinkTarget }
 
 // What a write of the Knowledge module answers: its result, the one stored under its key when the
 // call was sent before, or why it was refused. A write that would change nothing writes nothing, and

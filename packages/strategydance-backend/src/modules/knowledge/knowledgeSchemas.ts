@@ -12,6 +12,8 @@ import {
 } from 'strategydance-knowledge'
 import { z } from 'zod'
 
+import { UUID_PATTERN } from '~constants'
+
 import { hasNoNul } from '~modules/moduleSchemas'
 
 // The longest id a call takes, twice the longest the catalogue holds
@@ -46,6 +48,31 @@ export const businessModelsSchema = z
   .refine(models => new Set(models).size === models.length, 'Name each business model at most once')
 
 export const cursorSchema = z.string().max(1000)
+
+export const documentIdSchema = z.string().regex(UUID_PATTERN, 'A document id is a UUID')
+
+export const taskIdSchema = z.string().regex(UUID_PATTERN, 'A task id is a UUID')
+
+// A member, `"me"` or `"member:<id>"`, as a task's assignee is named, so no member's id is read as the
+// word
+export const memberSchema = z.union([
+  z.literal('me'),
+  z
+    .string()
+    .max(200)
+    .regex(/^member:.+$/, 'A member is named as member:<id>')
+    .refine(hasNoNul, 'A member id holds no U+0000'),
+])
+
+// The one target a link or an unlink names, each optional in the schema, which takes no union of
+// objects a client could fill: the module refuses none or more than one
+export const linkTargetShape = {
+  documentId: documentIdSchema.optional().describe("A document's id, as the documents' tools give it"),
+  taskId: taskIdSchema.optional().describe("A task's id, as the tasks' tools give it"),
+  member: memberSchema
+    .optional()
+    .describe('"me" for the member you act as, or "member:<id>" for another member, as the tasks name them'),
+}
 
 // What every item has, whatever its kind
 const itemShape = { id: z.string(), name: z.string(), description: z.string() }
@@ -93,6 +120,13 @@ export const documentReferenceShape = { id: z.string(), title: z.string() }
 export const taskReferenceShape = { id: z.string(), name: z.string(), status: z.enum(TaskStatus) }
 
 export const memberReferenceShape = { member: z.string(), name: z.string().nullable() }
+
+// A link's target as a link or an unlink answers it, one of the three
+export const linkReferenceShape = {
+  document: z.object(documentReferenceShape).optional(),
+  task: z.object(taskReferenceShape).optional(),
+  member: z.object(memberReferenceShape).optional(),
+}
 
 // What the organization keeps of an item read whole, after its own fields
 const stateShape = {

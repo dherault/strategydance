@@ -51,6 +51,33 @@ describe('idempotency keys', () => {
     expect(fake.knowledgeUses.map(use => use.itemId)).toEqual([TACTIC])
   })
 
+  it('refuses a key sent again to another tool with the same arguments, a link then an unlink', async () => {
+    const kit = await organization.connect()
+    const task = organization.addTask()
+    const args = { kind: 'MARKETING_TACTIC', id: TACTIC, taskId: task.id }
+
+    await kit.answer('link_knowledge', args, 'key-2')
+
+    expect(await kit.refusal('unlink_knowledge', args, 'key-2')).toBe(CONFLICT)
+    expect(fake.knowledgeLinks).toHaveLength(1)
+  })
+
+  it('answers a link and an unlink sent again under their keys as they were, writing once each', async () => {
+    const kit = await organization.connect()
+    const task = organization.addTask()
+    const args = { kind: 'MARKETING_TACTIC', id: TACTIC, taskId: task.id }
+    const linked = await kit.answer('link_knowledge', args, 'key-1')
+    const unlinked = await kit.answer('unlink_knowledge', args, 'key-2')
+
+    expect(await kit.answer('link_knowledge', args, 'key-1')).toEqual(linked)
+    expect(await kit.answer('unlink_knowledge', args, 'key-2')).toEqual(unlinked)
+    expect(fake.knowledgeLinks).toEqual([])
+    expect(fake.calls.filter(call => call.startsWith('LinkKnowledge') || call.startsWith('UnlinkKnowledge'))).toEqual([
+      'LinkKnowledgeTaskForAgent',
+      'UnlinkKnowledgeTaskForAgent',
+    ])
+  })
+
   it('makes one write of two calls at once under one key', async () => {
     const kit = await organization.connect()
     const args = { kind: 'MARKETING_TACTIC', id: TACTIC, inUse: true }

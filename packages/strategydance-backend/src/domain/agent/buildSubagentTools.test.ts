@@ -74,7 +74,7 @@ describe('buildSubagentTools', () => {
       'unlink_knowledge',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '6bdb00ff900299d43a89fb8968b6ca610cb9b02b5326a0c243552870d0440cd3',
+      'a41d12c04e8e3ea1edd255a2f96cfaa06859bfe4d04016c18e139ed9091b5120',
     )
   })
 

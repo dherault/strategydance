@@ -111,8 +111,12 @@ async function listKnowledge(
   }
 }
 
-// Whether a directory has one of the categories and one of the business models given, either filter
-// left out keeping every one. Another kind is given neither
+/*
+  Whether a directory has one of the categories and one of the business models given, either filter
+  left out keeping every one. One taking any startup lists every kind of product, so it has each
+  category but `REGIONAL`, a region's alone. One whose categories the daily check has not written
+  yet has none, so no category keeps it. Another kind is given neither filter
+*/
 function matchesDirectoryFilters(
   entry: KnowledgeEntry,
   categories: DirectoryCategory[] | undefined,
@@ -120,8 +124,14 @@ function matchesDirectoryFilters(
 ) {
   if (entry.kind !== 'DIRECTORY') return true
 
+  const isAnyStartup = entry.item.categories.includes(DirectoryCategory.ANY_STARTUP)
+
   return (
-    (!categories || entry.item.categories.some(category => categories.includes(category)))
+    (!categories
+      || categories.some(
+        category =>
+          entry.item.categories.includes(category) || (isAnyStartup && category !== DirectoryCategory.REGIONAL),
+      ))
     && (!businessModels || businessModels.includes(entry.item.businessModel))
   )
 }

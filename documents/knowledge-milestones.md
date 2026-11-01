@@ -4,7 +4,7 @@
 | --- | --- | --- | --- | --- |
 | M1 | The Knowledge module, reading the catalogue | core, backend, web | | #288 |
 | M2 | What the company uses | database, backend | M1 | #290 |
-| M3 | Knowledge in conversations | backend, web, root | M2 | |
+| M3 | Knowledge in conversations | backend, web, root | M2 | #291 |
 
 The three milestones that build the Knowledge module, each one pull request into `dev` that a Claude
 Code session implements, with the conventions every one of them follows. [knowledge.md](knowledge.md)
@@ -248,6 +248,11 @@ Strategy Dance's own agent with the knowledge, as budget-milestones.md's M10 gav
 tokens estimated, the list before and after, go in the pull request's description. M10 found that
 Claude's tool search would cost existing conversations their earlier reasoning as the tools do, so
 they join the list as the other modules' did, unless David chooses otherwise.
+- **What they weigh**, measured on 2026-11-01: 8,459 characters, `list_knowledge` 2,869,
+  `read_knowledge` 1,463, `set_knowledge_in_use` 1,176, `link_knowledge` 1,629 and
+  `unlink_knowledge` 1,322. Some 2,800 to 3,800 tokens at 2.2 to 3.0 characters a token, taking the
+  list from 32 tools and 39,995 characters to 37 and 48,454, and a subagent's from 24 tools and
+  33,346 characters to 29 and 41,805.
 
 **Joining the agent:**
 - `CONVERSATION_MODULES` gains `knowledge`, last, in `MODULES`' order.
@@ -259,12 +264,16 @@ they join the list as the other modules' did, unless David chooses otherwise.
 **The system prompts.**
 - The agent's gains knowledge.md's paragraph after the budget's.
 - The subagent's gains knowledge.md's line after the budget's.
-- Both name the directories' descriptions among what others wrote.
+- Both name the directories' descriptions among what others wrote, as "a directory's description
+  claims".
 - Both pinned hashes move, and their tests still refuse an em dash.
 
 **Labels.** The `conversation` catalogue words the five, running and done, in `TOOL_LABELS`:
 "Browsing the knowledge", "Reading the knowledge", "Marking what the company uses", "Linking
-knowledge" and "Unlinking knowledge", with `getConversationToolLabel.test.ts` naming them.
+knowledge" and "Unlinking knowledge", with `getConversationToolLabel.test.ts` naming them. Done, they
+are "Browsed the knowledge", "Read the knowledge", "Marked what the company uses", "Linked knowledge"
+and "Unlinked knowledge". Retry's dialog keeps naming documents, tasks and bills alone, since nothing
+in the app shows what the company uses.
 
 **conversations.md § Modules** lists Knowledge fifth, served to no external agent, and points at
 knowledge.md, in place of the directories and marketing tactics it says David has in mind next.
@@ -287,3 +296,12 @@ knowledge.md, in place of the directories and marketing tactics it says David ha
 - The four checks.
 - **Left for David:** the release that ships M3 costs every conversation its earlier reasoning once,
   as every change of the tools does, so it ships when that is meant.
+
+**Verified**, on 2026-11-01:
+- The four checks, at every commit.
+- In a browser against a scratch suite, the backend's Claude client replaced by one scripting the five
+  calls, each refused once then answered, every module call real: the ten labels drawn at 1280 and
+  390 pixels wide, a refused call under its running label, none cut short. The tactic was marked in
+  use with the member as `changedBy`, and its member link added then removed.
+- **Left for David**, once `gcloud auth login` lets the key be read: `bun run probe:claude`, which
+  counts the tools exactly, and the three conversations on the real model.

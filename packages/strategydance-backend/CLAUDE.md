@@ -213,6 +213,9 @@ members' own agents at `/mcp/<name>` (conversations.md § Modules).
 
 ## Knowledge
 
+- Strategy Dance's agent and its subagents reach the module, all five tools each, since none
+  deletes what anybody wrote. No external agent does: `/mcp/knowledge` stays reserved, as the
+  Subagents module's address is, until a later plan serves it
 - The catalogue is strategydance-knowledge's lists as the release ships them, read when the backend
   starts. The module never writes it: a change to a list is the package's, under its README
 - What a company uses is keyed by an item's kind and id, never its name. The operations cannot read

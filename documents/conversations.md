@@ -131,7 +131,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Attachments | Images, PDFs and text files, read by Claude natively, through the Files API |
 | Questions | Multiple-choice questions through a tool, as designed |
 | Replies | Whole messages, as designed. The thinking indicator shows live progress. No token streaming to the browser |
-| Modules (MCP) | Strategy Dance's own capabilities as MCP servers, one per module, which its agent uses and which a member can add to an external agent (claude.ai, ChatGPT, Claude Code, Cursor). Documents first, from M14, then the team's tasks, from M15, then Subagents, from M32, which only Strategy Dance's agents reach until a later plan serves it; budget, software solutions, directories and marketing tactics later. The agent reaches a module in process, over MCP; an external agent reaches it at `https://api.strategydance.com/mcp/<module>`, through Strategy Dance's own OAuth authorization server, acting as one member in the one organization they chose. The AI permissions hold for every agent. Members decide which agents they connect: no organization setting governs it |
+| Modules (MCP) | Strategy Dance's own capabilities as MCP servers, one per module, which its agent uses and which a member can add to an external agent (claude.ai, ChatGPT, Claude Code, Cursor). Documents first, from M14, then the team's tasks, from M15, then Subagents, from M32, which only Strategy Dance's agents reach until a later plan serves it, then the budget, from budget-milestones.md's M8, then Knowledge, Strategy Dance's frameworks, marketing tactics and directories, from knowledge-milestones.md's M1, which only Strategy Dance's agents reach as well; software solutions later. The agent reaches a module in process, over MCP; an external agent reaches it at `https://api.strategydance.com/mcp/<module>`, through Strategy Dance's own OAuth authorization server, acting as one member in the one organization they chose. The AI permissions hold for every agent. Members decide which agents they connect: no organization setting governs it |
 | Integrations (MCP) | Other companies' MCP servers, which the agent calls; the reverse of modules. The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it. A subagent calls only those, since nobody can approve a call for it (M36) |
 | Usage limits | Daily caps from M35, over a rolling 24 hours, as David chose on 2026-10-13: 20 conversations and 100 runs a member in each organization, 100 conversations and 500 runs an organization, and 30 subagents a member in each organization (see Usage caps), until a credit system replaces them. From the same milestone, as David chose on 2026-10-16: an account's ceilings across every organization it is in, 40 conversations, 200 runs and 60 subagents a day, since an account creates organizations at will; a run stops at $10 of estimated cost, priced from its ledger, since a cap on starts bounds nothing a single run spends; and what finishes work under way, an answer's continuation, an Allow's and a reaction, passes a cap only up to one and a half times it. Above them the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage. Subagents have bounds of their own (ten per member action, five at once per member, four runs each, twenty dispatches on their own queue), as David chose on 2026-10-12. From M39, as David chose on 2026-10-18 after the review of M1 to M38, daily ceilings in dollars beside the caps, $25 a member in each organization, $50 an account and $150 an organization, as he set them on 2026-10-19, summed from what each run may have cost and held before every request and at every start: the caps on starts let one account spend some $5400 a day, and the workspace's spend limit, shared by every customer, would stop them all at once |
 | Conversation size | One safety cap of 2000 entries, which refuses a send and stops a run, and the measured request, which marks a conversation full before its context window does. No room is reserved ahead |
@@ -1386,6 +1386,7 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
 | The Tasks module's | `list_tasks`, `read_task`, `create_task`, `update_task`, `add_task_dependency`, `remove_task_dependency`, `delete_task` and `restore_task`, a second MCP server's tools, reached as the Documents module's are (see Modules) | M17 |
 | The Subagents module's | `list_subagents`, `read_subagent`, `launch_subagent` and `stop_subagent`, a third MCP server's tools, reached as the other two modules' are, by a conversation's agent alone: a subagent gets none of them (see Modules and Subagents) | M33 |
 | The Budget module's | `read_budget`, `list_bills`, `read_bill`, `add_bill`, `update_bill`, `delete_bill` and `restore_bill`, a fourth MCP server's tools, listed after the Tasks module's, a subagent getting all but `delete_bill` (budget.md § The Budget module) | budget-milestones.md's M10 |
+| The Knowledge module's | `list_knowledge`, `read_knowledge`, `set_knowledge_in_use`, `link_knowledge` and `unlink_knowledge`, a fifth MCP server's tools, listed last, after the Subagents module's, a subagent getting all five (knowledge.md § In conversations) | knowledge-milestones.md's M3 |
 | `ask_user` | `{ prompt, options (2 to 6), multiple }`: ends the run until the member answers. The prompt holds at most 1000 characters and each option 200 (`MAX_QUESTION_PROMPT_LENGTH`, `MAX_QUESTION_OPTION_LENGTH`), checked before anything is drawn: a call past either is refused with a result saying so, and nothing reaches the thread, so a question stays within the live tail's bound | M11 |
 | `list_integrations` | The organization's servers, whether each works for this member, and their tools' names and descriptions | M29 |
 | `describe_integration_tool` | `{ integration, tool }`: the tool's input schema | M29 |
@@ -1403,7 +1404,10 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   subagents", "Reading a subagent" and "Read a subagent", "Launching a subagent" and "Launched a
   subagent", "Stopping a subagent" and "Stopped a subagent", "Checking the budget" and "Checked the
   budget", "Listing bills" and "Listed bills", "Opening a bill" and "Opened a bill", "Adding a bill",
-  "Updating a bill", "Deleting a bill", "Restoring a bill", and "Searching the web". A module's tools
+  "Updating a bill", "Deleting a bill", "Restoring a bill", "Browsing the knowledge" and "Browsed
+  the knowledge", "Reading the knowledge" and "Read the knowledge", "Marking what the company uses"
+  and "Marked what the company uses", "Linking knowledge" and "Linked knowledge", "Unlinking
+  knowledge" and "Unlinked knowledge", and "Searching the web". A module's tools
   are labelled by their name, as the built-in ones are. A `delete_bill` row offers Restore, as a
   `delete_task` row does (see Modules).
 - Integrations go through three fixed tools rather than one tool per server tool, so the tools list
@@ -1419,8 +1423,10 @@ A module is one of Strategy Dance's capabilities served as an MCP server, which 
 agent uses and which a member can add to an external agent of their own: claude.ai, ChatGPT, Claude
 Code, Cursor. Documents come first, from M14, the team's tasks second, from M15, and Subagents
 third, from M32, which only Strategy Dance's own agents reach until a later plan serves it, and the
-budget fourth, from budget-milestones.md's M8, which Strategy Dance's agent reaches from its M10; software
-solutions, directories and marketing tactics are the ones David has in mind next. A module
+budget fourth, from budget-milestones.md's M8, which Strategy Dance's agent reaches from its M10, and
+Knowledge fifth, from knowledge-milestones.md's M1, which no external agent reaches and Strategy
+Dance's agent reaches from its M3 ([knowledge.md](knowledge.md)); software solutions are the one
+David has in mind next. A module
 is the reverse of an integration (M27 to M29): an integration is another company's server, which the
 agent calls; a module is Strategy Dance's, which any agent a member connected may call as that
 member.
@@ -1945,15 +1951,16 @@ authorization server from M18 and a consent page from M19:
   included. The Tasks module follows the same path: `bun run mcp:tasks <email>` from M15, the same
   stdio script taking the module's name, and `http://localhost:3003/mcp/tasks` from M21.
 
-**Later modules**, software solutions, directories and marketing tactics, each add a folder under
+**Later modules**, software solutions among them, each add a folder under
 `src/modules/`, an entry in `MODULES`, their address, scopes and labels, and their tools to the
 agent's list, as the Tasks module does in M15, M17 and M21 and the Budget module in budget-milestones.md's M8
 and M10, which `drop_block` makes a one-time loss of earlier reasoning, as any tool is. Past some
 10000 tokens of tool definitions, Claude's tool search (`defer_loading`) keeps them out of the
 context without touching the cached prefix, at the cost of a search step before a deferred tool's
 first use; the Documents and Tasks modules' take 7381 (M17), with the Subagents module's 9021, the
-whole list 16017 (M33), and the Budget module's seven some 5000 more, which David chose on
-2026-10-28 to send as the others are (budget-milestones.md's M10). A tool declared deferred that nothing has
+whole list 16017 (M33), the Budget module's seven some 5000 more, which David chose on
+2026-10-28 to send as the others are (budget-milestones.md's M10), and the Knowledge module's five
+some 3000 more, 8,459 characters, sent the same way (knowledge-milestones.md's M3). A tool declared deferred that nothing has
 used yet is outside what a replay's thinking is checked against, but tool search needs its own tool
 in the list, which is a change of the list like any other, so it would cost conversations their
 earlier reasoning once all the same. Only a deferred tool shown by a `tool_addition` block, which

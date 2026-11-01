@@ -90,9 +90,9 @@ by M1, names:
   `DIRECTORY_CATEGORY_DESCRIPTIONS`, `DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS` and
   `DIRECTORY_INACTIVE_REASON_DESCRIPTIONS`. The agent reads them with an item, never in a tool's
   description, so the tool list does not grow with them.
-- **An inactive directory** (`INACTIVE_DIRECTORIES`) takes no submission today. Lists leave it out,
-  but it can still be read, set and linked, since the company may have submitted to it before, and a
-  later check may bring it back.
+- **An inactive directory** (`INACTIVE_DIRECTORIES`) takes no submission today. Lists leave it out
+  unless the company uses it, and it can still be read, set and linked, since the company may have
+  submitted to it before, and a later check may bring it back.
 - **The lists' rules** are in the package's README: sorted by name, written as `JSON.stringify(list,
   null, 2)` writes them. The directories are kept up to date by their daily check
   ([directories.md](directories.md)).
@@ -159,7 +159,8 @@ Its tools, in their frozen order:
 - **A row**, by kind:
   - a framework: `id`, `name`, `description` and `inUse`;
   - a tactic: those, with `channel`, `effort`, `paid`, `timeToResults` and `technical`;
-  - a directory: those, with `type`, `categories` and `businessModel`.
+  - a directory: those, with `type`, `categories` and `businessModel`, and an inactive one its
+    `inactiveReason`.
 
   The 30 frameworks and 49 tactics fit one page each. The 532 directories take a few, fewer once
   filtered.
@@ -169,6 +170,11 @@ Its tools, in their frozen order:
   marked among them.
 - **`categories` and `businessModels`** keep the directories with one of the categories or models
   given. Either filter with another kind is refused, naming the kind it is for.
+  - A directory taking any startup, `ANY_STARTUP`, lists every kind of product, so every category
+    keeps it but `REGIONAL`, which asks for a region's directories alone.
+  - A directory whose site the daily check has not read yet has no categories, and often no
+    description: 373 of the 532 on 2026-11-01. No category keeps it, and the tool says so, since
+    nothing tells what it lists until the check reaches it.
 - **`cursor`** is the offset where the page stopped, through `encodeCursor` and `decodeCursor`, with
   a hash of the kind, query and filters it was read under, since written out they could pass the
   1,000 characters a cursor takes: a cursor read under others is refused. The same words in another
@@ -224,10 +230,10 @@ other modules.
 
 - **`CONVERSATION_MODULES` is `['documents', 'tasks', 'budget', 'subagents', 'knowledge']`**, in
   `MODULES`' order, so the five tools come last in the list, after the Subagents module's.
-- **What they weigh.** Converted as the worker sends them, the five are 8,459 characters,
-  `list_knowledge` the heaviest at 2,869. At the 2.2 to 3.0 characters a token the earlier modules
-  counted, that is some 2,800 to 3,800 tokens, taking the list from 32 tools and 39,995 characters to
-  37 and 48,454. They join the list as the other modules' did, since Claude's tool search would cost
+- **What they weigh.** Converted as the worker sends them, the five are 8,679 characters,
+  `list_knowledge` the heaviest at 3,089. At the 2.2 to 3.0 characters a token the earlier modules
+  counted, that is some 2,900 to 3,900 tokens, taking the list from 32 tools and 39,995 characters to
+  37 and 48,674, and a subagent's from 24 tools and 33,346 characters to 29 and 42,025. They join the list as the other modules' did, since Claude's tool search would cost
   conversations their earlier reasoning once all the same (conversations.md § Modules).
 - **Subagents get all five.** None deletes what anybody wrote, so none joins
   `SUBAGENT_WITHHELD_TOOLS`. A subagent's report names a knowledge write by its tool alone, as it

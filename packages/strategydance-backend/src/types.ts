@@ -686,13 +686,21 @@ export type KnowledgeEntry =
 
 /*
   Why the Knowledge module refused a call, which its tool words for the model: each is something the
-  model can act on by changing what it sent
+  model can act on, by changing what it sent, telling the member, or ending its turn
 */
 export type KnowledgeRefusal =
+  /** The caller left the organization, or left and came back, since the module read them */
+  | { outcome: 'notMember' }
   /** A cursor no list gave, or one it gave under another kind, query or filters */
   | { outcome: 'invalidCursor' }
   /** A filter of directories, given to list another kind */
   | { outcome: 'otherKindFilter'; filter: 'categories' | 'businessModels' }
+
+// What each of the Knowledge module's tools is registered with: who calls it. Its results carry no
+// web address, since no page shows the knowledge
+export type KnowledgeToolContext = {
+  caller: ModuleCaller
+}
 
 /* ---
   DIRECTORIES

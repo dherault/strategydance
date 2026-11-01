@@ -4,7 +4,7 @@ import { type KnowledgeKind, splitSearchTerms } from 'strategydance-core'
 import { DirectoryBusinessModel, DirectoryCategory } from 'strategydance-knowledge'
 import { z } from 'zod'
 
-import type { KnowledgeEntry, KnowledgeRefusal } from '~types'
+import type { KnowledgeEntry, KnowledgeRefusal, ModuleCaller } from '~types'
 
 import { KNOWLEDGE_LIST_PAGE_LENGTH } from '~constants'
 
@@ -13,6 +13,7 @@ import encodeCursor from '~utils/encodeCursor'
 
 import matchesKnowledgeQuery from '~domain/knowledge/matchesKnowledgeQuery'
 import readKnowledgeCatalogue from '~domain/knowledge/readKnowledgeCatalogue'
+import readKnowledgeUses from '~domain/knowledge/readKnowledgeUses'
 import toKnowledgeRow, { type KnowledgeRow } from '~domain/knowledge/toKnowledgeRow'
 
 /*
@@ -32,6 +33,8 @@ type ListKnowledgeInput = {
   kind: KnowledgeKind
   // At most `MAX_SEARCH_QUERY_LENGTH`, words each of which an item's name or description holds
   query?: string
+  // Those the organization uses, or given false those it does not, the ones never marked among them
+  inUse?: boolean
   // A directory's filters, which another kind refuses: one of them at least, each named once
   categories?: DirectoryCategory[]
   businessModels?: DirectoryBusinessModel[]
@@ -43,12 +46,18 @@ export type ListKnowledgeResult =
   | KnowledgeRefusal
 
 /*
-  A kind's items as compact rows, by name, those matching the query and filters, a page within
-  `KNOWLEDGE_LIST_PAGE_LENGTH` characters of JSON with a cursor while more remain. The inactive
-  directories take no submission today, so no list shows them. The catalogue is the release's, the
-  same on every page, so a cursor is an offset, held to the filters it was read under
+  A kind's items as compact rows, by name, each saying whether the organization uses it, those
+  matching the query and filters, a page within `KNOWLEDGE_LIST_PAGE_LENGTH` characters of JSON with
+  a cursor while more remain. The inactive directories take no submission today, so no list shows
+  them. The catalogue is the release's, the same on every page, so a cursor is an offset, held to the
+  filters it was read under: with `inUse`, an item marked or cleared between two pages can move the
+  rest by one, which a list of the few items a company uses rarely spans. A caller who is no longer
+  the member the module read is refused
 */
-function listKnowledge({ kind, query, categories, businessModels, cursor }: ListKnowledgeInput): ListKnowledgeResult {
+async function listKnowledge(
+  caller: ModuleCaller,
+  { kind, query, inUse, categories, businessModels, cursor }: ListKnowledgeInput,
+): Promise<ListKnowledgeResult> {
   if (kind !== 'DIRECTORY') {
     if (categories) return { outcome: 'otherKindFilter', filter: 'categories' }
     if (businessModels) return { outcome: 'otherKindFilter', filter: 'businessModels' }
@@ -59,6 +68,7 @@ function listKnowledge({ kind, query, categories, businessModels, cursor }: List
   const filters = toFiltersHash({
     kind,
     words,
+    inUse,
     categories: categories && Object.values(DirectoryCategory).filter(value => categories.includes(value)),
     businessModels:
       businessModels && Object.values(DirectoryBusinessModel).filter(value => businessModels.includes(value)),
@@ -67,8 +77,15 @@ function listKnowledge({ kind, query, categories, businessModels, cursor }: List
 
   if (cursor !== undefined && (!after || after.filters !== filters)) return { outcome: 'invalidCursor' }
 
+  const uses = await readKnowledgeUses(caller, kind)
+
+  if (uses.outcome !== 'read') return uses
+
   const listed = readKnowledgeCatalogue(kind).items.filter(
-    entry => matchesKnowledgeQuery(entry.item, words) && matchesDirectoryFilters(entry, categories, businessModels),
+    entry =>
+      (inUse === undefined || uses.inUse.has(entry.item.id) === inUse)
+      && matchesKnowledgeQuery(entry.item, words)
+      && matchesDirectoryFilters(entry, categories, businessModels),
   )
   const start = after?.offset ?? 0
   const frame = { kind, items: [], total: listed.length }
@@ -76,7 +93,7 @@ function listKnowledge({ kind, query, categories, businessModels, cursor }: List
   let length = JSON.stringify(frame).length + CURSOR_ROOM
 
   for (const entry of listed.slice(start)) {
-    const row = toKnowledgeRow(entry)
+    const row = toKnowledgeRow(entry, uses.inUse.has(entry.item.id))
     // Each row counts with the comma before it
     const rowLength = JSON.stringify(row).length + 1
 
@@ -113,6 +130,7 @@ function matchesDirectoryFilters(
 function toFiltersHash(filters: {
   kind: KnowledgeKind
   words: string[]
+  inUse: boolean | undefined
   categories: DirectoryCategory[] | undefined
   businessModels: DirectoryBusinessModel[] | undefined
 }) {

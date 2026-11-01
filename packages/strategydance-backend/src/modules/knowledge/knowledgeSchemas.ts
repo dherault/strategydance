@@ -1,4 +1,5 @@
 import { KnowledgeKind, MAX_SEARCH_QUERY_LENGTH, MAX_SEARCH_TERMS, splitSearchTerms } from 'strategydance-core'
+import { TaskStatus } from 'strategydance-database/backend'
 import {
   DirectoryBusinessModel,
   DirectoryCategory,
@@ -49,13 +50,16 @@ export const cursorSchema = z.string().max(1000)
 // What every item has, whatever its kind
 const itemShape = { id: z.string(), name: z.string(), description: z.string() }
 
+// What every row has: an item's fields, and whether the organization uses it
+const rowShape = { ...itemShape, inUse: z.boolean() }
+
 /*
   An item as a list shows it, by kind: a tactic's and a directory's first, since a framework's fields
-  are the ones every item has
+  are the ones every row has
 */
 export const knowledgeRowSchema = z.union([
   z.object({
-    ...itemShape,
+    ...rowShape,
     channel: z.enum(MarketingTacticChannel),
     effort: z.enum(MarketingTacticEffort),
     paid: z.boolean(),
@@ -63,12 +67,12 @@ export const knowledgeRowSchema = z.union([
     technical: z.boolean(),
   }),
   z.object({
-    ...itemShape,
+    ...rowShape,
     type: z.enum(DirectoryType),
     categories: z.array(z.enum(DirectoryCategory)),
     businessModel: z.enum(DirectoryBusinessModel),
   }),
-  z.object(itemShape),
+  z.object(rowShape),
 ])
 
 // A value of one of the package's enums, with what it means
@@ -76,7 +80,29 @@ function toMeaningSchema<const Values extends Record<string, string>>(values: Va
   return z.object({ value: z.enum(values), meaning: z.string() })
 }
 
-// An item read whole, by kind
+// Whether the organization uses an item and since when, null when the agent never marked it
+export const useSchema = z.object({ inUse: z.boolean(), changedAt: z.string() }).nullable()
+
+// An item's newest links to one kind of target, and how many it has in all
+function toLinksSchema<const Shape extends z.ZodRawShape>(shape: Shape) {
+  return z.object({ items: z.array(z.object(shape)), total: z.int() })
+}
+
+export const documentReferenceShape = { id: z.string(), title: z.string() }
+
+export const taskReferenceShape = { id: z.string(), name: z.string(), status: z.enum(TaskStatus) }
+
+export const memberReferenceShape = { member: z.string(), name: z.string().nullable() }
+
+// What the organization keeps of an item read whole, after its own fields
+const stateShape = {
+  use: useSchema,
+  documents: toLinksSchema(documentReferenceShape),
+  tasks: toLinksSchema(taskReferenceShape),
+  members: toLinksSchema(memberReferenceShape),
+}
+
+// An item read whole, by kind, with what the organization keeps of it
 export const knowledgeItemSchema = z.union([
   z.object({
     ...itemShape,
@@ -84,6 +110,7 @@ export const knowledgeItemSchema = z.union([
     inputs: z.array(z.string()),
     questions: z.array(z.string()),
     output: z.string(),
+    ...stateShape,
   }),
   z.object({
     ...itemShape,
@@ -94,6 +121,7 @@ export const knowledgeItemSchema = z.union([
     timeToResults: toMeaningSchema(MarketingTacticTimeToResults),
     technical: z.boolean(),
     metrics: z.array(z.string()),
+    ...stateShape,
   }),
   z.object({
     ...itemShape,
@@ -105,5 +133,6 @@ export const knowledgeItemSchema = z.union([
     lastChecked: z.string().nullable(),
     unreachableSince: z.string().nullable(),
     inactiveReason: toMeaningSchema(DirectoryInactiveReason).optional(),
+    ...stateShape,
   }),
 ])

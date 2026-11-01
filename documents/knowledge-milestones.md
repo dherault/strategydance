@@ -4,7 +4,7 @@
 | --- | --- | --- | --- | --- |
 | M1 | The Knowledge module, reading the catalogue | core, backend, web | | #288 |
 | M2 | What the company uses | database, backend | M1 | #290 |
-| M3 | Knowledge in conversations | backend, web, root | M2 | |
+| M3 | Knowledge in conversations | backend, web, root | M2 | #291 |
 
 The three milestones that build the Knowledge module, each one pull request into `dev` that a Claude
 Code session implements, with the conventions every one of them follows. [knowledge.md](knowledge.md)

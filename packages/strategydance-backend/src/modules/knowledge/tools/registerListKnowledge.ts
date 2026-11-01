@@ -30,7 +30,7 @@ const inputSchema = z.object({
   categories: categoriesSchema
     .optional()
     .describe(
-      'Directories alone: those listing one of these kinds of product at least, those taking any startup among them but for REGIONAL',
+      "Directories alone: those listing one of these kinds of product at least, those taking any startup among them, except that REGIONAL keeps a region's directories alone",
     ),
   businessModels: businessModelsSchema
     .optional()

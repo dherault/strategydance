@@ -39,7 +39,7 @@ describe('buildSubagentTools', () => {
     to them makes every existing subagent lose its earlier reasoning once. Change this hash only with
     a release that means to change the tools
   */
-  it('keeps its bytes, web search and the integration tools then the Documents module’s, the Tasks module’s and the Budget module’s, their deletes left out', async () => {
+  it('keeps its bytes, web search and the integration tools then the Documents module’s, the Tasks module’s, the Budget module’s and the Knowledge module’s, their deletes left out', async () => {
     const tools = buildSubagentTools(await readModuleTools())
 
     expect(tools.map(readName)).toEqual([
@@ -67,9 +67,14 @@ describe('buildSubagentTools', () => {
       'add_bill',
       'update_bill',
       'restore_bill',
+      'list_knowledge',
+      'read_knowledge',
+      'set_knowledge_in_use',
+      'link_knowledge',
+      'unlink_knowledge',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      'bbac3badbce521ddd56a715f47cec61bdfe0f781ddc77dccfd0da56525613e60',
+      '62469c472c291fc3b41ca16ba89d06390f996b2d94176bc477e1263483a89480',
     )
   })
 

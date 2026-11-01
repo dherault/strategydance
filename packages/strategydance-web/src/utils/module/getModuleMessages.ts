@@ -28,8 +28,6 @@ const MODULE_MESSAGES: Record<ModuleName, ModuleMessages> = {
     writeAccess: moduleMessages.tasksWriteAccess,
     agentsButton: moduleMessages.tasksAgentsButton,
   },
-  // Served to no external agent yet, so no page shows these until its endpoint opens, but every
-  // module is worded
   budget: {
     name: moduleMessages.budgetName,
     readAccess: moduleMessages.budgetReadAccess,
@@ -42,6 +40,13 @@ const MODULE_MESSAGES: Record<ModuleName, ModuleMessages> = {
     readAccess: moduleMessages.subagentsReadAccess,
     writeAccess: moduleMessages.subagentsWriteAccess,
     agentsButton: moduleMessages.subagentsAgentsButton,
+  },
+  // Served to no external agent yet either, so no page shows these, but every module is worded
+  knowledge: {
+    name: moduleMessages.knowledgeName,
+    readAccess: moduleMessages.knowledgeReadAccess,
+    writeAccess: moduleMessages.knowledgeWriteAccess,
+    agentsButton: moduleMessages.knowledgeAgentsButton,
   },
 }
 

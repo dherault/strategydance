@@ -97,13 +97,17 @@ running a community, and each given a channel, a time to results and its metrics
 ## Strategic frameworks
 
 Proven ways to think a company's question through, from simple ideas to whole methods, in
-`src/strategicFrameworks/strategicFrameworks.json`, exported as `STRATEGIC_FRAMEWORKS`. Empty until
-the first ones are written. Each is written so an agent can apply it, holding:
+`src/strategicFrameworks/strategicFrameworks.json`, exported as `STRATEGIC_FRAMEWORKS`: 30 of them,
+written on 2026-10-31, from SWOT and Porter's Five Forces to Jobs to Be Done, the Lean Canvas and
+the pre-mortem. Each is written so an agent can apply it, holding:
 
 - `id` and `name`
 - `description`: what the framework is, one sentence of `MAX_KNOWLEDGE_DESCRIPTION_LENGTH`
   characters at most
 - `whenToUse`: the situation it helps with, which tells an agent when to reach for it
 - `inputs`: what it needs to know of the company before it can be applied
-- `questions`: what it asks the team, each a question an agent can put to them as it is
+- `questions`: what it asks the founder or the team, each a question an agent can put to them as it
+  is. Strategy Dance serves solo founders first, then startups, so each is written in plain words,
+  to "you", the framework's own terms explained where they appear, such as "These are your cash
+  cows"
 - `output`: what applying it produces, such as a decision, a plan or a document

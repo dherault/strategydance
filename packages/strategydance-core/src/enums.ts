@@ -58,3 +58,17 @@ export const Currency = {
 } as const
 
 export type Currency = (typeof Currency)[keyof typeof Currency]
+
+/*
+  The kinds of item Strategy Dance's knowledge holds, each one of strategydance-knowledge's lists: an
+  item's id is unique within its kind alone, so the company's state is keyed on the kind and the id
+  together. Declared in `schema.gql` as well from knowledge-milestones.md's M2, and `schema.test.ts`
+  holds the two to the same values
+*/
+export const KnowledgeKind = {
+  STRATEGIC_FRAMEWORK: 'STRATEGIC_FRAMEWORK',
+  MARKETING_TACTIC: 'MARKETING_TACTIC',
+  DIRECTORY: 'DIRECTORY',
+} as const
+
+export type KnowledgeKind = (typeof KnowledgeKind)[keyof typeof KnowledgeKind]

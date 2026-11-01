@@ -104,4 +104,14 @@ describe('MODULE_SERVERS', () => {
       'restore_bill',
     ])
   })
+
+  it('lists the five tools of the Knowledge module, reads first', async () => {
+    expect(await listToolNames('knowledge')).toEqual([
+      'list_knowledge',
+      'read_knowledge',
+      'set_knowledge_in_use',
+      'link_knowledge',
+      'unlink_knowledge',
+    ])
+  })
 })

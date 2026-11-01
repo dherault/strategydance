@@ -1,1 +1,610 @@
-[]
+[
+  {
+    "id": "7-powers",
+    "name": "7 Powers Framework",
+    "description": "Finds which of seven sources of durable advantage (Scale Economies, Network Economies, Counter-Positioning, Switching Costs, Branding, Cornered Resource, Process Power) a company has or can build.",
+    "whenToUse": "Reach for this framework when setting long-term business strategy, evaluating moat strength, or proving persistent defensibility and economic returns to investors.",
+    "inputs": [
+      "Business model, value proposition, and revenue generation mechanisms",
+      "Company lifecycle stage (Origination, Takeoff, or Stability)",
+      "Main incumbents and emerging competitors",
+      "Unit economics and fixed vs. variable cost behavior with scale"
+    ],
+    "questions": [
+      "Scale economies: as you grow, does each customer cost you less, faster than your competitors' costs can fall?",
+      "Network economies: does your product get more valuable to each user as more people use it?",
+      "Counter-positioning: is your business model one the big players cannot copy without hurting their own business?",
+      "Switching costs: what would customers lose, in money, time or effort, by leaving you for an alternative?",
+      "Branding: do people pay more for you, or choose you more often, because they trust your name?",
+      "Cornered resource: do you have exclusive access to something valuable, such as a person, a patent, data or a deal?",
+      "Process power: have you built ways of working, over time, that give you better quality or lower costs others cannot easily copy?"
+    ],
+    "output": "An assessment of present and latent powers across the business model, paired with a staged strategic roadmap to build at least one durable power before market arbitrage occurs."
+  },
+  {
+    "id": "aarrr-pirate-metrics",
+    "name": "AARRR Pirate Metrics",
+    "description": "Breaks the customer lifecycle into Acquisition, Activation, Retention, Referral, and Revenue to locate funnel friction and drive growth initiatives.",
+    "whenToUse": "Reach for this framework when diagnosing slow growth in digital or SaaS products, or aligning cross-functional growth teams around the leaky stages of the user lifecycle.",
+    "inputs": [
+      "Channel acquisition performance and Customer Acquisition Cost (CAC)",
+      "User onboarding flows and activation milestone triggers",
+      "Cohort retention analysis curves over 30/60/90 days",
+      "Referral loop mechanics, viral coefficients, and LTV/pricing metrics"
+    ],
+    "questions": [
+      "Acquisition: which channels bring you people who really want what you offer, at a cost you can afford?",
+      "Activation: what action shows a new user has felt the value of your product for the first time?",
+      "Retention: out of every 100 new users, how many are still active after a week, a month and three months, and where does it level off?",
+      "Referral: do your users bring others, and how many does each one bring?",
+      "Revenue: out of every 100 active users, how many become paying customers?",
+      "At which of these steps do you lose the most people?"
+    ],
+    "output": "A lifecycle funnel conversion dashboard identifying the top growth bottleneck, supported by a prioritized backlog of growth hypotheses and experiments."
+  },
+  {
+    "id": "ansoff-matrix",
+    "name": "Ansoff Matrix",
+    "description": "Categorizes growth strategies across four quadrants (Market Penetration, Market Development, Product Development, and Diversification) based on existing vs. new products and markets.",
+    "whenToUse": "Reach for this framework when evaluating growth paths, setting corporate revenue targets, and balancing risk profiles between core expansion and new ventures.",
+    "inputs": [
+      "Current product portfolio and customer segment penetration rates",
+      "Growth targets, capital availability, and execution timeframe",
+      "Addressable market sizing and expansion capabilities",
+      "Corporate risk tolerance and R&D/GTM capacity"
+    ],
+    "questions": [
+      "Can you reach your growth goal by selling more of what you have to the customers you already target?",
+      "Could you sell what you have to new customers: another country, industry or kind of buyer?",
+      "Could you build something new for the customers you already have?",
+      "Should you build something new for an entirely new market, and how much more risk would that be?",
+      "Which of these paths gives you the best return for the risk you can take?"
+    ],
+    "output": "A categorized portfolio of growth options mapped by risk profile, complete with prioritized allocation of capital, resources, and validation milestones."
+  },
+  {
+    "id": "balanced-scorecard",
+    "name": "Balanced Scorecard",
+    "description": "Translates high-level strategy into actionable performance goals across four distinct perspectives: Financial, Customer, Internal Business Processes, and Learning & Growth.",
+    "whenToUse": "Reach for this framework when leadership needs a balanced operational view that connects long-term organizational capabilities and process health directly to financial outcomes.",
+    "inputs": [
+      "Corporate strategy and financial metrics",
+      "Customer satisfaction, retention, and value proposition targets",
+      "Operational workflow data and critical process performance",
+      "Employee capabilities, culture, and infrastructure status"
+    ],
+    "questions": [
+      "Money: what financial results would tell you the business is on track?",
+      "Customers: what must customers think of you for your vision to come true?",
+      "Processes: what must you be excellent at, day to day, to deliver those results?",
+      "Learning: how will you, and your team, keep learning and improving?",
+      "How does progress in one of these lead to progress in the others?"
+    ],
+    "output": "A Strategy Map linking objectives across all four perspectives, paired with an integrated performance scorecard of metrics, targets, and strategic initiatives."
+  },
+  {
+    "id": "bcg-growth-share-matrix",
+    "name": "BCG Growth-Share Matrix",
+    "description": "Classifies products or business units by relative market share and market growth rate into Stars, Cash Cows, Question Marks, and Dogs to optimize portfolio resource allocation.",
+    "whenToUse": "Reach for this framework when managing a multi-product portfolio or business unit structure to allocate limited capital, attention, and cash flows rationally.",
+    "inputs": [
+      "Complete inventory of products, services, or business units",
+      "Relative market share metrics (compared to leading market competitors)",
+      "Market growth rate data per category",
+      "Revenue, contribution margin, and cash generation/consumption profiles per unit"
+    ],
+    "questions": [
+      "Which of your products lead a market that is growing fast? These are your stars.",
+      "Which lead a mature market and bring in steady money, more than they need to keep going? These are your cash cows.",
+      "Which sit in a growing market where competitors sell far more than you, eating time and money for an uncertain result? These are your question marks.",
+      "Which sell far less than competitors in a market that has stopped growing? These are your dogs.",
+      "How could the money from your cash cows turn a question mark into a star?",
+      "Which products should you stop investing in, or drop?"
+    ],
+    "output": "A portfolio matrix mapping each unit into a quadrant, accompanied by clear capital allocation directives: Invest, Maintain/Hold, Harvest, or Divest."
+  },
+  {
+    "id": "blue-ocean-strategy",
+    "name": "Blue Ocean Strategy (Four Actions & Canvas)",
+    "description": "Seeks to create uncontested market space and render competition irrelevant by simultaneously pursuing differentiation and low cost through Value Innovation.",
+    "whenToUse": "Reach for this framework when competing in hyper-competitive, commoditized markets ('red oceans') with shrinking margins and high acquisition costs.",
+    "inputs": [
+      "Industry competitive factors (pricing, features, support, tech, service levels)",
+      "Relative performance ratings of core industry players",
+      "Customer pain points, friction, and non-customer demographics",
+      "Internal cost structures and operational levers"
+    ],
+    "questions": [
+      "What does everyone in your market offer that customers would not miss if you dropped it?",
+      "What could you offer much less of than the norm without losing customers?",
+      "What should you offer much more of than the norm?",
+      "What could you offer that nobody in your market offers yet?",
+      "Who stays away from your market altogether today, and what keeps them away?",
+      "Put together, does this give you a clear, focused offer you can describe in one line?"
+    ],
+    "output": "An Eliminate-Reduce-Raise-Create (ERRC) grid, a Strategy Canvas comparing current vs. new Value Curves, and a validated value proposition unlocking new market demand."
+  },
+  {
+    "id": "business-model-canvas",
+    "name": "Business Model Canvas",
+    "description": "Maps the complete blueprint of how an enterprise creates, delivers, and captures value across nine integrated building blocks.",
+    "whenToUse": "Reach for this framework when assessing an existing business model, designing a new line of business, or evaluating how changes in one area impact operational viability.",
+    "inputs": [
+      "Core value propositions, target customer segments, and channel strategies",
+      "Customer relationship types and key revenue mechanisms",
+      "Essential key activities, strategic assets, and partner networks",
+      "Cost structure components (fixed and variable)"
+    ],
+    "questions": [
+      "Who are your customers, and what do you offer each of them?",
+      "How do you reach them, sell to them and support them?",
+      "How do you make money, and how much are customers willing to pay?",
+      "What work and what assets do you need to make it all run?",
+      "Who are your key partners, and what do you depend on them for?",
+      "What are your biggest costs?"
+    ],
+    "output": "A completed nine-block Business Model Canvas detailing interdependencies, operational risks, and priority assumptions for testing."
+  },
+  {
+    "id": "crossing-the-chasm",
+    "name": "Crossing the Chasm",
+    "description": "Guides technology products across the dangerous gap between early adopters (Visionaries) and the early majority (Pragmatists) by dominating a targeted niche beachhead.",
+    "whenToUse": "Reach for this framework when an innovative technology product achieves initial traction with tech enthusiasts but mainstream sales plateau.",
+    "inputs": [
+      "Early customer characteristics, sales histories, and adoption motives",
+      "Candidate target niche market segments",
+      "Product status vs. 'Whole Product' requirements (integrations, support, partners)"
+    ],
+    "questions": [
+      "Which narrow group of customers has the most urgent need for what you solve?",
+      "What would it take to give them a complete solution, with the integrations, support and partners that make buying feel safe?",
+      "Who do those customers trust, and could vouch for you to their peers?",
+      "How could you become the obvious choice for that one group?",
+      "Which neighboring group would you go after once you have won the first?"
+    ],
+    "output": "A defined Beachhead Market choice, a Whole Product architecture blueprint, pragmatic positioning statements, and a sequential segment expansion plan."
+  },
+  {
+    "id": "cynefin-framework",
+    "name": "Cynefin Framework",
+    "description": "Categorizes problems into five decision contexts (Clear, Complicated, Complex, Chaotic, and Confused) to match leadership action styles to situational reality.",
+    "whenToUse": "Reach for this framework when a team is stuck on a decision, arguing over method, or incorrectly applying best practices to dynamic, unpredictable problems.",
+    "inputs": [
+      "Characteristics of the decision situation or crisis at hand",
+      "Level of predictability and cause-and-effect clarity",
+      "Historical precedents and expertise availability"
+    ],
+    "questions": [
+      "Clear: is it obvious what causes what, so you can follow what is known to work?",
+      "Complicated: could an expert work out the cause, and the answer, with enough analysis?",
+      "Complex: do causes only make sense looking back, so you have to try small, safe experiments and learn as you go?",
+      "Chaotic: is there no visible cause at all, so you have to act now to steady things first?",
+      "Confused: is it unclear which of these fits, so you should break the situation into parts and place each one?",
+      "Which of these fits your situation, and are you using the wrong approach for it?"
+    ],
+    "output": "Contextual domain classification with prescribed response modes (Apply Best Practice, Analyze, Conduct Safe-to-Fail Experiments, Act to Stabilize, or Break Down and Classify Each Part)."
+  },
+  {
+    "id": "disruptive-innovation",
+    "name": "Disruptive Innovation",
+    "description": "Analyzes how simpler, lower-cost, or more accessible innovations start in low-end or new-market niches and steadily move upmarket to displace incumbents.",
+    "whenToUse": "Reach for this framework to assess whether an emerging challenger poses an existential threat, or to structure a new product entry against entrenched market leaders.",
+    "inputs": [
+      "Incumbent products, cost structures, and overserved/profitable customer tiers",
+      "Challenger offering attributes, cost advantages, and rate of technological improvement",
+      "Underserved or non-consuming customer demographics"
+    ],
+    "questions": [
+      "Are the big players' customers paying for features they never use?",
+      "Who can't afford today's products, or finds them too hard to use, and goes without?",
+      "Does the newcomer, possibly you, start with a simpler, cheaper offer the big players would rather give up than fight for?",
+      "Is that offer getting better fast enough to win over the wider market, beyond its first niche, in time?"
+    ],
+    "output": "A diagnostic evaluation of disruptive potential, paired with strategic response choices: spin off an autonomous unit, launch a low-end offering, or yield non-core tiers."
+  },
+  {
+    "id": "first-principles-thinking",
+    "name": "First Principles Thinking",
+    "description": "Breaks complex problems down to fundamental truths and constraints, then builds novel solutions from the ground up without relying on analogies or conventional practices.",
+    "whenToUse": "Reach for this framework when existing industry practices are too costly, slow, or ineffective, or when seeking breakthrough innovation in a conventional category.",
+    "inputs": [
+      "A strategic challenge, costly process, or entrenched industry practice",
+      "Empirical facts, underlying physics, economics, or technical constraints"
+    ],
+    "questions": [
+      "What exactly is the problem you are trying to solve?",
+      "What do you know for sure about it, and what are you only assuming because everyone does?",
+      "Why is today's solution built the way it is, and which parts are only habit?",
+      "If you started from scratch with only what you know for sure, what would you build?",
+      "What cheap experiment would show whether that could work?"
+    ],
+    "output": "A problem breakdown separating core truths from conventional assumptions, accompanied by radical alternative solutions and a validation experiment design."
+  },
+  {
+    "id": "jobs-to-be-done",
+    "name": "Jobs to Be Done (JTBD)",
+    "description": "Analyzes customer demand around the fundamental progress a person is trying to make in a specific circumstance, rather than relying on static demographics or feature preferences.",
+    "whenToUse": "Reach for this framework when designing new products, refining value propositions, evaluating churn/switching behaviors, or uncovering hidden non-traditional competitors.",
+    "inputs": [
+      "Customer interview data focused on recent purchase or cancellation decisions",
+      "Triggers, circumstances, and push/pull forces surrounding adoption",
+      "Workarounds and alternative solutions currently 'hired' by users"
+    ],
+    "questions": [
+      "What happened that made your customer start looking for a solution?",
+      "What are they trying to get done, and how do they want to feel, or be seen, once it is done?",
+      "What were they using before, and why did it fall short?",
+      "What worried them, held them back or made switching hard?",
+      "What else competes for the same job, doing nothing included?"
+    ],
+    "output": "A series of Job Statements outlining customer circumstances, desired outcomes, push/pull forces, and an actionable roadmap for product design and messaging."
+  },
+  {
+    "id": "lean-canvas",
+    "name": "Lean Canvas",
+    "description": "A startup-focused adaptation of the Business Model Canvas prioritizing early-stage risk: Problems, Solutions, Key Metrics, and Unfair Advantage.",
+    "whenToUse": "Reach for this framework when evaluating early-stage startup ideas, defining initial business hypotheses, or designing rapid experiments prior to building product.",
+    "inputs": [
+      "Target early adopter profiles and observed customer friction",
+      "Top customer problems and current alternatives",
+      "Proposed solution capabilities and pricing concepts",
+      "Cost drivers per customer, such as acquisition and delivery costs"
+    ],
+    "questions": [
+      "What are the three biggest problems your first customers have?",
+      "How do they solve those problems today?",
+      "What is the simplest solution that solves them?",
+      "In one sentence, why is your product different and worth their attention?",
+      "What advantage do you have that nobody can easily copy or buy?",
+      "What one number shows best that customers are getting value?",
+      "What will each customer cost to acquire and serve, and what margin does the price leave?",
+      "Which assumption, if it proves wrong, kills the idea?"
+    ],
+    "output": "A one-page Lean Canvas prioritizing core hypotheses, an initial unit economic outline, and a staged validation roadmap."
+  },
+  {
+    "id": "mckinsey-7s",
+    "name": "McKinsey 7-S Framework",
+    "description": "Diagnoses organizational effectiveness and alignment across seven internal elements: the hard S's (Strategy, Structure, Systems) and the soft S's (Shared Values, Style, Staff, Skills).",
+    "whenToUse": "Reach for this framework during strategic pivots, reorganizations, corporate mergers, or when strategy execution stalls despite a sound strategic plan.",
+    "inputs": [
+      "Strategy documents and organizational reporting structures",
+      "Core operating systems, IT infrastructure, and formal processes",
+      "Cultural values, leadership style behaviors, talent baseline, and skills inventory"
+    ],
+    "questions": [
+      "Strategy: is your strategy clear, and does everything else support it?",
+      "Structure: does the way you, or your team, are organized help or get in the way?",
+      "Systems: do your tools and routines help you get the work done and see how it is going?",
+      "Shared values: what do you, and your team, believe in, and does it fit where you are going?",
+      "Style: how do you make decisions, communicate and lead?",
+      "Staff: do you have the people, or the help, you need where it matters most?",
+      "Skills: what are you good at, and which missing skills hold you back?",
+      "Where do these seven pull against each other?"
+    ],
+    "output": "A diagnostic report illustrating internal alignment gaps across the 7 elements, accompanied by an integrated organizational change implementation plan."
+  },
+  {
+    "id": "north-star-metric",
+    "name": "North Star Metric Framework",
+    "description": "Identifies a single key metric that best reflects core customer value delivery and drives sustainable long-term revenue, supported by actionable input metrics.",
+    "whenToUse": "Reach for this framework when cross-functional teams are pulling in opposing directions or optimizing vanity metrics instead of real value creation.",
+    "inputs": [
+      "Product usage analytics, feature engagement data, and retention drivers",
+      "Key customer outcomes and value indicators",
+      "Financial revenue drivers and subscription dynamics"
+    ],
+    "questions": [
+      "What action by a customer proves they got real value from your product?",
+      "When that number grows, do customers stay longer and pay more?",
+      "Can you move that number through what you build and how you market it?",
+      "What 3 to 5 smaller numbers drive it?",
+      "What other numbers should you watch, so that chasing this one never hurts the business?"
+    ],
+    "output": "A defined North Star Metric, an input metric hierarchy for product teams, guardrail measures, and an operational dashboard structure."
+  },
+  {
+    "id": "okrs",
+    "name": "Objectives and Key Results (OKRs)",
+    "description": "Connects ambitious organizational goals with 3–5 measurable, outcome-based Key Results to maintain focus and align execution.",
+    "whenToUse": "Reach for this framework during quarterly or annual planning cycles to operationalize strategy and align focus across interdependent teams.",
+    "inputs": [
+      "High-level strategic goals, vision, and operational priorities",
+      "Historical baseline metrics and KPI data",
+      "Team operational bandwidth, dependencies, and capacity constraints"
+    ],
+    "questions": [
+      "What is the one thing you most want to achieve over the period you are planning, such as the next three months?",
+      "What 3 to 5 measurable results would prove you achieved it?",
+      "Where do those numbers stand today, and what targets would count as a success?",
+      "What will you put aside so you can stay focused?",
+      "Who is responsible for each result?"
+    ],
+    "output": "A set of aligned Objectives paired with 3–5 quantifiable Key Results per objective, accompanied by baseline/target metrics, clear ownership assignments, and a review cadence."
+  },
+  {
+    "id": "pestel-analysis",
+    "name": "PESTEL Analysis",
+    "description": "Scans macro-environmental forces (Political, Economic, Social, Technological, Environmental, Legal) to uncover key external drivers, risks, and strategic opportunities.",
+    "whenToUse": "Reach for this framework when entering a new geography or market, planning over a multi-year horizon, or checking whether outside macro forces have shifted underneath the current strategy.",
+    "inputs": [
+      "Geographic markets and industries the company operates in or is evaluating",
+      "Target customer demographics and buying behaviors",
+      "Company business model, key cost drivers, and strategic horizon",
+      "Relevant economic trends, inflation/interest indicators, and exchange dynamics",
+      "Applicable regulatory, environmental, and trade policies",
+      "Emerging technological advancements and societal shifts"
+    ],
+    "questions": [
+      "Which laws, regulations or political decisions, already here or coming, could change how you work or sell?",
+      "How would a recession, rising interest rates or inflation change what your customers spend?",
+      "Which changes in how people live, work or think make your product more needed, or less?",
+      "Which new technologies could make your product obsolete, easier to copy, or much cheaper to run?",
+      "What do customers, regulators or investors expect of you on the environment?",
+      "Of all these outside changes, which are the most likely, and which would matter most to you?",
+      "What should you change in your plans in response?"
+    ],
+    "output": "A categorized assessment of external macro factors rated by likelihood and impact, highlighting emerging opportunities/threats alongside actionable strategic responses."
+  },
+  {
+    "id": "playing-to-win",
+    "name": "Playing to Win (Strategy Choice Cascade)",
+    "description": "Defines strategy as an integrated set of five choices: Winning Aspiration, Where to Play, How to Win, Core Capabilities, and Management Systems.",
+    "whenToUse": "Reach for this framework to transform high-level vision into concrete strategic choices, or when a business needs to make explicit trade-offs on where not to play.",
+    "inputs": [
+      "Corporate mission, purpose, and financial targets",
+      "Market segments, geographies, channels, and product categories",
+      "Internal capabilities, cost drivers, and competitive advantages",
+      "Customer willingness to pay and economics"
+    ],
+    "questions": [
+      "What does winning look like for you, in terms of the customers you serve?",
+      "Where will you play: which customers, channels, places and products, and which will you leave aside on purpose?",
+      "How will you win there: by being cheaper, or by being different in a way customers value?",
+      "What abilities must you build, and keep, to win there?",
+      "What routines, numbers and ways of working will keep those abilities strong?",
+      "What would have to be true for these choices to work?"
+    ],
+    "output": "A one-page Strategy Cascade document outlining the 5 reinforced choices, explicit trade-offs/exclusions, and key underlying assumptions to validate."
+  },
+  {
+    "id": "porters-five-forces",
+    "name": "Porter's Five Forces",
+    "description": "Analyzes the five competitive forces (rivalry, threat of new entrants, threat of substitutes, buyer power, and supplier power) to determine industry attractiveness and persistent margin pressures.",
+    "whenToUse": "Reach for this framework when evaluating market entry, launching a net-new product category, assessing long-term profitability under shifting conditions, or identifying structural sources of competitive advantage.",
+    "inputs": [
+      "Industry definition, geographic scope, and value chain profit margins",
+      "Main competitors, market concentration rates, and relative market shares",
+      "Key buyer segments, concentration rates, and switching costs",
+      "Key supplier concentration, platform dependencies, and input costs",
+      "Availability, cost-performance trade-offs, and switching ease of substitute products",
+      "Capital requirements, regulatory barriers, and structural entry barriers"
+    ],
+    "questions": [
+      "How hard do your competitors fight on price, and how different are their products from one another?",
+      "What stops a well-funded newcomer from entering your market tomorrow?",
+      "What could customers use instead of any product like yours, and how easily could they switch to it?",
+      "How much can your customers push you on price or terms?",
+      "How much do you depend on a few suppliers or platforms, and could they raise their prices on you?",
+      "Which of these pressures squeezes your margins most, and which is getting stronger?",
+      "Where could you position yourself to escape the strongest of them?"
+    ],
+    "output": "An industry profitability and structure assessment rating each force's strength with empirical evidence, identifying key margin risks, and delivering strategic positioning recommendations to minimize competitive pressures."
+  },
+  {
+    "id": "pre-mortem-analysis",
+    "name": "Pre-Mortem Analysis",
+    "description": "Mitigates overconfidence and groupthink by assuming a proposed plan has failed catastrophically before launch, prompting the team to identify risks proactively.",
+    "whenToUse": "Reach for this framework prior to finalizing a major strategy, product launch, M&A deal, or organizational restructuring.",
+    "inputs": [
+      "Comprehensive plan details, launch milestones, goals, and timeline",
+      "Cross-functional team members involved in design and execution"
+    ],
+    "questions": [
+      "Imagine it's a year or two from now, and this plan has failed badly. What went wrong?",
+      "Which of your assumptions about customers, technology, competitors or operations turned out to be wrong?",
+      "What warning signs did you miss or ignore along the way?",
+      "Which of these failures is the most likely, and which would hurt the most?",
+      "What will you change in the plan today, or prepare in case it happens?"
+    ],
+    "output": "A prioritized risk register mapping plausible failure causes, early warning indicators, preventative mitigations, and pre-planned decision triggers."
+  },
+  {
+    "id": "rice-prioritization",
+    "name": "RICE Prioritization",
+    "description": "Ranks competing features, projects, or strategic initiatives using four quantitative factors: Reach, Impact, Confidence, and Effort.",
+    "whenToUse": "Reach for this framework when product or engineering teams face a long list of candidate initiatives and need an objective, standardized ranking methodology.",
+    "inputs": [
+      "List of proposed features, projects, or experiments",
+      "Target audience size metrics (Reach)",
+      "Estimated effect on target goals (Impact)",
+      "Supporting data and evidence levels (Confidence)",
+      "Implementation resource requirements (Effort)"
+    ],
+    "questions": [
+      "Reach: how many people, customers or not, would each idea touch over the next few months?",
+      "Impact: how much would it move your main goal for each of them: a little (0.25), a fair amount (1) or a lot (3)?",
+      "Confidence: how sure are you of those guesses: very (100%), fairly (80%) or not much (50%)?",
+      "Effort: how many weeks of work would it take, adding up everyone's time across building, designing and launching it?",
+      "Multiplying reach, impact and confidence, then dividing by effort, which ideas come out on top, and does that match your gut?"
+    ],
+    "output": "A scored and prioritized initiative backlog with explicit confidence weights, rationale, and recommended resource allocations."
+  },
+  {
+    "id": "scenario-planning",
+    "name": "Scenario Planning",
+    "description": "Constructs multiple plausible future environments based on critical uncertainties to build resilient strategies and stress-test strategic choices.",
+    "whenToUse": "Reach for this framework during times of severe macro, technological, or regulatory volatility when relying on a single forecast is dangerous.",
+    "inputs": [
+      "Core decision question and target planning timeline",
+      "Macro-environmental trends and industry forces",
+      "Key driving forces categorized by impact and uncertainty"
+    ],
+    "questions": [
+      "What big trends and forces will shape your market over the next few years?",
+      "Which two of them would matter most to you, and are the hardest to predict?",
+      "Crossing those two, what four different futures could play out?",
+      "How would your business hold up in each of them?",
+      "What could you do now that helps in every one of those futures?",
+      "What early signs would tell you which future is arriving?"
+    ],
+    "output": "Four distinct scenario narratives, a strategy stress-test assessment matrix, a list of 'no-regret' strategic moves, and early-warning monitoring signposts."
+  },
+  {
+    "id": "swot-analysis",
+    "name": "SWOT Analysis",
+    "description": "Evaluates internal Strengths and Weaknesses alongside external Opportunities and Threats to ground strategy in an honest situation assessment and establish strategic priorities.",
+    "whenToUse": "Reach for this framework during initial strategy formulation, annual planning, before a major decision, or when synthesizing findings from other strategic analyses into a shared situational baseline.",
+    "inputs": [
+      "Current company performance metrics, core competencies, and operational capabilities",
+      "Products, services, business model, and strategic objectives",
+      "Customer feedback, retention data, and performance benchmarks",
+      "Industry benchmarks, competitor landscape, and market trends",
+      "Macro-environmental factors (regulatory, technological, economic)"
+    ],
+    "questions": [
+      "What do you do better than the alternatives, in your customers' eyes?",
+      "Where are you weak: what makes you lose customers, deals or time?",
+      "What changes in your market, or needs nobody serves yet, could help you grow?",
+      "What changes outside your control, or moves by competitors, could hurt your revenue?",
+      "Which of your strengths could help you seize your best opportunity?",
+      "Which of your weaknesses leave you most exposed to those threats?",
+      "Which three issues need your attention first?"
+    ],
+    "output": "A structured SWOT matrix pairing internal capabilities with external dynamics, resulting in a prioritized list of strategic initiatives to capitalize on strengths, address weaknesses, and mitigate threats."
+  },
+  {
+    "id": "kernel-of-good-strategy",
+    "name": "The Kernel of Good Strategy",
+    "description": "Distills strategy down to its fundamental structure: a clear Diagnosis of the challenge, a Guiding Policy, and a set of Coherent Actions.",
+    "whenToUse": "Reach for this framework when strategy documents read like a collection of wishful goals, financial targets, or disjointed tactical lists rather than a focused plan of action.",
+    "inputs": [
+      "Current organizational performance, systemic bottlenecks, and market obstacles",
+      "Existing operational plans, goals, and resource constraints",
+      "Feedback from frontline teams on execution roadblocks"
+    ],
+    "questions": [
+      "What is the one biggest obstacle standing in your way?",
+      "Why is it hard, and what keeps it in place?",
+      "What overall approach will you take to get past it?",
+      "What specific actions, working together, will carry out that approach?",
+      "What will you stop doing so you can focus on this?"
+    ],
+    "output": "A concise strategy document identifying the core Diagnosis, the unifying Guiding Policy, and a set of mutually reinforcing Coherent Actions."
+  },
+  {
+    "id": "three-horizons-of-growth",
+    "name": "Three Horizons of Growth",
+    "description": "Balances organizational focus and capital allocation across defending the core business (Horizon 1), scaling emerging opportunities (Horizon 2), and seeding long-term innovation (Horizon 3).",
+    "whenToUse": "Reach for this framework when a business risks over-focusing on short-term optimization at the expense of future disruption, or vice versa.",
+    "inputs": [
+      "Core business performance, margins, and decay curves",
+      "Pipeline of emerging business initiatives and early experiments",
+      "R&D budget, talent distribution, and long-term strategic ambition"
+    ],
+    "questions": [
+      "What must you do in the next 12 months to protect and improve what brings in money today?",
+      "Which new ideas could grow into real revenue within 1 to 3 years?",
+      "Which bold bets, uncertain but with a big upside, should you start exploring for 3 to 5 years out?",
+      "How do you split your time and money across these three today, and how should you split them?",
+      "Are you judging each by the right measures, since a new bet cannot be held to the numbers of what already works?"
+    ],
+    "output": "A strategic portfolio map categorizing initiatives into three time horizons, complete with target resource ratios (e.g., 70/20/10) and distinct governance metrics for each."
+  },
+  {
+    "id": "tows-matrix",
+    "name": "TOWS Matrix",
+    "description": "Extends SWOT analysis by systematically matching internal Strengths and Weaknesses with external Opportunities and Threats to generate distinct tactical strategy options.",
+    "whenToUse": "Reach for this framework immediately following a SWOT analysis to transform descriptive lists into actionable, strategic options.",
+    "inputs": [
+      "Prioritized lists of Strengths, Weaknesses, Opportunities, and Threats from SWOT",
+      "Company strategic objectives, resource limits, and execution constraints"
+    ],
+    "questions": [
+      "How can you use your strengths to seize your opportunities?",
+      "Which opportunities could help you get past your weaknesses?",
+      "How can your strengths protect you from your threats?",
+      "How can you shrink your weaknesses, so threats cannot hit you where you are weakest?",
+      "Of all these moves, which pays off most with what you have today?"
+    ],
+    "output": "A TOWS Matrix generating four explicit strategic action lists (SO, WO, ST, WT) prioritized by fit, impact, and feasibility."
+  },
+  {
+    "id": "value-chain-analysis",
+    "name": "Value Chain Analysis",
+    "description": "Examines primary and support activities across the value chain to locate cost drivers, identify differentiation sources, and inform outsourcing decisions.",
+    "whenToUse": "Reach for this framework when looking for operational efficiency, margin expansion, product differentiation, or determining core vs. non-core activities.",
+    "inputs": [
+      "Step-by-step workflow from inbound logistics to after-sales support",
+      "Activity-based cost accounting data and resource usage",
+      "Customer willingness-to-pay drivers and competitive benchmarks"
+    ],
+    "questions": [
+      "What steps does it take to make your product, deliver it, sell it and support your customers?",
+      "What supports those steps behind the scenes: tools, hiring, buying and running the company?",
+      "Which steps cost you the most?",
+      "In which steps do you create something customers notice and will pay more for?",
+      "Which steps could someone else do better, faster or cheaper for you?"
+    ],
+    "output": "A Value Chain Map breaking down costs and value contributions per activity, paired with operational optimization and outsourcing recommendations."
+  },
+  {
+    "id": "value-proposition-canvas",
+    "name": "Value Proposition Canvas",
+    "description": "Zooms in on the Business Model Canvas to systematically match product Pain Relievers and Gain Creators directly with customer Jobs, Pains, and Gains.",
+    "whenToUse": "Reach for this framework when refining product-market fit, troubleshooting low conversion/retention, or positioning new feature additions.",
+    "inputs": [
+      "Defined customer segment profiles and behavioral research",
+      "Observed customer tasks, frustrations, and aspirations",
+      "Existing or planned product feature specifications"
+    ],
+    "questions": [
+      "What are your customers trying to get done, and how do they want to feel doing it?",
+      "What frustrates them, blocks them or worries them along the way?",
+      "What results do they expect at the very least, and what would delight them?",
+      "How exactly does your product take those frustrations away?",
+      "How does it bring the results they care about most?"
+    ],
+    "output": "A detailed Customer Profile and Value Map alignment diagram identifying high-fit features, messaging angles, and critical gaps in customer value."
+  },
+  {
+    "id": "vrio-framework",
+    "name": "VRIO Framework",
+    "description": "Evaluates whether a company's internal resources and capabilities are Valuable, Rare, Inimitable, and Organized to capture value, identifying sources of sustained competitive advantage.",
+    "whenToUse": "Reach for this framework when the company needs to pinpoint its defensible competitive advantages before choosing where to invest capital, expand positioning, or protect against fast followers.",
+    "inputs": [
+      "Key internal resources: technology, proprietary data, brand, talent, processes, partnerships",
+      "Competitor assets, capabilities, and market positions",
+      "Evidence of customer value, utility, and willingness to pay",
+      "Organizational governance structure, capital allocation, and operating processes"
+    ],
+    "questions": [
+      "What do you have, such as a skill, data, a brand, people or partners, that helps you win customers or fend off threats?",
+      "Which of these do few or none of your competitors have?",
+      "How hard, costly or slow would it be for a competitor to copy them, or to find something that does the same job?",
+      "Do you have the time, money and focus to make the most of them?",
+      "Which of them only keep you level with competitors, or ahead for a while, and which give you an edge that lasts?",
+      "Where should you put your time and money to strengthen the edge that lasts?"
+    ],
+    "output": "A matrix classifying each core resource as a competitive disadvantage, parity, temporary advantage, or sustained competitive advantage, paired with actionable recommendations on capital allocation and defense."
+  },
+  {
+    "id": "wardley-mapping",
+    "name": "Wardley Mapping",
+    "description": "Maps component value chains according to user needs along an evolutionary continuum (Genesis, Custom, Product, Commodity) to inform build/buy/outsource strategies.",
+    "whenToUse": "Reach for this framework when making architectural, build-versus-buy, or supply chain decisions, or when anticipating market component commoditization.",
+    "inputs": [
+      "Anchor user profiles and their explicit high-level needs",
+      "Complete chain of dependent technologies, activities, and practices",
+      "Market maturity state of each component in the ecosystem"
+    ],
+    "questions": [
+      "Who is your user, and what do they need most from you?",
+      "What does it take to meet that need: which parts, services and infrastructure?",
+      "How mature is each part: brand new, built to order, a product you can buy, or a commodity anyone supplies?",
+      "Are you building by hand something you could now buy or rent off the shelf?",
+      "Which parts are changing fastest, and how could you take advantage of that?"
+    ],
+    "output": "A visual Wardley Map of the value chain displaying component evolution, identifying strategic waste, and highlighting high-leverage build/buy/outsource actions."
+  }
+]

@@ -9,6 +9,8 @@ import {
   CONVERSATION_SEARCH_WINDOW_MINUTES,
   MAX_AGENT_BILL_RECEIPT_SIZE,
   MAX_CONVERSATION_SEARCHES,
+  MODULES,
+  SERVED_MODULE_NAMES,
 } from 'strategydance-core'
 
 import {
@@ -826,16 +828,24 @@ describe('the Budget module for external agents', () => {
   })
 })
 
-describe('the Subagents module', () => {
-  test('is served to no external agent: no endpoint, and no protected resource metadata', async () => {
-    const { access_token: token } = await connect()
-    const call = await fetch(`${origin}/mcp/subagents`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
-    })
+describe('the modules served to no external agent', () => {
+  const unserved = MODULES.filter(({ name }) => !SERVED_MODULE_NAMES.includes(name))
 
-    expect(call.status).toBe(404)
-    expect((await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/subagents`)).status).toBe(404)
+  test('are the Subagents and Knowledge modules', () => {
+    expect(unserved.map(({ name }) => name)).toEqual(['subagents', 'knowledge'])
   })
+
+  for (const { name, path } of unserved) {
+    test(`${name} has no endpoint, and no protected resource metadata`, async () => {
+      const { access_token: token } = await connect()
+      const call = await fetch(`${origin}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+      })
+
+      expect(call.status).toBe(404)
+      expect((await fetch(`${origin}/.well-known/oauth-protected-resource${path}`)).status).toBe(404)
+    })
+  }
 })

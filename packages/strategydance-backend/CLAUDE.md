@@ -2,8 +2,8 @@
 
 The backend's conventions, beside the root `CLAUDE.md`. What its features do and why is in
 [conversations.md](../../documents/conversations.md), for conversations, modules, OAuth and
-integrations, and [budget.md](../../documents/budget.md): read the one for what you change first.
-This file keeps the rules a change must keep.
+integrations, [budget.md](../../documents/budget.md) and [knowledge.md](../../documents/knowledge.md):
+read the one for what you change first. This file keeps the rules a change must keep.
 
 ## Code
 
@@ -210,6 +210,23 @@ members' own agents at `/mcp/<name>` (conversations.md § Modules).
   reader's usage is logged, never written to a run's ledger
 - Tests run on `createBudgetDatabaseFake`, and `bun run check:budget` and `check:budget-module` check
   the operations
+
+## Knowledge
+
+- Strategy Dance's agent and its subagents reach the module, all five tools each, since none
+  deletes what anybody wrote. No external agent does: `/mcp/knowledge` stays reserved, as the
+  Subagents module's address is, until a later plan serves it
+- The catalogue is strategydance-knowledge's lists as the release ships them, read when the backend
+  starts. The module never writes it: a change to a list is the package's, under its README
+- What a company uses is keyed by an item's kind and id, never its name. The operations cannot read
+  the package, so the domain holds every id to the catalogue before a write (`findKnowledgeEntry`),
+  and a read skips a row whose id the catalogue lost
+- A link to a document follows the document's AI permission: only one the agent may read is linked
+  or unlinked, and every read leaves the others out, their totals too
+- A write keeps its result before it runs, so its target is read first, and what would change
+  nothing writes nothing
+- Tests run on `createKnowledgeDatabaseFake`, and `bun run check:knowledge-module` checks the
+  operations
 
 ## Scripts
 

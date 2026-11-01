@@ -3567,3 +3567,297 @@ query GetConversationAttachmentForAgent(
     pageCount
   }
 }
+
+# The Knowledge module's operations follow, named `…ForAgent`: what an organization uses of the
+# knowledge catalogue, which lives in strategydance-knowledge and never here, and what each item is
+# linked to. Each takes the member the backend verified, `$userId`, and the `createdAt` of the
+# membership it read, `$membershipCreatedAt`, so a member removed, or removed and invited back, stops
+# every agent acting as them at its next call. Each read answers that membership beside its rows, so
+# such a caller is refused rather than shown nothing in use. None can read the catalogue: the backend
+# holds every id to it before it calls one, and reads past a row whose id the catalogue lost. A link
+# to a document follows the document's AI permission, as every read of a document by an agent does
+
+# The items of a kind the organization uses, for `list_knowledge`'s `inUse`: up to 5000, past every
+# kind's catalogue. The kind is selected at the top level, which has the generated SDK declare its
+# enum
+query GetKnowledgeUsesForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  knowledgeUses(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      isInUse: { eq: true }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 5000
+  ) {
+    kind
+    itemId
+  }
+}
+
+# Up to 10 items of a kind (`MAX_KNOWLEDGE_READ_IDS`), as `read_knowledge` reads them: their uses and
+# every link of theirs the agent may see, newest first, at most 100 of each kind of target per item
+# (`MAX_KNOWLEDGE_LINKS`), so 1000 of each in all. The backend keeps each item's 20 newest with their
+# total, since a list's limit is the whole list's, not each item's share. A link to a document kept
+# from AI or deleted, or to a deleted task, is left out, and back once the document or the task is
+# restored. A membership has none of that: its links go with it
+query GetKnowledgeItemsForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemIds: [String!]!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  knowledgeUses(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { in: $itemIds }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 10
+  ) {
+    itemId
+    isInUse
+    changedAt
+  }
+  knowledgeDocumentLinks(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { in: $itemIds }
+      document: { deletedAt: { isNull: true }, isAiReadable: { eq: true } }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ createdAt: DESC }, { documentId: ASC }]
+    limit: 1000
+  ) {
+    itemId
+    document {
+      id
+      title
+    }
+  }
+  knowledgeTaskLinks(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { in: $itemIds }
+      task: { deletedAt: { isNull: true } }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ createdAt: DESC }, { taskId: ASC }]
+    limit: 1000
+  ) {
+    itemId
+    task {
+      id
+      name
+      status
+    }
+  }
+  knowledgeMemberLinks(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { in: $itemIds }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    orderBy: [{ createdAt: DESC }, { membershipUserId: ASC }]
+    limit: 1000
+  ) {
+    itemId
+    membership {
+      userId
+      user {
+        displayName
+      }
+    }
+  }
+}
+
+# What `link_knowledge` and `unlink_knowledge` read of a document before they write, since the result
+# a call keeps under its idempotency key is written with the link: the document, whether the team
+# keeps it from AI or deleted it, and every document the item links, those kept from AI or deleted
+# included, which `LinkKnowledgeDocumentForAgent` counts against the cap
+query GetKnowledgeDocumentLinkForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $documentId: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  documents(
+    where: {
+      id: { eq: $documentId }
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    title
+    isAiReadable
+    deletedAt
+  }
+  knowledgeDocumentLinks(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { eq: $itemId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 100
+  ) {
+    documentId
+  }
+}
+
+# The same for a task: the task, whether it is deleted, and every task the item links, deleted ones
+# included, which `LinkKnowledgeTaskForAgent` counts
+query GetKnowledgeTaskLinkForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $taskId: UUID!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  tasks(
+    where: {
+      id: { eq: $taskId }
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    name
+    status
+    deletedAt
+  }
+  knowledgeTaskLinks(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { eq: $itemId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 100
+  ) {
+    taskId
+  }
+}
+
+# The same for a member: the member, when they belong to the organization, and every member the item
+# links, which `LinkKnowledgeMemberForAgent` counts
+query GetKnowledgeMemberLinkForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $memberId: String!
+) @auth(level: NO_ACCESS) {
+  membership: userOrganizations(
+    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+    limit: 1
+  ) {
+    userId
+  }
+  members: userOrganizations(
+    where: {
+      userId: { eq: $memberId }
+      organizationId: { eq: $organizationId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 1
+  ) {
+    user {
+      displayName
+    }
+  }
+  knowledgeMemberLinks(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { eq: $itemId }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 100
+  ) {
+    membershipUserId
+  }
+}

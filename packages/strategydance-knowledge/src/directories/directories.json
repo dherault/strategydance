@@ -492,10 +492,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aitogrow.com/",
     "submissionUrl": "https://aitogrow.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Hand-picked directory of AI tools for startups, sorted into categories such as content, image, marketing and productivity, where makers can send in their tool.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_CURATION",
+    "lastChecked": "2026-10-31",
     "unreachableSince": null
   },
   {
@@ -770,8 +772,8 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
-    "unreachableSince": null
+    "lastChecked": "2026-10-31",
+    "unreachableSince": "2026-10-31"
   },
   {
     "id": "aiboom-tools",
@@ -1117,10 +1119,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://altern.ai/",
     "submissionUrl": "https://altern.ai/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools, agents, models, APIs and libraries sorted by category, with weekly maker launches, curated lists and alternatives pages.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-31",
     "unreachableSince": null
   },
   {
@@ -1816,18 +1821,6 @@
     "unreachableSince": null
   },
   {
-    "id": "ctrlalt-cc",
-    "name": "CtrlAlt.cc",
-    "type": "WEBSITE",
-    "rootUrl": "https://ctrlalt.cc/",
-    "submissionUrl": "https://ctrlalt.cc/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
-    "unreachableSince": null
-  },
-  {
     "id": "curated-design",
     "name": "Curated.design",
     "type": "WEBSITE",
@@ -1968,10 +1961,14 @@
     "type": "WEBSITE",
     "rootUrl": "https://devhunt.org/",
     "submissionUrl": "https://devhunt.org/",
-    "description": "",
-    "categories": [],
+    "description": "Weekly launchpad where developers submit developer tools, AI and open-source products, and the community upvotes them in a weekly vote.",
+    "categories": [
+      "AI_TOOLS",
+      "DEVELOPER_TOOLS",
+      "OPEN_SOURCE"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-31",
     "unreachableSince": null
   },
   {
@@ -3121,10 +3118,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://justlaunched.fyi/",
     "submissionUrl": "https://justlaunched.fyi/submit",
-    "description": "",
-    "categories": [],
+    "description": "Launch directory of newly launched SaaS and software products, browsable by day, category and upvotes, where founders submit their own launches.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-31",
     "unreachableSince": null
   },
   {
@@ -3652,11 +3651,13 @@
     "name": "MCPBundles",
     "type": "WEBSITE",
     "rootUrl": "https://www.mcpbundles.com/",
-    "submissionUrl": "https://www.mcpbundles.com/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://www.mcpbundles.com/mcp-analysis?intent=publish",
+    "description": "Directory and marketplace of MCP servers and MCP apps, searchable by category, where publishers add their own remote MCP server by URL after verifying ownership.",
+    "categories": [
+      "MCP_SERVERS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-31",
     "unreachableSince": null
   },
   {
@@ -5357,7 +5358,7 @@
     "description": "",
     "categories": [],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-31",
     "unreachableSince": null
   },
   {
@@ -5700,10 +5701,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://tap4.ai/",
     "submissionUrl": "https://tap4.ai/submit/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted into more than 230 categories, where makers submit their own AI products for listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-10-31",
     "unreachableSince": null
   },
   {
@@ -6674,10 +6677,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://wired.business/",
     "submissionUrl": "https://wired.business/submit-your-website",
-    "description": "",
-    "categories": [],
+    "description": "Directory of websites, startups and online tools sorted by category, where makers submit their own sites for a listing with a backlink.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-10-31",
     "unreachableSince": null
   },
   {

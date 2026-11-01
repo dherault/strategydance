@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test'
 
-import { MARKETING_TACTICS } from 'strategydance-knowledge'
+import { compareKnowledgeNames, DIRECTORIES, INACTIVE_DIRECTORIES, MARKETING_TACTICS } from 'strategydance-knowledge'
 
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
@@ -68,6 +68,45 @@ describe('what the company uses, as the reads give it', () => {
     expect(unused.total).toBe(MARKETING_TACTICS.length - 1)
     expect(unused.items.map(row => row.id)).toContain(OTHER_TACTIC!.id)
     expect(unused.items.every(row => !row.inUse)).toBe(true)
+
+    await kit.close()
+  })
+
+  it('lists a directory that takes no submission today while the company uses it, with why', async () => {
+    const kit = await organization.connect()
+    const [directory] = INACTIVE_DIRECTORIES
+    const read = (filters: Record<string, unknown>) =>
+      kit.answer<{ items: (Row & { inactiveReason?: string })[]; total: number }>('list_knowledge', {
+        kind: 'DIRECTORY',
+        ...filters,
+      })
+
+    fake.insertUse({ organizationId: ORGANIZATION_ID, kind: 'DIRECTORY', itemId: directory!.id, isInUse: true })
+
+    const used = await read({ inUse: true })
+    const unused = await read({ inUse: false })
+    const all = await read({})
+
+    expect(used.items).toEqual([
+      expect.objectContaining({ id: directory!.id, inUse: true, inactiveReason: directory!.inactiveReason }),
+    ])
+    expect(unused.total).toBe(DIRECTORIES.length)
+    expect(all.total).toBe(DIRECTORIES.length + 1)
+
+    await kit.close()
+  })
+
+  it('places a directory the company uses among the others by name, whatever list it is on', async () => {
+    const kit = await organization.connect()
+    const last = DIRECTORIES.at(-1)!
+    const inactive = INACTIVE_DIRECTORIES.find(directory => compareKnowledgeNames(directory, last) < 0)!
+
+    fake.insertUse({ organizationId: ORGANIZATION_ID, kind: 'DIRECTORY', itemId: last.id, isInUse: true })
+    fake.insertUse({ organizationId: ORGANIZATION_ID, kind: 'DIRECTORY', itemId: inactive.id, isInUse: true })
+
+    const used = await kit.answer<{ items: Row[] }>('list_knowledge', { kind: 'DIRECTORY', inUse: true })
+
+    expect(used.items.map(row => row.id)).toEqual([inactive.id, last.id])
 
     await kit.close()
   })

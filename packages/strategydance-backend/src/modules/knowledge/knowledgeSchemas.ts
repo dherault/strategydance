@@ -98,6 +98,7 @@ export const knowledgeRowSchema = z.union([
     type: z.enum(DirectoryType),
     categories: z.array(z.enum(DirectoryCategory)),
     businessModel: z.enum(DirectoryBusinessModel),
+    inactiveReason: z.enum(DirectoryInactiveReason).optional(),
   }),
   z.object(rowShape),
 ])

@@ -919,15 +919,28 @@ const conversationMessages = defineMessages({
     defaultMessage: 'All conversations',
     description: "Link at the top of a conversation's page, back to the list of the reader's conversations.",
   },
-  private: {
-    id: 'conversation.private',
-    defaultMessage: 'Private',
-    description: "Label beside a lock at the top of a conversation's page, saying nobody else can read it.",
+  shared: {
+    id: 'conversation.shared',
+    defaultMessage: 'Shared with your team',
+    description:
+      'Label beside an icon of people at the top of the page of a conversation the reader started, saying every member of their organization can read it.',
   },
-  privateTooltip: {
-    id: 'conversation.privateTooltip',
-    defaultMessage: 'Only you can see your conversations',
-    description: 'Tooltip on the Private label of a conversation, saying what it means.',
+  sharedTooltip: {
+    id: 'conversation.sharedTooltip',
+    defaultMessage: 'Everyone in your organization can read your conversations. Only you write in them.',
+    description: 'Tooltip on the "Shared with your team" label of a conversation, saying what it means.',
+  },
+  startedBy: {
+    id: 'conversation.startedBy',
+    defaultMessage: 'Started by {name}',
+    description:
+      "At the top of the page of a conversation another member of the reader's organization started, beside their picture. {name} is that member's name.",
+  },
+  readOnly: {
+    id: 'conversation.readOnly',
+    defaultMessage: '{name} started this conversation, so only they can write in it.',
+    description:
+      "Shown in place of the field to write a message, at the foot of a conversation another member started: the reader reads it but cannot write, answer or change anything in it. {name} is that member's name.",
   },
   updated: {
     id: 'conversation.updated',
@@ -1325,6 +1338,12 @@ const conversationMessages = defineMessages({
     description:
       'Small heading over a question the AI asked, which the reader did not answer and wrote something else instead.',
   },
+  questionWaitingFor: {
+    id: 'conversation.question.waitingFor',
+    defaultMessage: 'Waiting for {name}’s answer',
+    description:
+      "Small heading over a question the AI asked another member in their conversation, which they have not answered yet and which the reader cannot answer. {name} is that member's name.",
+  },
   questionUnanswered: {
     id: 'conversation.question.unanswered',
     defaultMessage: 'Not answered',
@@ -1359,6 +1378,12 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Waiting for your approval',
     description:
       "Small heading over an action the AI wants to take in another company's service as the reader, such as creating a payment link, which waits for the reader to allow or deny it.",
+  },
+  approvalWaitingFor: {
+    id: 'conversation.approval.waitingFor',
+    defaultMessage: 'Waiting for {name}’s approval',
+    description:
+      "Small heading over an action the AI wants to take in another company's service as another member, in their conversation, which waits for them to allow or deny it and which the reader cannot decide. {name} is that member's name.",
   },
   approvalUnanswered: {
     id: 'conversation.approval.unanswered',

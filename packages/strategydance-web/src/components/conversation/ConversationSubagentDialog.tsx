@@ -24,21 +24,24 @@ type Props = {
   // The conversation that launched it, through which it is stopped
   conversationId: string
   subagent: ConversationSubagent
+  // Whether the reader started the conversation, and so may stop it
+  canStop: boolean
   onClose: () => void
 }
 
 /*
   A subagent's work, opened from its row's View work, on the conversation's page or in a dock's
-  window alike: its title, where it stands, and Stop while it is busy, over its own thread, live and
+  window alike: its title, where it stands, and, for the conversation's author, Stop while it is
+  busy, over its own thread, live and
   read only, in a box of its own that scrolls, with no composer, since nothing is said to a subagent.
   Its calls' outputs and its files' images open over it
 */
-function ConversationSubagentDialog({ conversationId, subagent, onClose }: Props) {
+function ConversationSubagentDialog({ conversationId, subagent, canStop: isStoppable, onClose }: Props) {
   const intl = useIntl()
   const { formatMessage } = intl
   const scrollerRef = useRef<HTMLDivElement>(null)
   const status = getConversationSubagentStatus(subagent)
-  const canStop = subagent.activeRunId !== null && status !== 'stopping'
+  const canStop = isStoppable && subagent.activeRunId !== null && status !== 'stopping'
 
   return (
     <Dialog

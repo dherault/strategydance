@@ -2223,6 +2223,10 @@
         "hash": "7b58aeb1152e3881",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.approval.waitingFor": {
+        "hash": "8b33aebbd07e8343",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.approvalStatus.allowed": {
         "hash": "3ffd9456340838a6",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2851,14 +2855,6 @@
         "hash": "b4e783c88f45901d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
-      "conversation.private": {
-        "hash": "910feb7550c9d387",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
-      "conversation.privateTooltip": {
-        "hash": "f8489243bcbed317",
-        "locales": "DE,ES,FR,JA,PT,ZH"
-      },
       "conversation.question.answered": {
         "hash": "d6cb1f0d62147910",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2907,8 +2903,16 @@
         "hash": "94dbb2b7f629d8e6",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.question.waitingFor": {
+        "hash": "d27e262ef96844d3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.question.writeOwn": {
         "hash": "7e0762a3dc21017a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.readOnly": {
+        "hash": "fb5e5ffe11e4dab9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.redoDocumentEdit": {
@@ -3023,6 +3027,14 @@
         "hash": "97c2e1ea77a7eb65",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.shared": {
+        "hash": "7c671093fe61e843",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.sharedTooltip": {
+        "hash": "2db516d9493c42a3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.showInDock": {
         "hash": "f356365e595b4853",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3033,6 +3045,10 @@
       },
       "conversation.sources": {
         "hash": "0a3ba6016aa74bb6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.startedBy": {
+        "hash": "565a493c80ae09eb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.stopping": {

@@ -188,10 +188,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://trillionagent.com/",
     "submissionUrl": "https://trillionagent.com/register-agent/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Marketplace of AI agents sorted into 300+ human-equivalent job roles, where agent providers register their agents for businesses to find.",
+    "categories": [
+      "AI_AGENTS"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-11-02",
     "unreachableSince": null
   },
   {
@@ -1561,10 +1563,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.brouseai.com/",
     "submissionUrl": "https://www.brouseai.com/submission/ai",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, pricing and platform, alongside AI product launch videos and a glossary, where makers submit their tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-02",
     "unreachableSince": null
   },
   {
@@ -1663,10 +1667,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.buysellstartups.com/",
     "submissionUrl": "https://www.buysellstartups.com/startup-index",
-    "description": "",
-    "categories": [],
+    "description": "Marketplace for buying and selling micro-SaaS and internet businesses, with a Startup Index directory where indie makers can submit their products.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-02",
     "unreachableSince": null
   },
   {
@@ -3740,10 +3746,10 @@
     "type": "WEBSITE",
     "rootUrl": "https://navfolders.com/",
     "submissionUrl": "https://navfolders.com/submit",
-    "description": "",
+    "description": "Directory of web tools and products, mostly AI apps, sorted by category and tag, where makers submit their own products.",
     "categories": [],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-02",
     "unreachableSince": null
   },
   {
@@ -3968,10 +3974,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://openmakers.io/",
     "submissionUrl": "https://openmakers.io/add-product",
-    "description": "",
-    "categories": [],
+    "description": "Build-in-public community where makers list their products and post milestones, tasks and updates about building them.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-02",
     "unreachableSince": null
   },
   {
@@ -4607,10 +4615,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://resource.fyi/",
     "submissionUrl": "https://resource.fyi/",
-    "description": "",
-    "categories": [],
+    "description": "Curated directory of products, tools and resources for developers, designers and marketers, where signed-in users submit, upvote and bookmark listings.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-11-02",
     "unreachableSince": null
   },
   {
@@ -5577,10 +5587,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://startups.fm/",
     "submissionUrl": "https://startups.fm/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of startups across categories such as AI, SaaS, DevTools and Fintech, where founders submit their startup for a human-reviewed listing.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-02",
     "unreachableSince": null
   },
   {
@@ -6260,7 +6272,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-11-02",
     "unreachableSince": null
   },
   {
@@ -6281,10 +6293,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://business.trustpilot.com/",
     "submissionUrl": "https://business.trustpilot.com/signup",
-    "description": "",
-    "categories": [],
+    "description": "Consumer review platform where any business can create a free profile, collect customer reviews and display its TrustScore to shoppers.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-02",
     "unreachableSince": null
   },
   {
@@ -6557,8 +6571,8 @@
     "description": "",
     "categories": [],
     "businessModel": "PAID",
-    "lastChecked": null,
-    "unreachableSince": null
+    "lastChecked": "2026-11-02",
+    "unreachableSince": "2026-11-02"
   },
   {
     "id": "website-hunt",

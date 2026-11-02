@@ -145,7 +145,8 @@ Transcript and thread:
   its subagents' runs, then their rows, each step reading its lock's response
 - A file a member sends is uploaded before its message, under a `conversationId` nothing reserves,
   so every lookup, count and prune of `ConversationAttachment` also matches `userId` and
-  `organizationId`
+  `organizationId`, but a read of a sent file, which any member makes: it matches the conversation
+  its message is in, and the domain holds its uploader to the conversation's author
 - A search's query travels in the body, never the address, and is never logged
 - A document write carries the text twice, so it is measured first (`isDocumentWriteTooLarge`),
   and refused rather than written without its revision

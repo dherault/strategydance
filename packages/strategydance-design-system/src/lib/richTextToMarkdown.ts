@@ -10,6 +10,8 @@ import {
   type RichTextStyles,
   type RichTextTableBlock,
   type RichTextTextBlock,
+  RICH_TEXT_MENTIONS,
+  getRichTextMentionTarget,
   getRichTextMentionWords,
 } from 'strategydance-design-system/lib/richText'
 
@@ -218,7 +220,8 @@ function writeInline(content: RichTextInline[]): PhrasingContent[] {
 // A mention as the link the agent writes for it, its words on one line already
 function writeMention(mention: RichTextMention): PhrasingContent {
   const words = getRichTextMentionWords(mention)
-  const url = mention.type === 'documentMention' ? `doc:${mention.props.documentId}` : `task:${mention.props.taskId}`
+  const { kind, id } = getRichTextMentionTarget(mention)
+  const url = `${RICH_TEXT_MENTIONS[kind].scheme}:${id}`
 
   return { type: 'link', url, children: words ? [{ type: 'text', value: words }] : [] }
 }

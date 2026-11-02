@@ -265,8 +265,7 @@ export function getRichTextInlineTypes(blocks: readonly RichTextEditorBlock[]): 
   return [
     'text',
     'link',
-    ...(blocks.includes('documentMention') ? (['documentMention'] as const) : []),
-    ...(blocks.includes('taskMention') ? (['taskMention'] as const) : []),
+    ...RICH_TEXT_MENTION_KINDS.map(kind => RICH_TEXT_MENTIONS[kind].type).filter(type => blocks.includes(type)),
   ]
 }
 
@@ -432,6 +431,28 @@ export type RichTextBlockType = RichTextBlock['type']
 /** What a mention names: a document or a task */
 export type RichTextMentionKind = 'document' | 'task'
 
+/**
+ * How a mention of each kind is stored and linked: its inline type, the props its id and its words
+ * are stored under for good, the scheme of the link Strategy Dance's agent writes for it, as in
+ * `doc:<id>`, and the list of a page's source it draws from. In the order a page's lists and the
+ * mentions menu take them
+ */
+export const RICH_TEXT_MENTIONS = {
+  document: { type: 'documentMention', idProp: 'documentId', wordsProp: 'title', scheme: 'doc', list: 'documents' },
+  task: { type: 'taskMention', idProp: 'taskId', wordsProp: 'name', scheme: 'task', list: 'tasks' },
+} as const satisfies Record<
+  RichTextMentionKind,
+  { type: RichTextMention['type']; idProp: string; wordsProp: string; scheme: string; list: string }
+>
+
+/** The kinds of mention, in the order a page's lists and the mentions menu take them */
+export const RICH_TEXT_MENTION_KINDS = Object.keys(RICH_TEXT_MENTIONS) as RichTextMentionKind[]
+
+// Each kind of mention by its inline type
+const MENTION_KINDS = Object.fromEntries(
+  RICH_TEXT_MENTION_KINDS.map(kind => [RICH_TEXT_MENTIONS[kind].type, kind]),
+) as Record<RichTextMention['type'], RichTextMentionKind>
+
 /** A document or a task a mention names, by its id as Data Connect writes one */
 export type RichTextMentionTarget = { kind: RichTextMentionKind; id: string }
 
@@ -457,14 +478,36 @@ export type RichTextMentionSource = {
   self?: RichTextMentionTarget
 }
 
+/** The kind of mention an inline type is, or null for one that mentions nothing */
+export function getRichTextMentionKind(type: unknown): RichTextMentionKind | null {
+  return typeof type === 'string' && Object.hasOwn(MENTION_KINDS, type)
+    ? MENTION_KINDS[type as RichTextMention['type']]
+    : null
+}
+
+/** A mention of what `target` names, with its words when they are given */
+export function createRichTextMention({ kind, id }: RichTextMentionTarget, words?: string): RichTextMention {
+  const { type, idProp, wordsProp } = RICH_TEXT_MENTIONS[kind]
+
+  return { type, props: { [idProp]: id, ...(words === undefined ? {} : { [wordsProp]: words }) } } as RichTextMention
+}
+
 /** What a mention names */
 export function getRichTextMentionTarget(mention: RichTextMention): RichTextMentionTarget {
-  return mention.type === 'documentMention'
-    ? { kind: 'document', id: mention.props.documentId }
-    : { kind: 'task', id: mention.props.taskId }
+  const kind = MENTION_KINDS[mention.type]
+  const props: Partial<Record<string, string>> = mention.props
+
+  return { kind, id: props[RICH_TEXT_MENTIONS[kind].idProp] ?? '' }
 }
 
 /** The words a mention was made with, its document's title or its task's name then, or an empty string */
 export function getRichTextMentionWords(mention: RichTextMention): string {
-  return (mention.type === 'documentMention' ? mention.props.title : mention.props.name) ?? ''
+  const props: Partial<Record<string, string>> = mention.props
+
+  return props[RICH_TEXT_MENTIONS[MENTION_KINDS[mention.type]].wordsProp] ?? ''
+}
+
+/** The list a page's source draws a kind's mentions from, null while it is unread */
+export function getRichTextMentionList(source: RichTextMentionSource, kind: RichTextMentionKind) {
+  return source[RICH_TEXT_MENTIONS[kind].list]
 }

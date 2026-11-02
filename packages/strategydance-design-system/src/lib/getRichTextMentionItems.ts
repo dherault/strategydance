@@ -1,7 +1,9 @@
-import type {
-  RichTextMentionKind,
-  RichTextMentionSource,
-  RichTextMentionTarget,
+import {
+  RICH_TEXT_MENTION_KINDS,
+  type RichTextMentionKind,
+  type RichTextMentionSource,
+  type RichTextMentionTarget,
+  getRichTextMentionList,
 } from 'strategydance-design-system/lib/richText'
 
 // How many of each kind the menu suggests, as the composer's mentions list suggests six documents
@@ -29,7 +31,7 @@ function getRichTextMentionItems(source: RichTextMentionSource, query: string): 
       .slice(0, MAX_ITEMS_PER_KIND)
       .map(([id, title]) => ({ kind, id, title: title.trim() }))
 
-  return [...pick('document', source.documents), ...pick('task', source.tasks)]
+  return RICH_TEXT_MENTION_KINDS.flatMap(kind => pick(kind, getRichTextMentionList(source, kind)))
 }
 
 export { getRichTextMentionItems }

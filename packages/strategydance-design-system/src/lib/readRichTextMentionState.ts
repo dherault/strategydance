@@ -1,4 +1,8 @@
-import type { RichTextMentionSource, RichTextMentionTarget } from 'strategydance-design-system/lib/richText'
+import {
+  type RichTextMentionSource,
+  type RichTextMentionTarget,
+  getRichTextMentionList,
+} from 'strategydance-design-system/lib/richText'
 
 /**
  * What a mention draws: what it names, found in its list, with the address it opens and its live
@@ -20,7 +24,7 @@ function readRichTextMentionState(
   words: string,
   source: RichTextMentionSource | null | undefined,
 ): RichTextMentionState {
-  const list = target && source ? (target.kind === 'document' ? source.documents : source.tasks) : null
+  const list = target && source ? getRichTextMentionList(source, target.kind) : null
 
   if (!target || !source || !list) return { kind: 'words' }
 

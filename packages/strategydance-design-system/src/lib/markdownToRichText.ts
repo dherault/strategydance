@@ -9,6 +9,7 @@ import {
   type RichTextStyles,
   type RichTextTableContent,
   type RichTextTextBlock,
+  createRichTextMention,
   getRichTextCodeLanguage,
 } from 'strategydance-design-system/lib/richText'
 
@@ -259,9 +260,7 @@ function readPhrasing(
     const words = content.map(run => run.text).join('')
 
     if (isInLink) inline.push(...content)
-    else if (target.kind === 'document')
-      inline.push({ type: 'documentMention', props: { documentId: target.id, title: words } })
-    else inline.push({ type: 'taskMention', props: { taskId: target.id, name: words } })
+    else inline.push(createRichTextMention(target, words))
   }
 
   // What a link's or a picture's address names, a document or a task, or null for any other

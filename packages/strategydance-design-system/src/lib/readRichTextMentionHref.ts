@@ -1,5 +1,9 @@
 import { normalizeRichTextMentionId } from 'strategydance-design-system/lib/normalizeRichText'
-import type { RichTextMentionTarget } from 'strategydance-design-system/lib/richText'
+import {
+  RICH_TEXT_MENTIONS,
+  RICH_TEXT_MENTION_KINDS,
+  type RichTextMentionTarget,
+} from 'strategydance-design-system/lib/richText'
 
 // `doc:` or `task:` and an id, with or without its hyphens, as the agent links a document or a task
 const MENTION_HREF = /^(doc|task):([0-9a-f-]{32,36})$/i
@@ -19,7 +23,10 @@ function readRichTextMentionHref(href: string): RichTextMentionTarget | null {
 
   if (!id) return null
 
-  return { kind: match[1].toLowerCase() === 'doc' ? 'document' : 'task', id }
+  const scheme = match[1].toLowerCase()
+  const kind = RICH_TEXT_MENTION_KINDS.find(kind => RICH_TEXT_MENTIONS[kind].scheme === scheme)
+
+  return kind ? { kind, id } : null
 }
 
 export { readRichTextMentionHref }

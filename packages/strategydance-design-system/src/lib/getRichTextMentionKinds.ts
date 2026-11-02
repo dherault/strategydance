@@ -1,4 +1,10 @@
-import type { RichTextBlock, RichTextInline, RichTextMentionKind } from 'strategydance-design-system/lib/richText'
+import {
+  RICH_TEXT_MENTION_KINDS,
+  type RichTextBlock,
+  type RichTextInline,
+  type RichTextMentionKind,
+  getRichTextMentionKind,
+} from 'strategydance-design-system/lib/richText'
 
 /*
   What some blocks mention, documents, tasks or both, in that order, nested blocks and a table's
@@ -9,8 +15,9 @@ function getRichTextMentionKinds(blocks: readonly RichTextBlock[]): RichTextMent
 
   const visit = (block: RichTextBlock) => {
     for (const item of readContent(block)) {
-      if (item.type === 'documentMention') kinds.add('document')
-      else if (item.type === 'taskMention') kinds.add('task')
+      const kind = getRichTextMentionKind(item.type)
+
+      if (kind) kinds.add(kind)
     }
 
     block.children?.forEach(visit)
@@ -18,7 +25,7 @@ function getRichTextMentionKinds(blocks: readonly RichTextBlock[]): RichTextMent
 
   blocks.forEach(visit)
 
-  return (['document', 'task'] as const).filter(kind => kinds.has(kind))
+  return RICH_TEXT_MENTION_KINDS.filter(kind => kinds.has(kind))
 }
 
 function readContent(block: RichTextBlock): readonly RichTextInline[] {

@@ -710,11 +710,11 @@ async function checkReading({ parent, completed }: { parent: Parent; completed: 
   })
 
   check(
-    'another member reads nothing of a subagent by its id',
-    othersTail.conversations.length === 0
-      && othersBodies.conversationMessages.length === 0
-      && othersHistory.conversationMessages.length === 0
-      && othersRun.conversationRuns.length === 0,
+    'another member reads a subagent by its id alike, as every conversation of the organization',
+    othersTail.conversations.length === 1
+      && othersBodies.conversationMessages.length === 2
+      && othersHistory.conversationMessages.length === 2
+      && othersRun.conversationRuns.length === 1,
   )
 
   // The lists leave it out, the badge's included once it waits, and the dock's when its id is asked
@@ -744,10 +744,10 @@ async function checkReading({ parent, completed }: { parent: Parent; completed: 
 }
 
 /*
-  What the parent's page reads of its subagents through the web connector, as its member: its own
-  subagents alone, with the call that launched each and its latest run, a subagent's report, which
-  conversation a subagent's is, the call's id and a brief's files with the bodies, and a brief's files
-  among the parent's sent ones, never one waiting in a draft or anybody else's
+  What the parent's page reads of its subagents through the web connector, as its author or another
+  member: its own subagents alone, with the call that launched each and its latest run, a subagent's
+  report, which conversation a subagent's is, the call's id and a brief's files with the bodies, and
+  a brief's files among the parent's sent ones, never one waiting in a draft or anybody else's
 */
 async function checkPageReads() {
   const author = asMember(userIds.author)
@@ -814,8 +814,9 @@ async function checkPageReads() {
       && second.reportDeliveredAt === null,
   )
   check(
-    'another member reads none of a conversation’s subagents',
-    (await other.read<Subagents>('GetConversationSubagents', listVariables)).conversations.length === 0,
+    'another member reads the same subagents',
+    (await other.read<Subagents>('GetConversationSubagents', listVariables)).conversations.map(({ id }) => id).join()
+      === subagents.map(({ id }) => id).join(),
   )
 
   type Report = { conversations: { id: string; report: string | null }[] }
@@ -826,20 +827,23 @@ async function checkPageReads() {
 
   check('the page reads a subagent’s report through its parent', report.conversations[0]?.report === `Reported ${MARK}`)
   check(
-    'a report reads nothing through another conversation, nor for another member',
+    'a report reads nothing through another conversation',
     (
       await author.read<Report>('GetConversationSubagentReport', {
         organizationId,
         conversationId: elsewhere.conversationId,
         subagentId: reported.conversationId,
       })
-    ).conversations.length === 0
-      && (
-        await other.read<Report>('GetConversationSubagentReport', {
-          ...listVariables,
-          subagentId: reported.conversationId,
-        })
-      ).conversations.length === 0,
+    ).conversations.length === 0,
+  )
+  check(
+    'another member reads the report too',
+    (
+      await other.read<Report>('GetConversationSubagentReport', {
+        ...listVariables,
+        subagentId: reported.conversationId,
+      })
+    ).conversations[0]?.report === `Reported ${MARK}`,
   )
 
   type Tail = {
@@ -912,6 +916,14 @@ async function checkPageReads() {
   check(
     'a brief’s files are read among its parent’s sent ones, never one waiting in a draft or another member’s',
     files.conversationAttachments.map(({ id }) => id).join() === sent,
+  )
+  check(
+    'another member reads a brief’s files alike',
+    (
+      await other.read<Files>('GetConversationBriefAttachments', { ...listVariables, ids: [sent, draft, othersFile] })
+    ).conversationAttachments
+      .map(({ id }) => id)
+      .join() === sent,
   )
   check(
     'a brief’s files read nothing under another conversation',

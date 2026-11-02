@@ -6,6 +6,7 @@ import useConversation from '~hooks/conversation/useConversation'
 import useConversationDock from '~hooks/conversation/useConversationDock'
 import useConversationRun from '~hooks/conversation/useConversationRun'
 import useConversationStartedRun from '~hooks/conversation/useConversationStartedRun'
+import useIsConversationAuthor from '~hooks/conversation/useIsConversationAuthor'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import toHyphenatedUuid from '~utils/common/toHyphenatedUuid'
@@ -15,6 +16,7 @@ import ConversationComposer from '~components/conversation/ConversationComposer'
 import ConversationDraftThread from '~components/conversation/ConversationDraftThread'
 import ConversationHead from '~components/conversation/ConversationHead'
 import ConversationLayout from '~components/conversation/ConversationLayout'
+import ConversationReadOnlyNotice from '~components/conversation/ConversationReadOnlyNotice'
 import ConversationSubagentViewer from '~components/conversation/ConversationSubagentViewer'
 import ConversationThread from '~components/conversation/ConversationThread'
 
@@ -34,6 +36,9 @@ type Props = {
   stores the conversation, leaves it mounted with whatever is written in it. A draft holds the
   aspects its reader picks until that message, which sends them, so Strategy Dance leaves them as
   they are.
+
+  Another member's conversation is the reader's to read: its bar names who started it, its aspects
+  and its thread change nothing, and a notice stands in the composer's place saying why.
 
   The run the reader last started, by a send, a resume or a retry, is the conversation's, so the
   composer and the thread both count it as going before the live read of the latest run shows it,
@@ -59,6 +64,9 @@ function ConversationPage({ conversationId, viewedSubagentId }: Props) {
     select: location => location.state.isFromConversationThread === true,
   })
   const { closeWindow } = useConversationDock()
+  const isAuthor = useIsConversationAuthor(conversation)
+  // Another member's, which the reader reads and never acts in
+  const othersAuthor = conversation && !isAuthor ? conversation.user : null
 
   const leaveDock = useEffectEvent(() => closeWindow(conversationId))
 
@@ -100,11 +108,13 @@ function ConversationPage({ conversationId, viewedSubagentId }: Props) {
       <ConversationBar
         conversationId={conversationId}
         updatedAt={conversation?.updatedAt ?? null}
+        author={othersAuthor}
       />
       <ConversationHead
         conversation={conversation}
         draftAspects={draftAspects}
         onDraftAspectsChange={setDraftAspects}
+        isReadOnly={othersAuthor !== null}
       />
       {conversation ? (
         <ConversationThread
@@ -121,17 +131,22 @@ function ConversationPage({ conversationId, viewedSubagentId }: Props) {
           startedRun={startedRun}
         />
       )}
-      <ConversationComposer
-        conversationId={conversationId}
-        conversation={conversation}
-        run={run}
-        startedRun={startedRun}
-        onRunStart={setStartedRun}
-        draftAspects={draftAspects}
-      />
+      {othersAuthor ? (
+        <ConversationReadOnlyNotice author={othersAuthor} />
+      ) : (
+        <ConversationComposer
+          conversationId={conversationId}
+          conversation={conversation}
+          run={run}
+          startedRun={startedRun}
+          onRunStart={setStartedRun}
+          draftAspects={draftAspects}
+        />
+      )}
       <ConversationSubagentViewer
         conversationId={conversationId}
         subagentId={viewedSubagentId}
+        canStop={othersAuthor === null}
         onClose={closeSubagent}
       />
     </ConversationLayout>

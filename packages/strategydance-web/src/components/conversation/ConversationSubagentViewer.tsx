@@ -10,6 +10,8 @@ type Props = {
   conversationId: string
   // The subagent whose work is open, hyphenated or not, or null while none is
   subagentId: string | null
+  // Whether the reader started the conversation, and so may stop its subagents
+  canStop: boolean
   onClose: () => void
 }
 
@@ -21,7 +23,7 @@ type Props = {
   subagent a Retry discarded meanwhile say, closes it once the server says so too, since the list a
   page holds can be one read before the subagent was launched, until its subscription brings it anew
 */
-function ConversationSubagentViewer({ conversationId, subagentId, onClose }: Props) {
+function ConversationSubagentViewer({ conversationId, subagentId, canStop, onClose }: Props) {
   const subagents = useConversationSubagents(conversationId, { isEnabled: subagentId !== null })
   const canonicalId = subagentId?.replaceAll('-', '').toLowerCase() ?? null
   const subagent = canonicalId ? subagents.data.find(({ id }) => id === canonicalId) : undefined
@@ -43,6 +45,7 @@ function ConversationSubagentViewer({ conversationId, subagentId, onClose }: Pro
       key={subagent.id}
       conversationId={conversationId}
       subagent={subagent}
+      canStop={canStop}
       onClose={onClose}
     />
   )

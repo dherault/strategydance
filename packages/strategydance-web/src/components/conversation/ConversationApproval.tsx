@@ -29,6 +29,9 @@ type Props = {
   body: ConversationMessageBody
   // The run the conversation waits on, while it waits for this approval, and null otherwise
   waitingRunId: string | null
+  // The name of the member it waits for, on another member's conversation, which the reader cannot
+  // decide, and null otherwise
+  waitingFor: string | null
   // Whether a question or another approval of the same turn still waits, which deciding this one
   // leaves waiting
   hasOtherWaiting: boolean
@@ -57,7 +60,7 @@ const NOTICE_MESSAGES = {
   An Allow given after the server, the tool or the reader's account changed is denied instead, which
   the call it became says, Strategy Dance proposing the call again if it still needs it. One the response it
   belongs to was stopped or cut off before, which a resume makes answerable again, shows its buttons
-  off. The thread draws it as the call it became once it is decided.
+  off, and one on another member's conversation says it waits for them while it does. The thread draws it as the call it became once it is decided.
 
   The decision under way outlives the card's view (`useConversationApprovalAnswer`), so moving its
   conversation between its page and the dock loses none of it
@@ -67,6 +70,7 @@ function ConversationApproval({
   entry,
   body,
   waitingRunId,
+  waitingFor,
   hasOtherWaiting,
   issue = null,
   onRunStart,
@@ -122,6 +126,13 @@ function ConversationApproval({
     }
   }
 
+  function renderEyebrow() {
+    if (isAnswerable) return formatMessage(conversationMessages.approvalWaiting)
+    if (waitingFor) return formatMessage(conversationMessages.approvalWaitingFor, { name: waitingFor })
+
+    return formatMessage(conversationMessages.approvalUnanswered)
+  }
+
   function renderNotice() {
     if (!notice || notice.waitingRunId !== waitingRunId) return null
 
@@ -152,7 +163,7 @@ function ConversationApproval({
             isAnswerable ? 'text-primary' : 'text-muted-foreground',
           )}
         >
-          {formatMessage(isAnswerable ? conversationMessages.approvalWaiting : conversationMessages.approvalUnanswered)}
+          {renderEyebrow()}
         </span>
         <div className="-mt-1 flex min-w-0 items-start gap-2.5">
           <span className="grid size-7 flex-none place-items-center rounded-xs bg-neutral-100 text-neutral-600">

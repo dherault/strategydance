@@ -502,7 +502,7 @@ const documentMessages = defineMessages({
     id: 'document.revisionOpenConversation',
     defaultMessage: 'Open the conversation',
     description:
-      "Link, on an entry of a document's history, to the reader's own conversation with the product's AI in which it made the change.",
+      "Link, on an entry of a document's history, to the member's conversation with the product's AI in which it made the change, which every member of the organization can read.",
   },
   revisionView: {
     id: 'document.revisionView',

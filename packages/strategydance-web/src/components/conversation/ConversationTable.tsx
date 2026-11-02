@@ -16,8 +16,9 @@ type Props = {
 }
 
 /*
-  The reader's conversations, one row each, latest activity first. Deleting one takes it off at
-  once and offers Undo for as long as the notification stays
+  The organization's conversations, one row each, latest activity first, each led by the face of the
+  member who started it. Deleting one of the reader's takes it off at once and offers Undo for as
+  long as the notification stays
 */
 function ConversationTable({ conversations }: Props) {
   const { formatMessage } = useIntl()
@@ -51,6 +52,9 @@ function ConversationTable({ conversations }: Props) {
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead className="w-0 pr-0">
+            <span className="sr-only">{formatMessage(conversationMessages.columnAuthor)}</span>
+          </TableHead>
           <TableHead>{formatMessage(conversationMessages.columnConversation)}</TableHead>
           <TableHead className="max-sm:hidden">{formatMessage(conversationMessages.columnAspects)}</TableHead>
           <TableHead align="right">{formatMessage(conversationMessages.columnUpdated)}</TableHead>

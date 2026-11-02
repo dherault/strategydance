@@ -11,11 +11,13 @@ import useSidebar from 'strategydance-design-system/hooks/useSidebar'
 import type { ConversationSummary } from '~types'
 
 import useConversationDock from '~hooks/conversation/useConversationDock'
+import useIsConversationAuthor from '~hooks/conversation/useIsConversationAuthor'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
 
 import formatConversationPreview from '~utils/conversation/formatConversationPreview'
 
 import CompanyAspectIcons from '~components/company/CompanyAspectIcons'
+import ConversationAuthorAvatar from '~components/conversation/ConversationAuthorAvatar'
 import ConversationUpdatedAt from '~components/conversation/ConversationUpdatedAt'
 
 import conversationMessages from '~data/intl/messages/conversation'
@@ -27,9 +29,10 @@ type Props = {
 }
 
 /*
-  One conversation of the list: its title, with a badge when a question waits for the reader, a
-  line of its last entry under it, its aspects, when it last changed, "Open in dock" on a wide
-  screen, which has a dock, and Delete, which asks twice.
+  One conversation of the list: the face of the member who started it, its title, with a badge when
+  a question waits for the reader, a line of its last entry under it, its aspects, when it last
+  changed, and, on one of the reader's own, "Open in dock" on a wide screen, which has a dock, and
+  Delete, which asks twice. Another member's is the reader's to read alone.
 
   The title links to the conversation, which is what the keyboard and a new tab use, and a click
   anywhere else on the row opens it too, as the design has it, unless it selected some text. The
@@ -43,6 +46,7 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
   const organizationSlug = useCurrentOrganizationSlug()
   const { isMobile } = useSidebar()
   const { windows, openWindow } = useConversationDock()
+  const isAuthor = useIsConversationAuthor(conversation)
 
   const preview = formatConversationPreview(intl, conversation, now)
   const isDocked = windows.some(({ conversationId }) => conversationId === conversation.id)
@@ -62,6 +66,12 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
       onClick={handleClick}
       className="cursor-pointer"
     >
+      <TableCell className="pr-0">
+        <ConversationAuthorAvatar
+          author={conversation.user}
+          hasTooltip
+        />
+      </TableCell>
       {/* The column takes what the others leave, and its lines are cut short to fit it */}
       <TableCell className="w-full max-w-0">
         {/* On a phone the badge goes under the title rather than leave it a letter or two */}
@@ -73,7 +83,7 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
           >
             {conversation.title}
           </Link>
-          {conversation.isAwaitingAnswer ? (
+          {isAuthor && conversation.isAwaitingAnswer ? (
             <Badge
               variant="primary"
               size="sm"
@@ -104,7 +114,7 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
       </TableCell>
       <TableCell onClick={event => event.stopPropagation()}>
         <div className="flex justify-end gap-1">
-          {isMobile ? null : (
+          {isMobile || !isAuthor ? null : (
             <Tooltip
               content={formatMessage(isDocked ? conversationMessages.showInDock : conversationMessages.openInDock)}
             >
@@ -120,16 +130,18 @@ function ConversationRow({ conversation, now, onDelete }: Props) {
               />
             </Tooltip>
           )}
-          <Tooltip content={formatMessage(conversationMessages.delete)}>
-            <Button
-              variant="transparent"
-              size="sm"
-              icon={<Trash2Icon />}
-              confirm={formatMessage(conversationMessages.confirm)}
-              aria-label={formatMessage(conversationMessages.deleteLabel, { title: conversation.title })}
-              onClick={() => onDelete(conversation)}
-            />
-          </Tooltip>
+          {isAuthor ? (
+            <Tooltip content={formatMessage(conversationMessages.delete)}>
+              <Button
+                variant="transparent"
+                size="sm"
+                icon={<Trash2Icon />}
+                confirm={formatMessage(conversationMessages.confirm)}
+                aria-label={formatMessage(conversationMessages.deleteLabel, { title: conversation.title })}
+                onClick={() => onDelete(conversation)}
+              />
+            </Tooltip>
+          ) : null}
         </div>
       </TableCell>
     </TableRow>

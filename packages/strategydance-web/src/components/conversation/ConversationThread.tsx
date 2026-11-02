@@ -29,6 +29,7 @@ import useConversationTasks from '~hooks/conversation/useConversationTasks'
 import useConversationThread from '~hooks/conversation/useConversationThread'
 import useConversationThreadScroll from '~hooks/conversation/useConversationThreadScroll'
 import useConversationUndoableRevisions from '~hooks/conversation/useConversationUndoableRevisions'
+import useIsConversationAuthor from '~hooks/conversation/useIsConversationAuthor'
 import useMarkConversationRead from '~hooks/conversation/useMarkConversationRead'
 import useReconcileConversationRun from '~hooks/conversation/useReconcileConversationRun'
 import useReconcileConversationSubagents from '~hooks/conversation/useReconcileConversationSubagents'
@@ -40,6 +41,7 @@ import canRestoreConversationItem from '~utils/conversation/canRestoreConversati
 import countConversationDocumentEdits from '~utils/conversation/countConversationDocumentEdits'
 import countRetriedSubagents from '~utils/conversation/countRetriedSubagents'
 import findConversationSubagent from '~utils/conversation/findConversationSubagent'
+import getConversationAuthorName from '~utils/conversation/getConversationAuthorName'
 import getConversationIntegrationIssue from '~utils/conversation/getConversationIntegrationIssue'
 import getConversationThinkingStart from '~utils/conversation/getConversationThinkingStart'
 import getConversationToolLabel from '~utils/conversation/getConversationToolLabel'
@@ -115,7 +117,10 @@ type Props = {
   launch is drawn as the subagent it launched, live, once the conversation's subagents and the
   call's body are read, and as the call it was until then. A subagent's own thread, which its viewer
   draws, is read only: its run is reconciled through its parent's page, it offers no Resume or Retry,
-  and its notes speak of a subagent. The
+  and its notes speak of a subagent. Another member's conversation is read only too: its questions
+  and approvals wait for its author, it offers no Resume, Retry, Stop, Restore or Undo, reconciles
+  nothing and marks nothing read, and it names no server that does not work for the reader, since
+  the calls are its author's. The
   note that ends the latest response, when it is the last entry and nothing goes,
   offers Resume and Retry as its kind allows. Older entries load as the reader scrolls up
   to them, and each message's words land after its row, a placeholder line standing in meanwhile.
@@ -135,8 +140,12 @@ function ConversationThread({
   size = 'md',
 }: Props) {
   const intl = useIntl()
-  // A subagent's, which the reader follows and never acts in
-  const isReadOnly = conversation.parentId !== null
+  const isSubagent = conversation.parentId !== null
+  // Whether the reader started it, or the parent of the subagent it is
+  const isAuthor = useIsConversationAuthor(conversation)
+  // A subagent's, or another member's, which the reader follows and never acts in
+  const isReadOnly = isSubagent || !isAuthor
+  const authorName = getConversationAuthorName(conversation.user)
   const { formatMessage } = intl
   const { entries, bodies, hasOlder, olderStatus, loadOlder, dropRuns } = useConversationThread(conversation)
   const listRef = useRef<HTMLDivElement>(null)
@@ -151,12 +160,19 @@ function ConversationThread({
   )
   const tasks = useConversationTasks(needsConversationTasks(entries, bodies))
   const bills = useConversationBills(needsConversationBills(entries))
-  const deletedItems = useConversationDeletedItems(conversation.id, readConversationDeletedCallIds(entries))
+  // What its author's Restore and Undo read, which nobody else is offered
+  const deletedItems = useConversationDeletedItems(
+    conversation.id,
+    isAuthor ? readConversationDeletedCallIds(entries) : [],
+  )
   // A subagent's edits too, which its viewer draws: what Undo takes back is the document's text
-  const undoableRevisions = useConversationUndoableRevisions(conversation.id, countConversationDocumentEdits(entries))
+  const undoableRevisions = useConversationUndoableRevisions(
+    conversation.id,
+    isAuthor ? countConversationDocumentEdits(entries) : 0,
+  )
   // Read only once the conversation launched one, which every launch's row and the page then share
   const subagents = useConversationSubagents(conversation.id, {
-    isEnabled: !isReadOnly && conversation.subagentCount > 0,
+    isEnabled: !isSubagent && conversation.subagentCount > 0,
   })
   // One clock for every row that offers Restore until its day is up
   const now = useNow()
@@ -172,7 +188,8 @@ function ConversationThread({
   )
   // The run the conversation waits on for the answers to its questions and approvals, while it does
   const waitingRunId = conversation.isAwaitingAnswer && run?.status === ConversationRunStatus.WAITING ? run.id : null
-  const isIntegrationsNeeded = entries.some(isIntegrationEntry)
+  // The reader's own servers and accounts, which say nothing of another member's calls
+  const isIntegrationsNeeded = isAuthor && entries.some(isIntegrationEntry)
   const { role } = useCurrentOrganization()
   const integrations = useOrganizationIntegrations({ isEnabled: isIntegrationsNeeded })
   const connections = useIntegrationConnections({ isEnabled: isIntegrationsNeeded })
@@ -203,7 +220,8 @@ function ConversationThread({
   }, [needlessPendingMessageIds])
 
   useConversationThreadScroll(listRef, scrollerRef)
-  useMarkConversationRead(conversation, isLatestShown)
+  // The unread count is its author's alone
+  useMarkConversationRead(conversation, isAuthor && isLatestShown)
   // A subagent's runs are reconciled through its parent's page, whose route its own refuses
   useReconcileConversationRun(conversation.id, isReadOnly ? null : run, !waitingEntries.length)
   useReconcileConversationSubagents(conversation, run, subagents.data, {
@@ -349,6 +367,8 @@ function ConversationThread({
     nothing else, so a phone keeps its badge while neither is shown
   */
   function renderAction(entry: ConversationThreadEntry) {
+    if (!isAuthor) return null
+
     if (entry.toolName === UPDATE_DOCUMENT_TOOL_NAME && entry.toolStatus === ConversationToolStatus.SUCCEEDED) {
       const toolUseId = bodies.get(entry.id)?.toolUseId
       const revision = toolUseId ? undoableRevisions.get(toolUseId) : undefined
@@ -435,6 +455,7 @@ function ConversationThread({
             <ConversationSubagentCall
               conversationId={conversation.id}
               subagent={subagent}
+              canStop={isAuthor}
               onOpen={() => setOpenToolCall(entry)}
               onView={onViewSubagent ? () => onViewSubagent(subagent.id) : undefined}
             />
@@ -461,7 +482,8 @@ function ConversationThread({
               conversationId={conversation.id}
               entry={entry}
               body={body}
-              waitingRunId={waitingRunId}
+              waitingRunId={isAuthor ? waitingRunId : null}
+              waitingFor={!isAuthor && waitingRunId ? authorName : null}
               hasOtherWaiting={waitingEntries.some(({ id }) => id !== entry.id)}
               issue={renderIssue(body)}
               onRunStart={onRunStart}
@@ -493,7 +515,8 @@ function ConversationThread({
             conversationId={conversation.id}
             entry={entry}
             body={body}
-            waitingRunId={waitingRunId}
+            waitingRunId={isAuthor ? waitingRunId : null}
+            waitingFor={!isAuthor && waitingRunId ? authorName : null}
             hasOtherWaiting={waitingEntries.some(({ id }) => id !== entry.id)}
             onRunStart={onRunStart}
           />
@@ -525,7 +548,7 @@ function ConversationThread({
           <ConversationNote
             noteKind={entry.noteKind}
             actions={renderNoteActions(entry)}
-            subject={isReadOnly ? 'subagent' : 'conversation'}
+            subject={isSubagent ? 'subagent' : 'conversation'}
             ceiling={
               entry.ceilingScope && entry.ceilingFreesAt
                 ? { scope: entry.ceilingScope, freesAt: entry.ceilingFreesAt }

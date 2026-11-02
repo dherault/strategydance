@@ -38,7 +38,7 @@ type SearchConversationsResult =
   | { outcome: 'forbidden' }
 
 /*
-  Searches the caller's conversations in an organization for every word of a query, in the title
+  Searches an organization's conversations, every member's, for every word of a query, in the title
   or in one of the member's or the agent's messages, ignoring case, and answers the conversations
   found, by id, and how far it looked.
 
@@ -46,7 +46,7 @@ type SearchConversationsResult =
   instance shares, and answers `tooMany` past it, with when the next search fits, or `forbidden`
   once the caller is no longer a member. Then a query holding Chinese or Japanese is matched by
   substring over a bounded corpus, and any other through the full-text indexes. The query is never
-  logged: it is what somebody looks for in their own conversations
+  logged: it is what somebody looks for in their team's conversations
 */
 async function searchConversations({
   organizationId,

@@ -6,8 +6,8 @@ import conversationMessages from '~data/intl/messages/conversation'
 type ToolStatus = Extract<ConversationPreview, { kind: 'TOOL_CALL' }>['toolStatus']
 
 // What each of the agent's tools is called while it runs, and once it is done: its own, then the
-// Documents module's, the Tasks module's, the Budget module's, its integrations' and the Subagents
-// module's
+// Documents module's, the Tasks module's, the Budget module's, its integrations', the Subagents
+// module's and the Knowledge module's
 const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageDescriptor }>([
   ['web_search', { running: conversationMessages.toolWebSearchRunning, done: conversationMessages.toolWebSearchDone }],
   [
@@ -117,6 +117,29 @@ const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageD
   [
     'stop_subagent',
     { running: conversationMessages.toolStopSubagentRunning, done: conversationMessages.toolStopSubagentDone },
+  ],
+  [
+    'list_knowledge',
+    { running: conversationMessages.toolListKnowledgeRunning, done: conversationMessages.toolListKnowledgeDone },
+  ],
+  [
+    'read_knowledge',
+    { running: conversationMessages.toolReadKnowledgeRunning, done: conversationMessages.toolReadKnowledgeDone },
+  ],
+  [
+    'set_knowledge_in_use',
+    {
+      running: conversationMessages.toolSetKnowledgeInUseRunning,
+      done: conversationMessages.toolSetKnowledgeInUseDone,
+    },
+  ],
+  [
+    'link_knowledge',
+    { running: conversationMessages.toolLinkKnowledgeRunning, done: conversationMessages.toolLinkKnowledgeDone },
+  ],
+  [
+    'unlink_knowledge',
+    { running: conversationMessages.toolUnlinkKnowledgeRunning, done: conversationMessages.toolUnlinkKnowledgeDone },
   ],
 ])
 

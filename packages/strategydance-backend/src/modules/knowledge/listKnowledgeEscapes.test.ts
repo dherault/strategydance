@@ -31,11 +31,13 @@ mock.module('~domain/knowledge/readKnowledgeCatalogue', () => ({
 
 const { default: createModuleTestKit } = await import('~modules/testing/createModuleTestKit')
 
+const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
+
 const CALLER: ModuleCaller = {
   kind: 'agent',
   userId: 'member',
-  organizationId: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
-  membershipCreatedAt: '2026-10-09T10:00:00.000000Z',
+  organizationId: ORGANIZATION_ID,
+  membershipCreatedAt: fake.addMember('member', ORGANIZATION_ID),
   scopes: ['knowledge:read', 'knowledge:write'],
   idempotencyScope: 'conversation:checked',
 }

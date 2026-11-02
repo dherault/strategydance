@@ -1743,3 +1743,81 @@ type BillReceipt @table @index(fields: ["createdAt"]) @index(fields: ["organizat
   readFields: String
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+# The kinds of item Strategy Dance's knowledge holds, each one of strategydance-knowledge's lists,
+# whose items the backend reads from the package and never from here: an item's id is unique within
+# its kind alone. Declared in strategydance-core as well, as `Locale` is, and `schema.test.ts` fails
+# when the two disagree. Append a kind, never reorder
+enum KnowledgeKind {
+  STRATEGIC_FRAMEWORK
+  MARKETING_TACTIC
+  DIRECTORY
+}
+
+# Whether an organization uses an item of the knowledge catalogue: a framework it works with, a
+# tactic it runs, a directory it submitted to. One row per item the agent ever marked, which only
+# the backend's Knowledge module writes, kept when the flag goes back to false, so an item the
+# company stopped using is told apart from one it never tried. Keyed by the item's kind and id,
+# which never change, so the row outlives a rename. A row whose id the release's catalogue no longer
+# holds stays, and the module reads past it
+type KnowledgeUse @table(key: ["organization", "kind", "itemId"]) {
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  kind: KnowledgeKind!
+  # The item's `id` in its kind's list, held to the catalogue by the backend before any write
+  itemId: String!
+  isInUse: Boolean!
+  # When the flag last changed: setting the flag it holds writes nothing
+  changedAt: Timestamp!
+  # The member the agent acted for. Optional, set to null when the account goes
+  changedBy: User
+}
+
+# A document an item of the knowledge catalogue involves, as the SWOT analysis links to the
+# document it lives in. Needs no `KnowledgeUse` row. Only the backend's Knowledge module writes it,
+# at most 100 per item (`MAX_KNOWLEDGE_LINKS`), and reads it as it reads the document, so a link to a
+# document kept from AI or deleted is read past, and an Undo brings it back; pruning the document
+# cascades it away
+type KnowledgeDocumentLink @table(key: ["organization", "kind", "itemId", "document"]) {
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  kind: KnowledgeKind!
+  itemId: String!
+  # Implies a `documentId: UUID!` column, cascade deleting
+  document: Document!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# A task an item of the knowledge catalogue involves, as a tactic links to the tasks that carry it
+# out. As `KnowledgeDocumentLink`: at most 100 per item, read past while its task is deleted, and
+# cascaded away when the task is pruned
+type KnowledgeTaskLink @table(key: ["organization", "kind", "itemId", "task"]) {
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  kind: KnowledgeKind!
+  itemId: String!
+  # Implies a `taskId: UUID!` column, cascade deleting
+  task: Task!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# A member an item of the knowledge catalogue involves, as a tactic links to the member who runs it.
+# It belongs to the membership, so removing the member removes it. At most 100 per item
+type KnowledgeMemberLink @table(key: ["organization", "kind", "itemId", "membership"]) {
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  kind: KnowledgeKind!
+  itemId: String!
+  # Cascade deleting. Its columns are named here, as `AgentConnection`'s are, since Data Connect
+  # cannot reference a key made of references, and its constraint is named short of Postgres' 63
+  # bytes. `membershipOrganizationId` is always `organizationId`
+  membership: UserOrganization!
+    @ref(
+      fields: ["membershipUserId", "membershipOrganizationId"]
+      references: ["userId", "organizationId"]
+      constraintName: "knowledge_member_link_membership_fkey"
+    )
+  membershipUserId: String!
+  membershipOrganizationId: UUID!
+  createdAt: Timestamp! @default(expr: "request.time")
+}

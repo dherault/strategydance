@@ -40,6 +40,11 @@ describe('getConversationToolLabel', () => {
       ['read_subagent', 'Reading a subagent’s work', 'Read a subagent’s work'],
       ['launch_subagent', 'Launching a subagent', 'Launched a subagent'],
       ['stop_subagent', 'Stopping a subagent', 'Stopped a subagent'],
+      ['list_knowledge', 'Browsing the knowledge', 'Browsed the knowledge'],
+      ['read_knowledge', 'Reading the knowledge', 'Read the knowledge'],
+      ['set_knowledge_in_use', 'Marking what the company uses', 'Marked what the company uses'],
+      ['link_knowledge', 'Linking knowledge', 'Linked knowledge'],
+      ['unlink_knowledge', 'Unlinking knowledge', 'Unlinked knowledge'],
     ] as const
 
     for (const [toolName, running, done] of tools) {

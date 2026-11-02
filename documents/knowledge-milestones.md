@@ -3,8 +3,8 @@
 | # | Milestone | Packages | Depends on | Implementation PR |
 | --- | --- | --- | --- | --- |
 | M1 | The Knowledge module, reading the catalogue | core, backend, web | | #288 |
-| M2 | What the company uses | database, backend | M1 | |
-| M3 | Knowledge in conversations | backend, web, root | M2 | |
+| M2 | What the company uses | database, backend | M1 | #290 |
+| M3 | Knowledge in conversations | backend, web, root | M2 | #291 |
 
 The three milestones that build the Knowledge module, each one pull request into `dev` that a Claude
 Code session implements, with the conventions every one of them follows. [knowledge.md](knowledge.md)
@@ -156,9 +156,13 @@ The company's state, the four tables of What the company uses, and the three too
 **Backend-connector operations**, each matching the membership on `membershipCreatedAt`:
 - **Reads:**
   - `GetKnowledgeUsesForAgent`: a kind's uses, for `list_knowledge`'s `inUse`;
-  - `GetKnowledgeItemsForAgent`: for the ids read, their uses and their links, each list the 20
-    newest with its count. Documents are those the agent may read, and documents and tasks are
-    filtered on `deletedAt`. A membership has none: its links go with it.
+  - `GetKnowledgeItemsForAgent`: for the ids read, their uses and every link of theirs, newest first,
+    from which the module keeps each list's 20 newest with its count. Documents are those the agent
+    may read, and documents and tasks are filtered on `deletedAt`. A membership has none: its links
+    go with it;
+  - `GetKnowledgeDocumentLinkForAgent`, `GetKnowledgeTaskLinkForAgent` and
+    `GetKnowledgeMemberLinkForAgent`, read before a link or an unlink writes, since the result kept
+    under the call's key is written with it: the target, and the item's links in its table.
 - **Writes**, each an `@transaction` inserting its `ModuleCallResult` under
   `@include(if: $isKeyed)`:
   - `SetKnowledgeInUseForAgent`, an upsert writing `changedAt` and `changedBy`;
@@ -168,7 +172,8 @@ The company's state, the four tables of What the company uses, and the three too
     is, and counts nothing. A new one is counted with the item's links in its own table, its
     documents, tasks or members, under `MAX_KNOWLEDGE_LINKS`, 100, before its insert;
   - `UnlinkKnowledgeDocumentForAgent`, `UnlinkKnowledgeTaskForAgent` and
-    `UnlinkKnowledgeMemberForAgent`, each a `deleteMany` answering its count.
+    `UnlinkKnowledgeMemberForAgent`, each a `deleteMany` held to the one link the module read, so a
+    link removed meanwhile refuses it and the module answers that nothing was.
 - The operations cannot read the package: the domain holds every id to the catalogue before it calls
   one.
 
@@ -224,7 +229,8 @@ conditions against the emulators:
 - the catalogue is the package's as of the release, and the module never writes it;
 - the state is keyed by kind and id, and an id the catalogue lost is skipped;
 - links follow the documents' AI permission;
-- `check:knowledge-module` joins the scripts' `check:<area>` row.
+- `check:knowledge-module` is named in the section, as the Budget's names its checks, since the
+  scripts' `check:<area>` row names no area.
 
 **To verify, once implemented:**
 - `check:knowledge-module` against a scratch suite on the branch's schema.
@@ -242,6 +248,11 @@ Strategy Dance's own agent with the knowledge, as budget-milestones.md's M10 gav
 tokens estimated, the list before and after, go in the pull request's description. M10 found that
 Claude's tool search would cost existing conversations their earlier reasoning as the tools do, so
 they join the list as the other modules' did, unless David chooses otherwise.
+- **What they weigh**, measured on 2026-11-01: 8,459 characters, `list_knowledge` 2,869,
+  `read_knowledge` 1,463, `set_knowledge_in_use` 1,176, `link_knowledge` 1,629 and
+  `unlink_knowledge` 1,322. Some 2,800 to 3,800 tokens at 2.2 to 3.0 characters a token, taking the
+  list from 32 tools and 39,995 characters to 37 and 48,454, and a subagent's from 24 tools and
+  33,346 characters to 29 and 41,805.
 
 **Joining the agent:**
 - `CONVERSATION_MODULES` gains `knowledge`, last, in `MODULES`' order.
@@ -253,12 +264,16 @@ they join the list as the other modules' did, unless David chooses otherwise.
 **The system prompts.**
 - The agent's gains knowledge.md's paragraph after the budget's.
 - The subagent's gains knowledge.md's line after the budget's.
-- Both name the directories' descriptions among what others wrote.
+- Both name the directories' descriptions among what others wrote, as "a directory's description
+  claims".
 - Both pinned hashes move, and their tests still refuse an em dash.
 
 **Labels.** The `conversation` catalogue words the five, running and done, in `TOOL_LABELS`:
 "Browsing the knowledge", "Reading the knowledge", "Marking what the company uses", "Linking
-knowledge" and "Unlinking knowledge", with `getConversationToolLabel.test.ts` naming them.
+knowledge" and "Unlinking knowledge", with `getConversationToolLabel.test.ts` naming them. Done, they
+are "Browsed the knowledge", "Read the knowledge", "Marked what the company uses", "Linked knowledge"
+and "Unlinked knowledge". Retry's dialog keeps naming documents, tasks and bills alone, since nothing
+in the app shows what the company uses.
 
 **conversations.md § Modules** lists Knowledge fifth, served to no external agent, and points at
 knowledge.md, in place of the directories and marketing tactics it says David has in mind next.
@@ -281,3 +296,12 @@ knowledge.md, in place of the directories and marketing tactics it says David ha
 - The four checks.
 - **Left for David:** the release that ships M3 costs every conversation its earlier reasoning once,
   as every change of the tools does, so it ships when that is meant.
+
+**Verified**, on 2026-11-01:
+- The four checks, at every commit.
+- In a browser against a scratch suite, the backend's Claude client replaced by one scripting the five
+  calls, each refused once then answered, every module call real: the ten labels drawn at 1280 and
+  390 pixels wide, a refused call under its running label, none cut short. The tactic was marked in
+  use with the member as `changedBy`, and its member link added then removed.
+- **Left for David**, once `gcloud auth login` lets the key be read: `bun run probe:claude`, which
+  counts the tools exactly, and the three conversations on the real model.

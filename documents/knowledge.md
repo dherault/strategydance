@@ -90,9 +90,9 @@ by M1, names:
   `DIRECTORY_CATEGORY_DESCRIPTIONS`, `DIRECTORY_BUSINESS_MODEL_DESCRIPTIONS` and
   `DIRECTORY_INACTIVE_REASON_DESCRIPTIONS`. The agent reads them with an item, never in a tool's
   description, so the tool list does not grow with them.
-- **An inactive directory** (`INACTIVE_DIRECTORIES`) takes no submission today. Lists leave it out,
-  but it can still be read, set and linked, since the company may have submitted to it before, and a
-  later check may bring it back.
+- **An inactive directory** (`INACTIVE_DIRECTORIES`) takes no submission today. Lists leave it out
+  unless the company uses it, and it can still be read, set and linked, since the company may have
+  submitted to it before, and a later check may bring it back.
 - **The lists' rules** are in the package's README: sorted by name, written as `JSON.stringify(list,
   null, 2)` writes them. The directories are kept up to date by their daily check
   ([directories.md](directories.md)).
@@ -126,7 +126,9 @@ writes none of them, so no live query watches them until a page does.
     `TaskDependency` is read, so a restore brings them back;
   - a row naming an id the release's catalogue no longer has stays, and reads skip it.
 - **At most 100 links from one item to each kind of target** (`MAX_KNOWLEDGE_LINKS`): 100
-  documents, 100 tasks and 100 members, counted under the organization's lock. A document, a task or
+  documents, 100 tasks and 100 members, counted under the organization's lock, every link counted,
+  those to a document since kept from AI or a task deleted within its Undo window included. A
+  document, a task or
   a member can be linked to any number of items: nothing grows with it but the catalogue, which is
   bounded.
 - **The agent's writes record no `ActivityDay`**, as no agent's write does.
@@ -148,16 +150,17 @@ Its tools, in their frozen order:
 | --- | --- | --- | --- |
 | `list_knowledge` | `{ kind, query?, inUse?, categories?, businessModels?, cursor? }` | the kind's items as compact rows, by name, paged within `KNOWLEDGE_LIST_PAGE_LENGTH` (40,000 characters), with their `total`, and `cursor` while more remain | read |
 | `read_knowledge` | `{ kind, ids }`, 10 ids at most (`MAX_KNOWLEDGE_READ_IDS`) | each item whole, its enums' meanings, an inactive directory's reason, the company's `use`, and its links; `missing` names the ids absent from the kind's catalogue | read |
-| `set_knowledge_in_use` | `{ kind, id, inUse }` | the item's `use` | write |
-| `link_knowledge` | `{ kind, id, documentId?, taskId?, member? }`, exactly one target | the link, with its target's title or name | write |
-| `unlink_knowledge` | the same | whether a link was removed | write |
+| `set_knowledge_in_use` | `{ kind, id, inUse }` | `{ kind, id, use }`: the item's `use` | write |
+| `link_knowledge` | `{ kind, id, documentId?, taskId?, member? }`, exactly one target | `{ kind, id, isNew }` with one of `document`, `task` and `member`: the link, with its target's title or name, and whether it is new | write |
+| `unlink_knowledge` | the same | `{ kind, id, isRemoved }` with its target: whether a link was removed | write |
 
 - **`kind`** is one of `KnowledgeKind`, required: every list is for one kind, and an id is unique
   within one alone.
 - **A row**, by kind:
   - a framework: `id`, `name`, `description` and `inUse`;
   - a tactic: those, with `channel`, `effort`, `paid`, `timeToResults` and `technical`;
-  - a directory: those, with `type`, `categories` and `businessModel`.
+  - a directory: those, with `type`, `categories` and `businessModel`, and an inactive one its
+    `inactiveReason`.
 
   The 30 frameworks and 49 tactics fit one page each. The 532 directories take a few, fewer once
   filtered.
@@ -167,6 +170,11 @@ Its tools, in their frozen order:
   marked among them.
 - **`categories` and `businessModels`** keep the directories with one of the categories or models
   given. Either filter with another kind is refused, naming the kind it is for.
+  - A directory taking any startup, `ANY_STARTUP`, lists every kind of product, so every category
+    keeps it but `REGIONAL`, which asks for a region's directories alone.
+  - A directory whose site the daily check has not read yet has no categories, and often no
+    description: 373 of the 532 on 2026-11-01. No category keeps it, and the tool says so, since
+    nothing tells what it lists until the check reaches it.
 - **`cursor`** is the offset where the page stopped, through `encodeCursor` and `decodeCursor`, with
   a hash of the kind, query and filters it was read under, since written out they could pass the
   1,000 characters a cursor takes: a cursor read under others is refused. The same words in another
@@ -175,19 +183,36 @@ Its tools, in their frozen order:
   gives a meaning given as `{ value, meaning }`. A directory's `type`, a website or a Reddit
   community, has none, and stays as it is. It also has:
   - `use`: `{ inUse, changedAt }`, or null when the agent never marked it;
-  - `documents`, `tasks` and `members`, each the 20 newest links (`MAX_KNOWLEDGE_READ_LINKS`) and the
-    total. A document is `{ id, title }`, a task `{ id, name, status }`, a member
-    `{ member: "member:<id>", name }`.
+  - `documents`, `tasks` and `members`, each `{ items, total }`, the 20 newest links
+    (`MAX_KNOWLEDGE_READ_LINKS`) and the total. A document is `{ id, title }`, a task `{ id, name,
+    status }`, a member `{ member: "member:<id>", name }`.
+
+  `GetKnowledgeItemsForAgent` reads every link of the ids read at once, newest first, at most 1000 of
+  each kind of target, 10 ids of 100 links, and the module keeps each item's 20 newest, since a
+  list's limit in Data Connect is the whole list's, not each item's share.
 - **A link's target** is one of:
   - `documentId`: a document of the organization the agent may read (`isAiReadable`), not deleted;
   - `taskId`: a task of the organization, not deleted;
   - `member`: `"me"` or `"member:<id>"`, as a task's assignee is named, a member of the organization.
 
-  Linking twice keeps one link. Unlinking what is not linked removes nothing, and says so.
+  Linking twice keeps one link. Unlinking what is not linked removes nothing, and says so. Unlinking
+  holds its target to what linking does, so a document kept from AI, which no read shows linked, is
+  not unlinked either.
 - **The writes check the item first**: its id must be one of the release's catalogue for its kind,
   inactive directories included. The operations cannot read the package, so the domain holds them to
   it.
-- **Setting the flag it already holds writes nothing**, so `changedAt` keeps the day it last changed.
+- **Setting the flag it already holds writes nothing**, so `changedAt` keeps the day it last changed,
+  and neither does `false` on an item never marked, which answers `use: null`, so an item never
+  tried is not told as one dropped. A change answers the time the module wrote it, and the row takes
+  the database's own a moment later, as `delete_task` answers when a task can be restored until.
+- **A write reads what it answers first.** A write keeps its result under its idempotency key within
+  the write itself, so it reads first: the item's state for a flag, and for a link or an unlink the
+  target and the item's links in its table (`GetKnowledgeDocumentLinkForAgent`,
+  `GetKnowledgeTaskLinkForAgent` and `GetKnowledgeMemberLinkForAgent`). What would change nothing, a
+  flag held, a link there already or one not there, writes nothing and keeps no key. A write refused
+  for what changed meanwhile, a link landing or going, the target deleted or the 100th link taken, is
+  read again and answered from what it finds, since Data Connect reports a foreign key before any
+  check.
 - **What every module's tool keeps:**
   - an idempotency key per write, under `com.strategydance/idempotencyKey`;
   - `…ForAgent` operations matching the membership on `membershipCreatedAt`, from M2;
@@ -200,12 +225,19 @@ Its tools, in their frozen order:
 
 ### In conversations (M3)
 
-Until M3 ships, no conversation reaches the module: `CONVERSATION_MODULES` and both system prompts
-stay as they are.
+Strategy Dance's agent and its subagents reach the module from M3, in process, as they reach the
+other modules.
 
-- **`CONVERSATION_MODULES` gains `knowledge`**, last, in `MODULES`' order.
-- **Subagents get all five tools.** None deletes what anybody wrote, so none joins
-  `SUBAGENT_WITHHELD_TOOLS`.
+- **`CONVERSATION_MODULES` is `['documents', 'tasks', 'budget', 'subagents', 'knowledge']`**, in
+  `MODULES`' order, so the five tools come last in the list, after the Subagents module's.
+- **What they weigh.** Converted as the worker sends them, the five are 8,719 characters,
+  `list_knowledge` the heaviest at 3,129. At the 2.2 to 3.0 characters a token the earlier modules
+  counted, that is some 2,900 to 4,000 tokens, taking the list from 32 tools and 39,995 characters to
+  37 and 48,714, and a subagent's from 24 tools and 33,346 characters to 29 and 42,065. They join the list as the other modules' did, since Claude's tool search would cost
+  conversations their earlier reasoning once all the same (conversations.md § Modules).
+- **Subagents get all five.** None deletes what anybody wrote, so none joins
+  `SUBAGENT_WITHHELD_TOOLS`. A subagent's report names a knowledge write by its tool alone, as it
+  names a bill's: `toSubagentWrite` finds no document or task in its result.
 - **The agent's system prompt gains a paragraph** after the budget's:
 
   > You can read Strategy Dance's knowledge with the knowledge tools: proven strategic frameworks,
@@ -218,17 +250,21 @@ stay as they are.
   > rather than suggest it again. When the member takes something up, mark it in use and link it to
   > the documents, tasks and members it involves, and when they drop it, mark that too.
 
-- **The subagent's gains a line:**
+- **The subagent's gains a line** after the budget's:
 
   > You can read Strategy Dance's knowledge, its strategic frameworks, marketing tactics and
   > directories, with the knowledge tools, and mark what the company uses or link it to documents,
   > tasks and members when the brief says so.
 
-- **Both prompts name the directories' descriptions among what others wrote.** The catalogue is
-  Strategy Dance's, but a directory's description is read from its site by the daily check.
+- **Both prompts name the directories' descriptions among what others wrote**, as "a directory's
+  description claims". The catalogue is Strategy Dance's, but a directory's description is read from
+  its site by the daily check.
 - **Labels.** The `conversation` catalogue words each tool, running and done: "Browsing the
-  knowledge", "Reading the knowledge", "Marking what the company uses", "Linking knowledge" and
-  "Unlinking knowledge".
+  knowledge" and "Browsed the knowledge", "Reading the knowledge" and "Read the knowledge", "Marking
+  what the company uses" and "Marked what the company uses", "Linking knowledge" and "Linked
+  knowledge", "Unlinking knowledge" and "Unlinked knowledge". Retry's dialog still names documents,
+  tasks and bills alone: what a discarded subagent marked or linked stays too, but nothing in the app
+  shows it.
 
 ### For the orchestrator
 

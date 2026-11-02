@@ -805,6 +805,66 @@ const conversationMessages = defineMessages({
     description:
       'What the AI did once it stopped one of its subagents, a subagent being a helper the AI hands one piece of work to, which works on its own and reports back. Past tense.',
   },
+  toolListKnowledgeRunning: {
+    id: 'conversation.tool.listKnowledge.running',
+    defaultMessage: 'Browsing the knowledge',
+    description:
+      "What the AI is doing while it looks through Strategy Dance's knowledge, what it knows of companies in general: proven strategic frameworks, marketing tactics and the directories a startup can be submitted to.",
+  },
+  toolListKnowledgeDone: {
+    id: 'conversation.tool.listKnowledge.done',
+    defaultMessage: 'Browsed the knowledge',
+    description:
+      "What the AI did once it looked through Strategy Dance's knowledge, what it knows of companies in general: proven strategic frameworks, marketing tactics and the directories a startup can be submitted to. Past tense.",
+  },
+  toolReadKnowledgeRunning: {
+    id: 'conversation.tool.readKnowledge.running',
+    defaultMessage: 'Reading the knowledge',
+    description:
+      "What the AI is doing while it reads in full a few items of Strategy Dance's knowledge, what it knows of companies in general: proven strategic frameworks, marketing tactics and the directories a startup can be submitted to, with what the company uses of them.",
+  },
+  toolReadKnowledgeDone: {
+    id: 'conversation.tool.readKnowledge.done',
+    defaultMessage: 'Read the knowledge',
+    description:
+      "What the AI did once it read in full a few items of Strategy Dance's knowledge, what it knows of companies in general: proven strategic frameworks, marketing tactics and the directories a startup can be submitted to, with what the company uses of them. Past tense.",
+  },
+  toolSetKnowledgeInUseRunning: {
+    id: 'conversation.tool.setKnowledgeInUse.running',
+    defaultMessage: 'Marking what the company uses',
+    description:
+      "What the AI is doing while it records whether the company uses an item of Strategy Dance's knowledge: a strategic framework it works with, a marketing tactic it runs or a directory it submitted its product to.",
+  },
+  toolSetKnowledgeInUseDone: {
+    id: 'conversation.tool.setKnowledgeInUse.done',
+    defaultMessage: 'Marked what the company uses',
+    description:
+      "What the AI did once it recorded whether the company uses an item of Strategy Dance's knowledge: a strategic framework it works with, a marketing tactic it runs or a directory it submitted its product to. Past tense.",
+  },
+  toolLinkKnowledgeRunning: {
+    id: 'conversation.tool.linkKnowledge.running',
+    defaultMessage: 'Linking knowledge',
+    description:
+      "What the AI is doing while it links an item of Strategy Dance's knowledge, such as a strategic framework, a marketing tactic or a directory, to a document, a task or a member of the team it involves.",
+  },
+  toolLinkKnowledgeDone: {
+    id: 'conversation.tool.linkKnowledge.done',
+    defaultMessage: 'Linked knowledge',
+    description:
+      "What the AI did once it linked an item of Strategy Dance's knowledge, such as a strategic framework, a marketing tactic or a directory, to a document, a task or a member of the team it involves. Past tense.",
+  },
+  toolUnlinkKnowledgeRunning: {
+    id: 'conversation.tool.unlinkKnowledge.running',
+    defaultMessage: 'Unlinking knowledge',
+    description:
+      "What the AI is doing while it removes a link between an item of Strategy Dance's knowledge, such as a strategic framework, a marketing tactic or a directory, and a document, a task or a member of the team.",
+  },
+  toolUnlinkKnowledgeDone: {
+    id: 'conversation.tool.unlinkKnowledge.done',
+    defaultMessage: 'Unlinked knowledge',
+    description:
+      "What the AI did once it removed a link between an item of Strategy Dance's knowledge, such as a strategic framework, a marketing tactic or a directory, and a document, a task or a member of the team. Past tense.",
+  },
   integrationCallRunning: {
     id: 'conversation.integrationCall.running',
     defaultMessage: 'Calling {server}',

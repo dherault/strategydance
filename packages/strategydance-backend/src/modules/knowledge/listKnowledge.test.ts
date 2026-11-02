@@ -4,6 +4,7 @@ import {
   compareKnowledgeNames,
   DIRECTORIES,
   DirectoryBusinessModel,
+  DirectoryCategory,
   INACTIVE_DIRECTORIES,
   MARKETING_TACTICS,
   STRATEGIC_FRAMEWORKS,
@@ -20,11 +21,13 @@ mock.module('strategydance-database/backend', () => fake.sdk)
 
 const { default: createModuleTestKit } = await import('~modules/testing/createModuleTestKit')
 
+const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
+
 const CALLER: ModuleCaller = {
   kind: 'agent',
   userId: 'member',
-  organizationId: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
-  membershipCreatedAt: '2026-10-09T10:00:00.000000Z',
+  organizationId: ORGANIZATION_ID,
+  membershipCreatedAt: fake.addMember('member', ORGANIZATION_ID),
   scopes: ['knowledge:read', 'knowledge:write'],
   idempotencyScope: 'conversation:checked',
 }
@@ -61,24 +64,24 @@ async function readRows(filters: Record<string, unknown>) {
 }
 
 describe('list_knowledge', () => {
-  it("lists each kind's rows by name, with their kind's fields alone", async () => {
+  it("lists each kind's rows by name, with their kind's fields alone and whether the company uses each", async () => {
     const frameworks = await readPages({ kind: 'STRATEGIC_FRAMEWORK' })
     const tactics = await readPages({ kind: 'MARKETING_TACTIC' })
     const directories = await readRows({ kind: 'DIRECTORY' })
 
     expect(frameworks).toHaveLength(1)
     expect(frameworks[0]!.items.map(row => row.id)).toEqual(STRATEGIC_FRAMEWORKS.map(({ id }) => id))
-    expect(frameworks[0]!.items.every(row => Object.keys(row).join() === 'id,name,description')).toBe(true)
+    expect(frameworks[0]!.items.every(row => Object.keys(row).join() === 'id,name,description,inUse')).toBe(true)
     expect(tactics).toHaveLength(1)
     expect(tactics[0]!.items.map(row => row.id)).toEqual(MARKETING_TACTICS.map(({ id }) => id))
     expect(
       tactics[0]!.items.every(
-        row => Object.keys(row).join() === 'id,name,description,channel,effort,paid,timeToResults,technical',
+        row => Object.keys(row).join() === 'id,name,description,inUse,channel,effort,paid,timeToResults,technical',
       ),
     ).toBe(true)
     expect(directories.map(row => row.id)).toEqual(DIRECTORIES.map(({ id }) => id))
     expect(
-      directories.every(row => Object.keys(row).join() === 'id,name,description,type,categories,businessModel'),
+      directories.every(row => Object.keys(row).join() === 'id,name,description,inUse,type,categories,businessModel'),
     ).toBe(true)
 
     for (const rows of [frameworks[0]!.items, tactics[0]!.items, directories]) {
@@ -119,11 +122,13 @@ describe('list_knowledge', () => {
     const byCategory = await readRows({ kind: 'DIRECTORY', categories })
     const byModel = await readRows({ kind: 'DIRECTORY', businessModels: models })
     const byBoth = await readRows({ kind: 'DIRECTORY', categories, businessModels: models })
+    // A directory taking any startup lists developer tools and MCP servers too
     const isListed = ({ categories: listed }: { categories: string[] }) =>
-      listed.some(category => categories.includes(category))
+      listed.some(category => categories.includes(category) || category === 'ANY_STARTUP')
 
     expect(byCategory.map(row => row.id)).toEqual(DIRECTORIES.filter(isListed).map(({ id }) => id))
-    expect(byCategory.length).toBeGreaterThan(1)
+    expect(byCategory.some(row => (row.categories as string[]).includes('DEVELOPER_TOOLS'))).toBe(true)
+    expect(byCategory.some(row => (row.categories as string[]).includes('ANY_STARTUP'))).toBe(true)
     expect(byModel.map(row => row.id)).toEqual(
       DIRECTORIES.filter(({ businessModel }) => models.includes(businessModel)).map(({ id }) => id),
     )
@@ -132,6 +137,22 @@ describe('list_knowledge', () => {
       DIRECTORIES.filter(directory => isListed(directory) && models.includes(directory.businessModel)).map(
         ({ id }) => id,
       ),
+    )
+  })
+
+  it("keeps a region's directories alone under REGIONAL, those taking any startup alone under ANY_STARTUP, and none without categories", async () => {
+    const regional = await readRows({ kind: 'DIRECTORY', categories: ['REGIONAL'] })
+    const anyStartup = await readRows({ kind: 'DIRECTORY', categories: ['ANY_STARTUP'] })
+    const everyCategory = await readRows({ kind: 'DIRECTORY', categories: Object.values(DirectoryCategory) })
+    const holding = (category: string) =>
+      DIRECTORIES.filter(({ categories }) => categories.includes(category as DirectoryCategory)).map(({ id }) => id)
+
+    expect(regional.map(row => row.id)).toEqual(holding('REGIONAL'))
+    expect(regional.length).toBeGreaterThan(0)
+    expect(anyStartup.map(row => row.id)).toEqual(holding('ANY_STARTUP'))
+    expect(anyStartup.length).toBeGreaterThan(0)
+    expect(everyCategory.map(row => row.id)).toEqual(
+      DIRECTORIES.filter(({ categories }) => categories.length > 0).map(({ id }) => id),
     )
   })
 

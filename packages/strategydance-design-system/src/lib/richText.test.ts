@@ -30,6 +30,12 @@ describe('getRichTextContentTypes', () => {
       inlineTypes: ['text', 'link', 'taskMention'],
     })
     expect(getRichTextContentTypes(['documentMention']).inlineTypes).toEqual(['text', 'link', 'documentMention'])
+    expect(getRichTextContentTypes(['conversationMention', 'taskMention']).inlineTypes).toEqual([
+      'text',
+      'link',
+      'taskMention',
+      'conversationMention',
+    ])
     expect(getRichTextContentTypes([]).inlineTypes).toEqual(['text', 'link'])
   })
 })
@@ -38,11 +44,14 @@ describe('getRichTextMentionTarget', () => {
   it('says what a mention names, and the words it was made with', () => {
     const document = { type: 'documentMention', props: { documentId: 'd', title: 'Plan' } } as const
     const task = { type: 'taskMention', props: { taskId: 't' } } as const
+    const conversation = { type: 'conversationMention', props: { conversationId: 'c', title: 'Call' } } as const
 
     expect(getRichTextMentionTarget(document)).toEqual({ kind: 'document', id: 'd' })
     expect(getRichTextMentionTarget(task)).toEqual({ kind: 'task', id: 't' })
     expect(getRichTextMentionWords(document)).toBe('Plan')
     expect(getRichTextMentionWords(task)).toBe('')
+    expect(getRichTextMentionTarget(conversation)).toEqual({ kind: 'conversation', id: 'c' })
+    expect(getRichTextMentionWords(conversation)).toBe('Call')
   })
 })
 

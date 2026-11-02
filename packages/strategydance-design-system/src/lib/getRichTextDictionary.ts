@@ -26,16 +26,20 @@ type RichTextLabels = {
   mentionDocuments: string
   /** The mentions menu's group of tasks */
   mentionTasks: string
+  /** The mentions menu's group of the team's conversations with Strategy Dance */
+  mentionConversations: string
   /** The slash menu's item that opens the mentions menu */
   mentionItem: string
   /** What the slash menu says under it */
   mentionItemSubtext: string
-  /** What a mention of a document or a task made with no words reads while its live title is not known */
+  /** What a mention made with no words reads while its live title is not known */
   mentionUntitled: string
   /** What a screen reader hears after a mention of a document deleted since */
   mentionDocumentGone: string
   /** What a screen reader hears after a mention of a task deleted since */
   mentionTaskGone: string
+  /** What a screen reader hears after a mention of a conversation deleted since */
+  mentionConversationGone: string
 }
 
 const ENGLISH_LABELS: RichTextLabels = {
@@ -49,11 +53,13 @@ const ENGLISH_LABELS: RichTextLabels = {
   linkPreviewInvalid: 'Paste a web address, starting with https://',
   mentionDocuments: 'Documents',
   mentionTasks: 'Tasks',
+  mentionConversations: 'Conversations',
   mentionItem: 'Mention',
-  mentionItemSubtext: 'A document or a task',
+  mentionItemSubtext: 'A document, a task or a conversation',
   mentionUntitled: 'Untitled',
   mentionDocumentGone: "(no longer among the team's documents)",
   mentionTaskGone: "(no longer on the team's board)",
+  mentionConversationGone: "(no longer among the team's conversations)",
 }
 
 type Overrides = Partial<RichTextLabels> & {
@@ -74,11 +80,13 @@ type RichTextDictionary = Dictionary & {
     link_preview_invalid: string
     mention_documents: string
     mention_tasks: string
+    mention_conversations: string
     mention_item: string
     mention_item_subtext: string
     mention_untitled: string
     mention_document_gone: string
     mention_task_gone: string
+    mention_conversation_gone: string
   }
 }
 
@@ -109,11 +117,13 @@ function getRichTextDictionary(
       link_preview_invalid: labels.linkPreviewInvalid,
       mention_documents: labels.mentionDocuments,
       mention_tasks: labels.mentionTasks,
+      mention_conversations: labels.mentionConversations,
       mention_item: labels.mentionItem,
       mention_item_subtext: labels.mentionItemSubtext,
       mention_untitled: labels.mentionUntitled,
       mention_document_gone: labels.mentionDocumentGone,
       mention_task_gone: labels.mentionTaskGone,
+      mention_conversation_gone: labels.mentionConversationGone,
     },
   }
 }

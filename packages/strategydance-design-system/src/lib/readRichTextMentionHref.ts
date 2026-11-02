@@ -5,12 +5,12 @@ import {
   type RichTextMentionTarget,
 } from 'strategydance-design-system/lib/richText'
 
-// `doc:` or `task:` and an id, with or without its hyphens, as the agent links a document or a task
-const MENTION_HREF = /^(doc|task):([0-9a-f-]{32,36})$/i
+// `doc:`, `task:` or `conversation:` and an id, with or without its hyphens, as a mention is written in Markdown
+const MENTION_HREF = /^(doc|task|conversation):([0-9a-f-]{32,36})$/i
 
 /*
-  What a link to a document, `doc:<id>`, or to a task, `task:<id>`, names, as Strategy Dance's agent
-  writes one: its id as Data Connect writes one, 32 lowercase hex digits, whatever the case of the
+  What a link to a document, `doc:<id>`, a task, `task:<id>`, or a conversation, `conversation:<id>`,
+  names, as Strategy Dance's agent writes one: its id as Data Connect writes one, 32 lowercase hex digits, whatever the case of the
   link's scheme and its digits and whether it wrote the hyphens. Null for any other address, a
   `doc:` one naming no such id included
 */

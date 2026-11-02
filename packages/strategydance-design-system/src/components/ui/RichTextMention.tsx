@@ -1,4 +1,4 @@
-import { FileTextIcon, type LucideIcon, SquareKanbanIcon } from 'lucide-react'
+import { FileTextIcon, type LucideIcon, MessagesSquareIcon, SquareKanbanIcon } from 'lucide-react'
 import { type MouseEvent, useEffect } from 'react'
 import type { RichTextMentionsContextType } from 'strategydance-design-system/contexts/RichTextMentionsContext'
 import useRichTextMentions from 'strategydance-design-system/hooks/useRichTextMentions'
@@ -13,16 +13,18 @@ import {
 } from 'strategydance-design-system/lib/richText'
 import { splitRichTextMentionWords } from 'strategydance-design-system/lib/splitRichTextMentionWords'
 
-// Each kind's icon, as the thread's links draw a document and a task
+// Each kind's icon, as the thread's links draw a document and a task, and the sidebar the conversations
 const ICONS: Record<RichTextMentionKind, LucideIcon> = {
   document: FileTextIcon,
   task: SquareKanbanIcon,
+  conversation: MessagesSquareIcon,
 }
 
 // What a screen reader hears after a mention of each kind deleted since
 const GONE_LABELS: Record<RichTextMentionKind, keyof RichTextMentionsContextType['labels']> = {
   document: 'mentionDocumentGone',
   task: 'mentionTaskGone',
+  conversation: 'mentionConversationGone',
 }
 
 type Props = {
@@ -30,7 +32,7 @@ type Props = {
 }
 
 /*
-  A mention of a document or a task, as `RichText` draws it from the page's source, the way the
+  A mention of a document, a task or a conversation, as `RichText` draws it from the page's source, the way the
   editor draws it: what it names, with its icon and its live title, linking to it; gone, its words
   struck through and muted, which a screen reader hears said; or its icon and its words while the
   list is not read, asking for it, or when the page gives none.

@@ -158,7 +158,7 @@ const mentions: RichTextMentionSource = {
 }
 
 /*
-  A task's description mentioning documents and tasks: "@" opens a menu of those whose title holds
+  A task's description mentioning documents, tasks and conversations: "@" opens a menu of those whose title holds
   what is typed after it, as "Mention" in the slash menu does, and a pick, by Enter or Tab, puts a
   mention of it in the text, drawn with its current title. One deleted since is struck through, and an "@" inside a
   word, an email address's, is typed as itself

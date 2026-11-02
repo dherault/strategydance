@@ -33,12 +33,14 @@ type Props = {
    */
   blocks?: readonly RichTextEditorBlock[]
   /**
-   * Where its mentions of documents and tasks draw what they name from, and what they open, as the
+   * Where its mentions of documents, tasks and conversations draw what they name from, and what they open, as the
    * editor's do. Left out, a mention is its icon and its words
    */
   mentions?: RichTextMentionSource
   /** What a mention says without a list, in English unless the caller's catalogue says otherwise */
-  labels?: Partial<Pick<RichTextLabels, 'mentionUntitled' | 'mentionDocumentGone' | 'mentionTaskGone'>>
+  labels?: Partial<
+    Pick<RichTextLabels, 'mentionUntitled' | 'mentionDocumentGone' | 'mentionTaskGone' | 'mentionConversationGone'>
+  >
   className?: string
 }
 

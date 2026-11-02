@@ -13,17 +13,21 @@ import {
 import { RichTextMentionsExtension } from 'strategydance-design-system/lib/richTextMentionsExtension'
 import { splitRichTextMentionWords } from 'strategydance-design-system/lib/splitRichTextMentionWords'
 
-// Lucide's file-text and square-kanban, which the thread's links to documents and tasks draw
+// Lucide's file-text and square-kanban, which the thread's links to documents and tasks draw, and
+// messages-square, which the sidebar draws beside the conversations
 const ICONS: Record<RichTextMentionKind, string> = {
   document:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
   task: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 7v7"/><path d="M12 7v4"/><path d="M16 7v9"/></svg>',
+  conversation:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 14.286V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/><path d="M20 9a2 2 0 0 1 2 2v10.286a.71.71 0 0 1-1.212.502l-2.202-2.202A2 2 0 0 0 17.172 19H10a2 2 0 0 1-2-2v-1"/></svg>',
 }
 
 // What a screen reader hears after a mention of each kind deleted since
 const GONE_LABELS: Record<RichTextMentionKind, keyof RichTextDictionary['rich_text']> = {
   document: 'mention_document_gone',
   task: 'mention_task_gone',
+  conversation: 'mention_conversation_gone',
 }
 
 type Mention = {

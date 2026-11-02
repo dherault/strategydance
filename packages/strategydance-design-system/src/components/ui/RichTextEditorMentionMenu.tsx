@@ -7,7 +7,7 @@ import {
   useBlockNoteEditor,
   useEditorDOMElement,
 } from '@blocknote/react'
-import { FileTextIcon, type LucideIcon, SquareKanbanIcon } from 'lucide-react'
+import { FileTextIcon, type LucideIcon, MessagesSquareIcon, SquareKanbanIcon } from 'lucide-react'
 import { type ComponentProps, useEffect } from 'react'
 import {
   RICH_TEXT_EDITOR_MENU_FLOATING_OPTIONS,
@@ -31,26 +31,28 @@ const LIST_WAIT = 5000
 const ICONS: Record<RichTextMentionKind, LucideIcon> = {
   document: FileTextIcon,
   task: SquareKanbanIcon,
+  conversation: MessagesSquareIcon,
 }
 
 // The heading of each kind's group
 const GROUP_LABELS: Record<RichTextMentionKind, keyof RichTextDictionary['rich_text']> = {
   document: 'mention_documents',
   task: 'mention_tasks',
+  conversation: 'mention_conversations',
 }
 
 type MentionsStore = NonNullable<ReturnType<typeof readStore>>
 
 /*
-  The menu "@" opens in `RichTextEditor`, as the slash menu opens: the documents and the tasks
-  whose title holds what is typed after it, each under its group with its icon, a pick putting a
+  The menu "@" opens in `RichTextEditor`, as the slash menu opens: the documents, the tasks and the
+  conversations whose title holds what is typed after it, each under its group with its icon, a pick putting a
   mention of it in place of the "@" and what was typed, and a space after it.
 
   It opens where a word starts, at the start of a block or after a space, so an "@" inside a word,
   an email address's, types as itself, and never in code. Tab picks the chosen row, as Enter does.
   What is typed starting with a space is no mention, so the menu closes, as Enter would otherwise
   pick or do nothing while it is open.
-  Opening it asks for both lists, and while one is not read it waits, showing its loader, rather
+  Opening it asks for every list, and while one is not read it waits, showing its loader, rather
   than closing on what it cannot suggest yet; a list that could not be read is waited for no longer
   than a few seconds. It reads the page's source from the editor's store, as its mentions do, so
   what it suggests once it has waited is what the page holds then
@@ -136,7 +138,7 @@ function readStore(editor: BlockNoteEditor<any, any, any>) {
   return editor.getExtension(RichTextMentionsExtension)?.store
 }
 
-// The source once both its lists are read, or once the menu has waited long enough for one that could not be
+// The source once all its lists are read, or once the menu has waited long enough for one that could not be
 function waitForLists(store: MentionsStore) {
   const isReady = (source: RichTextMentionSource | null) =>
     !source || RICH_TEXT_MENTION_KINDS.every(kind => !!getRichTextMentionList(source, kind))

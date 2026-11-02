@@ -7,7 +7,7 @@ import {
 /**
  * What a mention draws: what it names, found in its list, with the address it opens and its live
  * title, or its words when the live one is empty; gone, when the list is read and lacks it, since
- * the lists leave deleted documents and tasks out; or its words alone, while there is no list, or
+ * the lists leave deleted documents, tasks and conversations out; or its words alone, while there is no list, or
  * no id
  */
 export type RichTextMentionState =

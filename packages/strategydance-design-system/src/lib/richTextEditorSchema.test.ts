@@ -25,7 +25,7 @@ describe('createRichTextSchema', () => {
     expect(Object.keys(inlineContentSchema).sort()).toEqual(['link', 'text'])
   })
 
-  it("holds mentions of documents and tasks in a document's text and a task's description, never a post's", () => {
+  it("holds mentions of documents, tasks and conversations in a document's text and a task's description, never a post's", () => {
     const inlineContent = (blocks: Parameters<typeof createRichTextSchema>[0]) =>
       createRichTextSchema(blocks).inlineContentSchema as unknown as Record<
         string,
@@ -37,10 +37,17 @@ describe('createRichTextSchema', () => {
     for (const blocks of [RICH_TEXT_TASK_BLOCKS, RICH_TEXT_EDITOR_BLOCKS]) {
       const schema = inlineContent(blocks)
 
-      expect(Object.keys(schema).sort()).toEqual(['documentMention', 'link', 'taskMention', 'text'])
+      expect(Object.keys(schema).sort()).toEqual([
+        'conversationMention',
+        'documentMention',
+        'link',
+        'taskMention',
+        'text',
+      ])
       // Stored under these names for good, since a shared text holding a prop its schema lacks cannot be read
       expect(Object.keys(schema.documentMention.propSchema)).toEqual(['documentId', 'title'])
       expect(Object.keys(schema.taskMention.propSchema)).toEqual(['taskId', 'name'])
+      expect(Object.keys(schema.conversationMention.propSchema)).toEqual(['conversationId', 'title'])
     }
   })
 

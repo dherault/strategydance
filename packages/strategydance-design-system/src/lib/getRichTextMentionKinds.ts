@@ -7,7 +7,7 @@ import {
 } from 'strategydance-design-system/lib/richText'
 
 /*
-  What some blocks mention, documents, tasks or both, in that order, nested blocks and a table's
+  What some blocks mention, documents, tasks, conversations or several, in that order, nested blocks and a table's
   cells included: the lists a page reads to draw their mentions, and none when they mention nothing
 */
 function getRichTextMentionKinds(blocks: readonly RichTextBlock[]): RichTextMentionKind[] {

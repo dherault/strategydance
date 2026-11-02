@@ -12,6 +12,7 @@ import {
   defaultInlineContentSpecs,
   defaultStyleSpecs,
 } from '@blocknote/core'
+import { conversationMentionInlineContentSpec } from 'strategydance-design-system/lib/conversationMentionInlineContentSpec'
 import { documentMentionInlineContentSpec } from 'strategydance-design-system/lib/documentMentionInlineContentSpec'
 import { createLinkPreviewBlockSpec } from 'strategydance-design-system/lib/linkPreviewBlockSpec'
 import {
@@ -128,6 +129,7 @@ function createRichTextSchema(blocks: readonly RichTextEditorBlock[]) {
       link: defaultInlineContentSpecs.link,
       ...(blocks.includes('documentMention') ? { documentMention: documentMentionInlineContentSpec } : {}),
       ...(blocks.includes('taskMention') ? { taskMention: taskMentionInlineContentSpec } : {}),
+      ...(blocks.includes('conversationMention') ? { conversationMention: conversationMentionInlineContentSpec } : {}),
     },
     styleSpecs: {
       bold: defaultStyleSpecs.bold,

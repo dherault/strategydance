@@ -43,5 +43,13 @@ describe('isRichTextEmpty', () => {
         },
       ]),
     ).toBe(false)
+    expect(
+      isRichTextEmpty([
+        {
+          type: 'paragraph',
+          content: [{ type: 'conversationMention', props: { conversationId: '4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9' } }],
+        },
+      ]),
+    ).toBe(false)
   })
 })

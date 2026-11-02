@@ -22,6 +22,7 @@ function editorBlock(
 const DOCUMENT_ID = '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e'
 const TASK_ID = '7a1b2c3d4e5f40718293a4b5c6d7e8f9'
 const HYPHENATED_TASK_ID = '7a1b2c3d-4e5f-4071-8293-a4b5c6d7e8f9'
+const CONVERSATION_ID = '4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9'
 
 function text(value: string, styles: Record<string, unknown> = {}) {
   return { type: 'text', text: value, styles }
@@ -434,6 +435,10 @@ describe('normalizeRichText', () => {
         { type: 'documentMention', props: { documentId: DOCUMENT_ID.toUpperCase(), title: '  Pricing\n plan ' } },
         { type: 'taskMention', props: { taskId: HYPHENATED_TASK_ID, name: 'Ship it' }, content: [], styles: {} },
         { type: 'documentMention', props: { documentId: DOCUMENT_ID, title: '' } },
+        {
+          type: 'conversationMention',
+          props: { conversationId: '4D5E6F7A-8B9C-40D1-A2B3-C4D5E6F7A8B9', title: ' Pricing\tcall ' },
+        },
       ]),
     ])
 
@@ -442,6 +447,7 @@ describe('normalizeRichText', () => {
       { type: 'documentMention', props: { documentId: DOCUMENT_ID, title: 'Pricing plan' } },
       { type: 'taskMention', props: { taskId: TASK_ID, name: 'Ship it' } },
       { type: 'documentMention', props: { documentId: DOCUMENT_ID } },
+      { type: 'conversationMention', props: { conversationId: CONVERSATION_ID, title: 'Pricing call' } },
     ])
   })
 
@@ -452,6 +458,8 @@ describe('normalizeRichText', () => {
         { type: 'taskMention', props: { taskId: { id: TASK_ID }, name: 'Not a string' } },
         { type: 'documentMention', props: { documentId: DOCUMENT_ID } },
         { type: 'taskMention', props: { taskId: TASK_ID, name: 'Kept' } },
+        { type: 'conversationMention', props: { conversationId: 'abc', title: 'Bad call' } },
+        { type: 'conversationMention', props: { conversationId: CONVERSATION_ID, title: 'Call' } },
       ]),
     ]
 
@@ -460,11 +468,15 @@ describe('normalizeRichText', () => {
       { type: 'text', text: 'Not a string' },
       { type: 'documentMention', props: { documentId: DOCUMENT_ID } },
       { type: 'taskMention', props: { taskId: TASK_ID, name: 'Kept' } },
+      { type: 'text', text: 'Bad call' },
+      { type: 'conversationMention', props: { conversationId: CONVERSATION_ID, title: 'Call' } },
     ])
     expect((normalizeRichText(value, { inlineTypes: ['text', 'link'] })[0] as RichTextTextBlock).content).toEqual([
       { type: 'text', text: 'Bad id' },
       { type: 'text', text: 'Not a string' },
       { type: 'text', text: 'Kept' },
+      { type: 'text', text: 'Bad call' },
+      { type: 'text', text: 'Call' },
     ])
   })
 

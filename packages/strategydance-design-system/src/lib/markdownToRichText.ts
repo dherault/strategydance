@@ -59,8 +59,9 @@ type Node = { token: Token; children: Node[] }
   `richTextToMarkdown` separates two styles with is nothing. Any other tag, and one `<u>` or `</u>`
   without the other, stays as written, so nothing is ever HTML. A single line break breaks the
   line, as the `Markdown` component draws it. A link is kept to a web or mail address, and one to
-  anything else stays as written, but a link to a document or a task, `[title](doc:<id>)` or
-  `[name](task:<id>)` as Strategy Dance's agent writes one, which is a mention of it, made with the
+  anything else stays as written, but a link to a document, a task or a conversation,
+  `[title](doc:<id>)`, `[name](task:<id>)` or `[title](conversation:<id>)` as Strategy Dance's agent
+  writes one, which is a mention of it, made with the
   link's words without their styles. A picture is a link to its address with its alternative text,
   so nothing is loaded from anywhere. Inline code is itself, without the styles around it, and its
   text alone inside a link, as `normalizeRichText` keeps it, and a line break after a code span is
@@ -263,7 +264,7 @@ function readPhrasing(
     else inline.push(createRichTextMention(target, words))
   }
 
-  // What a link's or a picture's address names, a document or a task, or null for any other
+  // What a link's or a picture's address names, a document, a task or a conversation, or null for any other
   const readTarget = (href: string | null) => (href ? readRichTextMentionHref(href) : null)
 
   nodes.forEach(({ token, children }, index) => {

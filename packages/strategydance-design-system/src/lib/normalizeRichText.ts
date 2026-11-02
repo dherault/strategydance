@@ -130,7 +130,7 @@ type UnknownRecord = Record<string, unknown>
   to, a video the address of its page on YouTube, Vimeo or Loom, written one way, and a link
   preview its web address, what the page said of itself, and its picture's https address. A link
   keeps its address when it is a web or mail one, written as the URL parser writes it, and is its
-  text otherwise. A mention of a document or a task keeps its id, written as Data Connect writes
+  text otherwise. A mention of a document, a task or a conversation keeps its id, written as Data Connect writes
   one, and its words on one line, and is its words when its id is none or the options leave it out.
 
   Keys come in one order and empty ones are left out, and the empty paragraphs a document ends on

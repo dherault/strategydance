@@ -30,15 +30,15 @@ type Props = {
   // Offered while the latest could not be read, to read it again
   onRetry?: () => void
   isRetrying?: boolean
-  // Where its mentions of documents and tasks draw what they name from, and what a click on one in
+  // Where its mentions of documents, tasks and conversations draw what they name from, and what a click on one in
   // the text opens. The editor's open in a new tab, since leaving would lose what is not saved yet
   mentions?: RichTextMentionSource
 }
 
 /*
   A task's description, drawn as its text until clicked, when the design system's editor takes its
-  place, writing a post's blocks, headings, quotes, lists and checklists, and mentions of documents
-  and tasks, which "@" opens a menu of. A click on a link or a mention in the text follows it rather
+  place, writing a post's blocks, headings, quotes, lists and checklists, and mentions of documents,
+  tasks and conversations, which "@" opens a menu of. A click on a link or a mention in the text follows it rather
   than opening the editor, and one in the editor opens it in a new tab, keeping what is written. The text stays ordinary content, its links links,
   rather than the inside of a button, and the pencil beside the title is the way in from the
   keyboard.
@@ -136,6 +136,7 @@ function TaskDescriptionField({
                   mentionUntitled: formatMessage(taskMessages.editorMentionUntitled),
                   mentionDocumentGone: formatMessage(taskMessages.editorMentionDocumentGone),
                   mentionTaskGone: formatMessage(taskMessages.editorMentionTaskGone),
+                  mentionConversationGone: formatMessage(taskMessages.editorMentionConversationGone),
                 }}
                 className="text-sm"
               />
@@ -175,11 +176,13 @@ function TaskDescriptionField({
                 turnInto: formatMessage(taskMessages.editorTurnInto),
                 mentionDocuments: formatMessage(taskMessages.editorMentionDocuments),
                 mentionTasks: formatMessage(taskMessages.editorMentionTasks),
+                mentionConversations: formatMessage(taskMessages.editorMentionConversations),
                 mentionItem: formatMessage(taskMessages.editorMentionItem),
                 mentionItemSubtext: formatMessage(taskMessages.editorMentionItemSubtext),
                 mentionUntitled: formatMessage(taskMessages.editorMentionUntitled),
                 mentionDocumentGone: formatMessage(taskMessages.editorMentionDocumentGone),
                 mentionTaskGone: formatMessage(taskMessages.editorMentionTaskGone),
+                mentionConversationGone: formatMessage(taskMessages.editorMentionConversationGone),
               }}
             />
           ) : (

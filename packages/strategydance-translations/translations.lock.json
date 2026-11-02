@@ -3737,6 +3737,14 @@
         "hash": "85b125e50ef55ed7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "document.editorMentionConversationGone": {
+        "hash": "9623dc6ab52777c3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "document.editorMentionConversations": {
+        "hash": "2e573dabae4db309",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "document.editorMentionDocumentGone": {
         "hash": "4ca637745d4d4c74",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -3746,11 +3754,11 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "document.editorMentionItem": {
-        "hash": "6a78a4e2d9aa455b",
+        "hash": "ac812797f5b4859c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "document.editorMentionItemSubtext": {
-        "hash": "056662367ccd679b",
+        "hash": "16dd2f900ee15b2a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "document.editorMentionTaskGone": {
@@ -6239,6 +6247,14 @@
         "hash": "64e68bc3ca343990",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "task.editorMentionConversationGone": {
+        "hash": "9623dc6ab52777c3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "task.editorMentionConversations": {
+        "hash": "2e573dabae4db309",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "task.editorMentionDocumentGone": {
         "hash": "4ca637745d4d4c74",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -6248,11 +6264,11 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorMentionItem": {
-        "hash": "6a78a4e2d9aa455b",
+        "hash": "ac812797f5b4859c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorMentionItemSubtext": {
-        "hash": "056662367ccd679b",
+        "hash": "16dd2f900ee15b2a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.editorMentionTaskGone": {

@@ -630,13 +630,14 @@ describe('GET /:conversationId/attachments/:attachmentId', () => {
     expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes)
   })
 
-  test('serves a sent file from its conversation only while the conversation is the caller’s and kept', async () => {
+  test('serves a sent file from its conversation to every member, only while the conversation is kept', async () => {
     const bytes = Buffer.from('# Pricing')
     const conversationId = newId()
+    const messageId = newId()
     const attachment = insertAttachment({
       id: newId(),
       conversationId,
-      messageId: newId(),
+      messageId,
       contentType: 'text/markdown',
       size: bytes.length,
     })
@@ -659,6 +660,16 @@ describe('GET /:conversationId/attachments/:attachmentId', () => {
     }
 
     fake.conversations.set(conversationId, conversation)
+    fake.messages.set(messageId, {
+      id: messageId,
+      conversationId,
+      runId: null,
+      kind: 'MEMBER_TEXT',
+      text: 'The pricing',
+      noteKind: null,
+      toolStatus: null,
+      position: 0,
+    })
     storage.objects.set(
       `organizations/${ORGANIZATION_ID}/users/${MEMBER}/conversations/${conversationId}/${attachment.id}`,
       {
@@ -672,11 +683,26 @@ describe('GET /:conversationId/attachments/:attachmentId', () => {
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toBe('text/markdown; charset=utf-8')
     expect(await response.text()).toBe('# Pricing')
-    expect((await read(attachment.id, { conversationId, viewer: OTHER })).status).toBe(404)
+
+    const theirs = await read(attachment.id, { conversationId, viewer: OTHER })
+
+    expect(theirs.status).toBe(200)
+    expect(await theirs.text()).toBe('# Pricing')
+    expect((await read(attachment.id, { conversationId: CONVERSATION_ID })).status).toBe(404)
 
     conversation.deletedAt = new Date().toISOString()
 
     expect((await read(attachment.id, { conversationId })).status).toBe(404)
+    expect((await read(attachment.id, { conversationId, viewer: OTHER })).status).toBe(404)
+  })
+
+  test('serves an unsent file to its uploader alone', async () => {
+    const attachment = insertAttachment({ id: newId() })
+
+    storage.objects.set(pendingName(attachment.id), { bytes: png(), contentType: 'image/png' })
+
+    expect((await read(attachment.id)).status).toBe(200)
+    expect((await read(attachment.id, { viewer: OTHER })).status).toBe(404)
   })
 
   test('serves nothing of a file still uploading', async () => {

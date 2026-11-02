@@ -4992,6 +4992,29 @@ function createConversationDatabaseFake() {
       }
     },
 
+    // A file a message of the conversation sent, whoever reads it
+    GetSentConversationAttachment: variables => {
+      const attachment = attachments.get(id(variables.attachmentId))
+      const conversation = conversations.get(id(variables.conversationId))
+      const message = attachment?.messageId ? messages.get(attachment.messageId) : undefined
+      const isSent =
+        attachment
+        && attachment.organizationId === id(variables.organizationId)
+        && attachment.conversationId === id(variables.conversationId)
+        && message?.conversationId === id(variables.conversationId)
+
+      return {
+        conversationAttachments: isSent ? [pickAttachment(attachment)] : [],
+        conversation: conversation
+          ? {
+              userId: conversation.userId,
+              organizationId: conversation.organizationId,
+              deletedAt: conversation.deletedAt,
+            }
+          : null,
+      }
+    },
+
     // The Budget module's read of a conversation's file it takes as a bill's receipt
     GetConversationAttachmentForAgent: variables => {
       const conversation = conversations.get(id(variables.conversationId))

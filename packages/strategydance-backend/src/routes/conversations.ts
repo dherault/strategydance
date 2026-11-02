@@ -907,11 +907,11 @@ function createConversationsRouter() {
   )
 
   /*
-    Serves the bytes of a file of the caller's, as the thread draws an image or offers a file: only
-    to its author while they are a member, which the route checks on every read, and for a sent file
-    only while its conversation is theirs and not deleted. Streamed from Storage with private cache
-    headers, since its bytes never change; the thread fetches it with the caller's token and shows it
-    as an object URL
+    Serves the bytes of a file, as the thread draws an image or offers a file: a sent file to any
+    member of the organization, since every member reads its conversations, only while its
+    conversation is not deleted, and an unsent one to its uploader alone, membership checked on
+    every read. Streamed from Storage with private cache headers, since its bytes never change; the
+    thread fetches it with the caller's token and shows it as an object URL
   */
   router.get(
     '/:conversationId/attachments/:attachmentId',

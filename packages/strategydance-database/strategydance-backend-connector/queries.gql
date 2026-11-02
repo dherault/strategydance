@@ -1675,6 +1675,35 @@ query GetConversationAttachment($organizationId: UUID!, $userId: String!, $conve
   }
 }
 
+# A file a message of a conversation sent, as the route that reads its bytes reads it for any member
+# of the organization, since every member reads every conversation there, with the conversation,
+# whose author's folder keeps it. Only one held by a message of that conversation, in that
+# organization: a file still waiting in a draft is its uploader's alone, read through
+# `GetConversationAttachment`. The route checks the caller's membership first
+query GetSentConversationAttachment($organizationId: UUID!, $conversationId: UUID!, $attachmentId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationAttachments(
+    where: {
+      id: { eq: $attachmentId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+      message: { conversationId: { eq: $conversationId } }
+    }
+    limit: 1
+  ) {
+    userId
+    status
+    name
+    contentType
+    size
+  }
+  conversation(id: $conversationId) {
+    userId
+    organizationId
+    deletedAt
+  }
+}
+
 # What a message with files reads of them before it is sent: the files it names, the caller's in that
 # conversation and organization, and the files the conversation already holds, which its budget
 # counts. At most 10 named (`MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE`) and 100 held

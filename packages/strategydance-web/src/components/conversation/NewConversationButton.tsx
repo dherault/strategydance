@@ -6,6 +6,7 @@ import { Button } from 'strategydance-design-system/components/ui/Button'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 import useSidebar from 'strategydance-design-system/hooks/useSidebar'
 
+import useAuthentication from '~hooks/authentication/useAuthentication'
 import useConversationDock from '~hooks/conversation/useConversationDock'
 import useConversations from '~hooks/conversation/useConversations'
 import useCurrentOrganizationSlug from '~hooks/organization/useCurrentOrganizationSlug'
@@ -20,15 +21,17 @@ import conversationMessages from '~data/intl/messages/conversation'
   no dock. The id is made on the click rather than in the render, which has to stay pure.
 
   A reader who keeps as many conversations as they may gets no draft they could never send, but
-  the reason. The list it counts is the one the page under `ConversationsWait` has read, and the
-  drafts the dock holds, not stored yet, count too, since each may be sent, on a phone too, which
-  draws no dock but may grow wide again
+  the reason. It counts the reader's own in the list the page under `ConversationsWait` has read,
+  the organization's, and the drafts the dock holds, not stored yet, since each may be sent, on a
+  phone too, which draws no dock but may grow wide again. A list of a large team's 1000 most
+  recently active can hold fewer of the reader's than they keep, when the send's refusal says it
 */
 function NewConversationButton() {
   const { formatMessage } = useIntl()
   const navigate = useNavigate()
   const organizationSlug = useCurrentOrganizationSlug()
   const { data: conversations } = useConversations()
+  const { data: viewer } = useAuthentication()
   const { isMobile } = useSidebar()
   const { windows, openWindow } = useConversationDock()
 
@@ -37,7 +40,9 @@ function NewConversationButton() {
       ({ conversationId, isDraft }) => isDraft && !conversations.some(({ id }) => id === conversationId),
     ).length
 
-    if (conversations.length + draftCount >= MAX_CONVERSATIONS) {
+    const ownCount = conversations.filter(({ user }) => user.id === viewer?.uid).length
+
+    if (ownCount + draftCount >= MAX_CONVERSATIONS) {
       toast.error(formatMessage(conversationMessages.tooMany, { max: MAX_CONVERSATIONS }))
 
       return

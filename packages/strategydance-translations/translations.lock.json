@@ -2271,6 +2271,22 @@
         "hash": "227129cb8ee14e4c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.authorFilter.everyone": {
+        "hash": "5d829cd1784bac7a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.authorFilter.label": {
+        "hash": "056467b334d278ee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.authorFilter.mine": {
+        "hash": "3af3760708480210",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.authorFilter.mineEmpty": {
+        "hash": "86ff3fa8b7fe00c5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.cancel": {
         "hash": "07ff79083e4440c8",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -2329,6 +2345,10 @@
       },
       "conversation.column.aspects": {
         "hash": "e3d8fc14c4f37054",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.column.author": {
+        "hash": "e3845a90c0b3360d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.column.conversation": {
@@ -2584,7 +2604,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.emptyTitle": {
-        "hash": "632d821f3aba3d1d",
+        "hash": "f884ca81910ad45e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.integration.add": {
@@ -2640,7 +2660,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.lead": {
-        "hash": "3584b91c1972ed59",
+        "hash": "69a500d91135f780",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.loadError": {
@@ -2976,7 +2996,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.search.label": {
-        "hash": "8a9d19786944cc75",
+        "hash": "f8a2c2dc2153acd0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.search.noMatchText": {

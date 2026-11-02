@@ -824,12 +824,17 @@ function createConversationDatabaseFake() {
     cappedStarts.set(start.id, start)
   }
 
-  // The conversations a search reads: the caller's own in the organization, while they are a member
-  // of it, and none deleted
+  // The conversations a search reads: every member's in the organization, while the caller is a
+  // member of it, and none deleted
   function searchedConversations(variables: AnyVariables) {
     if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) return []
 
-    return keptConversations(variables)
+    return [...conversations.values()].filter(
+      conversation =>
+        conversation.organizationId === id(variables.organizationId)
+        && conversation.deletedAt === null
+        && conversation.parentId == null,
+    )
   }
 
   // The searched messages, by their conversation's id

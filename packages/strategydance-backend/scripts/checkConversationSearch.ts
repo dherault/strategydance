@@ -288,8 +288,9 @@ async function checkFullText() {
     messages: [{ kind: 'MEMBER_TEXT', text: "Comment motiver l'équipe pendant l'été ?" }],
   })
 
+  const theirs = await insertConversation({ title: 'Pricing, another member’s', userId: userIds.other })
+
   await insertConversation({ title: 'Pricing, deleted', isDeleted: true })
-  await insertConversation({ title: 'Pricing, somebody else’s', userId: userIds.other })
   await insertConversation({ title: 'Pricing, from before', inOrganizationId: formerOrganizationId })
 
   const titles = async (query: string) => {
@@ -308,8 +309,8 @@ async function checkFullText() {
   }
 
   check(
-    'a title search finds the caller’s conversation, and none deleted, somebody else’s or another organization’s',
-    isSameSet(await titles('pricing'), [pricing]),
+    'a title search finds every member’s conversation, and none deleted or another organization’s',
+    isSameSet(await titles('pricing'), [pricing, theirs]),
   )
   check('a title search ignores case', isSameSet(await titles('PRICING Strategy'), [pricing]))
   check('a title search needs every word, in any order', isSameSet(await titles('launch pricing'), [pricing]))
@@ -364,7 +365,7 @@ async function checkSubstrings() {
   const corpusIds = corpus.conversations.map(conversation => conversation.id)
 
   check(
-    'the corpus lists the caller’s conversations most recently active first, with their message counts',
+    'the corpus lists the organization’s conversations most recently active first, with their message counts',
     corpusIds.indexOf(chinese) < corpusIds.indexOf(japanese)
       && corpusIds.indexOf(japanese) < corpusIds.indexOf(escaped)
       && corpus.conversations.find(conversation => conversation.id === chinese)?.messageCount === 1,

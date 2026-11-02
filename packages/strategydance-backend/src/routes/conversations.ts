@@ -722,11 +722,11 @@ function createConversationsRouter() {
   const searchRateLimitMiddleware = createConversationSearchRateLimitMiddleware()
 
   /*
-    Searches the caller's conversations in the organization for every word of a query, in a title or
-    in one of the member's or the agent's messages, and answers the ids of those it found with how
-    far it looked. The query travels in the body rather than the address, so what somebody looks for
-    in their own conversations never sits in a logged URL. It is trimmed, and refused with a 400
-    when it holds nothing, more than 100 characters, more than 8 words or U+0000.
+    Searches the organization's conversations, every member's, for every word of a query, in a
+    title or in one of the member's or the agent's messages, and answers the ids of those it found
+    with how far it looked. The query travels in the body rather than the address, so what somebody
+    looks for in their team's conversations never sits in a logged URL. It is trimmed, and refused
+    with a 400 when it holds nothing, more than 100 characters, more than 8 words or U+0000.
 
     Metered twice, both refusing with a 429: the instance's count turns a script away before
     anything reads the database, and the database's, which every instance shares, says in

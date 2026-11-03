@@ -30,18 +30,21 @@ type Props = {
   // The aspects the reader picked on a draft, which its first message sends, and what changes them
   draftAspects: CompanyAspect[]
   onDraftAspectsChange: (aspects: CompanyAspect[]) => void
+  // Whether it is another member's, whose aspects the reader sees and does not change
+  isReadOnly: boolean
 }
 
 /*
   A conversation's title, in the display face, and under it its aspects as icons, a button that
-  opens the dialog to change them, or "Add aspects" while it has none.
+  opens the dialog to change them, or "Add aspects" while it has none. Another member's shows its
+  aspects alone, and nothing while it has none.
 
   Saving the aspects adds a note to the thread, so the dialog waits for it to land and stays open
   when it cannot: once the conversation is full, which it says before a save as well, or when the
   save failed. A draft's aspects are only held until its first message sends them, so its dialog
   closes on a save at once
 */
-function ConversationHead({ conversation, draftAspects, onDraftAspectsChange }: Props) {
+function ConversationHead({ conversation, draftAspects, onDraftAspectsChange, isReadOnly }: Props) {
   const { formatMessage, formatList } = useIntl()
   const updateAspects = useUpdateConversationAspects()
   const [isPicking, setIsPicking] = useState(false)
@@ -88,6 +91,16 @@ function ConversationHead({ conversation, draftAspects, onDraftAspectsChange }: 
   }
 
   function renderAspects() {
+    if (isReadOnly) {
+      return (
+        <CompanyAspectIcons
+          aspects={aspects}
+          size={18}
+          className="h-8 gap-2 self-start"
+        />
+      )
+    }
+
     const aspectNames = aspects.map(aspect => formatMessage(aspectMessages[aspect]))
 
     return (

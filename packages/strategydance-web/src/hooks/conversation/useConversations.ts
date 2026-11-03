@@ -13,9 +13,10 @@ import { dataConnect } from '~data/firebase'
 const EMPTY_CONVERSATIONS: ConversationSummary[] = []
 
 /*
-  The reader's conversations in the current organization, latest activity first, kept live: as
-  `useOrganizationTeam` does, the first read is an ordinary query, which `ConversationsWait` waits
-  on, and the subscription beside it writes each list the server pushes into the same cache entry.
+  The conversations of the current organization's members, latest activity first, each with its
+  author, kept live, any member's change pushing the list anew: as `useOrganizationTeam` does, the
+  first read is an ordinary query, which `ConversationsWait` waits on, and the subscription beside
+  it writes each list the server pushes into the same cache entry.
 
   A first read that fails is not an empty list: `hasFailed` says so, and it does not retry on
   mount, for the reason `useOrganizationTeam` gives

@@ -1,4 +1,8 @@
-import { ConversationAttachmentStatus, getConversationAttachment } from 'strategydance-database/backend'
+import {
+  ConversationAttachmentStatus,
+  getConversationAttachment,
+  getSentConversationAttachment,
+} from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
 
@@ -19,41 +23,54 @@ type ReadConversationAttachmentResult =
   | { outcome: 'missing' }
 
 /*
-  Where a file of the caller's is kept, for the route that serves its bytes: their own, stored, in
-  that conversation and organization. A sent one is read from its conversation's folder, and only
-  while that conversation is still theirs and not deleted; an unsent one from where it waits. The
+  Where a file is kept, for the route that serves its bytes: stored, in that conversation and
+  organization. A sent one is any member's to read, since every member reads every conversation of
+  the organization, and is read from its conversation's folder, its author's, only while that
+  conversation is not deleted. An unsent one is its uploader's alone, read from where it waits. The
   caller's membership is checked before, by the route, on every read, which a Storage rule could not
   do: it would know only the uid, which a member removed keeps
 */
 async function readConversationAttachment(
   location: ConversationAttachmentLocation,
 ): Promise<ReadConversationAttachmentResult> {
-  const { organizationId, userId, conversationId, attachmentId } = location
-  const { data } = await getConversationAttachment(dataConnect, location)
-  const [attachment] = data.conversationAttachments
-  const { conversation } = data
+  const { organizationId, conversationId, attachmentId } = location
+  const sent = await getSentConversationAttachment(dataConnect, { organizationId, conversationId, attachmentId })
+  const [sentAttachment] = sent.data.conversationAttachments
+  const { conversation } = sent.data
 
-  if (!attachment || attachment.status !== ConversationAttachmentStatus.READY) return { outcome: 'missing' }
+  if (sentAttachment) {
+    if (
+      sentAttachment.status !== ConversationAttachmentStatus.READY
+      || !conversation
+      || conversation.organizationId !== organizationId
+      || conversation.userId !== sentAttachment.userId
+      || conversation.deletedAt
+    ) {
+      return { outcome: 'missing' }
+    }
 
-  const file = { name: attachment.name, contentType: attachment.contentType, size: attachment.size }
-
-  if (!attachment.messageId) {
-    return { outcome: 'found', objectName: buildPendingAttachmentObjectName(location), ...file }
+    return {
+      outcome: 'found',
+      objectName: `${buildConversationStoragePrefix({ organizationId, userId: conversation.userId, conversationId })}${toCanonicalUuid(attachmentId)}`,
+      name: sentAttachment.name,
+      contentType: sentAttachment.contentType,
+      size: sentAttachment.size,
+    }
   }
 
-  if (
-    !conversation
-    || conversation.userId !== userId
-    || conversation.organizationId !== organizationId
-    || conversation.deletedAt
-  ) {
+  const { data } = await getConversationAttachment(dataConnect, location)
+  const [attachment] = data.conversationAttachments
+
+  if (!attachment || attachment.status !== ConversationAttachmentStatus.READY || attachment.messageId) {
     return { outcome: 'missing' }
   }
 
   return {
     outcome: 'found',
-    objectName: `${buildConversationStoragePrefix({ organizationId, userId, conversationId })}${toCanonicalUuid(attachmentId)}`,
-    ...file,
+    objectName: buildPendingAttachmentObjectName(location),
+    name: attachment.name,
+    contentType: attachment.contentType,
+    size: attachment.size,
   }
 }
 

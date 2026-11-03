@@ -27,8 +27,6 @@ type Props = {
   revision: DocumentRevision
   // How many entries came after it, which a restore takes back too
   laterCount: number
-  // The reader, whose own conversations an entry links to
-  viewerId: string | null
   // While the reader's own typing has not reached the server, which a restore would not see
   isRestoreHeld: boolean
   now: number
@@ -44,15 +42,14 @@ type Props = {
   goes with it: every later entry, and whatever members typed since. A restore keeps an entry of
   its own, and its notification can undo it.
 
-  The conversation an edit came from is the member's own and private, so only its author is
-  offered the link to it
+  The conversation an edit came from is linked for every member, since every member reads the
+  organization's conversations
 */
 function DocumentHistoryEntry({
   organizationId,
   documentId,
   revision,
   laterCount,
-  viewerId,
   isRestoreHeld,
   now,
   mentions,
@@ -69,7 +66,6 @@ function DocumentHistoryEntry({
   const name = revision.user
     ? revision.user.displayName || revision.user.email
     : formatMessage(documentMessages.revisionFormerMember)
-  const isOwnConversation = source.kind === 'conversation' && revision.user?.id === viewerId
 
   function formatMoment(date: string) {
     return formatDate(date, { dateStyle: 'medium', timeStyle: 'short' })
@@ -139,7 +135,7 @@ function DocumentHistoryEntry({
               createdAt={revision.createdAt}
               now={now}
             />
-            {isOwnConversation ? (
+            {source.kind === 'conversation' ? (
               <Link
                 to="/$organizationSlug/conversations/$conversationId"
                 params={{ organizationSlug, conversationId: source.conversationId }}

@@ -824,12 +824,17 @@ function createConversationDatabaseFake() {
     cappedStarts.set(start.id, start)
   }
 
-  // The conversations a search reads: the caller's own in the organization, while they are a member
-  // of it, and none deleted
+  // The conversations a search reads: every member's in the organization, while the caller is a
+  // member of it, and none deleted
   function searchedConversations(variables: AnyVariables) {
     if (!memberships.has(membershipKey(variables.userId, variables.organizationId))) return []
 
-    return keptConversations(variables)
+    return [...conversations.values()].filter(
+      conversation =>
+        conversation.organizationId === id(variables.organizationId)
+        && conversation.deletedAt === null
+        && conversation.parentId == null,
+    )
   }
 
   // The searched messages, by their conversation's id
@@ -4977,6 +4982,29 @@ function createConversationDatabaseFake() {
       return {
         conversationAttachments:
           attachment && isAttachmentOf(attachment, variables) ? [pickAttachment(attachment)] : [],
+        conversation: conversation
+          ? {
+              userId: conversation.userId,
+              organizationId: conversation.organizationId,
+              deletedAt: conversation.deletedAt,
+            }
+          : null,
+      }
+    },
+
+    // A file a message of the conversation sent, whoever reads it
+    GetSentConversationAttachment: variables => {
+      const attachment = attachments.get(id(variables.attachmentId))
+      const conversation = conversations.get(id(variables.conversationId))
+      const message = attachment?.messageId ? messages.get(attachment.messageId) : undefined
+      const isSent =
+        attachment
+        && attachment.organizationId === id(variables.organizationId)
+        && attachment.conversationId === id(variables.conversationId)
+        && message?.conversationId === id(variables.conversationId)
+
+      return {
+        conversationAttachments: isSent ? [pickAttachment(attachment)] : [],
         conversation: conversation
           ? {
               userId: conversation.userId,

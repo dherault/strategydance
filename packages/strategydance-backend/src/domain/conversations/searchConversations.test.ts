@@ -122,14 +122,14 @@ describe('searching by the full-text indexes', () => {
     expect((await search('pricing tiers')).conversationIds).toEqual([together])
   })
 
-  test('leaves out deleted conversations, and anybody else’s', async () => {
+  test('finds every member’s conversations, and leaves out deleted ones and another organization’s', async () => {
     const kept = insertConversation({ title: 'Pricing' })
+    const theirs = insertConversation({ title: 'Pricing', userId: OTHER })
 
     insertConversation({ title: 'Pricing', deletedAt: new Date().toISOString() })
-    insertConversation({ title: 'Pricing', userId: OTHER })
     insertConversation({ title: 'Pricing', organizationId: OTHER_ORGANIZATION_ID })
 
-    expect((await search('pricing')).conversationIds).toEqual([kept])
+    expect((await search('pricing')).conversationIds.toSorted()).toEqual([kept, theirs].toSorted())
   })
 
   test('answers every match once every conversation somebody can keep has matched', async () => {

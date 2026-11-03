@@ -22,7 +22,8 @@ import conversationMessages from '~data/intl/messages/conversation'
 
 type Props = {
   query: string
-  // The reader's conversations as the list holds them, kept live, which the search's ids pick from
+  // The conversations the list shows, kept live, everybody's or one member's, which the search's ids
+  // pick from
   conversations: ConversationSummary[]
   onClear: () => void
 }

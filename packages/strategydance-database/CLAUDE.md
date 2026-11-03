@@ -34,8 +34,10 @@ A list a page keeps current is a live query: `@refresh(onMutationExecuted: …)`
 that changes it, with a condition on a variable they share, so a new mutation changing its rows
 joins its refreshes, and one writing a column only a background job touches, like `lastUsedAt`,
 never does. The backend's mutations fire them too but carry no `mutation.auth.uid`, so a web
-conversation mutation takes the caller's `$userId`, checked against `auth.uid`, and the refreshes
-match `mutation.variables.userId == request.auth.uid`. An id handed to an operation is canonical
+conversation mutation takes the caller's `$userId`, checked against `auth.uid`, and the refreshes of
+what only its author reads, the badge's and the dock's, match `mutation.variables.userId ==
+request.auth.uid`. What every member reads, the list and a conversation's page, matches the
+organization or the conversation instead. An id handed to an operation is canonical
 (`toCanonicalUuid`), since a refresh condition compares variables as text, and a hyphenated id
 refreshes no other tab.
 

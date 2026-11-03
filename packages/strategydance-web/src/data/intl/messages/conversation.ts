@@ -1,24 +1,26 @@
 import { defineMessages } from 'react-intl'
 
 /*
-  The reader's conversations with Strategy Dance, the app's AI: the page that lists them, and the
-  words the list uses for each conversation's last entry. Registered for the whole app, since the
-  sidebar and the dock read it on every page.
+  The conversations of the organization's members with Strategy Dance, the app's AI: the page that
+  lists them, and the words the list uses for each conversation's last entry. Registered for the
+  whole app, since the sidebar and the dock read it on every page.
 
-  A conversation is private: only its author sees it. A run is one go of the AI answering, and a
-  tool is something the AI uses along the way, such as searching the company's documents
+  Every member of the organization reads every conversation, and only its author writes in it. A
+  run is one go of the AI answering, and a tool is something the AI uses along the way, such as
+  searching the company's documents
 */
 const conversationMessages = defineMessages({
   lead: {
     id: 'conversation.lead',
-    defaultMessage: 'Chats with Strategy Dance. Get ready to be challenged.',
+    defaultMessage: 'Chats with Strategy Dance. Get ready to be challenged. Your whole team can read them.',
     description:
-      "Line under the title of the Conversations page, which lists the reader's private conversations with Strategy Dance, the app's AI. Strategy Dance is the product's name.",
+      "Line under the title of the Conversations page, which lists the conversations of every member of the reader's organization with Strategy Dance, the app's AI. Every member reads them all, and only the one who started a conversation writes in it. Strategy Dance is the product's name.",
   },
   emptyTitle: {
     id: 'conversation.emptyTitle',
     defaultMessage: 'No conversations yet',
-    description: 'Title of what the Conversations page shows while the reader has had no conversation with the AI.',
+    description:
+      "Title of what the Conversations page shows while nobody in the reader's organization has had a conversation with the AI.",
   },
   emptyText: {
     id: 'conversation.emptyText',
@@ -45,7 +47,7 @@ const conversationMessages = defineMessages({
     id: 'conversation.search.label',
     defaultMessage: 'Search conversations',
     description:
-      "Placeholder and accessible name of the field above the Conversations page's list, which finds the reader's conversations whose title or one message holds every word typed.",
+      "Placeholder and accessible name of the field above the Conversations page's list, which finds the conversations of the reader's organization whose title or one message holds every word typed.",
   },
   searchTooManyWords: {
     id: 'conversation.search.tooManyWords',
@@ -97,6 +99,36 @@ const conversationMessages = defineMessages({
     id: 'conversation.search.retry',
     defaultMessage: 'Try again',
     description: 'Button that runs the same search again after it failed.',
+  },
+  columnAuthor: {
+    id: 'conversation.column.author',
+    defaultMessage: 'Started by',
+    description:
+      "Header of the Conversations page's table column that shows the picture of the member who started each conversation, read by screen readers only.",
+  },
+  authorFilterLabel: {
+    id: 'conversation.authorFilter.label',
+    defaultMessage: 'Whose conversations',
+    description:
+      "Accessible name of the menu above the Conversations page's list that shows everybody's conversations, the reader's, or one member's.",
+  },
+  authorFilterEveryone: {
+    id: 'conversation.authorFilter.everyone',
+    defaultMessage: 'Everyone',
+    description:
+      "Choice in the menu above the Conversations page's list that shows the conversations of every member of the organization.",
+  },
+  authorFilterMine: {
+    id: 'conversation.authorFilter.mine',
+    defaultMessage: 'Mine',
+    description:
+      "Choice in the menu above the Conversations page's list that shows only the conversations the reader started.",
+  },
+  authorFilterMineEmpty: {
+    id: 'conversation.authorFilter.mineEmpty',
+    defaultMessage: 'You have no conversations yet',
+    description:
+      'Title of what the Conversations page shows when the reader asked its menu for their own conversations and has started none, while other members have.',
   },
   columnConversation: {
     id: 'conversation.column.conversation',
@@ -887,15 +919,28 @@ const conversationMessages = defineMessages({
     defaultMessage: 'All conversations',
     description: "Link at the top of a conversation's page, back to the list of the reader's conversations.",
   },
-  private: {
-    id: 'conversation.private',
-    defaultMessage: 'Private',
-    description: "Label beside a lock at the top of a conversation's page, saying nobody else can read it.",
+  shared: {
+    id: 'conversation.shared',
+    defaultMessage: 'Shared with your team',
+    description:
+      'Label beside an icon of people at the top of the page of a conversation the reader started, saying every member of their organization can read it.',
   },
-  privateTooltip: {
-    id: 'conversation.privateTooltip',
-    defaultMessage: 'Only you can see your conversations',
-    description: 'Tooltip on the Private label of a conversation, saying what it means.',
+  sharedTooltip: {
+    id: 'conversation.sharedTooltip',
+    defaultMessage: 'Everyone in your organization can read your conversations. Only you write in them.',
+    description: 'Tooltip on the "Shared with your team" label of a conversation, saying what it means.',
+  },
+  startedBy: {
+    id: 'conversation.startedBy',
+    defaultMessage: 'Started by {name}',
+    description:
+      "At the top of the page of a conversation another member of the reader's organization started, beside their picture. {name} is that member's name.",
+  },
+  readOnly: {
+    id: 'conversation.readOnly',
+    defaultMessage: '{name} started this conversation, so only they can write in it.',
+    description:
+      "Shown in place of the field to write a message, at the foot of a conversation another member started: the reader reads it but cannot write, answer or change anything in it. {name} is that member's name.",
   },
   updated: {
     id: 'conversation.updated',
@@ -1293,6 +1338,12 @@ const conversationMessages = defineMessages({
     description:
       'Small heading over a question the AI asked, which the reader did not answer and wrote something else instead.',
   },
+  questionWaitingFor: {
+    id: 'conversation.question.waitingFor',
+    defaultMessage: 'Waiting for {name}’s answer',
+    description:
+      "Small heading over a question the AI asked another member in their conversation, which they have not answered yet and which the reader cannot answer. {name} is that member's name.",
+  },
   questionUnanswered: {
     id: 'conversation.question.unanswered',
     defaultMessage: 'Not answered',
@@ -1327,6 +1378,12 @@ const conversationMessages = defineMessages({
     defaultMessage: 'Waiting for your approval',
     description:
       "Small heading over an action the AI wants to take in another company's service as the reader, such as creating a payment link, which waits for the reader to allow or deny it.",
+  },
+  approvalWaitingFor: {
+    id: 'conversation.approval.waitingFor',
+    defaultMessage: 'Waiting for {name}’s approval',
+    description:
+      "Small heading over an action the AI wants to take in another company's service as another member, in their conversation, which waits for them to allow or deny it and which the reader cannot decide. {name} is that member's name.",
   },
   approvalUnanswered: {
     id: 'conversation.approval.unanswered',

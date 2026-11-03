@@ -97,6 +97,12 @@ of its own, saying whose ceiling and when it has room (see Usage caps). Revised 
 David asked: Knowledge is called Documents everywhere, its pages at `/<organization>/documents`
 and its module `documents`, served at `/mcp/documents`, so an external agent connected to the
 Knowledge module connects again; the dated notes above keep the names they were written with.
+Revised on 2026-11-02, as David asked: every member of an organization reads every conversation
+there, its files and subagents included, and only its author writes in it, answers it, stops it or
+changes it, so the list shows each conversation's author and narrows to one member's, another
+member's page shows a notice in the composer's place, and the search, the files' route and the
+system prompt follow (see Decisions); what earlier notes say of a conversation being
+private held until then.
 When a decision changes, change it here first.
 
 ## The design
@@ -138,6 +144,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Subagents | Strategy Dance's agent hands work off to subagents, runs of its own that carry out a brief it writes, in parallel, and report back, as David chose on 2026-10-12: through the Subagents module, an MCP server of Strategy Dance's that only its own agents reach, in process (M30 to M34). A subagent acts as the member, is one level deep, has every tool the agent has but `ask_user`, the Subagents module's own and, as David chose on 2026-10-16, the two deletes, and takes up to four chained runs. The parent reacts to their reports in a run of its own, the first run no member starts, and never launches from it (see Subagents) |
 | The orchestrator | Later, with no milestones yet: once a day in each organization that turns it on, a run acting as the organization, through an agent membership, reads its documents and tasks, launches subagents, reorganizes what it finds and keeps a log (see The orchestrator). Until then nothing starts without a member, except a parent's reaction to its subagents |
 | The aspect page | Unchanged: no Conversations section and no suggestions in this plan, as David chose on 2026-10-11, since their design will likely change. The agent still tags each conversation's aspects (M23) |
+| Who reads a conversation | Every member of its organization, administrators or not, as David chose on 2026-11-02: the list, the page, the files, the subagents and the search are the team's, and the composer, the answers, Stop, Resume, Retry, Restore, Undo, the aspects, Delete, the dock, the unread count and the badge stay the author's. Until then a conversation was private to its author |
 | Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone, M38, opened it to everyone, modules' connections from external agents included |
 | Pull requests | Small, one concern each |
 
@@ -156,31 +163,45 @@ export, port the styles from `conversations.css` onto the design system's compon
   your agents** button, opening a dialog with the module's address and how to add it to each client
   (M19, M20), as the Tasks page does for its own module (M21). None of them is in the design: all
   are built from the design system's components.
-- Conversations are private: only their author sees them, administrators included. Each
-  organization has its own.
+- Every member of an organization reads every conversation there, administrators or not, and
+  only its author writes in it, as David chose on 2026-11-02; until then only its author saw it.
+  Each organization has its own.
 
 ### The list, `/conversations`
 
-- Header "Conversations", lead "Chats with Strategy Dance. Get ready to be challenged. Only you can
-  see your conversations.", and a primary "New conversation" button.
+- Header "Conversations", lead "Chats with Strategy Dance. Get ready to be challenged. Your whole
+  team can read them.", and a primary "New conversation" button.
+- Beside the search field, once another member started a conversation, a menu narrowing the list
+  and the search to "Everyone", "Mine" or one member, each with their face, the members offered
+  being those the list holds a conversation of, a member who left among them. "Mine" with none
+  shows "You have no conversations yet" and the New conversation button. Not in the design: built
+  from the design system's `Select`, as the board's filter is.
 - A search field ("Search conversations", Escape clears it). Every word has to appear in the title
   or in one message's text, the member's or Strategy Dance's, ignoring case. (The prototype also
   matched words spread over several messages, and in questions and notes; the full-text search
   matches within one title or one message's text.) No match:
   "No conversations match “query”", "Search looks at titles and messages.", and a "Clear search"
   button.
-- A table, latest activity first. Columns: Conversation (the title as a link, a "Needs your answer"
-  badge when a question waits, and a one-line preview), Aspects (their icons, in `COMPANY_ASPECTS`
-  order), Updated (relative time), and actions: "Open in dock" on desktop, and Delete, which asks to
-  confirm and then offers Undo in a toast. A click anywhere on the row opens the conversation.
+- A table, latest activity first. Columns: the author's face, with their name in a tooltip,
+  Conversation (the title as a link, a "Needs your answer" badge when a question waits for the
+  reader, and a one-line preview), Aspects (their icons, in `COMPANY_ASPECTS` order), Updated
+  (relative time), and actions on the reader's own alone: "Open in dock" on desktop, and Delete,
+  which asks to confirm and then offers Undo in a toast. A click anywhere on the row opens the
+  conversation.
 - Empty: "No conversations yet", "Ask Strategy Dance about a decision, a plan or what to do next.",
   and the New conversation button.
 
 ### The conversation page, `/conversations/$conversationId`
 
-- A bar: "All conversations" back to the list; a "Private" lock with the tooltip "Only you can see
-  your conversations"; "Updated 5 min ago", or "Not saved until you send a message" for a draft;
-  and, on desktop once saved, an "Open in dock" button that docks it and goes back to the list.
+- A bar: "All conversations" back to the list; on the reader's own, "Shared with your team" with the
+  tooltip "Everyone in your organization can read your conversations. Only you write in them.", or
+  on another member's, their face and "Started by {name}"; "Updated 5 min ago", or "Not saved until
+  you send a message" for a draft; and, on desktop once the reader's own is saved, an "Open in dock"
+  button that docks it and goes back to the list. Until 2026-11-02 it showed a "Private" lock.
+- Another member's conversation is read only: its aspects show as icons alone, its questions and
+  approvals say "Waiting for {name}'s answer" or "approval" while they wait, it offers no Stop,
+  Resume, Retry, Restore or Undo, reconciles nothing and marks nothing read, and the composer's
+  place holds "{name} started this conversation, so only they can write in it."
 - The title in the display face (`text-4xl`), then the aspects as icons, or "Add aspects": a button
   that opens the aspects dialog (the documents' one, shared).
 - The thread, in a 768px column, and the composer stuck to the bottom of the page.
@@ -501,20 +522,27 @@ per member and organization, `MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER` (5), and per 
 
 ### Who writes what
 
-- **The web connector** (`USER`, every operation keyed by `auth.uid` and by the caller's current
-  membership, with the predicate `GetOrganizationDocuments` uses, and every mutation checking that
+- **The web connector** (`USER`, every operation keyed by the caller's current membership, with the
+  predicate `GetOrganizationDocuments` uses, and every mutation by `auth.uid` too, checking that
   membership in its transaction: conversations outlive a member's removal, so ownership alone would
-  leave a former member reading them. Every read also filters the conversation on
+  leave a former member reading them. Since 2026-11-02 the reads of the list, a conversation, its
+  history, bodies, run, calls, subagents, a report and a brief's files match the organization alone,
+  since every member reads them, and their refreshes match the organization or the conversation
+  rather than the author; the badge's and the dock's reads stay the author's, as every write does.
+  A message's files are read only when their uploader wrote the conversation
+  (`user: { conversations_on_user: { exist: { id: … } } }`), as a send sets nothing else. Every read also filters the conversation on
   `deletedAt: { isNull: true }`, as
   `GetOrganizationDocuments` does, the list, the conversation, its history, its run, a tool call and
   both searches alike; only `RestoreConversation` reaches a deleted one. The backend's routes refuse a
   deleted conversation too, and its worker stops at its next write once the conversation is deleted):
   - `GetConversations($organizationId)`, live, read by the conversations page alone: the list,
     `limit: 1000`, ordered by `updatedAt` then `id` (a query without a limit stops at 100), each
-    conversation's fields, `preview` and `isAwaitingAnswer` included. It refreshes on run start and
-    end, answers, create, delete, restore and aspects, on `mutation.variables.userId ==
-    request.auth.uid && mutation.variables.organizationId == request.variables.organizationId`, as
-    the next three do. Not on the messages a run inserts, nor on read: while a run goes the list
+    conversation's fields and author, `preview` and `isAwaitingAnswer` included: every conversation
+    of a small team, and the 1000 most recently active of an organization whose members keep more
+    together. It refreshes on run start and end, answers, create, delete, restore and aspects, on
+    `mutation.variables.organizationId == request.variables.organizationId`, any member's change
+    waking every member's list; the next two match `mutation.variables.userId == request.auth.uid`
+    too. Not on the messages a run inserts, nor on read: while a run goes the list
     shows "Thinking…" from `activeRunId`, and it shows no unread count, so the hundred inserts of a
     long run would each resend up to a thousand rows, about 400 KB, to a list that draws the same
     thing. The run's last write sets the preview it then shows.
@@ -606,8 +634,10 @@ per member and organization, `MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER` (5), and per 
   search through an index. `Conversation.title` and `ConversationMessage.text` are `@searchable`
   (the `simple` configuration, for seven languages), read with `queryFormat: PLAIN`, which requires
   every word: titles in one query (`limit: 1000`), and the 5000 most relevant member and agent
-  messages in another, whose distinct conversations join the titles'. Both filter on the caller,
-  their membership and `deletedAt`. Results are the best matches, not a guaranteed full set: a few
+  messages in another, whose distinct conversations join the titles'. Both filter on the
+  organization, the caller's membership and `deletedAt`, every member's conversations being
+  searched since 2026-11-02, as the list shows them, and the page narrows the results to the
+  member its menu picks. Results are the best matches, not a guaranteed full set: a few
   conversations with thousands of matching messages can use up the 5000, which one more message
   read past them reveals, and only then does the list say it shows the best matches and invite a
   narrower search. The messages are read once rather
@@ -623,8 +653,8 @@ per member and organization, `MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER` (5), and per 
   Connect's `String_Pattern`; `contains` is case-sensitive), escaped, and all of them are required
   in the same title or the same message's text, so every word still has to appear, and a term
   without spaces matches as written. No index serves such a match, so the path reads a bounded
-  corpus rather than everything the member has: the titles of all their conversations (at most
-  1000), and the messages of their most recently active ones only, taken newest first by
+  corpus rather than everything the organization has: the titles of its conversations (at most
+  1000), and the messages of its most recently active ones only, taken newest first by
   `messageCount` until they reach 20000 (`MAX_SUBSTRING_SEARCH_MESSAGES`), so one search scans at
   most 21000 rows, and the list says it searched recent conversations whenever that left one's
   messages unread. It is one query over the conversations, a title or, among the recent ones, a
@@ -1130,8 +1160,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   straight away rather than in two days. It is idempotent, answering the same when the row is
   already gone, and refuses a sent file, which only its conversation's deletion removes.
 - **Reading a file goes through the backend too**: `GET …/attachments/:attachmentId` checks that the
-  caller is still a member and owns the conversation, and streams the bytes with private cache
-  headers; the thread fetches it with the caller's tokens and shows it as an object URL. A Storage
+  caller is still a member, serves a sent file to any member while its conversation is kept, from
+  its author's folder, through `GetSentConversationAttachment`, and an unsent one to its uploader
+  alone, and streams the bytes with private cache headers; the thread fetches it with the caller's tokens and shows it as an object URL. A Storage
   rule could check only the uid, which stays true after a member is removed, so `storage.rules` keeps
   granting clients nothing under `organizations/`, as it does today.
 - Claude receives each file through the Files API, never as bytes in a request. Once the upload
@@ -1311,7 +1342,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   what a declined attempt used, which only `usage.iterations` reports, is kept in the ledger under
   the model that declined (M10).
 - **The system prompt** (`domain/agent/systemPrompt.ts`, with a test pinning its bytes): who
-  Strategy Dance is and that it challenges the team; that a conversation is private to one member;
+  Strategy Dance is and that it challenges the team; that every member of the organization can read
+  the conversation and only the member it talks with writes in it (until 2026-11-02, that it was
+  private to one member);
   short, plain answers in the member's language, without em dashes, in the Markdown the thread draws;
   links to documents as `[title](doc:<id>)` and to tasks as `[name](task:<id>)` (from M17), in a
   reply and in what it writes into a document or a task's description, where such a link mentions
@@ -1983,8 +2016,8 @@ way (see The orchestrator).
 
 - **A subagent is a conversation**, a child of the one that launched it, its parent: the same rows,
   transcript, runs, leases, fences, ledger, drawing and recovery, so everything A run and The
-  transcript say holds for it unless this section says otherwise. It is the member's, private as
-  their conversations are, and acts as them: its runs are fenced on their membership, and its module
+  transcript say holds for it unless this section says otherwise. It is the member's, read by every
+  member of the organization as their conversations are, and acts as them: its runs are fenced on their membership, and its module
   calls carry them as the caller, under a scope of its own, `conversation:<subagentId>`. It is hidden
   from the list, the dock, the badge and search, and counts toward neither `MAX_CONVERSATIONS` nor
   `MAX_ACTIVE_RUNS_PER_MEMBER`: every web read that lists conversations, the list, the badge's and

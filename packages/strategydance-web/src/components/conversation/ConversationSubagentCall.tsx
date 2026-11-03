@@ -20,6 +20,8 @@ type Props = {
   // The conversation that launched it, through which it is stopped
   conversationId: string
   subagent: ConversationSubagent
+  // Whether the reader started the conversation, and so may stop it
+  canStop: boolean
   // Opens its report, once it has one
   onOpen: () => void
   // Opens its work, its own thread, where the row is drawn somewhere that can show it
@@ -30,18 +32,18 @@ type Props = {
   A launch, drawn as the subagent it launched, live: a bordered row as a call's is, a spinner while
   it is queued or works and an hourglass while it waits for a slot, its title, a "Subagent" badge,
   and under them the tool's name with where it stands, what it is doing while it works. It offers
-  Stop while it is busy and not stopping already, and View work. Once it reported, however it ended,
+  the conversation's author Stop while it is busy and not stopping already, and View work. Once it reported, however it ended,
   the row opens its report wherever it is clicked but on what else it offers, as a finished call's
   opens its output
 */
-function ConversationSubagentCall({ conversationId, subagent, onOpen, onView }: Props) {
+function ConversationSubagentCall({ conversationId, subagent, canStop: isStoppable, onOpen, onView }: Props) {
   const intl = useIntl()
   const { formatMessage } = intl
   const status = getConversationSubagentStatus(subagent)
   const isFailed = status === 'failed'
   const isReported = subagent.reportedAt !== null
   const isBusy = status === 'queued' || status === 'working' || status === 'stopping'
-  const canStop = subagent.activeRunId !== null && status !== 'stopping'
+  const canStop = isStoppable && subagent.activeRunId !== null && status !== 'stopping'
 
   function renderLabel() {
     const label = <span className="truncate max-sm:whitespace-normal">{subagent.title}</span>

@@ -15,9 +15,9 @@ import isOlderConversation from '~utils/conversation/isOlderConversation'
 import { dataConnect } from '~data/firebase'
 
 /*
-  One of the reader's conversations in the current organization, with the live tail of its thread,
-  or null when there is none: deleted, somebody else's, in another organization, or a draft not
-  stored yet. As `useConversations` does, the first read is an ordinary query, which
+  One conversation of the current organization, the reader's or another member's, with its author
+  and the live tail of its thread, or null when there is none: deleted, in another organization, or
+  a draft not stored yet. As `useConversations` does, the first read is an ordinary query, which
   `ConversationWait` waits on, and the subscription beside it writes each result the server pushes
   into the same cache entry. Whichever lands, a result older than the one cached leaves it alone:
   the SDK can deliver one late.

@@ -338,6 +338,19 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "aibesttop-tools",
+    "name": "AIBestTop Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://aibesttop.com/",
+    "submissionUrl": "https://aibesttop.com/submit",
+    "description": "",
+    "categories": [],
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": "2026-11-03",
+    "unreachableSince": "2026-10-31",
+    "inactiveReason": "UNREACHABLE"
+  },
+  {
     "id": "aicyclopedia",
     "name": "AICYCLOPEDIA",
     "type": "WEBSITE",
@@ -970,7 +983,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-11-03",
     "unreachableSince": null,
     "inactiveReason": "REPURPOSED"
   },

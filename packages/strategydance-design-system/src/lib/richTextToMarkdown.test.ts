@@ -64,7 +64,7 @@ describe('richTextToMarkdown', () => {
     ])
   })
 
-  it("writes a mention as the agent's link to a document or a task, its words escaped", () => {
+  it("writes a mention as the agent's link to a document, a task or a conversation, its words escaped", () => {
     expect(
       richTextToMarkdown([
         paragraph(
@@ -75,10 +75,15 @@ describe('richTextToMarkdown', () => {
           { type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9', name: 'Ship *it*' } },
           ' or ',
           { type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9' } },
+          ', as ',
+          {
+            type: 'conversationMention',
+            props: { conversationId: '4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9', title: 'Pricing call' },
+          },
         ),
       ]),
     ).toBe(
-      '**See** [Plan \\[v2\\]](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) then [Ship \\*it\\*](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9) or [](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)',
+      '**See** [Plan \\[v2\\]](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) then [Ship \\*it\\*](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9) or [](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9), as [Pricing call](conversation:4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9)',
     )
   })
 
@@ -91,6 +96,11 @@ describe('richTextToMarkdown', () => {
         },
         ' and ',
         { type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9' } },
+        ' from ',
+        {
+          type: 'conversationMention',
+          props: { conversationId: '4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9', title: 'Call _one_' },
+        },
       ),
       {
         type: 'checkListItem',

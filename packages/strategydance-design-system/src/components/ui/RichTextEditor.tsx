@@ -24,6 +24,8 @@ import { normalizeRichText } from 'strategydance-design-system/lib/normalizeRich
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 import {
   RICH_TEXT_EDITOR_BLOCKS,
+  RICH_TEXT_MENTIONS,
+  RICH_TEXT_MENTION_KINDS,
   RICH_TEXT_YJS_FRAGMENT,
   type RichTextEditorBlock,
   type RichTextLinkPreview,
@@ -101,7 +103,7 @@ type Props = {
    */
   previewLink?: (url: string) => Promise<RichTextLinkPreview>
   /**
-   * Where mentions of documents and tasks draw what they name from, and what they open: the page's
+   * Where mentions of documents, tasks and conversations draw what they name from, and what they open: the page's
    * lists, which change as they are read and as the team changes them, and are followed as they do.
    * Left out, or with `blocks` naming no mention, no mention is offered, and those the text holds
    * are their words. Whether one is given at all is read once
@@ -157,8 +159,8 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
   It writes paragraphs, headings at three levels, quotes, bulleted, numbered and check lists,
   nested by Tab, text in bold, italic, underline, strikethrough and inline code, which text typed
   between backticks writes, links, code, colored in the language picked over it, tables, grown and headed from the handles on their edges, pictures,
-  YouTube, Vimeo and Loom videos, cards linking to web pages, and mentions of documents and tasks,
-  which "@" opens a menu of, which is everything `RichText` draws back. A mention draws what it
+  YouTube, Vimeo and Loom videos, cards linking to web pages, and mentions of documents, tasks and
+  conversations, which "@" opens a menu of, which is everything `RichText` draws back. A mention draws what it
   names from `mentions`, live, and a click on it opens it.
 
   It is uncontrolled. `initialValue` seeds it once, `onChange` reports each edit as the blocks
@@ -364,7 +366,7 @@ function createEditor({
       // Colors code as shiki does, each language's grammar loaded the first time a block is in it
       ...(blocks.includes('code') ? [syntaxHighlighter] : []),
       // What the mentions draw from, seeded so they draw what they name from the start
-      ...(blocks.includes('documentMention') || blocks.includes('taskMention')
+      ...(RICH_TEXT_MENTION_KINDS.some(kind => blocks.includes(RICH_TEXT_MENTIONS[kind].type))
         ? [RichTextMentionsExtension({ source: mentions ?? null })]
         : []),
     ],

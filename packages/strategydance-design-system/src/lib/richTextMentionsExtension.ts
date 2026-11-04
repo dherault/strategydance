@@ -2,7 +2,7 @@ import { type ExtensionOptions, createExtension, createStore } from '@blocknote/
 import type { RichTextMentionSource } from 'strategydance-design-system/lib/richText'
 
 /*
-  Where an editor's mentions draw their documents and tasks from: the page's source, held in a
+  Where an editor's mentions draw their documents, tasks and conversations from: the page's source, held in a
   store the editor sets as it changes and every mention drawn subscribes to, so a title renamed, a
   document deleted or a list read reaches the mentions already drawn. Each editor makes its own.
 

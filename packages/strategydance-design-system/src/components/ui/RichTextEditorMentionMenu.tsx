@@ -7,7 +7,7 @@ import {
   useBlockNoteEditor,
   useEditorDOMElement,
 } from '@blocknote/react'
-import { FileTextIcon, SquareKanbanIcon } from 'lucide-react'
+import { FileTextIcon, type LucideIcon, MessagesSquareIcon, SquareKanbanIcon } from 'lucide-react'
 import { type ComponentProps, useEffect } from 'react'
 import {
   RICH_TEXT_EDITOR_MENU_FLOATING_OPTIONS,
@@ -15,24 +15,44 @@ import {
 } from 'strategydance-design-system/components/ui/RichTextEditorSlashMenu'
 import type { RichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { getRichTextMentionItems } from 'strategydance-design-system/lib/getRichTextMentionItems'
-import type { RichTextMentionSource } from 'strategydance-design-system/lib/richText'
+import {
+  RICH_TEXT_MENTION_KINDS,
+  type RichTextMentionKind,
+  type RichTextMentionSource,
+  createRichTextMention,
+  getRichTextMentionList,
+} from 'strategydance-design-system/lib/richText'
 import { RichTextMentionsExtension } from 'strategydance-design-system/lib/richTextMentionsExtension'
 
 // How long the menu waits for a list to be read before it suggests from those it has, for one that could not be
 const LIST_WAIT = 5000
 
+// Each kind's icon, as its mentions draw it
+const ICONS: Record<RichTextMentionKind, LucideIcon> = {
+  document: FileTextIcon,
+  task: SquareKanbanIcon,
+  conversation: MessagesSquareIcon,
+}
+
+// The heading of each kind's group
+const GROUP_LABELS: Record<RichTextMentionKind, keyof RichTextDictionary['rich_text']> = {
+  document: 'mention_documents',
+  task: 'mention_tasks',
+  conversation: 'mention_conversations',
+}
+
 type MentionsStore = NonNullable<ReturnType<typeof readStore>>
 
 /*
-  The menu "@" opens in `RichTextEditor`, as the slash menu opens: the documents and the tasks
-  whose title holds what is typed after it, each under its group with its icon, a pick putting a
+  The menu "@" opens in `RichTextEditor`, as the slash menu opens: the documents, the tasks and the
+  conversations whose title holds what is typed after it, each under its group with its icon, a pick putting a
   mention of it in place of the "@" and what was typed, and a space after it.
 
   It opens where a word starts, at the start of a block or after a space, so an "@" inside a word,
   an email address's, types as itself, and never in code. Tab picks the chosen row, as Enter does.
   What is typed starting with a space is no mention, so the menu closes, as Enter would otherwise
   pick or do nothing while it is open.
-  Opening it asks for both lists, and while one is not read it waits, showing its loader, rather
+  Opening it asks for every list, and while one is not read it waits, showing its loader, rather
   than closing on what it cannot suggest yet; a list that could not be read is waited for no longer
   than a few seconds. It reads the page's source from the editor's store, as its mentions do, so
   what it suggests once it has waited is what the page holds then
@@ -50,24 +70,21 @@ function RichTextEditorMentionMenuController() {
       return []
     }
 
-    store.state.request('document')
-    store.state.request('task')
+    for (const kind of RICH_TEXT_MENTION_KINDS) store.state.request(kind)
 
     const source = await waitForLists(store)
 
     if (!source) return []
 
     return getRichTextMentionItems(source, query).map(item => {
-      const isDocument = item.kind === 'document'
+      const Icon = ICONS[item.kind]
 
       return {
         title: item.title,
-        group: isDocument ? dictionary.rich_text.mention_documents : dictionary.rich_text.mention_tasks,
-        icon: isDocument ? <FileTextIcon size={18} /> : <SquareKanbanIcon size={18} />,
+        group: dictionary.rich_text[GROUP_LABELS[item.kind]],
+        icon: <Icon size={18} />,
         onItemClick: () => {
-          const mention = isDocument
-            ? { type: 'documentMention', props: { documentId: item.id, title: item.title } }
-            : { type: 'taskMention', props: { taskId: item.id, name: item.title } }
+          const mention = createRichTextMention(item, item.title)
 
           editor.insertInlineContent([mention, ' '] as never, { updateSelection: true })
         },
@@ -121,9 +138,10 @@ function readStore(editor: BlockNoteEditor<any, any, any>) {
   return editor.getExtension(RichTextMentionsExtension)?.store
 }
 
-// The source once both its lists are read, or once the menu has waited long enough for one that could not be
+// The source once all its lists are read, or once the menu has waited long enough for one that could not be
 function waitForLists(store: MentionsStore) {
-  const isReady = (source: RichTextMentionSource | null) => !source || (!!source.documents && !!source.tasks)
+  const isReady = (source: RichTextMentionSource | null) =>
+    !source || RICH_TEXT_MENTION_KINDS.every(kind => !!getRichTextMentionList(source, kind))
 
   return new Promise<RichTextMentionSource | null>(resolve => {
     if (isReady(store.state)) {

@@ -68,8 +68,9 @@ const { RichTextEditor } = window.StrategyDanceDesignSystem
   past 420px. `document` has no frame and grows with its text; its block handle hangs in the margin
   to the left of the text, so leave it some 60px there
 - `blocks` is every block unless narrowed: a post writes `heading`, `quote`, `list` and
-  `checklist`, a top priority `list` and `checklist`, a task's description adds `documentMention`
-  and `taskMention`, and a document adds `code`, `table`, `image`, `video` and `linkPreview`
+  `checklist`, a top priority `list` and `checklist`, a task's description adds `documentMention`,
+  `taskMention` and `conversationMention`, and a document adds `code`, `table`, `image`, `video` and
+  `linkPreview`
 - `placeholder` is required, and is its accessible name unless `aria-label` says otherwise
 - `onSubmit` runs on ⌘Enter or Ctrl+Enter, the shortcut to post. `autoFocus` puts the caret at the
   end once it mounts, and `ref` takes a handle whose `focus()` puts it in the text from outside

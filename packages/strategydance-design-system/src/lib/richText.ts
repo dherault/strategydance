@@ -70,8 +70,9 @@ const richTextClasses = {
   // What is nested under a block that is not a list item, and under a check item, under its text
   nested: 'pl-6 [&>:last-child]:mb-0',
   link: 'text-primary underline underline-offset-2 hover:text-primary-700',
-  // A mention of a document or a task, as the editor's stylesheet draws one and the thread draws its
-  // links to them: what it names in the primary color, struck through and muted once it is gone
+  // A mention of a document, a task or a conversation, as the editor's stylesheet draws one and the
+  // thread draws its links to them: what it names in the primary color, struck through and muted
+  // once it is gone
   mention: {
     words: 'font-medium',
     link: 'font-medium text-primary no-underline hover:text-primary-800 hover:underline',
@@ -115,7 +116,8 @@ export type RichTextHeadingLevel = (typeof RICH_TEXT_HEADING_LEVELS)[number]
 
 /**
  * A block an editor can write besides paragraphs, lists being one, bulleted and numbered alike, or
- * an element inside its text besides runs and links: a mention of a document or a task. A block is
+ * an element inside its text besides runs and links: a mention of a document, a task or a
+ * conversation. A block is
  * one or more of the stored block types, as `getRichTextBlockTypes` names them, and an element one
  * of the stored inline types, as `getRichTextInlineTypes` names them
  */
@@ -131,6 +133,7 @@ export type RichTextEditorBlock =
   | 'linkPreview'
   | 'documentMention'
   | 'taskMention'
+  | 'conversationMention'
 
 /**
  * The blocks a post is written in, a log entry's: text and lists, which a feed and a card draw.
@@ -140,13 +143,14 @@ export type RichTextEditorBlock =
 export const RICH_TEXT_POST_BLOCKS: readonly RichTextEditorBlock[] = ['heading', 'quote', 'list', 'checklist']
 
 /**
- * The blocks a task's description is written in: a post's, and mentions of documents and tasks,
- * which a post never holds, since a feed and a public page draw posts
+ * The blocks a task's description is written in: a post's, and mentions of documents, tasks and
+ * conversations, which a post never holds, since a feed and a public page draw posts
  */
 export const RICH_TEXT_TASK_BLOCKS: readonly RichTextEditorBlock[] = [
   ...RICH_TEXT_POST_BLOCKS,
   'documentMention',
   'taskMention',
+  'conversationMention',
 ]
 
 /**
@@ -166,6 +170,7 @@ export const RICH_TEXT_EDITOR_BLOCKS: readonly RichTextEditorBlock[] = [
   'linkPreview',
   'documentMention',
   'taskMention',
+  'conversationMention',
 ]
 
 /**
@@ -265,8 +270,7 @@ export function getRichTextInlineTypes(blocks: readonly RichTextEditorBlock[]): 
   return [
     'text',
     'link',
-    ...(blocks.includes('documentMention') ? (['documentMention'] as const) : []),
-    ...(blocks.includes('taskMention') ? (['taskMention'] as const) : []),
+    ...RICH_TEXT_MENTION_KINDS.map(kind => RICH_TEXT_MENTIONS[kind].type).filter(type => blocks.includes(type)),
   ]
 }
 
@@ -320,7 +324,13 @@ export type RichTextTaskMention = {
   props: { taskId: string; name?: string }
 }
 
-export type RichTextMention = RichTextDocumentMention | RichTextTaskMention
+/** A mention of a conversation, by its id, with its title when the mention was made, as a document's has its title */
+export type RichTextConversationMention = {
+  type: 'conversationMention'
+  props: { conversationId: string; title?: string }
+}
+
+export type RichTextMention = RichTextDocumentMention | RichTextTaskMention | RichTextConversationMention
 
 export type RichTextInline = RichTextRun | RichTextLink | RichTextMention
 
@@ -429,14 +439,43 @@ export type RichTextBlock =
 /** The blocks rich text is written in, by BlockNote's names */
 export type RichTextBlockType = RichTextBlock['type']
 
-/** What a mention names: a document or a task */
-export type RichTextMentionKind = 'document' | 'task'
+/** What a mention names: a document, a task or a conversation */
+export type RichTextMentionKind = 'document' | 'task' | 'conversation'
 
-/** A document or a task a mention names, by its id as Data Connect writes one */
+/**
+ * How a mention of each kind is stored and linked: its inline type, the props its id and its words
+ * are stored under for good, the scheme of the link Strategy Dance's agent writes for it, as in
+ * `doc:<id>`, and the list of a page's source it draws from. In the order a page's lists and the
+ * mentions menu take them
+ */
+export const RICH_TEXT_MENTIONS = {
+  document: { type: 'documentMention', idProp: 'documentId', wordsProp: 'title', scheme: 'doc', list: 'documents' },
+  task: { type: 'taskMention', idProp: 'taskId', wordsProp: 'name', scheme: 'task', list: 'tasks' },
+  conversation: {
+    type: 'conversationMention',
+    idProp: 'conversationId',
+    wordsProp: 'title',
+    scheme: 'conversation',
+    list: 'conversations',
+  },
+} as const satisfies Record<
+  RichTextMentionKind,
+  { type: RichTextMention['type']; idProp: string; wordsProp: string; scheme: string; list: string }
+>
+
+/** The kinds of mention, in the order a page's lists and the mentions menu take them */
+export const RICH_TEXT_MENTION_KINDS = Object.keys(RICH_TEXT_MENTIONS) as RichTextMentionKind[]
+
+// Each kind of mention by its inline type
+const MENTION_KINDS = Object.fromEntries(
+  RICH_TEXT_MENTION_KINDS.map(kind => [RICH_TEXT_MENTIONS[kind].type, kind]),
+) as Record<RichTextMention['type'], RichTextMentionKind>
+
+/** A document, a task or a conversation a mention names, by its id as Data Connect writes one */
 export type RichTextMentionTarget = { kind: RichTextMentionKind; id: string }
 
 /**
- * Where a page's mentions draw their documents and tasks from, and what they open: the
+ * Where a page's mentions draw their documents, tasks and conversations from, and what they open: the
  * organization's live lists, which the page reads once a mention needs them, and its addresses
  */
 export type RichTextMentionSource = {
@@ -444,6 +483,8 @@ export type RichTextMentionSource = {
   documents: ReadonlyMap<string, string> | null
   /** Each task's name by its id, in the order to suggest them, or null while unread, or when it could not be read */
   tasks: ReadonlyMap<string, string> | null
+  /** Each conversation's title by its id, in the order to suggest them, or null while unread, or when it could not be read */
+  conversations: ReadonlyMap<string, string> | null
   /** Asks for a kind's list, which is read from then on: a mention of it is drawn, or the menu opens. Called again and again */
   request: (kind: RichTextMentionKind) => void
   /** The address of the page a mention opens */
@@ -457,14 +498,36 @@ export type RichTextMentionSource = {
   self?: RichTextMentionTarget
 }
 
-/** What a mention names */
-export function getRichTextMentionTarget(mention: RichTextMention): RichTextMentionTarget {
-  return mention.type === 'documentMention'
-    ? { kind: 'document', id: mention.props.documentId }
-    : { kind: 'task', id: mention.props.taskId }
+/** The kind of mention an inline type is, or null for one that mentions nothing */
+export function getRichTextMentionKind(type: unknown): RichTextMentionKind | null {
+  return typeof type === 'string' && Object.hasOwn(MENTION_KINDS, type)
+    ? MENTION_KINDS[type as RichTextMention['type']]
+    : null
 }
 
-/** The words a mention was made with, its document's title or its task's name then, or an empty string */
+/** A mention of what `target` names, with its words when they are given */
+export function createRichTextMention({ kind, id }: RichTextMentionTarget, words?: string): RichTextMention {
+  const { type, idProp, wordsProp } = RICH_TEXT_MENTIONS[kind]
+
+  return { type, props: { [idProp]: id, ...(words === undefined ? {} : { [wordsProp]: words }) } } as RichTextMention
+}
+
+/** What a mention names */
+export function getRichTextMentionTarget(mention: RichTextMention): RichTextMentionTarget {
+  const kind = MENTION_KINDS[mention.type]
+  const props: Partial<Record<string, string>> = mention.props
+
+  return { kind, id: props[RICH_TEXT_MENTIONS[kind].idProp] ?? '' }
+}
+
+/** The words a mention was made with, its document's or its conversation's title or its task's name then, or an empty string */
 export function getRichTextMentionWords(mention: RichTextMention): string {
-  return (mention.type === 'documentMention' ? mention.props.title : mention.props.name) ?? ''
+  const props: Partial<Record<string, string>> = mention.props
+
+  return props[RICH_TEXT_MENTIONS[MENTION_KINDS[mention.type]].wordsProp] ?? ''
+}
+
+/** The list a page's source draws a kind's mentions from, null while it is unread */
+export function getRichTextMentionList(source: RichTextMentionSource, kind: RichTextMentionKind) {
+  return source[RICH_TEXT_MENTIONS[kind].list]
 }

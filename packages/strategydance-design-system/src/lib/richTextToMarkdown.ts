@@ -10,6 +10,8 @@ import {
   type RichTextStyles,
   type RichTextTableBlock,
   type RichTextTextBlock,
+  RICH_TEXT_MENTIONS,
+  getRichTextMentionTarget,
   getRichTextMentionWords,
 } from 'strategydance-design-system/lib/richText'
 
@@ -43,8 +45,8 @@ type Piece = { styles: Style[]; nodes: PhrasingContent[] }
   under an empty header row when it does not, which reads back as none. A table's columns lose
   their widths and its header column, and a line break in a cell is a space. A picture, a video
   and a link preview are a link, with the picture's caption or the page's title. A mention is the
-  link Strategy Dance's agent writes, `[title](doc:<id>)` for a document and `[name](task:<id>)` for
-  a task, with the words it was made with. Underline is `<u>…</u>`, inline code a code span, and a
+  link Strategy Dance's agent writes, `[title](doc:<id>)` for a document, `[name](task:<id>)` for a
+  task and `[title](conversation:<id>)` for a conversation, with the words it was made with. Underline is `<u>…</u>`, inline code a code span, and a
   line break inside a block a hard one, after a code span in inline code
 */
 function richTextToMarkdown(blocks: readonly RichTextBlock[]): string {
@@ -218,7 +220,8 @@ function writeInline(content: RichTextInline[]): PhrasingContent[] {
 // A mention as the link the agent writes for it, its words on one line already
 function writeMention(mention: RichTextMention): PhrasingContent {
   const words = getRichTextMentionWords(mention)
-  const url = mention.type === 'documentMention' ? `doc:${mention.props.documentId}` : `task:${mention.props.taskId}`
+  const { kind, id } = getRichTextMentionTarget(mention)
+  const url = `${RICH_TEXT_MENTIONS[kind].scheme}:${id}`
 
   return { type: 'link', url, children: words ? [{ type: 'text', value: words }] : [] }
 }

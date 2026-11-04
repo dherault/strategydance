@@ -55,10 +55,15 @@ describe('getRichTextText', () => {
             { type: 'documentMention', props: { documentId: '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e', title: 'Pricing' } },
             { type: 'text', text: ' and ' },
             { type: 'taskMention', props: { taskId: '7a1b2c3d4e5f40718293a4b5c6d7e8f9' } },
+            { type: 'text', text: ' from ' },
+            {
+              type: 'conversationMention',
+              props: { conversationId: '4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9', title: 'Pricing call' },
+            },
           ],
         },
       ]),
-    ).toBe('See Pricing and ')
+    ).toBe('See Pricing and  from Pricing call')
   })
 
   it('reads no blocks as nothing', () => {

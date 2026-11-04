@@ -227,7 +227,7 @@ describe('update_document', () => {
     expect(
       await kit.refusal('update_document', { id: document.id, replaceText: { find: 'absent', replace: 'x' } }),
     ).toBe(
-      'That text does not occur in the document. Read it again and copy the text exactly. A mention, a doc: or task: link, is no text to find: replace its block to change it.',
+      'That text does not occur in the document. Read it again and copy the text exactly. A mention, a doc:, task: or conversation: link, is no text to find: replace its block to change it.',
     )
   })
 
@@ -385,28 +385,28 @@ describe('update_document', () => {
     expect(markdownOf(document.id)).toEqual(['Intro', 'Mine'])
   })
 
-  it("writes the agent's links to documents and tasks as mentions, which no replaced text reaches", async () => {
+  it("writes the agent's links to documents, tasks and conversations as mentions, which no replaced text reaches", async () => {
     const kit = await connect()
     const document = documents.store('Intro')
     const mentions =
-      'See [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) before [Launch](task:7a1b2c3d-4e5f-4071-8293-a4b5c6d7e8f9)'
+      'See [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) before [Launch](task:7a1b2c3d-4e5f-4071-8293-a4b5c6d7e8f9) from [Beta call](CONVERSATION:4D5E6F7A8B9C40D1A2B3C4D5E6F7A8B9)'
 
     await kit.answer('update_document', { id: document.id, append: mentions })
 
     expect(markdownOf(document.id)).toEqual([
       'Intro',
-      'See [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) before [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)',
+      'See [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) before [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9) from [Beta call](conversation:4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9)',
     ])
     expect(
       await kit.refusal('update_document', { id: document.id, replaceText: { find: 'See Pricing', replace: 'x' } }),
     ).toBe(
-      'That text does not occur in the document. Read it again and copy the text exactly. A mention, a doc: or task: link, is no text to find: replace its block to change it.',
+      'That text does not occur in the document. Read it again and copy the text exactly. A mention, a doc:, task: or conversation: link, is no text to find: replace its block to change it.',
     )
 
     await kit.answer('update_document', { id: document.id, replaceText: { find: ' before ', replace: ' then ' } })
 
     expect(markdownOf(document.id)[1]).toBe(
-      'See [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) then [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9)',
+      'See [Pricing](doc:0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e) then [Launch](task:7a1b2c3d4e5f40718293a4b5c6d7e8f9) from [Beta call](conversation:4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9)',
     )
   })
 

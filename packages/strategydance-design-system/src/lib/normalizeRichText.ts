@@ -8,14 +8,18 @@ import {
   type RichTextInline,
   type RichTextInlineType,
   type RichTextLinkPreviewBlock,
-  type RichTextMention,
+  type RichTextMentionKind,
   type RichTextRun,
   type RichTextStyles,
   type RichTextTableBlock,
   type RichTextTableContent,
   type RichTextTextBlock,
   type RichTextVideoEmbedBlock,
+  RICH_TEXT_MENTIONS,
+  RICH_TEXT_MENTION_KINDS,
+  createRichTextMention,
   getRichTextCodeLanguage,
+  getRichTextMentionKind,
 } from 'strategydance-design-system/lib/richText'
 
 // Deeper than any list anybody indents by hand, and shallow enough that a hostile value nesting
@@ -36,10 +40,11 @@ const ALL_BLOCK_TYPES: readonly RichTextBlockType[] = [
   'linkPreview',
 ]
 
-const ALL_INLINE_TYPES: readonly RichTextInlineType[] = ['text', 'link', 'documentMention', 'taskMention']
-
-// The inline elements that mention a document or a task
-const MENTION_TYPES = new Set(['documentMention', 'taskMention'])
+const ALL_INLINE_TYPES: readonly RichTextInlineType[] = [
+  'text',
+  'link',
+  ...RICH_TEXT_MENTION_KINDS.map(kind => RICH_TEXT_MENTIONS[kind].type),
+]
 
 // An id as Data Connect writes one
 const ID_PATTERN = /^[0-9a-f]{32}$/
@@ -125,7 +130,7 @@ type UnknownRecord = Record<string, unknown>
   to, a video the address of its page on YouTube, Vimeo or Loom, written one way, and a link
   preview its web address, what the page said of itself, and its picture's https address. A link
   keeps its address when it is a web or mail one, written as the URL parser writes it, and is its
-  text otherwise. A mention of a document or a task keeps its id, written as Data Connect writes
+  text otherwise. A mention of a document, a task or a conversation keeps its id, written as Data Connect writes
   one, and its words on one line, and is its words when its id is none or the options leave it out.
 
   Keys come in one order and empty ones are left out, and the empty paragraphs a document ends on
@@ -375,7 +380,9 @@ function normalizeInline(content: unknown, rules: Rules): RichTextInline[] {
   if (!Array.isArray(content)) return normalizeRuns(content)
 
   return content.flatMap((item): RichTextInline[] => {
-    if (isRecord(item) && MENTION_TYPES.has(item.type as string)) return normalizeMention(item, rules)
+    const kind = isRecord(item) ? getRichTextMentionKind(item.type) : null
+
+    if (isRecord(item) && kind) return normalizeMention(item, kind, rules)
     if (!isRecord(item) || item.type !== 'link') return normalizeRuns([item])
 
     const runs = normalizeRuns(item.content)
@@ -396,19 +403,14 @@ function withoutCode(run: RichTextRun): RichTextRun {
   A mention by its id, as Data Connect writes one, whatever the case or the hyphens it came in, with
   its words. One the rules leave out, or without an id, is its words alone
 */
-function normalizeMention(item: UnknownRecord, rules: Rules): RichTextInline[] {
+function normalizeMention(item: UnknownRecord, kind: RichTextMentionKind, rules: Rules): RichTextInline[] {
   const props = isRecord(item.props) ? item.props : {}
-  const isDocument = item.type === 'documentMention'
-  const id = normalizeRichTextMentionId(isDocument ? props.documentId : props.taskId)
-  const words = readMentionWords(item)
+  const id = normalizeRichTextMentionId(props[RICH_TEXT_MENTIONS[kind].idProp])
+  const words = readMentionWords(item, kind)
 
   if (!id || !rules.inlineTypes.has(item.type as string)) return words ? [{ type: 'text', text: words }] : []
 
-  const mention: RichTextMention = isDocument
-    ? { type: 'documentMention', props: { documentId: id, ...(words ? { title: words } : {}) } }
-    : { type: 'taskMention', props: { taskId: id, ...(words ? { name: words } : {}) } }
-
-  return [mention]
+  return [createRichTextMention({ kind, id }, words || undefined)]
 }
 
 /** An id as Data Connect writes one, 32 lowercase hex digits, from one written with or without hyphens in any case, or null */
@@ -421,10 +423,10 @@ function normalizeRichTextMentionId(value: unknown) {
 }
 
 // A mention's words, its document's title or its task's name
-function readMentionWords(item: UnknownRecord) {
+function readMentionWords(item: UnknownRecord, kind: RichTextMentionKind) {
   const props = isRecord(item.props) ? item.props : {}
 
-  return normalizeRichTextMentionWords(item.type === 'documentMention' ? props.title : props.name)
+  return normalizeRichTextMentionWords(props[RICH_TEXT_MENTIONS[kind].wordsProp])
 }
 
 /** A mention's words on one line, as a title or a name is written, within a length, or an empty string */
@@ -443,8 +445,11 @@ function normalizeRuns(content: unknown, depth = 0): RichTextRun[] {
   return content.flatMap((item): RichTextRun[] => {
     if (typeof item === 'string') return normalizeRuns(item)
     if (!isRecord(item)) return []
-    if (MENTION_TYPES.has(item.type as string)) {
-      const words = readMentionWords(item)
+
+    const kind = getRichTextMentionKind(item.type)
+
+    if (kind) {
+      const words = readMentionWords(item, kind)
 
       return words ? [{ type: 'text', text: words }] : []
     }

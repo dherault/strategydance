@@ -32,7 +32,7 @@ export const Document: Story = {
 
 /*
   A task's description mentioning a document renamed since, drawn with its current title, one
-  deleted since, struck through, and a task. Without its source a mention is its icon and the words
+  deleted since, struck through, a task and a conversation. Without its source a mention is its icon and the words
   it was made with
 */
 export const Mentions: Story = {

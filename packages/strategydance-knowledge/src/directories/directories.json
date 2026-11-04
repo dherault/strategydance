@@ -562,10 +562,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aitools.inc/",
     "submissionUrl": "https://aitools.inc/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools organized by category, job and task, where makers can submit their AI products for listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-04",
     "unreachableSince": null
   },
   {
@@ -1852,10 +1854,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://dailypings.com/",
     "submissionUrl": "https://dailypings.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Daily directory of newly launched tools and products of any kind, where makers submit their own listing and visitors upvote them.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-04",
     "unreachableSince": null
   },
   {
@@ -2706,11 +2710,15 @@
     "type": "WEBSITE",
     "rootUrl": "https://glama.ai/",
     "submissionUrl": "https://glama.ai/mcp/connectors",
-    "description": "",
-    "categories": [],
+    "description": "Registry of remote MCP servers (connectors) for Claude, ChatGPT, Cursor and other AI clients, where developers add their hosted MCP endpoints.",
+    "categories": [
+      "AI_AGENTS",
+      "MCP_SERVERS",
+      "DEVELOPER_TOOLS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": "2026-11-01",
-    "unreachableSince": "2026-11-01"
+    "lastChecked": "2026-11-04",
+    "unreachableSince": null
   },
   {
     "id": "goodfirms",
@@ -3208,10 +3216,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.launch-list.org/",
     "submissionUrl": "https://www.launch-list.org/submit/product",
-    "description": "",
-    "categories": [],
+    "description": "Weekly launch platform where makers submit startups and products of any kind, which are ranked by community upvotes.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_ENGAGEMENT",
-    "lastChecked": null,
+    "lastChecked": "2026-11-04",
     "unreachableSince": null
   },
   {
@@ -3848,10 +3858,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://submit.nextbigwhat.com/",
     "submissionUrl": "https://submit.nextbigwhat.com/",
-    "description": "",
-    "categories": [],
+    "description": "Paid launch platform where founders and makers publish product listings on NextBigWhat, a technology news site, with homepage and newsletter promotion.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-04",
     "unreachableSince": null
   },
   {
@@ -4260,10 +4272,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.prodpapa.com/",
     "submissionUrl": "https://www.prodpapa.com/pricing",
-    "description": "",
-    "categories": [],
+    "description": "Directory of startups and products for founders, businesses and sole proprietors, with a leaderboard, reviews and rating widgets.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-04",
     "unreachableSince": null
   },
   {
@@ -4944,10 +4958,10 @@
     "type": "WEBSITE",
     "rootUrl": "https://shipboost.io/",
     "submissionUrl": "https://shipboost.io/submit",
-    "description": "",
+    "description": "Weekly launch board and permanent directory of SaaS products, aimed at bootstrapped founders, with category, tag, alternatives and editorial pages.",
     "categories": [],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-04",
     "unreachableSince": null
   },
   {
@@ -5072,10 +5086,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.sites-plus.com/",
     "submissionUrl": "https://www.sites-plus.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Human-edited general web directory listing websites and businesses by topic category, where site owners suggest their own sites.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-11-04",
     "unreachableSince": null
   },
   {
@@ -6488,10 +6504,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://viesearch.com/",
     "submissionUrl": "https://viesearch.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Human-curated web directory and search engine listing websites and businesses of all kinds by topic category, where site owners submit their URLs for editor review.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-11-04",
     "unreachableSince": null
   },
   {
@@ -6538,10 +6556,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://webapprater.com/",
     "submissionUrl": "https://webapprater.com/",
-    "description": "",
-    "categories": [],
+    "description": "Review site for web and mobile apps, where developers and startups submit their apps to be reviewed and published.",
+    "categories": [
+      "SAAS",
+      "MOBILE_APPS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-04",
     "unreachableSince": null
   },
   {

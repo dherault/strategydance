@@ -366,13 +366,22 @@ export type StreakDay = {
 }
 
 /*
-  One of the reader's conversations as the list reads it: its title, aspects, whether a run goes or
-  a question waits, the preview of its last entry and when it last changed, never a message's text
+  One of the organization's conversations as the list reads it, the reader's or another member's:
+  its author, title, aspects, whether a run goes or a question waits, the preview of its last entry
+  and when it last changed, never a message's text
 */
 export type ConversationSummary = GetConversationsData['conversations'][number]
 
-// One of the reader's conversations as its page reads it, with the latest messages of its thread
+// One of the organization's conversations as its page reads it, with its author and the latest
+// messages of its thread
 export type Conversation = GetConversationData['conversations'][number]
+
+// Who started a conversation, the only member who writes in it, still named once they left
+export type ConversationAuthor = ConversationSummary['user']
+
+// Whose conversations the list shows: everybody's, the reader's, or an author's by uid behind a
+// prefix, so no uid reads as one of the others
+export type ConversationAuthorFilter = 'all' | 'me' | `user:${string}`
 
 /*
   A message of a thread without its body: what it is, where it sits and what changes in place, as

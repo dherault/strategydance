@@ -97,6 +97,12 @@ of its own, saying whose ceiling and when it has room (see Usage caps). Revised 
 David asked: Knowledge is called Documents everywhere, its pages at `/<organization>/documents`
 and its module `documents`, served at `/mcp/documents`, so an external agent connected to the
 Knowledge module connects again; the dated notes above keep the names they were written with.
+Revised on 2026-11-02, as David asked: every member of an organization reads every conversation
+there, its files and subagents included, and only its author writes in it, answers it, stops it or
+changes it, so the list shows each conversation's author and narrows to one member's, another
+member's page shows a notice in the composer's place, and the search, the files' route and the
+system prompt follow (see Decisions); what earlier notes say of a conversation being
+private held until then.
 When a decision changes, change it here first.
 
 ## The design
@@ -138,6 +144,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Subagents | Strategy Dance's agent hands work off to subagents, runs of its own that carry out a brief it writes, in parallel, and report back, as David chose on 2026-10-12: through the Subagents module, an MCP server of Strategy Dance's that only its own agents reach, in process (M30 to M34). A subagent acts as the member, is one level deep, has every tool the agent has but `ask_user`, the Subagents module's own and, as David chose on 2026-10-16, the two deletes, and takes up to four chained runs. The parent reacts to their reports in a run of its own, the first run no member starts, and never launches from it (see Subagents) |
 | The orchestrator | Later, with no milestones yet: once a day in each organization that turns it on, a run acting as the organization, through an agent membership, reads its documents and tasks, launches subagents, reorganizes what it finds and keeps a log (see The orchestrator). Until then nothing starts without a member, except a parent's reaction to its subagents |
 | The aspect page | Unchanged: no Conversations section and no suggestions in this plan, as David chose on 2026-10-11, since their design will likely change. The agent still tags each conversation's aspects (M23) |
+| Who reads a conversation | Every member of its organization, administrators or not, as David chose on 2026-11-02: the list, the page, the files, the subagents and the search are the team's, and the composer, the answers, Stop, Resume, Retry, Restore, Undo, the aspects, Delete, the dock, the unread count and the badge stay the author's. Until then a conversation was private to its author |
 | Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone, M38, opened it to everyone, modules' connections from external agents included |
 | Pull requests | Small, one concern each |
 
@@ -156,31 +163,45 @@ export, port the styles from `conversations.css` onto the design system's compon
   your agents** button, opening a dialog with the module's address and how to add it to each client
   (M19, M20), as the Tasks page does for its own module (M21). None of them is in the design: all
   are built from the design system's components.
-- Conversations are private: only their author sees them, administrators included. Each
-  organization has its own.
+- Every member of an organization reads every conversation there, administrators or not, and
+  only its author writes in it, as David chose on 2026-11-02; until then only its author saw it.
+  Each organization has its own.
 
 ### The list, `/conversations`
 
-- Header "Conversations", lead "Chats with Strategy Dance. Get ready to be challenged. Only you can
-  see your conversations.", and a primary "New conversation" button.
+- Header "Conversations", lead "Chats with Strategy Dance. Get ready to be challenged. Your whole
+  team can read them.", and a primary "New conversation" button.
+- Beside the search field, once another member started a conversation, a menu narrowing the list
+  and the search to "Everyone", "Mine" or one member, each with their face, the members offered
+  being those the list holds a conversation of, a member who left among them. "Mine" with none
+  shows "You have no conversations yet" and the New conversation button. Not in the design: built
+  from the design system's `Select`, as the board's filter is.
 - A search field ("Search conversations", Escape clears it). Every word has to appear in the title
   or in one message's text, the member's or Strategy Dance's, ignoring case. (The prototype also
   matched words spread over several messages, and in questions and notes; the full-text search
   matches within one title or one message's text.) No match:
   "No conversations match “query”", "Search looks at titles and messages.", and a "Clear search"
   button.
-- A table, latest activity first. Columns: Conversation (the title as a link, a "Needs your answer"
-  badge when a question waits, and a one-line preview), Aspects (their icons, in `COMPANY_ASPECTS`
-  order), Updated (relative time), and actions: "Open in dock" on desktop, and Delete, which asks to
-  confirm and then offers Undo in a toast. A click anywhere on the row opens the conversation.
+- A table, latest activity first. Columns: the author's face, with their name in a tooltip,
+  Conversation (the title as a link, a "Needs your answer" badge when a question waits for the
+  reader, and a one-line preview), Aspects (their icons, in `COMPANY_ASPECTS` order), Updated
+  (relative time), and actions on the reader's own alone: "Open in dock" on desktop, and Delete,
+  which asks to confirm and then offers Undo in a toast. A click anywhere on the row opens the
+  conversation.
 - Empty: "No conversations yet", "Ask Strategy Dance about a decision, a plan or what to do next.",
   and the New conversation button.
 
 ### The conversation page, `/conversations/$conversationId`
 
-- A bar: "All conversations" back to the list; a "Private" lock with the tooltip "Only you can see
-  your conversations"; "Updated 5 min ago", or "Not saved until you send a message" for a draft;
-  and, on desktop once saved, an "Open in dock" button that docks it and goes back to the list.
+- A bar: "All conversations" back to the list; on the reader's own, "Shared with your team" with the
+  tooltip "Everyone in your organization can read your conversations. Only you write in them.", or
+  on another member's, their face and "Started by {name}"; "Updated 5 min ago", or "Not saved until
+  you send a message" for a draft; and, on desktop once the reader's own is saved, an "Open in dock"
+  button that docks it and goes back to the list. Until 2026-11-02 it showed a "Private" lock.
+- Another member's conversation is read only: its aspects show as icons alone, its questions and
+  approvals say "Waiting for {name}'s answer" or "approval" while they wait, it offers no Stop,
+  Resume, Retry, Restore or Undo, reconciles nothing and marks nothing read, and the composer's
+  place holds "{name} started this conversation, so only they can write in it."
 - The title in the display face (`text-4xl`), then the aspects as icons, or "Add aspects": a button
   that opens the aspects dialog (the documents' one, shared).
 - The thread, in a 768px column, and the composer stuck to the bottom of the page.
@@ -501,20 +522,27 @@ per member and organization, `MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER` (5), and per 
 
 ### Who writes what
 
-- **The web connector** (`USER`, every operation keyed by `auth.uid` and by the caller's current
-  membership, with the predicate `GetOrganizationDocuments` uses, and every mutation checking that
+- **The web connector** (`USER`, every operation keyed by the caller's current membership, with the
+  predicate `GetOrganizationDocuments` uses, and every mutation by `auth.uid` too, checking that
   membership in its transaction: conversations outlive a member's removal, so ownership alone would
-  leave a former member reading them. Every read also filters the conversation on
+  leave a former member reading them. Since 2026-11-02 the reads of the list, a conversation, its
+  history, bodies, run, calls, subagents, a report and a brief's files match the organization alone,
+  since every member reads them, and their refreshes match the organization or the conversation
+  rather than the author; the badge's and the dock's reads stay the author's, as every write does.
+  A message's files are read only when their uploader wrote the conversation
+  (`user: { conversations_on_user: { exist: { id: … } } }`), as a send sets nothing else. Every read also filters the conversation on
   `deletedAt: { isNull: true }`, as
   `GetOrganizationDocuments` does, the list, the conversation, its history, its run, a tool call and
   both searches alike; only `RestoreConversation` reaches a deleted one. The backend's routes refuse a
   deleted conversation too, and its worker stops at its next write once the conversation is deleted):
   - `GetConversations($organizationId)`, live, read by the conversations page alone: the list,
     `limit: 1000`, ordered by `updatedAt` then `id` (a query without a limit stops at 100), each
-    conversation's fields, `preview` and `isAwaitingAnswer` included. It refreshes on run start and
-    end, answers, create, delete, restore and aspects, on `mutation.variables.userId ==
-    request.auth.uid && mutation.variables.organizationId == request.variables.organizationId`, as
-    the next three do. Not on the messages a run inserts, nor on read: while a run goes the list
+    conversation's fields and author, `preview` and `isAwaitingAnswer` included: every conversation
+    of a small team, and the 1000 most recently active of an organization whose members keep more
+    together. It refreshes on run start and end, answers, create, delete, restore and aspects, on
+    `mutation.variables.organizationId == request.variables.organizationId`, any member's change
+    waking every member's list; the next two match `mutation.variables.userId == request.auth.uid`
+    too. Not on the messages a run inserts, nor on read: while a run goes the list
     shows "Thinking…" from `activeRunId`, and it shows no unread count, so the hundred inserts of a
     long run would each resend up to a thousand rows, about 400 KB, to a list that draws the same
     thing. The run's last write sets the preview it then shows.
@@ -606,8 +634,10 @@ per member and organization, `MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER` (5), and per 
   search through an index. `Conversation.title` and `ConversationMessage.text` are `@searchable`
   (the `simple` configuration, for seven languages), read with `queryFormat: PLAIN`, which requires
   every word: titles in one query (`limit: 1000`), and the 5000 most relevant member and agent
-  messages in another, whose distinct conversations join the titles'. Both filter on the caller,
-  their membership and `deletedAt`. Results are the best matches, not a guaranteed full set: a few
+  messages in another, whose distinct conversations join the titles'. Both filter on the
+  organization, the caller's membership and `deletedAt`, every member's conversations being
+  searched since 2026-11-02, as the list shows them, and the page narrows the results to the
+  member its menu picks. Results are the best matches, not a guaranteed full set: a few
   conversations with thousands of matching messages can use up the 5000, which one more message
   read past them reveals, and only then does the list say it shows the best matches and invite a
   narrower search. The messages are read once rather
@@ -623,8 +653,8 @@ per member and organization, `MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER` (5), and per 
   Connect's `String_Pattern`; `contains` is case-sensitive), escaped, and all of them are required
   in the same title or the same message's text, so every word still has to appear, and a term
   without spaces matches as written. No index serves such a match, so the path reads a bounded
-  corpus rather than everything the member has: the titles of all their conversations (at most
-  1000), and the messages of their most recently active ones only, taken newest first by
+  corpus rather than everything the organization has: the titles of its conversations (at most
+  1000), and the messages of its most recently active ones only, taken newest first by
   `messageCount` until they reach 20000 (`MAX_SUBSTRING_SEARCH_MESSAGES`), so one search scans at
   most 21000 rows, and the list says it searched recent conversations whenever that left one's
   messages unread. It is one query over the conversations, a title or, among the recent ones, a
@@ -1130,8 +1160,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   straight away rather than in two days. It is idempotent, answering the same when the row is
   already gone, and refuses a sent file, which only its conversation's deletion removes.
 - **Reading a file goes through the backend too**: `GET …/attachments/:attachmentId` checks that the
-  caller is still a member and owns the conversation, and streams the bytes with private cache
-  headers; the thread fetches it with the caller's tokens and shows it as an object URL. A Storage
+  caller is still a member, serves a sent file to any member while its conversation is kept, from
+  its author's folder, through `GetSentConversationAttachment`, and an unsent one to its uploader
+  alone, and streams the bytes with private cache headers; the thread fetches it with the caller's tokens and shows it as an object URL. A Storage
   rule could check only the uid, which stays true after a member is removed, so `storage.rules` keeps
   granting clients nothing under `organizations/`, as it does today.
 - Claude receives each file through the Files API, never as bytes in a request. Once the upload
@@ -1311,11 +1342,15 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   what a declined attempt used, which only `usage.iterations` reports, is kept in the ledger under
   the model that declined (M10).
 - **The system prompt** (`domain/agent/systemPrompt.ts`, with a test pinning its bytes): who
-  Strategy Dance is and that it challenges the team; that a conversation is private to one member;
+  Strategy Dance is and that it challenges the team; that every member of the organization can read
+  the conversation and only the member it talks with writes in it (until 2026-11-02, that it was
+  private to one member);
   short, plain answers in the member's language, without em dashes, in the Markdown the thread draws;
   links to documents as `[title](doc:<id>)` and to tasks as `[name](task:<id>)` (from M17), in a
   reply and in what it writes into a document or a task's description, where such a link mentions
-  it, the same links in what the tools return being the team's mentions; reading
+  it, the same links in what the tools return being the team's mentions, beside
+  `[title](conversation:<id>)`, a mention of one of the team's conversations, which no tool opens
+  (from 2026-11-02); reading
   before relying, writing decisions into documents when the member agrees and saying what changed,
   flagging a document's aspects when they are missing or wrong, deleting one only when the member
   asks, never touching a document the team keeps AI from changing, and saying it cannot read one
@@ -1478,7 +1513,8 @@ member.
 - **The server's instructions**, each module's own, tell an external agent what Strategy Dance is
   and how to use the module: for Documents, what the aspects are, which Markdown documents are
   written in, a link to `doc:<id>` or `task:<id>` being a mention of the document or the task that
-  `read_document` or `read_task` opens, and that the team shares each document, which members may
+  `read_document` or `read_task` opens, one to `conversation:<id>` a mention of one of the team's
+  conversations, which no tool opens, and that the team shares each document, which members may
   be editing while the agent does.
 
 **The Documents module's tools**, built in M14, reaching Strategy Dance's agent in M16 and external
@@ -1488,7 +1524,7 @@ agents in M20:
 | --- | --- | --- |
 | `search_documents` | `{ query, aspects?, limit? }`: up to 10 documents AI may read (`isAiReadable` on), with id, title, aspects, `updatedAt`, `isAiWritable` and an excerpt, found by Data Connect's full-text search on `Document.title` and a new `Document.contentText` (see M14), through an index rather than a scan, at most 20 candidates, whose plain text alone is loaded to cut the excerpts. An external agent's search draws on the member's search allowance (see Who writes what) | read |
 | `list_documents` | `{ aspects?, cursor? }`: the documents AI may read, 50 at a time, latest updated first and then by id, since two can share an instant, with id, title, aspects, `updatedAt` and `isAiWritable`, and a `cursor`, holding the last one's `updatedAt` and id, while more remain, for an agent that would rather look round than search | read |
-| `read_document` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, a mention written as `[title](doc:<id>)` or `[name](task:<id>)`, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text. Refused, before anything of the document is loaded, when the team keeps it from AI, `isAiReadable` off ("The team keeps this document from AI. Tell the member you cannot read it."), which a member's mention of it does not change | read |
+| `read_document` | `{ id, from? }`: a document's title, aspects, `version` and text, as a list of its top-level blocks, each with its id and its Markdown, a mention written as `[title](doc:<id>)`, `[name](task:<id>)` or `[title](conversation:<id>)`, up to 40000 characters at a time, with `next` when more remains, since a document can hold 200000 and a tool result is cut at 50000. The text is the shared one, its snapshot with every pending update merged, never `content`, which lags until the next compaction, and the ids are the shared text's own block ids, which stay with a block while others are typed around it. `version` is a hash of the whole text. The cursor is a block's id and an offset within it, so a page ends at a block's end when it can and inside a block only when one block alone passes the budget, as a single 200000-character paragraph would, and the next page carries on from that block however the text around it changed. The cursor also carries a hash of the block it stopped inside, so an edit inside that block sends the model back to the block's start, and a cursor whose block was deleted back to the document's start, rather than repeat or skip text. Refused, before anything of the document is loaded, when the team keeps it from AI, `isAiReadable` off ("The team keeps this document from AI. Tell the member you cannot read it."), which a member's mention of it does not change | read |
 | `create_document` | `{ title, aspects, content }`: a new document, content in Markdown, mentions included, stored as its first Yjs snapshot with `content` and `contentText` beside it, under the documents' cap, as `CreateDocument` holds it. It starts with `isAiReadable` and `isAiWritable` on, as a document made on the page does, so the agent that made it can read and edit it, and the team can turn either off | write |
 | `update_document` | `{ id, version?, title?, content?, append?, replaceBlocks?, replaceText? }`: `content` replaces a document small enough to read whole, `append` adds to the end, `replaceBlocks: { fromId, toId, content }` replaces the blocks from one id to another, and `replaceText: { find, replace }` replaces one exact occurrence of a piece of text, never a mention, refused unless it occurs exactly once, so a large document, or one oversized block, is edited without being rewritten. A call makes one edit: `title` alone, or with at most one of `content`, `append`, `replaceBlocks` and `replaceText`, the schema refusing two of them together, or none of the five, before anything is read, so no two implementations can disagree on which applies first. The edit is applied to the shared text as members' edits are, merging with what they type meanwhile (see Rich text and Markdown). Refused when the team keeps AI from changing the document, `isAiWritable` off, or from reading it ("The team keeps AI from changing this document. Tell the member instead."); for `content`, which rewrites everything the model read, when it comes without the `version` `read_document` gave or the text is no longer that version, before anything is written; and for `replaceBlocks`, when either block is gone ("The document changed since you read it. Read it again first."). Everything else finds its place afresh, so it goes through while somebody types elsewhere in the document. An edit that changes the text keeps the text it replaced as a revision a member can go back to for 30 days, in the fold that stores it (see Rich text and Markdown), and the tool says `destructiveHint: true`, which an external agent's client may read to ask its member first: the hint is advisory, and the revision is what guards the text | write |
 | `set_document_aspects` | `{ id, aspects }`: flags the document with its aspects, replacing them all, each at most once, as the aspects dialog does. Refused as `update_document` is | write |
@@ -1543,9 +1579,10 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
   rest.
 - **A description is a post's, with mentions.** It is stored as a post's blocks and mentions,
   serialized (`RICH_TEXT_TASK_BLOCKS`: paragraphs, headings, quotes, lists and check lists, and
-  mentions of documents and tasks, see Rich text and Markdown), and saved whole, never shared as a
-  document's text is. `read_task` reads it through `richTextToMarkdown`, and a write goes through
-  `markdownToRichText`, a `doc:` or `task:` link becoming a mention and whatever else falls outside
+  mentions of documents, tasks and conversations, see Rich text and Markdown), and saved whole,
+  never shared as a document's text is. `read_task` reads it through `richTextToMarkdown`, and a
+  write goes through `markdownToRichText`, a `doc:`, `task:` or `conversation:` link becoming a
+  mention and whatever else falls outside
   a post's blocks becoming paragraphs, as the task's editor holds it: a code block a paragraph of
   its text, and a table, which `normalizeRichText` would drop with its text, since it keeps no block
   without text of its own, a paragraph per row, its cells' text joined by ` | `, turned so by the
@@ -1625,7 +1662,8 @@ the scopes `tasks:read` and `tasks:write`. Its tools, in the order it registers 
   board. Strategy Dance's agent's carry none, since it links with `task:` (see The agent).
 - **The server's instructions** tell an external agent what Strategy Dance is, what the board's
   columns and the aspects mean, that a description is a short brief in Markdown, whose links to
-  `doc:<id>` and `task:<id>` mention a document or a task, that the team moves tasks while the agent
+  `doc:<id>` and `task:<id>` mention a document or a task, and to `conversation:<id>` one of the
+  team's conversations, which no tool opens, that the team moves tasks while the agent
   does, and that a task assigned to Strategy Dance is one the team expects Strategy Dance's own
   agent to take up.
 
@@ -1983,8 +2021,8 @@ way (see The orchestrator).
 
 - **A subagent is a conversation**, a child of the one that launched it, its parent: the same rows,
   transcript, runs, leases, fences, ledger, drawing and recovery, so everything A run and The
-  transcript say holds for it unless this section says otherwise. It is the member's, private as
-  their conversations are, and acts as them: its runs are fenced on their membership, and its module
+  transcript say holds for it unless this section says otherwise. It is the member's, read by every
+  member of the organization as their conversations are, and acts as them: its runs are fenced on their membership, and its module
   calls carry them as the caller, under a scope of its own, `conversation:<subagentId>`. It is hidden
   from the list, the dock, the badge and search, and counts toward neither `MAX_CONVERSATIONS` nor
   `MAX_ACTIVE_RUNS_PER_MEMBER`: every web read that lists conversations, the list, the badge's and
@@ -2396,7 +2434,7 @@ no milestones yet: its own plan comes later.
 
 Documents and task descriptions are stored as BlockNote blocks (paragraphs, headings 1 to 3, quotes,
 bulleted, numbered and check list items, bold, italic, underline, strikethrough, inline code, web and
-mail links, and mentions of a document or a task), and documents also as code, tables, pictures, YouTube, Vimeo
+mail links, and mentions of a document, a task or a conversation), and documents also as code, tables, pictures, YouTube, Vimeo
 and Loom videos and link preview cards; the agent reads and writes Markdown. The stored model lives
 in the design system's `lib/` (`richText.ts`'s types, `normalizeRichText`, `parseRichText`,
 `getRichTextText`), beside the conversions between blocks and a document's shared text
@@ -2435,16 +2473,19 @@ model a page told to add a picture could make every reader's browser send the do
 of the page's choosing. A `replaceBlocks` over a range holding one of them has to keep it, by
 leaving it out of the range.
 
-**Mentions** of a document or a task are two of BlockNote's inline content types,
-`documentMention` and `taskMention`, which a member types with `@` in a document or a task's
-description and which the agent reads and writes as the links it already writes in a reply,
-`[title](doc:<id>)` and `[name](task:<id>)`, as David chose on 2026-10-12. A post, a log entry's or a
-priority's, never holds one (`RICH_TEXT_POST_BLOCKS`), so the public pages draw none. A
-description's blocks are a post's and both mentions (`RICH_TEXT_TASK_BLOCKS`), and a document's
-(`RICH_TEXT_EDITOR_BLOCKS`) hold both too.
+**Mentions** of a document, a task or a conversation are three of BlockNote's inline content
+types, `documentMention`, `taskMention` and `conversationMention`, which a member types with `@` in
+a document or a task's description and which the agent reads and writes as links: the ones it
+already writes in a reply, `[title](doc:<id>)` and `[name](task:<id>)`, as David chose on
+2026-10-12, and `[title](conversation:<id>)`. A post, a log entry's or a priority's, never holds one
+(`RICH_TEXT_POST_BLOCKS`), so the public pages draw none. A description's blocks are a post's and
+the three mentions (`RICH_TEXT_TASK_BLOCKS`), and a document's (`RICH_TEXT_EDITOR_BLOCKS`) hold them
+too. `RICH_TEXT_MENTIONS` names each kind's inline type, the props of its id and its words, its
+link's scheme and the list it draws from, so a kind joins there and wherever its icon and words are
+drawn.
 
 - **What one holds**: the id, as Data Connect writes it, 32 lowercase hex digits, and the words it
-  was made with, the document's title or the task's name at the time, on one line and at most 300
+  was made with, the document's or the conversation's title or the task's name at the time, on one line and at most 300
   characters. The editor and `RichText` draw the live title from the organization's lists, which a
   page reads once a mention needs them, as the thread reads them for its links: a mention whose id
   the list lacks is struck through and muted, as a gone link is, and the stored words show while
@@ -2453,11 +2494,11 @@ description's blocks are a post's and both mentions (`RICH_TEXT_TASK_BLOCKS`), a
   no mark on an element, so a bold run across one leaves it plain. Its props are append-only:
   y-prosemirror writes every attribute, defaults included, and one renamed or removed would make
   `readRichTextYDocCopy` refuse every document holding a mention.
-- **Markdown**: `richTextToMarkdown` writes a mention as a link to `doc:<id>` or `task:<id>`, its
-  words the link's. `markdownToRichText` reads such a link, its scheme in any case and its id with
+- **Markdown**: `richTextToMarkdown` writes a mention as a link to `doc:<id>`, `task:<id>` or
+  `conversation:<id>`, its words the link's. `markdownToRichText` reads such a link, its scheme in any case and its id with
   or without hyphens, as a mention whose words are the link's text without its styles, and a
-  picture whose address is one the same way, since a picture reads as a link. Any other `doc:` or
-  `task:` address, `doc:123` say, stays its words, as before. `normalizeRichText` keeps a mention
+  picture whose address is one the same way, since a picture reads as a link. Any other address of
+  those schemes, `doc:123` say, stays its words, as before. `normalizeRichText` keeps a mention
   whose id is valid in an editor whose list holds it, and makes any other its words, as it makes a
   link to an unsafe address.
 - **Plain text**: `getRichTextText` reads a mention as its words, so `contentText` and
@@ -2473,6 +2514,17 @@ description's blocks are a post's and both mentions (`RICH_TEXT_TASK_BLOCKS`), a
   shared text, which its schema lacks, and drops those of a description it saves, which its
   `normalizeRichText` reads as nothing, until it reloads. David chose to ship them in one release,
   as videos and link previews shipped.
+- **Conversations** joined on 2026-11-02, once every member reads the organization's
+  conversations. David chose them in a description as in a document; one release, as the first two
+  kinds shipped; and the tools' descriptions saying what the link is, in the release whose system
+  prompt had changed already, so a conversation loses its earlier reasoning once rather than twice.
+  A mention draws its title from `GetConversations`, the 1000 latest active, which leaves subagents
+  and deleted conversations out: in an organization past 1000, an older conversation's mention
+  draws as gone, as it falls off the Conversations page. The menu suggests six after the documents
+  and the tasks, latest active first, and a click opens the conversation's page. No tool opens a
+  conversation, so the agent keeps the link as it reads it, and a `conversation:` link in a reply
+  stays its words, since the thread's `Markdown` draws `doc:` and `task:` links alone, which David
+  kept out of this change.
 
 A task's description is a post's blocks and mentions, `RICH_TEXT_TASK_BLOCKS`, where a log entry's
 are a post's alone, stored as one serialized string and saved whole rather than shared: the Tasks
@@ -3134,8 +3186,9 @@ members' once they write.
   which no test can see: `bun run probe:claude` is the check, run whenever a module's tools change.
 - **A mention's words go stale**: a mention keeps the title it was made with, which the agent reads
   in its Markdown after a rename, while the page draws the live one. The id is what the agent acts
-  on, and `read_document` or `read_task` gives the current title; rewriting the words at each rename
-  would write to every document mentioning it.
+  on, and `read_document` or `read_task` gives the current title, where a conversation's title,
+  which no tool reads, stays the words the agent sees; rewriting the words at each rename would
+  write to every document mentioning it.
 - **Long conversations**: 1M tokens of context is far off; compaction and context editing are
   available (beta) if it comes to that.
 - **The locks are raced before a release, never in CI.** The emulator's PGlite runs one transaction

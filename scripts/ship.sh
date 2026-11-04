@@ -22,8 +22,25 @@ git fetch --quiet origin "$BASE" "$HEAD"
 # gh merges on the spot rather than waiting. Never with --delete-branch, since the head is `dev`.
 # Auto merge stays set as `dev` moves on, so whatever lands there before the checks pass goes out
 # with this release
+#
+# gh takes a pull request GitHub has yet to assess, as a new one is for a few seconds, for one to
+# wait on, and GitHub refuses auto merge ("Pull request is in clean status") on one whose checks
+# passed before it opened, as they have where a push to `dev` runs them. Hence waiting for the
+# assessment, and merging on the spot when the checks pass between gh's read and its request
 merge_when_ready() {
-  gh pr merge "$1" --auto --merge
+  local status
+
+  for _ in {1..30}; do
+    status=$(gh pr view "$1" --json mergeStateStatus --jq .mergeStateStatus) || status=UNKNOWN
+    [[ $status != UNKNOWN ]] && break
+    sleep 2
+  done
+
+  if ! gh pr merge "$1" --auto --merge; then
+    [[ $(gh pr view "$1" --json mergeStateStatus --jq .mergeStateStatus) == CLEAN ]] || return 1
+    echo "The checks passed meanwhile: merging now"
+    gh pr merge "$1" --merge
+  fi
 }
 
 # Before anything else, including the exits that report there is nothing to do: a commit sitting

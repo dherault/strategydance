@@ -1465,17 +1465,16 @@ query GetCappedStarts($organizationId: UUID!, $userId: String!) @auth(level: NO_
   }
 }
 
-# The caller's conversations whose title holds every word of the query, through the title's
+# The organization's conversations whose title holds every word of the query, through the title's
 # full-text index (see `Conversation.title`): `PLAIN` splits the query into words and requires
-# them all, in any order. All of them, as somebody keeps at most 1000 conversations in an
-# organization. Only their own, while they are a member, and none deleted. `$userId` is the uid the
+# them all, in any order. Up to 1000, as many as the conversations page lists. Every member's, since
+# every member reads them, while the caller is a member, and none deleted. `$userId` is the uid the
 # backend verified
 query SearchConversationTitles($organizationId: UUID!, $userId: String!, $query: String!) @auth(level: NO_ACCESS) {
   conversations_search(
     query: $query
     queryFormat: PLAIN
     where: {
-      userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
       parentId: { isNull: true }
@@ -1487,7 +1486,7 @@ query SearchConversationTitles($organizationId: UUID!, $userId: String!, $query:
   }
 }
 
-# The member's and the agent's messages, in the caller's conversations, whose text holds every
+# The members' and the agent's messages, in the organization's conversations, whose text holds every
 # word of the query, through the text's full-text index (see `ConversationMessage.text`), most
 # relevant first, and only their conversation's id, since the search answers with conversations.
 #
@@ -1495,7 +1494,8 @@ query SearchConversationTitles($organizationId: UUID!, $userId: String!, $query:
 # `orderBy` cannot name, so pages read by offset could repeat a message across a tie at their
 # boundary and skip another, and each page would rank every match again anyway. To 5001: the 5000
 # most relevant, and one more, which says that a few conversations with thousands of matches used
-# up the read, when the backend answers the best matches, and only then. Only the caller's own conversations, while they are a member, and none deleted.
+# up the read, when the backend answers the best matches, and only then. Every member's
+# conversations, while the caller is a member, and none deleted.
 # `$userId` is the uid the backend verified
 query SearchConversationMessages($organizationId: UUID!, $userId: String!, $query: String!) @auth(level: NO_ACCESS) {
   conversationMessages_search(
@@ -1504,7 +1504,6 @@ query SearchConversationMessages($organizationId: UUID!, $userId: String!, $quer
     where: {
       kind: { in: [MEMBER_TEXT, AGENT_TEXT] }
       conversation: {
-        userId: { eq: $userId }
         organizationId: { eq: $organizationId }
         deletedAt: { isNull: true }
         parentId: { isNull: true }
@@ -1517,13 +1516,13 @@ query SearchConversationMessages($organizationId: UUID!, $userId: String!, $quer
   }
 }
 
-# The caller's conversations, most recently active first, with how many messages each holds, from
-# which the backend picks those whose messages a search by substring reads. Only their own, while
-# they are a member, and none deleted. `$userId` is the uid the backend verified
+# The organization's conversations, most recently active first, with how many messages each holds,
+# from which the backend picks those whose messages a search by substring reads: the 1000 the
+# conversations page lists. Every member's, while the caller is a member, and none deleted. `$userId`
+# is the uid the backend verified
 query GetConversationSearchCorpus($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) {
   conversations(
     where: {
-      userId: { eq: $userId }
       organizationId: { eq: $organizationId }
       deletedAt: { isNull: true }
       parentId: { isNull: true }
@@ -1539,17 +1538,16 @@ query GetConversationSearchCorpus($organizationId: UUID!, $userId: String!) @aut
 }
 
 # A search by substring, for Chinese and Japanese, which put no space between words, so the
-# full-text indexes cannot find a word inside a sentence: the caller's conversations whose title
-# matches every pattern, or, among `$recentIds`, holding a member's or an agent's message whose text
-# matches every pattern. Each pattern is a LIKE pattern, `%word%` with the word's `%`, `_` and `\`
-# escaped, ignoring case. Always eight, one a word: the backend fills those a query leaves over with
-# `%`, which matches any text.
+# full-text indexes cannot find a word inside a sentence: the organization's conversations whose
+# title matches every pattern, or, among `$recentIds`, holding a member's or an agent's message whose
+# text matches every pattern. Each pattern is a LIKE pattern, `%word%` with the word's `%`, `_` and
+# `\` escaped, ignoring case. Always eight, one a word: the backend fills those a query leaves over
+# with `%`, which matches any text.
 #
 # No index serves such a match, so it reads a bounded corpus: the titles of at most 1000
 # conversations, and the messages of `$recentIds`, the most recently active conversations whose
-# messages add up to at most 20000 (`MAX_SUBSTRING_SEARCH_MESSAGES` in strategydance-core). Only
-# the caller's own, while they are a member, and none deleted. `$userId` is the uid the backend
-# verified
+# messages add up to at most 20000 (`MAX_SUBSTRING_SEARCH_MESSAGES` in strategydance-core). Every
+# member's, while the caller is a member, and none deleted. `$userId` is the uid the backend verified
 query SearchConversationsBySubstring(
   $organizationId: UUID!
   $userId: String!
@@ -1568,7 +1566,6 @@ query SearchConversationsBySubstring(
     where: {
       _and: [
         {
-          userId: { eq: $userId }
           organizationId: { eq: $organizationId }
           deletedAt: { isNull: true }
           parentId: { isNull: true }
@@ -1670,6 +1667,35 @@ query GetConversationAttachment($organizationId: UUID!, $userId: String!, $conve
     contentType
     size
     claudeFileId
+  }
+  conversation(id: $conversationId) {
+    userId
+    organizationId
+    deletedAt
+  }
+}
+
+# A file a message of a conversation sent, as the route that reads its bytes reads it for any member
+# of the organization, since every member reads every conversation there, with the conversation,
+# whose author's folder keeps it. Only one held by a message of that conversation, in that
+# organization: a file still waiting in a draft is its uploader's alone, read through
+# `GetConversationAttachment`. The route checks the caller's membership first
+query GetSentConversationAttachment($organizationId: UUID!, $conversationId: UUID!, $attachmentId: UUID!)
+@auth(level: NO_ACCESS) {
+  conversationAttachments(
+    where: {
+      id: { eq: $attachmentId }
+      organizationId: { eq: $organizationId }
+      conversationId: { eq: $conversationId }
+      message: { conversationId: { eq: $conversationId } }
+    }
+    limit: 1
+  ) {
+    userId
+    status
+    name
+    contentType
+    size
   }
   conversation(id: $conversationId) {
     userId

@@ -21,7 +21,8 @@ const CELL_SEPARATOR = ' | '
 /*
   A description an agent wrote in Markdown, as a task stores it: a post's blocks and mentions, as the
   task's editor holds them, serialized, and an empty string when it says nothing, with its plain text
-  beside it. A link to a document or a task, `[title](doc:<id>)` or `[name](task:<id>)`, mentions it.
+  beside it. A link to a document, a task or a conversation, `[title](doc:<id>)`, `[name](task:<id>)` or
+  `[title](conversation:<id>)`, mentions it.
   Whatever a post cannot hold becomes paragraphs: a code block a paragraph of its text, and a table a
   paragraph per row, its cells' text joined by ` | `, turned so before the blocks are normalized,
   which would drop a table with its text, since it keeps no block without text of its own. Pictures

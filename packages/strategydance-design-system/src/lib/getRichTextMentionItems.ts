@@ -1,20 +1,22 @@
-import type {
-  RichTextMentionKind,
-  RichTextMentionSource,
-  RichTextMentionTarget,
+import {
+  RICH_TEXT_MENTION_KINDS,
+  type RichTextMentionKind,
+  type RichTextMentionSource,
+  type RichTextMentionTarget,
+  getRichTextMentionList,
 } from 'strategydance-design-system/lib/richText'
 
 // How many of each kind the menu suggests, as the composer's mentions list suggests six documents
 const MAX_ITEMS_PER_KIND = 6
 
-/** A document or a task the mentions menu suggests, with its current title or name */
+/** A document, a task or a conversation the mentions menu suggests, with its current title or name */
 export type RichTextMentionItem = RichTextMentionTarget & { title: string }
 
 /*
   What the mentions menu suggests for what is typed after its `@`: up to six documents, then up to
-  six tasks, whose title or name holds it, whatever its case, in the source's order, which is the
-  page's. A document without a title, which nothing can find it by, and the document or the task
-  being written are never suggested. A kind whose list is not read suggests nothing
+  six tasks, then up to six conversations, whose title or name holds it, whatever its case, in the
+  source's order, which is the page's. A document or a conversation without a title, which nothing
+  can find it by, and the document or the task being written are never suggested. A kind whose list is not read suggests nothing
 */
 function getRichTextMentionItems(source: RichTextMentionSource, query: string): RichTextMentionItem[] {
   const words = query.trim().toLocaleLowerCase()
@@ -29,7 +31,7 @@ function getRichTextMentionItems(source: RichTextMentionSource, query: string): 
       .slice(0, MAX_ITEMS_PER_KIND)
       .map(([id, title]) => ({ kind, id, title: title.trim() }))
 
-  return [...pick('document', source.documents), ...pick('task', source.tasks)]
+  return RICH_TEXT_MENTION_KINDS.flatMap(kind => pick(kind, getRichTextMentionList(source, kind)))
 }
 
 export { getRichTextMentionItems }

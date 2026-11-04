@@ -274,7 +274,9 @@ type Message = {
   text?: string | null
   conversationAttachments_on_message?: { id: string; name: string; contentType: string; size: number }[]
 }
-type ConversationRead = { conversations: { conversationMessages_on_conversation: Message[] }[] }
+type ConversationRead = {
+  conversations: { user: { id: string }; conversationMessages_on_conversation: Message[] }[]
+}
 type PageRead = { conversations: { historyRevision: number }[]; conversationMessages: Message[] }
 
 // Whether a message read back holds the first message's files, the author's alone, in order
@@ -300,13 +302,23 @@ async function runChecks() {
   const tail = read.conversations[0]?.conversationMessages_on_conversation ?? []
 
   check(
-    `the tail reads the latest ${TAIL_LENGTH} messages, newest first`,
-    tail.length === TAIL_LENGTH && tail[0]?.position === latestPosition && isDescending(tail),
+    `the tail reads the latest ${TAIL_LENGTH} messages, newest first, with the conversation's author`,
+    tail.length === TAIL_LENGTH
+      && tail[0]?.position === latestPosition
+      && isDescending(tail)
+      && read.conversations[0]?.user.id === authorId,
+  )
+
+  const othersRead = await readAs<ConversationRead>(memberId, 'GetConversation', conversation(conversations.checked))
+
+  check(
+    'another member reads the conversation and its tail, naming its author',
+    othersRead.conversations[0]?.user.id === authorId
+      && othersRead.conversations[0]?.conversationMessages_on_conversation.length === TAIL_LENGTH,
   )
 
   for (const [name, userId, id] of [
     ['a deleted conversation', authorId, conversations.deleted],
-    ["another member's conversation", authorId, conversations.members],
     ['a conversation read from outside the organization', outsiderId, conversations.checked],
   ] as const) {
     const { conversations: found } = await readAs<ConversationRead>(userId, 'GetConversation', conversation(id))
@@ -349,14 +361,24 @@ async function runChecks() {
         .every(({ conversationAttachments_on_message: files }) => files?.length === 0),
   )
 
-  const othersPage = await readAs<PageRead>(authorId, 'GetConversationMessagesBefore', {
-    ...conversation(conversations.members),
-    beforePosition: 10,
+  const othersPage = await readAs<PageRead>(memberId, 'GetConversationMessagesBefore', {
+    ...conversation(conversations.checked),
+    beforePosition: tailStart,
   })
 
   check(
-    "another member's history reads nothing",
-    othersPage.conversations.length === 0 && othersPage.conversationMessages.length === 0,
+    "another member reads the history, with the author's files",
+    othersPage.conversationMessages.length === tailStart && hasSentFiles(othersPage.conversationMessages.at(-1)),
+  )
+
+  const outsidersPage = await readAs<PageRead>(outsiderId, 'GetConversationMessagesBefore', {
+    ...conversation(conversations.checked),
+    beforePosition: tailStart,
+  })
+
+  check(
+    'a history read from outside the organization reads nothing',
+    outsidersPage.conversations.length === 0 && outsidersPage.conversationMessages.length === 0,
   )
 
   // Bodies, by id
@@ -367,7 +389,7 @@ async function runChecks() {
   })
 
   check(
-    "bodies read the conversation's own messages by id, and nothing of another's",
+    "bodies read the conversation's own messages by id, and nothing of another conversation's",
     bodies.conversationMessages.length === 2
       && bodies.conversationMessages.every(({ id, text }) => id !== membersMessageId && typeof text === 'string'),
   )
@@ -384,7 +406,30 @@ async function runChecks() {
     messageIds: wantedIds,
   })
 
-  check("bodies asked for under another member's conversation read nothing", crossed.conversationMessages.length === 0)
+  check(
+    "bodies asked for under another member's conversation read its own message alone",
+    crossed.conversationMessages.length === 1 && crossed.conversationMessages[0]?.id === membersMessageId,
+  )
+
+  const othersBodies = await readAs<{ conversationMessages: Message[] }>(memberId, 'GetConversationMessageBodies', {
+    ...conversation(conversations.checked),
+    messageIds: wantedIds,
+  })
+  const outsidersBodies = await readAs<{ conversationMessages: Message[] }>(
+    outsiderId,
+    'GetConversationMessageBodies',
+    {
+      ...conversation(conversations.checked),
+      messageIds: wantedIds,
+    },
+  )
+
+  check(
+    "another member reads the bodies, with the author's files alone, and nobody outside does",
+    othersBodies.conversationMessages.length === 2
+      && hasSentFiles(othersBodies.conversationMessages.find(({ id }) => id === messageIds.get(0)))
+      && outsidersBodies.conversationMessages.length === 0,
+  )
 
   // The latest run, and a tool call
   const runs = await readAs<{ conversationRuns: { number: number }[] }>(authorId, 'GetConversationRun', {
@@ -395,6 +440,20 @@ async function runChecks() {
   check(
     'the run read is the latest by number',
     runs.conversationRuns.length === 1 && runs.conversationRuns[0]?.number === 2,
+  )
+
+  const othersRuns = await readAs<{ conversationRuns: { number: number }[] }>(memberId, 'GetConversationRun', {
+    organizationId,
+    conversationId: conversations.checked,
+  })
+  const outsidersRuns = await readAs<{ conversationRuns: unknown[] }>(outsiderId, 'GetConversationRun', {
+    organizationId,
+    conversationId: conversations.checked,
+  })
+
+  check(
+    'another member reads the run, and nobody outside does',
+    othersRuns.conversationRuns[0]?.number === 2 && outsidersRuns.conversationRuns.length === 0,
   )
 
   type ToolCallRead = { conversationMessages: { toolInput: string | null; toolOutput: string | null }[] }
@@ -418,10 +477,16 @@ async function runChecks() {
     organizationId,
     messageId: messageIds.get(toolCallPosition),
   })
+  const outsidersToolCall = await readAs<ToolCallRead>(outsiderId, 'GetConversationToolCall', {
+    organizationId,
+    messageId: messageIds.get(toolCallPosition),
+  })
 
+  check('a message that is not a call reads nothing', notToolCall.conversationMessages.length === 0)
   check(
-    "a message that is not a call, and another member's call, read nothing",
-    notToolCall.conversationMessages.length === 0 && othersToolCall.conversationMessages.length === 0,
+    'another member reads the call, and nobody outside does',
+    othersToolCall.conversationMessages[0]?.toolInput === '{"query":"pricing"}'
+      && outsidersToolCall.conversationMessages.length === 0,
   )
 
   // The dock's windows, read by their ids

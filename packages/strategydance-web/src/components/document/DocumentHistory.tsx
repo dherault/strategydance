@@ -9,7 +9,6 @@ import {
 } from 'strategydance-design-system/components/ui/Dialog'
 import type { RichTextMentionSource } from 'strategydance-design-system/lib/richText'
 
-import useAuthentication from '~hooks/authentication/useAuthentication'
 import useNow from '~hooks/common/useNow'
 import useDocumentRevisions from '~hooks/document/useDocumentRevisions'
 
@@ -36,7 +35,6 @@ type Props = {
 */
 function DocumentHistory({ organizationId, documentId, isRestoreHeld, mentions, onClose }: Props) {
   const { formatMessage } = useIntl()
-  const { data: viewer } = useAuthentication()
   const now = useNow()
   const { revisions, isLoading, hasFailed } = useDocumentRevisions({ organizationId, documentId, isEnabled: true })
 
@@ -64,7 +62,6 @@ function DocumentHistory({ organizationId, documentId, isRestoreHeld, mentions, 
             documentId={documentId}
             revision={revision}
             laterCount={index}
-            viewerId={viewer?.uid ?? null}
             isRestoreHeld={isRestoreHeld}
             now={now}
             mentions={mentions}

@@ -468,7 +468,7 @@
 }
 
 /*
-  A mention of a document or a task, as `RICH_TEXT_CLASSES.mention` draws one outside the editor
+  A mention of a document, a task or a conversation, as `RICH_TEXT_CLASSES.mention` draws one outside the editor
   and the thread draws its links to them: what it names in the primary color, its icon before its
   title, underlined only under the pointer, and struck through and muted once it is gone. Selected,
   as a click beside it or the arrow keys select it, it is ringed

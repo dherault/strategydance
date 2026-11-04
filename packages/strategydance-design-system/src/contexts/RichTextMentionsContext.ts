@@ -8,7 +8,10 @@ import type { RichTextMentionSource } from 'strategydance-design-system/lib/rich
 */
 export type RichTextMentionsContextType = {
   source: RichTextMentionSource | null
-  labels: Pick<RichTextLabels, 'mentionUntitled' | 'mentionDocumentGone' | 'mentionTaskGone'>
+  labels: Pick<
+    RichTextLabels,
+    'mentionUntitled' | 'mentionDocumentGone' | 'mentionTaskGone' | 'mentionConversationGone'
+  >
 }
 
 export default createContext<RichTextMentionsContextType>({

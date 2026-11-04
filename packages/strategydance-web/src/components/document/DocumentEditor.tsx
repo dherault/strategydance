@@ -516,11 +516,13 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
               linkPreviewInvalid: formatMessage(documentMessages.editorLinkPreviewInvalid),
               mentionDocuments: formatMessage(documentMessages.editorMentionDocuments),
               mentionTasks: formatMessage(documentMessages.editorMentionTasks),
+              mentionConversations: formatMessage(documentMessages.editorMentionConversations),
               mentionItem: formatMessage(documentMessages.editorMentionItem),
               mentionItemSubtext: formatMessage(documentMessages.editorMentionItemSubtext),
               mentionUntitled: formatMessage(documentMessages.untitled),
               mentionDocumentGone: formatMessage(documentMessages.editorMentionDocumentGone),
               mentionTaskGone: formatMessage(documentMessages.editorMentionTaskGone),
+              mentionConversationGone: formatMessage(documentMessages.editorMentionConversationGone),
             }}
             uploadImage={uploadImage}
             previewLink={readLinkPreview}

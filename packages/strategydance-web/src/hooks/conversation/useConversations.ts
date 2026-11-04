@@ -12,21 +12,27 @@ import { dataConnect } from '~data/firebase'
 
 const EMPTY_CONVERSATIONS: ConversationSummary[] = []
 
+type Conversations = DataSource<ConversationSummary[]> & { hasFailed: boolean }
+
 /*
-  The reader's conversations in the current organization, latest activity first, kept live: as
-  `useOrganizationTeam` does, the first read is an ordinary query, which `ConversationsWait` waits
-  on, and the subscription beside it writes each list the server pushes into the same cache entry.
+  The conversations of the current organization's members, latest activity first, each with its
+  author, kept live, any member's change pushing the list anew: as `useOrganizationTeam` does, the
+  first read is an ordinary query, which `ConversationsWait` waits on, and the subscription beside
+  it writes each list the server pushes into the same cache entry.
 
   A first read that fails is not an empty list: `hasFailed` says so, and it does not retry on
-  mount, for the reason `useOrganizationTeam` gives
+  mount, for the reason `useOrganizationTeam` gives.
+
+  Rich text reads it only once it draws a mention of a conversation or its mentions menu opens,
+  `isEnabled` false until then, which neither reads nor subscribes
 */
-function useConversations(): DataSource<ConversationSummary[]> & { hasFailed: boolean } {
+function useConversations({ isEnabled: isWanted = true }: { isEnabled?: boolean } = {}): Conversations {
   const { data: viewer } = useAuthentication()
   const { organization } = useCurrentOrganization()
 
   const viewerId = viewer?.uid ?? null
   const organizationId = organization?.id ?? null
-  const isEnabled = Boolean(organizationId && viewerId)
+  const isEnabled = Boolean(isWanted && organizationId && viewerId)
   // The key names whose conversations they are: the tab's cache outlives a sign-out
   const queryKey = ['GetConversations', organizationId, viewerId]
 

@@ -121,10 +121,11 @@ export const richTextDocumentSample = JSON.stringify(richTextDocumentSampleBlock
 const PRICING_ID = '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e'
 const ARCHIVED_ID = '3c1d9e8f7a6b4c5d8e9f0a1b2c3d4e5f'
 const LAUNCH_ID = '7a1b2c3d4e5f40718293a4b5c6d7e8f9'
+const CALL_ID = '4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9'
 
 /*
-  A task's description mentioning a document renamed since, one deleted since and a task, shared by
-  the stories and the tests
+  A task's description mentioning a document renamed since, one deleted since, a task and a
+  conversation, shared by the stories and the tests
 */
 const richTextMentionSampleBlocks: RichTextBlock[] = [
   {
@@ -136,14 +137,16 @@ const richTextMentionSampleBlocks: RichTextBlock[] = [
       { type: 'documentMention', props: { documentId: ARCHIVED_ID, title: 'Old pricing' } },
       { type: 'text', text: ' did, before ' },
       { type: 'taskMention', props: { taskId: LAUNCH_ID, name: 'Launch the beta' } },
-      { type: 'text', text: '.' },
+      { type: 'text', text: ', as ' },
+      { type: 'conversationMention', props: { conversationId: CALL_ID, title: 'Beta pricing' } },
+      { type: 'text', text: ' settled.' },
     ],
   },
 ]
 
 export const richTextMentionSample = JSON.stringify(richTextMentionSampleBlocks)
 
-// The organization's documents and tasks the sample mentions, the deleted one left out as the lists leave it out
+// The organization's documents, tasks and conversations the sample mentions, the deleted one left out as the lists leave it out
 export const richTextMentionSampleSource: RichTextMentionSource = {
   documents: new Map([
     [PRICING_ID, 'Pricing for the beta'],
@@ -153,6 +156,10 @@ export const richTextMentionSampleSource: RichTextMentionSource = {
   tasks: new Map([
     [LAUNCH_ID, 'Launch the beta'],
     ['5f4e3d2c1b0a49f8e7d6c5b4a3f2e1d0', 'Write the pricing page'],
+  ]),
+  conversations: new Map([
+    [CALL_ID, 'Beta pricing'],
+    ['2b3c4d5e6f7a48b9c0d1e2f3a4b5c6d7', 'Planning the launch week'],
   ]),
   request: () => {},
   getHref: ({ kind, id }) => `#${kind}-${id}`,

@@ -1,21 +1,38 @@
-import { FileTextIcon, SquareKanbanIcon } from 'lucide-react'
+import { FileTextIcon, type LucideIcon, MessagesSquareIcon, SquareKanbanIcon } from 'lucide-react'
 import { type MouseEvent, useEffect } from 'react'
+import type { RichTextMentionsContextType } from 'strategydance-design-system/contexts/RichTextMentionsContext'
 import useRichTextMentions from 'strategydance-design-system/hooks/useRichTextMentions'
 import { readRichTextMentionState } from 'strategydance-design-system/lib/readRichTextMentionState'
 import {
   RICH_TEXT_CLASSES,
+  type RichTextMentionKind,
   type RichTextMention as RichTextMentionValue,
+  getRichTextMentionList,
   getRichTextMentionTarget,
   getRichTextMentionWords,
 } from 'strategydance-design-system/lib/richText'
 import { splitRichTextMentionWords } from 'strategydance-design-system/lib/splitRichTextMentionWords'
+
+// Each kind's icon, as the thread's links draw a document and a task, and the sidebar the conversations
+const ICONS: Record<RichTextMentionKind, LucideIcon> = {
+  document: FileTextIcon,
+  task: SquareKanbanIcon,
+  conversation: MessagesSquareIcon,
+}
+
+// What a screen reader hears after a mention of each kind deleted since
+const GONE_LABELS: Record<RichTextMentionKind, keyof RichTextMentionsContextType['labels']> = {
+  document: 'mentionDocumentGone',
+  task: 'mentionTaskGone',
+  conversation: 'mentionConversationGone',
+}
 
 type Props = {
   mention: RichTextMentionValue
 }
 
 /*
-  A mention of a document or a task, as `RichText` draws it from the page's source, the way the
+  A mention of a document, a task or a conversation, as `RichText` draws it from the page's source, the way the
   editor draws it: what it names, with its icon and its live title, linking to it; gone, its words
   struck through and muted, which a screen reader hears said; or its icon and its words while the
   list is not read, asking for it, or when the page gives none.
@@ -28,8 +45,8 @@ function RichTextMention({ mention }: Props) {
   const target = getRichTextMentionTarget(mention)
   const words = getRichTextMentionWords(mention)
   const state = readRichTextMentionState(target, words, source)
-  const list = source ? (target.kind === 'document' ? source.documents : source.tasks) : null
-  const Icon = target.kind === 'document' ? FileTextIcon : SquareKanbanIcon
+  const list = source ? getRichTextMentionList(source, target.kind) : null
+  const Icon = ICONS[target.kind]
   const classes = RICH_TEXT_CLASSES.mention
 
   // Its icon and its words, the icon kept on the line with the first word
@@ -79,12 +96,7 @@ function RichTextMention({ mention }: Props) {
   return (
     <span className={state.kind === 'gone' ? classes.gone : classes.words}>
       {renderLabel(words)}
-      {state.kind === 'gone' ? (
-        <span className="sr-only">
-          {' '}
-          {target.kind === 'document' ? labels.mentionDocumentGone : labels.mentionTaskGone}
-        </span>
-      ) : null}
+      {state.kind === 'gone' ? <span className="sr-only"> {labels[GONE_LABELS[target.kind]]}</span> : null}
     </span>
   )
 }

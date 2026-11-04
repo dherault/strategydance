@@ -28,21 +28,23 @@ const value = JSON.stringify([
 <RichText value={value} className="max-w-xl" />
 ```
 
-A task's description mentions documents and tasks, which only a value drawn with their blocks
-keeps:
+A task's description mentions documents, tasks and conversations, which only a value drawn with
+their blocks keeps:
 
 ```jsx
 const { RichText } = window.StrategyDanceDesignSystem
 
 <RichText
-  blocks={['heading', 'quote', 'list', 'checklist', 'documentMention', 'taskMention']}
+  blocks={['heading', 'quote', 'list', 'checklist', 'documentMention', 'taskMention', 'conversationMention']}
   value={JSON.stringify([
     { type: 'paragraph', content: [
       { type: 'text', text: 'Follow ' },
       { type: 'documentMention', props: { documentId: '5d2c8f0e9a7b4c1d8e3f6a2b9c0d7e4f', title: 'Launch plan' } },
       { type: 'text', text: ' once ' },
       { type: 'taskMention', props: { taskId: '8a1b2c3d4e5f60718293a4b5c6d7e8f9', name: 'Draft the pricing page' } },
-      { type: 'text', text: ' is done.' },
+      { type: 'text', text: ' is done, as ' },
+      { type: 'conversationMention', props: { conversationId: '3e4f5a6b7c8d49e0f1a2b3c4d5e6f7a8', title: 'Pricing the beta' } },
+      { type: 'text', text: ' settled.' },
     ] },
   ])}
 />

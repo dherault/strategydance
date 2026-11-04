@@ -11,7 +11,7 @@ type Props = {
 }
 
 /*
-  The field that searches the reader's conversations, bounded as the backend is: it takes at most
+  The field that searches the organization's conversations, bounded as the backend is: it takes at most
   100 characters, and past 8 words it says so, and nothing is searched until some go. Escape
   empties it
 */

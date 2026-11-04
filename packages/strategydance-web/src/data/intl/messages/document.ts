@@ -281,17 +281,23 @@ const documentMessages = defineMessages({
     description:
       "Heading of the group of the team's tasks, the cards on its board, in the menu that typing @ opens in the text editor, to mention one in the text.",
   },
+  editorMentionConversations: {
+    id: 'document.editorMentionConversations',
+    defaultMessage: 'Conversations',
+    description:
+      "Heading of the group of the team's conversations with the AI, in the menu that typing @ opens in the text editor, to mention one in the text.",
+  },
   editorMentionItem: {
     id: 'document.editorMentionItem',
     defaultMessage: 'Mention',
     description:
-      "Item of the text editor's menu of blocks, opened by typing a slash, that opens the menu of the team's documents and tasks to mention one in the text.",
+      "Item of the text editor's menu of blocks, opened by typing a slash, that opens the menu of the team's documents, tasks and conversations with the AI to mention one in the text.",
   },
   editorMentionItemSubtext: {
     id: 'document.editorMentionItemSubtext',
-    defaultMessage: 'A document or a task',
+    defaultMessage: 'A document, a task or a conversation',
     description:
-      'Line under "Mention" in the text editor\'s menu of blocks, saying what can be mentioned: one of the team\'s documents, or a task on its board.',
+      'Line under "Mention" in the text editor\'s menu of blocks, saying what can be mentioned: one of the team\'s documents, a task on its board, or one of its conversations with the AI.',
   },
   editorMentionDocumentGone: {
     id: 'document.editorMentionDocumentGone',
@@ -304,6 +310,12 @@ const documentMessages = defineMessages({
     defaultMessage: "(no longer on the team's board)",
     description:
       "Read by screen readers after a mention, in the text, of a task on the team's board, the shared list of work to do, that was deleted since. Shown crossed out to sighted readers.",
+  },
+  editorMentionConversationGone: {
+    id: 'document.editorMentionConversationGone',
+    defaultMessage: "(no longer among the team's conversations)",
+    description:
+      "Read by screen readers after a mention, in the text, of one of the team's conversations with the AI that was deleted since. Shown crossed out to sighted readers.",
   },
   editorImageTypeError: {
     id: 'document.editorImageTypeError',
@@ -502,7 +514,7 @@ const documentMessages = defineMessages({
     id: 'document.revisionOpenConversation',
     defaultMessage: 'Open the conversation',
     description:
-      "Link, on an entry of a document's history, to the reader's own conversation with the product's AI in which it made the change.",
+      "Link, on an entry of a document's history, to the member's conversation with the product's AI in which it made the change, which every member of the organization can read.",
   },
   revisionView: {
     id: 'document.revisionView',

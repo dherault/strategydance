@@ -128,7 +128,7 @@ function getMentionItem<B extends BlockSchema, I extends InlineContentSchema, S 
   return {
     title: dictionary.rich_text.mention_item,
     subtext: dictionary.rich_text.mention_item_subtext,
-    aliases: ['mention', 'document', 'documents', 'task', 'link', '@'],
+    aliases: ['mention', 'document', 'documents', 'task', 'conversation', 'link', '@'],
     group: dictionary.slash_menu.emoji.group,
     icon: createElement(AtSignIcon, { size: 18 }),
     onItemClick: () => {

@@ -12,6 +12,7 @@ import {
   deleteConversationAttachments,
   deletePrunedConversationAttachments,
   getConversationAttachment,
+  getSentConversationAttachment,
   getConversationAttachmentUploadContext,
   getConversationAttachmentsByClaudeFileIds,
   getConversationPruneAttachments,
@@ -573,6 +574,22 @@ async function checkSending() {
     (await Promise.all(ready.map(readAttachment))).every(attachment => attachment?.messageId === messageId),
   )
   check('another member’s file under the same id is left alone', (await readAttachment(others))?.messageId === null)
+
+  const sent = (attachmentId: string, conversationId = draftId) =>
+    getSentConversationAttachment(dataConnect, { organizationId, conversationId, attachmentId })
+  const { data: sentFile } = await sent(ready[1] ?? '')
+
+  check(
+    'a sent file reads back by its conversation for any member, with its uploader and the conversation’s author',
+    sentFile.conversationAttachments[0]?.name === 'Plan.pdf'
+      && sentFile.conversationAttachments[0]?.userId === userIds.author
+      && sentFile.conversation?.userId === userIds.author,
+  )
+  check(
+    'a file waiting in a draft, or asked for under another conversation, reads back as no sent file',
+    (await sent(others)).data.conversationAttachments.length === 0
+      && (await sent(ready[1] ?? '', createId())).data.conversationAttachments.length === 0,
+  )
 
   const { data: control } = await getConversationRunControlContext(dataConnect, {
     organizationId,

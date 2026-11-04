@@ -44,6 +44,7 @@ function DocumentRevisionPreview({ organizationId, revisionId, mentions }: Props
           mentionUntitled: formatMessage(documentMessages.untitled),
           mentionDocumentGone: formatMessage(documentMessages.editorMentionDocumentGone),
           mentionTaskGone: formatMessage(documentMessages.editorMentionTaskGone),
+          mentionConversationGone: formatMessage(documentMessages.editorMentionConversationGone),
         }}
         className="text-sm"
       />

@@ -11,6 +11,7 @@ import type {
 
 const DOCUMENT_ID = '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e'
 const TASK_ID = '7a1b2c3d4e5f40718293a4b5c6d7e8f9'
+const CONVERSATION_ID = '4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9'
 
 function run(text: string, styles?: RichTextStyles): RichTextRun {
   return { type: 'text', text, ...(styles ? { styles } : {}) }
@@ -230,6 +231,12 @@ describe('markdownToRichText', () => {
         '**[Ship](TASK:7A1B2C3D-4E5F-4071-8293-A4B5C6D7E8F9)**',
         [paragraph({ type: 'taskMention', props: { taskId: TASK_ID, name: 'Ship' } })],
       ],
+      [
+        'to a conversation, whatever the case of its scheme and its id, and its hyphens',
+        '[Pricing _call_](Conversation:4D5E6F7A-8B9C-40D1-A2B3-C4D5E6F7A8B9)',
+        [paragraph({ type: 'conversationMention', props: { conversationId: CONVERSATION_ID, title: 'Pricing call' } })],
+      ],
+      ['to a conversation naming no id, as its words', '[a](conversation:123)', [paragraph('a')]],
       [
         'to a document, with no words',
         `[](doc:${DOCUMENT_ID})`,

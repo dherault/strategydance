@@ -31,6 +31,9 @@ type Props = {
   body: ConversationMessageBody
   // The run the conversation waits on, while it waits for this question's answer, and null otherwise
   waitingRunId: string | null
+  // The name of the member it waits for, on another member's conversation, which the reader cannot
+  // answer, and null otherwise
+  waitingFor: string | null
   // Whether another question of the same turn still waits, which answering this one leaves waiting
   hasOtherWaiting: boolean
   onRunStart: (startedRun: StartedConversationRun) => void
@@ -54,12 +57,21 @@ const NOTICE_MESSAGES = {
   starts once every question of the turn is answered. One the response it belongs to was stopped or
   cut off before, which a resume makes answerable again, shows its options off. Answered, the
   options chosen are ticked and the rest muted, and an answer in the reader's own words shows as one
-  more option. Skipped, everything is muted.
+  more option. Skipped, everything is muted. On another member's conversation, it says it waits for
+  them while it does, and nothing is answerable.
 
   The answer under way outlives the question's view (`useConversationQuestionAnswer`), so moving
   its conversation between its page and the dock, or minimizing its window, loses none of it
 */
-function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOtherWaiting, onRunStart }: Props) {
+function ConversationQuestion({
+  conversationId,
+  entry,
+  body,
+  waitingRunId,
+  waitingFor,
+  hasOtherWaiting,
+  onRunStart,
+}: Props) {
   const { formatMessage } = useIntl()
   const answerConversationQuestion = useAnswerConversationQuestion()
   const promptId = useId()
@@ -142,6 +154,7 @@ function ConversationQuestion({ conversationId, entry, body, waitingRunId, hasOt
 
   function renderEyebrow() {
     if (isAnswerable) return formatMessage(conversationMessages.questionWaiting)
+    if (isWaiting && waitingFor) return formatMessage(conversationMessages.questionWaitingFor, { name: waitingFor })
     if (isWaiting) return formatMessage(conversationMessages.questionUnanswered)
 
     return (

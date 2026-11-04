@@ -26,6 +26,10 @@ function renderDocument(blocks: unknown) {
 
 const DOCUMENT_ID = '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e'
 const TASK_ID = '7a1b2c3d4e5f40718293a4b5c6d7e8f9'
+const CONVERSATION_ID = '4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9'
+
+// Each kind's page, as the app's addresses name them
+const PAGES = { document: 'documents', task: 'tasks', conversation: 'conversations' }
 
 const MENTIONS = [
   {
@@ -41,8 +45,9 @@ function createSource(overrides: Partial<RichTextMentionSource> = {}): RichTextM
   return {
     documents: new Map([[DOCUMENT_ID, 'Pricing plan']]),
     tasks: new Map(),
+    conversations: new Map(),
     request: () => {},
-    getHref: ({ kind, id }) => `/acme/${kind === 'document' ? 'documents' : 'tasks'}/${id}`,
+    getHref: ({ kind, id }) => `/acme/${PAGES[kind]}/${id}`,
     open: () => {},
     ...overrides,
   }
@@ -285,6 +290,26 @@ describe('RichText', () => {
     expect(markup).toContain('line-through')
     expect(markup).toContain('<span class="sr-only"> (no longer on the team&#x27;s board)</span>')
     expect(markup).toContain('<span class="whitespace-nowrap"><svg')
+  })
+
+  it("draws a mention of a conversation from the team's conversations, in a description and a document", () => {
+    const blocks = [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'conversationMention', props: { conversationId: CONVERSATION_ID, title: 'Old call' } },
+          { type: 'conversationMention', props: { conversationId: TASK_ID, title: 'Deleted call' } },
+        ],
+      },
+    ]
+    const conversations = new Map([[CONVERSATION_ID, 'Pricing call']])
+    const markup = renderTask(blocks, createSource({ conversations }))
+
+    expect(markup).toContain(`href="/acme/conversations/${CONVERSATION_ID}"`)
+    expect(readWords(markup)).toBe('Pricing callDeleted call (no longer among the team&#x27;s conversations)')
+    expect(readWords(renderDocument(blocks))).toBe('Old callDeleted call')
+    expect(readWords(render(blocks))).toBe('Old callDeleted call')
+    expect(render(blocks)).not.toContain('<svg')
   })
 
   it('draws a mention as its icon and its words while its list is not read, or without a source', () => {

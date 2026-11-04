@@ -81,6 +81,8 @@ function ConversationDockWindowBody({ conversationId, isAutoFocused }: Props) {
       <ConversationSubagentViewer
         conversationId={conversationId}
         subagentId={viewedSubagentId}
+        // The dock holds the reader's own conversations alone, and lets go of any other
+        canStop
         onClose={() => setViewedSubagentId(null)}
       />
     </>

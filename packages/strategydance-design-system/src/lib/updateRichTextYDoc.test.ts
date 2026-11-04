@@ -117,6 +117,7 @@ function isWithin(type: Y.AbstractType<unknown>, ancestor: object) {
 
 const DOCUMENT_ID = '0b6f2c4d8e9a4b1c9d2e3f4a5b6c7d8e'
 const TASK_ID = '7a1b2c3d4e5f40718293a4b5c6d7e8f9'
+const CONVERSATION_ID = '4d5e6f7a8b9c40d1a2b3c4d5e6f7a8b9'
 
 describe('updateRichTextYDoc', () => {
   it('writes mentions, which load nothing, and reads them back as written', () => {
@@ -125,6 +126,8 @@ describe('updateRichTextYDoc', () => {
       { type: 'documentMention', props: { documentId: DOCUMENT_ID, title: 'Pricing' } },
       ' then ',
       { type: 'taskMention', props: { taskId: TASK_ID, name: 'Ship' } },
+      ' as ',
+      { type: 'conversationMention', props: { conversationId: CONVERSATION_ID, title: 'Pricing call' } },
     )
 
     expect(

@@ -155,7 +155,10 @@ async function runChecks() {
   const claimed = conversation(authorId, { deletedAt, pruneClaimedAt: deletedAt })
   const deletedLong = conversation(authorId, { deletedAt: deletedLongAgo })
   const membersDeleted = conversation(memberId, { deletedAt })
-  const membersLive = conversation(memberId)
+  // Waiting for the member's answer, which only their own count holds
+  const membersWaiting = conversation(memberId, { isAwaitingAnswer: true })
+  // The organization's most recently active, so the list of a thousand holds it beside the author's
+  const membersLive = conversation(memberId, { updatedAt: new Date(Date.now() + 60 * 1000).toISOString() })
 
   await insertConversations([
     first,
@@ -167,6 +170,7 @@ async function runChecks() {
     claimed,
     deletedLong,
     membersDeleted,
+    membersWaiting,
     membersLive,
   ])
 
@@ -175,8 +179,10 @@ async function runChecks() {
   const list = await readAs<{ conversations: { id: string }[] }>(authorId, 'GetConversations', { organizationId })
 
   check(
-    `the list reads the author's ${MAX_CONVERSATIONS} live conversations, and no deleted one`,
-    list.conversations.length === MAX_CONVERSATIONS && !list.conversations.some(({ id }) => id === deletedFirst.id),
+    `the list reads the organization's ${MAX_CONVERSATIONS} most recently active conversations, every member's, and no deleted one`,
+    list.conversations.length === MAX_CONVERSATIONS
+      && list.conversations[0]?.id === membersLive.id
+      && !list.conversations.some(({ id }) => id === deletedFirst.id || id === membersDeleted.id),
   )
 
   const awaiting = await readAs<{ conversations: { id: string }[] }>(authorId, 'GetConversationsAwaitingAnswer', {
@@ -184,8 +190,21 @@ async function runChecks() {
   })
 
   check(
-    'the waiting list reads the one conversation that waits',
+    'the waiting list reads the one conversation that waits for the caller, never another member’s',
     awaiting.conversations.length === 1 && awaiting.conversations[0]?.id === first.id,
+  )
+
+  const membersAwaiting = await readAs<{ conversations: { id: string }[] }>(
+    memberId,
+    'GetConversationsAwaitingAnswer',
+    {
+      organizationId,
+    },
+  )
+
+  check(
+    'another member’s waiting list holds theirs alone',
+    membersAwaiting.conversations.length === 1 && membersAwaiting.conversations[0]?.id === membersWaiting.id,
   )
 
   const othersList = await readAs<{ conversations: { id: string }[] }>(memberId, 'GetConversations', {
@@ -193,8 +212,8 @@ async function runChecks() {
   })
 
   check(
-    "another member's list holds their own conversation alone",
-    othersList.conversations.length === 1 && othersList.conversations[0]?.id === membersLive.id,
+    'another member reads the same list, the author’s conversations among them',
+    othersList.conversations.map(({ id }) => id).join() === list.conversations.map(({ id }) => id).join(),
   )
 
   check(
@@ -259,10 +278,7 @@ async function runChecks() {
     organizationId,
   })
 
-  check(
-    "deleting another member's conversation changes nothing",
-    membersList.conversations.length === 1 && membersList.conversations[0]?.id === membersLive.id,
-  )
+  check("deleting another member's conversation changes nothing", membersList.conversations[0]?.id === membersLive.id)
   check(
     "a `$userId` other than the caller's is refused",
     !(await runAs(authorId, 'RestoreConversation', variables(memberId, third.id)))

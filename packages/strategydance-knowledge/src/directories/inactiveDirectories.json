@@ -338,6 +338,19 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
+    "id": "aibesttop-tools",
+    "name": "AIBestTop Tools",
+    "type": "WEBSITE",
+    "rootUrl": "https://aibesttop.com/",
+    "submissionUrl": "https://aibesttop.com/submit",
+    "description": "",
+    "categories": [],
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": "2026-11-03",
+    "unreachableSince": "2026-10-31",
+    "inactiveReason": "UNREACHABLE"
+  },
+  {
     "id": "aicyclopedia",
     "name": "AICYCLOPEDIA",
     "type": "WEBSITE",
@@ -476,7 +489,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-11-01",
     "unreachableSince": null,
     "inactiveReason": "UNREACHABLE"
   },
@@ -970,7 +983,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-11-03",
     "unreachableSince": null,
     "inactiveReason": "REPURPOSED"
   },
@@ -1087,7 +1100,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-11-04",
     "unreachableSince": null,
     "inactiveReason": "UNREACHABLE"
   },
@@ -2140,7 +2153,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-11-02",
     "unreachableSince": null,
     "inactiveReason": "NO_SUBMISSION"
   },

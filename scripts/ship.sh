@@ -28,8 +28,11 @@ git fetch --quiet origin "$BASE" "$HEAD"
 # passed before it opened, as they have where a push to `dev` runs them. Hence waiting for the
 # assessment, and merging on the spot when the checks pass between gh's read and its request
 merge_when_ready() {
+  local status
+
   for _ in {1..30}; do
-    [[ $(gh pr view "$1" --json mergeStateStatus --jq .mergeStateStatus) != UNKNOWN ]] && break
+    status=$(gh pr view "$1" --json mergeStateStatus --jq .mergeStateStatus) || status=UNKNOWN
+    [[ $status != UNKNOWN ]] && break
     sleep 2
   done
 

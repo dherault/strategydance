@@ -27,6 +27,7 @@ import useTasks from '~hooks/task/useTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import filterTasks from '~utils/task/filterTasks'
+import getTaskColumn from '~utils/task/getTaskColumn'
 import getTaskDescriptionTexts from '~utils/task/getTaskDescriptionTexts'
 import toTaskLinks from '~utils/task/toTaskLinks'
 
@@ -43,8 +44,10 @@ import taskMessages from '~data/intl/messages/task'
 
 /*
   The organization's board: every task in a column per status, which any member adds to, opens,
-  and drags within a column and across them. The filters narrow what the columns show without
-  moving anything, and a card dropped among filtered ones lands before the one it is dropped on.
+  and drags within a column and across them. Done is the exception, the last done on top, which
+  nobody reorders, and a card dropped in it lands there. The filters narrow what the columns show
+  without moving anything, and a card dropped among filtered ones lands before the one it is
+  dropped on.
 
   A new task is a draft in a dialog of this page until it is created. A task opened is an address of
   its own, under this one, so the board stays as it was behind its dialog.
@@ -80,7 +83,7 @@ function TaskBoard() {
   // Kept by the compiled render until the descriptions move, so a keystroke parses none of them
   const descriptionTexts = getTaskDescriptionTexts(descriptions)
   const visibleTasks = filterTasks(tasks, { query, assignee, aspects }, { viewerId, descriptionTexts })
-  const columns = new Map(TASK_STATUSES.map(status => [status, visibleTasks.filter(task => task.status === status)]))
+  const columns = new Map(TASK_STATUSES.map(status => [status, getTaskColumn(visibleTasks, status)]))
   const { announcement, getCardKeyDown } = useTaskBoardKeyboard({ columns, onMove: move })
   const linksById = new Map(tasks.map(task => [task.id, toTaskLinks(task)]))
   const membersById = new Map(members.map(member => [member.user.id, member]))

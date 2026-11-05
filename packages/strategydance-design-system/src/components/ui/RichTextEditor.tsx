@@ -292,13 +292,16 @@ function RichTextEditor({
     caret at the end of that line, the last block's deepest last child's, as a page's blank end
     does. A last block with no text to put it in, a picture, a video or a link's card, gets an empty
     paragraph after it to write in, which BlockNote would otherwise select whole, for a key to
-    replace. Only on the editor's own boxes, never on a block nor on a menu, which portal into it
+    replace. Only on the editor's own boxes, never on a block nor on a menu, which portal into it,
+    and a press with a modifier is the browser's: Shift extends the selection, and Ctrl on a Mac
+    opens the context menu
   */
   function handleMouseDown(event: MouseEvent<HTMLDivElement>) {
     const view = editor.domElement
     const text = view?.firstElementChild
+    const hasModifier = event.shiftKey || event.ctrlKey || event.metaKey || event.altKey
 
-    if (appearance !== 'document' || event.button !== 0 || !view || !text) return
+    if (appearance !== 'document' || event.button !== 0 || hasModifier || !view || !text) return
     if (event.target !== event.currentTarget && event.target !== view.parentElement && event.target !== view) return
     if (event.clientY < text.getBoundingClientRect().bottom) return
 

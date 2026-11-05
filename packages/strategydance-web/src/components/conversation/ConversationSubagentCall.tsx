@@ -81,7 +81,7 @@ function ConversationSubagentCall({ conversationId, subagent, canStop: isStoppab
       className={cn(
         'relative flex min-w-0 flex-col overflow-hidden rounded-xs border bg-white',
         isFailed ? 'border-red-200' : 'border-border',
-        isReported && 'transition-colors duration-150 ease-in-out has-[[data-tool-call-open]:hover]:bg-neutral-50',
+        isReported && 'transition-colors duration-150 ease-in-out has-[[data-tool-call-open]:hover]:bg-neutral-100',
       )}
     >
       <div className="relative flex min-w-0 items-center gap-2.5 py-2 pr-1.5 pl-2">

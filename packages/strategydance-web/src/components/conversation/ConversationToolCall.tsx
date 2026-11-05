@@ -88,7 +88,7 @@ function ConversationToolCall({ toolName, status, onOpen, action = null, integra
       className={cn(
         'relative flex min-w-0 flex-col overflow-hidden rounded-xs border bg-white',
         isFailed ? 'border-red-200' : 'border-border',
-        isFinished && 'transition-colors duration-150 ease-in-out has-[[data-tool-call-open]:hover]:bg-neutral-50',
+        isFinished && 'transition-colors duration-150 ease-in-out has-[[data-tool-call-open]:hover]:bg-neutral-100',
       )}
     >
       <div className={cn('relative flex min-w-0 items-center gap-2.5 py-2 pl-2', action ? 'pr-1.5' : 'pr-3')}>

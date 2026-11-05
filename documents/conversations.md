@@ -224,9 +224,9 @@ Each entry is one of:
   and is struck through and muted the same way once the board no longer holds it (M17).
 - **A tool call**: a bordered row with an icon (a spinner while it runs, a plug for an integration,
   a wrench otherwise), the label or the server's name, a "Tool" or "MCP" badge, and under it the
-  tool's name in mono with its status ("Running", "Failed", "Cancelled"). Finished calls offer "View
-  output" or "View error": a dialog with the call's input and output as formatted JSON, its time and
-  duration, and a copy button. Consecutive calls stack without a gap. An integration that cannot
+  tool's name in mono with its status ("Running", "Failed", "Cancelled"). A finished call's row
+  darkens under the pointer and, clicked anywhere, opens a dialog with the call's input and output,
+  or its error, as formatted JSON, its time and duration, and a copy button. Consecutive calls stack without a gap. An integration that cannot
   run shows a warning strip under the row (the MCP milestones).
 - **A question**, waiting: "Waiting for your answer", the prompt, "Select one" or "Select all that
   apply", the options as radios or checkboxes, a last option with a "Write your own answer" field,

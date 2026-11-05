@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { BudgetToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import updateBill from '~domain/budget/updateBill'
 
@@ -80,8 +79,8 @@ const outputSchema = z.object({
 })
 
 // `update_bill`: the fields of a bill a call names, and no other
-function registerUpdateBill(server: McpServer, context: BudgetToolContext) {
-  server.registerTool(
+function registerUpdateBill(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Update a bill',
@@ -92,7 +91,7 @@ function registerUpdateBill(server: McpServer, context: BudgetToolContext) {
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(budgetModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readBudgetWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

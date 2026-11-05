@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { DocumentsToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import listDocuments from '~domain/documents/listDocuments'
 
@@ -21,8 +20,8 @@ const outputSchema = z.object({
 })
 
 // `list_documents`: the organization's documents agents may read, a page at a time
-function registerListDocuments(server: McpServer, { caller, toAddress }: DocumentsToolContext) {
-  server.registerTool(
+function registerListDocuments(registerTool: RegisterModuleTool) {
+  registerTool(
     'list_documents',
     {
       title: 'List documents',
@@ -32,7 +31,7 @@ function registerListDocuments(server: McpServer, { caller, toAddress }: Documen
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
-    async ({ aspects, cursor }) => {
+    async ({ aspects, cursor }, _serverContext, { caller, toAddress }) => {
       const listed = await listDocuments(caller, {
         aspects: aspects ?? [],
         ...(cursor !== undefined && { cursor }),

@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { DocumentsToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import readDocument from '~domain/documents/readDocument'
 
@@ -36,8 +35,8 @@ const outputSchema = z.object({
 })
 
 // `read_document`: a document's shared text as its top-level blocks, a page at a time
-function registerReadDocument(server: McpServer, { caller, toAddress }: DocumentsToolContext) {
-  server.registerTool(
+function registerReadDocument(registerTool: RegisterModuleTool) {
+  registerTool(
     'read_document',
     {
       title: 'Read a document',
@@ -47,7 +46,7 @@ function registerReadDocument(server: McpServer, { caller, toAddress }: Document
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
-    async ({ id, from }) => {
+    async ({ id, from }, _serverContext, { caller, toAddress }) => {
       const read = await readDocument(caller, { id, ...(from !== undefined && { from }) })
 
       if (read.outcome !== 'read') return toDocumentsRefusal(read)

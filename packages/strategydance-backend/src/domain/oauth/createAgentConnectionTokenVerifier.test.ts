@@ -14,7 +14,7 @@ mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {},
 mock.module('strategydance-database/backend', () => fake.sdk)
 
 const { default: createAgentConnectionTokenVerifier } = await import('./createAgentConnectionTokenVerifier')
-const { default: readModuleCaller } = await import('~modules/readModuleCaller')
+const { default: readModuleAccess } = await import('~modules/readModuleAccess')
 
 const DOCUMENTS = 'http://localhost:3003/mcp/documents'
 const TASKS = 'http://localhost:3003/mcp/tasks'
@@ -99,13 +99,28 @@ describe('createAgentConnectionTokenVerifier', () => {
       expiresAt: Math.floor(Date.parse(fake.tokens.get('ACCESS')!.expiresAt) / 1000),
       resource: new URL(DOCUMENTS),
     })
-    expect(readModuleCaller(authInfo)).toEqual({
+    expect(readModuleAccess(authInfo)).toEqual({
       kind: 'external',
       userId: MEMBER,
-      organizationId: ORGANIZATION_ID,
-      membershipCreatedAt,
       scopes: ['documents:read', 'documents:write'],
       idempotencyScope: `connection:${CONNECTION_ID}`,
+      organizations: [
+        {
+          organizationId: ORGANIZATION_ID,
+          membershipCreatedAt,
+          segment: ORGANIZATION_ID,
+          name: 'Checked organization',
+        },
+      ],
+    })
+  })
+
+  test('names the organization by its slug, and by its name, once it has one', async () => {
+    connect()
+    Object.assign(fake.organizations.get(ORGANIZATION_ID)!, { slug: 'acme-ab12', name: 'Acme' })
+
+    expect(readModuleAccess(await verifier.verifyAccessToken('access'))).toMatchObject({
+      organizations: [{ organizationId: ORGANIZATION_ID, segment: 'acme-ab12', name: 'Acme' }],
     })
   })
 
@@ -115,7 +130,7 @@ describe('createAgentConnectionTokenVerifier', () => {
     const authInfo = await verifier.verifyAccessToken('access')
 
     expect(authInfo.scopes).toEqual(['documents:read'])
-    expect(readModuleCaller(authInfo).scopes).toEqual(['documents:read'])
+    expect(readModuleAccess(authInfo).scopes).toEqual(['documents:read'])
   })
 
   test('refuses a token for another module', async () => {
@@ -196,7 +211,7 @@ describe('createAgentConnectionTokenVerifier', () => {
 
     const verifying = createAgentConnectionTokenVerifier(new URL(DOCUMENTS))
 
-    expect(readModuleCaller(await verifying.verifyAccessToken('access')).userId).toBe(MEMBER)
+    expect(readModuleAccess(await verifying.verifyAccessToken('access')).userId).toBe(MEMBER)
     expect(logged).toHaveBeenCalledTimes(1)
     expect(fake.connections.get(CONNECTION_ID)!.lastUsedAt).toBeNull()
   })

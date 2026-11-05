@@ -25,8 +25,10 @@ async function listToolNames(name: (typeof MODULES)[number]['name']) {
   const authInfo = toModuleAuthInfo({
     kind: 'agent',
     userId: 'member',
-    organizationId: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
-    membershipCreatedAt: '2026-10-09T10:00:00.000000Z',
+    organization: {
+      organizationId: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
+      membershipCreatedAt: '2026-10-09T10:00:00.000000Z',
+    },
     scopes: MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
     idempotencyScope: 'conversation:checked',
   })

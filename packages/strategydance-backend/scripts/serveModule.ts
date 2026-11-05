@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { parseArgs } from 'node:util'
 
 import { serveStdio } from '@modelcontextprotocol/server/stdio'
-import { MODULES } from 'strategydance-core'
+import { MODULES, toOrganizationPathSegment } from 'strategydance-core'
 
-import type { ModuleCaller } from '~types'
+import type { ModuleAccess } from '~types'
 
 import { authentication, dataConnect } from '~firebase'
 
@@ -123,16 +123,22 @@ async function findMembership(userId: string) {
 
 const userId = await findUserId()
 const membership = await findMembership(userId)
-const caller: ModuleCaller = {
+const access: ModuleAccess = {
   kind: 'external',
   userId,
-  organizationId: membership.organizationId,
-  membershipCreatedAt: membership.createdAt,
   scopes: [served.scopes.read, served.scopes.write],
   idempotencyScope: `connection:${randomUUID()}`,
+  organizations: [
+    {
+      organizationId: membership.organizationId,
+      membershipCreatedAt: membership.createdAt,
+      segment: toOrganizationPathSegment({ id: membership.organizationId, slug: membership.organization.slug }),
+      name: membership.organization.name,
+    },
+  ],
 }
 
-serveStdio(() => MODULE_SERVERS[served.name](caller), {
+serveStdio(() => MODULE_SERVERS[served.name](access), {
   onerror: error => console.error(`${served.title} failed`, error),
 })
 

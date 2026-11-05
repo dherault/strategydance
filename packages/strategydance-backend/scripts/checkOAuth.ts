@@ -29,7 +29,7 @@ import createAgentConnectionTokenVerifier from '~domain/oauth/createAgentConnect
 import isConnectionGoneRefusal from '~domain/oauth/isConnectionGoneRefusal'
 import isMembershipRefusal from '~domain/oauth/isMembershipRefusal'
 
-import readModuleCaller from '~modules/readModuleCaller'
+import readModuleAccess from '~modules/readModuleAccess'
 
 /*
   Checks the authorization server against the local backend and the emulators, where CI cannot:
@@ -476,8 +476,8 @@ async function checkFlow() {
   check(
     'the verifier takes the access token as the member, with the scopes allowed',
     authInfo !== null
-      && readModuleCaller(authInfo).userId === userId
-      && readModuleCaller(authInfo).scopes.join(' ') === READ_WRITE.join(' '),
+      && readModuleAccess(authInfo).userId === userId
+      && readModuleAccess(authInfo).scopes.join(' ') === READ_WRITE.join(' '),
   )
   check(
     'the verifier refuses the access token for another module',

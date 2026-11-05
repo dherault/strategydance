@@ -1844,15 +1844,6 @@ query GetDocumentAccessForAgent($organizationId: UUID!, $userId: String!, $membe
   }
 }
 
-# The organization's slug, which leads the web addresses an external agent's results carry, or its
-# id while it has none
-query GetOrganizationForAgent($organizationId: UUID!) @auth(level: NO_ACCESS) {
-  organization(key: { id: $organizationId }) {
-    id
-    slug
-  }
-}
-
 # Up to 20 documents agents may read whose title and plain text together hold every word of the
 # query, by Data Connect's full-text search: one `tsvector` over both columns, with the `simple`
 # configuration, read through its index. Tagged with every aspect named, `[]` naming none: a null
@@ -2998,7 +2989,8 @@ query GetAgentConnectionTokens($hashes: [String!]!) @auth(level: NO_ACCESS) {
 }
 
 # The token verifier's one read, on every call an external agent makes to a module: an unexpired
-# access token alone, never a refresh token, with its connection and the membership it belongs to
+# access token alone, never a refresh token, with its connection and the membership it belongs to,
+# and the organization's slug and name, which the module's calls name it by
 query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
   agentConnectionTokens(
     where: { hash: { eq: $hash }, kind: { eq: ACCESS }, expiresAt: { gt_time: { now: true } } }
@@ -3016,6 +3008,10 @@ query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
         userId
         organizationId
         createdAt
+        organization {
+          slug
+          name
+        }
       }
     }
   }

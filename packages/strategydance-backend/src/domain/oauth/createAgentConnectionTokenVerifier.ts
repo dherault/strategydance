@@ -1,8 +1,8 @@
 import { OAuthError, OAuthErrorCode, type OAuthTokenVerifier } from '@modelcontextprotocol/server'
-import type { ModuleScope } from 'strategydance-core'
+import { type ModuleScope, toOrganizationPathSegment } from 'strategydance-core'
 import { getAgentConnectionAccessToken } from 'strategydance-database/backend'
 
-import type { ModuleCaller } from '~types'
+import type { ModuleAccess } from '~types'
 
 import { dataConnect } from '~firebase'
 
@@ -20,9 +20,9 @@ import toModuleAuthInfo from '~modules/toModuleAuthInfo'
   their connections with them, so their tokens are found no more. A token that passes marks its connection
   used, at most once a minute.
 
-  It answers the SDK's `AuthInfo` carrying the caller the module acts as, an external agent on the
-  member's membership, with the connection's scopes and its own idempotency scope, and the token's
-  expiry and resource, which the bearer check requires
+  It answers the SDK's `AuthInfo` carrying the access the module acts with, an external agent on the
+  member's membership, with the organization's slug and name, the connection's scopes and its own
+  idempotency scope, and the token's expiry and resource, which the bearer check requires
 */
 function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
   const expectedResource = parseModuleResource(resource.href)?.resource
@@ -41,19 +41,25 @@ function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
       const { connection } = stored
       const { membership } = connection
 
-      const caller: ModuleCaller = {
+      const access: ModuleAccess = {
         kind: 'external',
         userId: membership.userId,
-        organizationId: membership.organizationId,
-        membershipCreatedAt: membership.createdAt,
         // What the token holds, which a refresh may have narrowed, within its connection's
         scopes: stored.scopes.filter(scope => connection.scopes.includes(scope)) as ModuleScope[],
         idempotencyScope: `connection:${connection.id}`,
+        organizations: [
+          {
+            organizationId: membership.organizationId,
+            membershipCreatedAt: membership.createdAt,
+            segment: toOrganizationPathSegment({ id: membership.organizationId, slug: membership.organization.slug }),
+            name: membership.organization.name,
+          },
+        ],
       }
 
       await recordUse(connection.id, membership.userId)
 
-      return toModuleAuthInfo(caller, {
+      return toModuleAuthInfo(access, {
         token,
         clientId: connection.clientId,
         expiresAt: Math.floor(Date.parse(stored.expiresAt) / 1000),

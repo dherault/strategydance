@@ -176,14 +176,18 @@ before a release that changes them.
 A module is a capability served as an MCP server, to Strategy Dance's agent in process and to
 members' own agents at `/mcp/<name>` (conversations.md § Modules).
 
-- Its server lives in `src/modules/<name>/`, built by `create<Name>Server(caller)`, one file per tool
-  calling `domain/<name>/`. `MODULES` in core lists it, and the web's `module` catalogue words it
+- Its server lives in `src/modules/<name>/`, built by `create<Name>Server(access)`, one file per
+  tool calling `domain/<name>/`. `MODULES` in core lists it, and the web's `module` catalogue words it
 - A tool's name is snake_case, unique across the modules and the agent's own tools, and a module's
   registration order is frozen. A tool takes a zod input and an `outputSchema`, answers through
   `toToolResult`, refuses through `toToolRefusal`, never a protocol error, and carries
   `readOnlyHint`, `destructiveHint` and `openWorldHint: false` as they apply
-- The caller arrives verified (`readModuleCaller`), never from arguments, and every operation
-  matches its membership's `createdAt`. Only a worker's caller has a `launcher`
+- The access arrives verified (`readModuleAccess`), never from arguments, and each call acts as one
+  `ModuleCaller`, in one organization it reaches, every operation matching that membership's
+  `createdAt`. Only a worker's access has a `launcher`
+- A served module's tool registers through `createModuleToolRegistrar`, which hands its handler
+  the call's caller and addresses: Strategy Dance's agent's tools register as written, so its pinned
+  bytes never move with it
 - A write checks the write scope before reading anything, and inserts its `ModuleCallResult` first
   under the call's idempotency key (`com.strategydance/idempotencyKey` in `_meta`)
 - Its operations are `…ForAgent`, holding to the AI permissions, each write named in the refreshes

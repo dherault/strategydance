@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { DocumentsToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import createDocument from '~domain/documents/createDocument'
 
@@ -29,8 +28,8 @@ const outputSchema = z.object({
 })
 
 // `create_document`: a new document of the organization
-function registerCreateDocument(server: McpServer, context: DocumentsToolContext) {
-  server.registerTool(
+function registerCreateDocument(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Create a document',
@@ -41,7 +40,7 @@ function registerCreateDocument(server: McpServer, context: DocumentsToolContext
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(documentsModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readDocumentsWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

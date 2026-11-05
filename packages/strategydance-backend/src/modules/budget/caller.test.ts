@@ -89,7 +89,7 @@ describe('the caller', () => {
     expect(fake.bills.get(bill.id)!.name).toBe('Figma')
   })
 
-  it('gives an external caller the web address of each bill, by the slug of its organization or its id, and the agent none', async () => {
+  it('gives an external caller the web address of each bill, by the segment its access names the organization by, and the agent none', async () => {
     const agent = await book.connect()
     const bill = book.add()
 
@@ -102,9 +102,10 @@ describe('the caller', () => {
       `http://localhost:5173/${ORGANIZATION_ID}/budget/${bill.id}`,
     )
 
-    fake.organizations.get(ORGANIZATION_ID)!.slug = 'acme-studio-x7k2'
-
-    const added = await external.answer<{ id: string; url: string }>('add_bill', {
+    const withSlug = await book.connect({ kind: 'external', idempotencyScope: 'connection:checked' }, 'member', {
+      segment: 'acme-studio-x7k2',
+    })
+    const added = await withSlug.answer<{ id: string; url: string }>('add_bill', {
       name: 'Notion',
       company: 'Notion Labs',
       amount: '10.00',
@@ -112,23 +113,5 @@ describe('the caller', () => {
     })
 
     expect(added.url).toBe(`http://localhost:5173/acme-studio-x7k2/budget/${added.id}`)
-  })
-
-  it('answers a write that went through without its address when the organization cannot be read', async () => {
-    const external = await book.connect({ kind: 'external', idempotencyScope: 'connection:checked' })
-
-    fake.beforeOperation = async name => {
-      if (name === 'GetOrganizationForAgent') throw new Error('connection reset')
-    }
-
-    const added = await external.answer<{ id: string; url?: string }>('add_bill', {
-      name: 'Notion',
-      company: 'Notion Labs',
-      amount: '10.00',
-      currency: 'USD',
-    })
-
-    expect(added).not.toHaveProperty('url')
-    expect(fake.bills.has(added.id)).toBe(true)
   })
 })

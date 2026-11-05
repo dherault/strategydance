@@ -5,6 +5,12 @@ import type {
   MessageCountTokensParams,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type {
+  CallToolResult,
+  ScopeChallengeHandler,
+  ServerContext,
+  ToolAnnotations,
+} from '@modelcontextprotocol/server'
+import type {
   BillRecurrence,
   BudgetLimit,
   BudgetPeriod,
@@ -24,6 +30,7 @@ import type {
   MarketingTactic,
   StrategicFramework,
 } from 'strategydance-knowledge'
+import type { z } from 'zod'
 
 export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse } from 'strategydance-core'
 
@@ -241,13 +248,15 @@ export type DocumentEdit =
 --- */
 
 /*
-  Who calls a module, verified before its server is built, and never from a tool's arguments: the
-  member a run acts as, for Strategy Dance's agent, or a member's connection, for an agent of their
-  own. `membershipCreatedAt` is the membership's as it was verified, so a member removed, or removed
-  and invited back, stops every agent acting as them at its next call. `idempotencyScope` is what
-  their keys are kept under, `conversation:<id>` for the agent and `connection:<id>` for an external
-  one, so two clients choosing the same key never meet. `launcher` is the run calling, for the
-  Subagents module, which only a worker that has claimed a run fills, from the run it claimed
+  Who calls a module, in the one organization a call acts in, as every function of `domain/` takes
+  it: the member a run acts as, for Strategy Dance's agent, or a member's connection, for an agent
+  of their own, built for each call from the access verified before the server was
+  (`ModuleAccess`), never from a tool's arguments alone. `membershipCreatedAt` is the membership's
+  as it was verified, so a member removed, or removed and invited back, stops every agent acting as
+  them at its next call. `idempotencyScope` is what their keys are kept under, `conversation:<id>`
+  for the agent and `connection:<id>` for an external one, so two clients choosing the same key
+  never meet. `launcher` is the run calling, for the Subagents module, which only a worker that has
+  claimed a run fills, from the run it claimed
 */
 export type ModuleCaller = {
   kind: 'agent' | 'external'
@@ -268,6 +277,76 @@ export type ModuleLauncher = {
   conversationId: string
   runId: string
 }
+
+// An organization a module's access reaches, with the member's membership there as it was verified
+export type ModuleOrganization = {
+  organizationId: string
+  membershipCreatedAt: string
+}
+
+/*
+  An organization an external agent's connection reaches, with what its calls name it by: the
+  segment the app's paths lead with, its slug, or its id while it has none, and its name, which the
+  server lists it with
+*/
+export type ReachedModuleOrganization = ModuleOrganization & {
+  segment: string
+  name: string
+}
+
+/*
+  What a module's server is built for, verified before the server exists: Strategy Dance's agent,
+  from its run, in the one organization the run is in, or an external agent, from its token, in
+  each organization its connection reaches. Each call acts as one `ModuleCaller`, in one of them
+*/
+export type ModuleAccess =
+  | {
+      kind: 'agent'
+      userId: string
+      scopes: ModuleScope[]
+      idempotencyScope: string
+      launcher?: ModuleLauncher
+      organization: ModuleOrganization
+    }
+  | {
+      kind: 'external'
+      userId: string
+      scopes: ModuleScope[]
+      idempotencyScope: string
+      organizations: ReachedModuleOrganization[]
+    }
+
+/*
+  What each tool of a module served to external agents runs with, in the organization its call acts
+  in: who calls it, and the web address of what it reads or writes for an external caller, whose
+  results carry them, undefined for Strategy Dance's agent
+*/
+export type ModuleToolContext = {
+  caller: ModuleCaller
+  toAddress: (id: string) => Promise<string | undefined>
+}
+
+// What a module's tool is registered with: its title, description, schemas and annotations, and the
+// scope a write challenges for
+export type ModuleToolConfig<Input extends z.ZodObject, Output extends z.ZodObject> = {
+  title: string
+  description: string
+  inputSchema: Input
+  outputSchema: Output
+  annotations: ToolAnnotations
+  scopeChallenge?: ScopeChallengeHandler
+}
+
+/*
+  How a tool of a module served to external agents registers on its server: as the SDK's
+  `registerTool`, but with a handler that also takes the context of the organization its call acts
+  in (`createModuleToolRegistrar`)
+*/
+export type RegisterModuleTool = <Input extends z.ZodObject, Output extends z.ZodObject>(
+  name: string,
+  config: ModuleToolConfig<Input, Output>,
+  handler: (args: z.output<Input>, serverContext: ServerContext, context: ModuleToolContext) => Promise<CallToolResult>,
+) => void
 
 // A write a module was called for under an idempotency key: the key, the tool, and a hash of its
 // arguments, which a call sent again under the key has to match
@@ -335,12 +414,8 @@ export type DocumentsWriteResult<Result> =
   | { outcome: 'answered'; result: unknown }
   | DocumentsRefusal
 
-// What each of the Documents module's tools is registered with: who calls it, and the web address of
-// a document for an external caller, whose results carry them, undefined for Strategy Dance's agent
-export type DocumentsToolContext = {
-  caller: ModuleCaller
-  toAddress: (documentId: string) => Promise<string | undefined>
-}
+// What each of the Documents module's tools runs with, the web address being a document's
+export type DocumentsToolContext = ModuleToolContext
 
 /* ---
   TASKS MODULE
@@ -440,12 +515,8 @@ export type TasksWriteResult<Result> =
   | { outcome: 'answered'; result: unknown }
   | TasksRefusal
 
-// What each of the Tasks module's tools is registered with: who calls it, and the web address of a
-// task for an external caller, whose results carry them, undefined for Strategy Dance's agent
-export type TasksToolContext = {
-  caller: ModuleCaller
-  toAddress: (taskId: string) => Promise<string | undefined>
-}
+// What each of the Tasks module's tools runs with, the web address being a task's
+export type TasksToolContext = ModuleToolContext
 
 /* ---
   BUDGET MODULE
@@ -583,12 +654,8 @@ export type BudgetWriteResult<Result> =
   | { outcome: 'answered'; result: unknown }
   | BudgetRefusal
 
-// What each of the Budget module's tools is registered with: who calls it, and the web address of a
-// bill for an external caller, whose results carry them, undefined for Strategy Dance's agent
-export type BudgetToolContext = {
-  caller: ModuleCaller
-  toAddress: (billId: string) => Promise<string | undefined>
-}
+// What each of the Budget module's tools runs with, the web address being a bill's
+export type BudgetToolContext = ModuleToolContext
 
 /* ---
   SUBAGENTS MODULE

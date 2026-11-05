@@ -109,6 +109,13 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
     return memberships.get(`${userId}:${id(organizationId)}`) ?? null
   }
 
+  // An organization's slug and name, as a read through its membership selects them
+  function organizationOf(organizationId: unknown) {
+    const { slug = null, name = '' } = base.organizations.get(id(organizationId)) ?? {}
+
+    return { slug, name }
+  }
+
   // Deletes a connection with its tokens, and lets go of the requests that named it, as the
   // references cascade and set null
   function deleteConnection(connectionId: string) {
@@ -244,6 +251,7 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
                 userId: connection.userId,
                 organizationId: connection.organizationId,
                 createdAt: membership.createdAt,
+                organization: organizationOf(connection.organizationId),
               },
             },
           },

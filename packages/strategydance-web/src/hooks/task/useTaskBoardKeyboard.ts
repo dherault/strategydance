@@ -1,6 +1,6 @@
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import type { TaskStatus } from 'strategydance-database/web'
+import { TaskStatus } from 'strategydance-database/web'
 
 import type { Task } from '~types'
 
@@ -20,7 +20,10 @@ type Options = {
   Moves cards from the keyboard, as dragging does with a pointer: Alt with the up and down arrows
   moves a focused card one place within its column, and with the left and right arrows into the
   column beside it, at the same height. The focus stays on the card once the board shows it where
-  it went, found by its id, and where it went is announced: its column, and its place in it
+  it went, found by its id, and where it went is announced: its column, and its place in it.
+
+  Done shows the last done on top, which nobody reorders: its cards move out of it alone, and a card
+  moved into it lands on top
 */
 function useTaskBoardKeyboard({ columns, onMove }: Options) {
   const { formatMessage } = useIntl()
@@ -51,12 +54,12 @@ function useTaskBoardKeyboard({ columns, onMove }: Options) {
       let count = column.length
 
       if (event.key === 'ArrowUp') {
-        if (index <= 0) return
+        if (index <= 0 || task.status === TaskStatus.DONE) return
 
         beforeId = column[index - 1]!.id
         position = index
       } else if (event.key === 'ArrowDown') {
-        if (index < 0 || index >= column.length - 1) return
+        if (index < 0 || index >= column.length - 1 || task.status === TaskStatus.DONE) return
 
         beforeId = column[index + 2]?.id ?? null
         position = index + 2
@@ -66,10 +69,12 @@ function useTaskBoardKeyboard({ columns, onMove }: Options) {
         if (!next) return
 
         const target = columns.get(next) ?? []
+        // Into Done on top, where the last done shows
+        const height = next === TaskStatus.DONE ? 0 : index
 
         status = next
-        beforeId = target[index]?.id ?? null
-        position = Math.min(index, target.length) + 1
+        beforeId = target[height]?.id ?? null
+        position = Math.min(height, target.length) + 1
         count = target.length + 1
       } else {
         return

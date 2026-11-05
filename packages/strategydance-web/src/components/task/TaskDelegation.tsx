@@ -1,6 +1,7 @@
 import { BotIcon, CheckIcon } from 'lucide-react'
 import { type MouseEvent, useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
+import { toOrganizationPathSegment } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Dialog, DialogTrigger } from 'strategydance-design-system/components/ui/Dialog'
 import { cn } from 'strategydance-design-system/lib/utils'
@@ -25,7 +26,8 @@ type Props = {
 
 /*
   A task's dialog's Delegate section: a button that copies a prompt asking an agent of the member's
-  own to take the task up, by its id and its name, through the Tasks module. While the member has
+  own to take the task up, by its id, its organization, which every call of an agent reaching
+  several names, and its name, through the Tasks module. While the member has
   connected no agent to the module reaching this organization, used yet or not, it opens the dialog
   telling how to connect one instead, as the board's agents button does, since the prompt would
   reach an agent that cannot read the board. A list that could not be read says nothing either way, so the
@@ -62,7 +64,11 @@ function TaskDelegation({ task }: Props) {
   async function copyPrompt() {
     try {
       await navigator.clipboard.writeText(
-        formatMessage(taskMessages.delegatePrompt, { id: toHyphenatedUuid(task.id), name: task.name }),
+        formatMessage(taskMessages.delegatePrompt, {
+          id: toHyphenatedUuid(task.id),
+          organization: organization ? toOrganizationPathSegment(organization) : '',
+          name: task.name,
+        }),
       )
     } catch {
       return

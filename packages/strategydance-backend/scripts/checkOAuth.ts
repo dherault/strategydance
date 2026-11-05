@@ -1167,8 +1167,9 @@ async function refreshTasks(metadata: Metadata, refreshToken: string, clientId: 
   consent read ticks both, and consenting again replaces the list. Through the Tasks module's
   endpoint, every tool takes the organization, each call acts in the one it names, and one the
   connection does not reach is refused. Leaving one organization leaves the other working, an
-  invitation back reaches nothing until the member chooses it again, and a connection whose member
-  left every organization it lists is refused its calls and its refresh. The member ends outside the
+  invitation back reaches nothing until the member ticks it again on the Connected agents tab, whose
+  edit holds to their memberships and their own connections, and a connection whose member left
+  every organization it lists is refused its calls and its refresh. The member ends outside the
   other organization, as the cap's check expects
 */
 async function checkOrganizations() {
@@ -1262,6 +1263,41 @@ async function checkOrganizations() {
   check(
     'an invitation back leaves the organization unreached until the member chooses it again',
     Boolean((await listIn(otherOrganizationId)).isError),
+  )
+
+  // The Connected agents tab's edit, through the browser's connector
+  const edit = (organizationIds: string[], { id = allowed.connectionId, claimedUserId = userId } = {}) =>
+    refusal(
+      webConnector.executeMutation(
+        'UpdateAgentConnectionOrganizations',
+        { userId: claimedUserId, id, organizationIds },
+        { impersonate: { authClaims: { sub: userId } } },
+      ),
+    )
+
+  check(
+    'ticking the organization again on the Connected agents tab reaches it at the next call',
+    (await edit(both)) === null && !(await listIn(otherOrganizationId)).isError,
+  )
+  check(
+    'the edit refuses no organization, one the member is not in, and one named twice, changing nothing',
+    (await edit([])) !== null
+      && (await edit([organizationId, strangerOrganizationId])) !== null
+      && (await edit([organizationId, organizationId])) !== null
+      && [...((await readConnections(clientId))[0]?.organizationIds ?? [])].sort().join() === [...both].sort().join(),
+  )
+
+  const otherMembersRequest = await createRequest(`https://check-${checkId}.example.com/other-edit.json`)
+  const otherMembers = approve(otherMembersRequest, `https://check-${checkId}.example.com/other-edit.json`, {
+    user: otherUserId,
+  })
+
+  await otherMembers.approval
+
+  check(
+    "the edit refuses another member's connection, and a $userId that is not the caller's",
+    (await edit([organizationId], { id: otherMembers.connectionId })) !== null
+      && (await edit([organizationId], { claimedUserId: otherUserId })) !== null,
   )
 
   const again = await createRequest(clientId, scopes, TASKS)

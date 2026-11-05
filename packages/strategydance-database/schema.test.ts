@@ -241,6 +241,16 @@ describe('the agent connections', () => {
     expect(approve).toContain('this == size(vars.organizationIds)')
   })
 
+  it('UpdateAgentConnectionOrganizations holds the organizations to the cap and counts them, refreshing the list', () => {
+    const update = readOperation(webMutations, 'UpdateAgentConnectionOrganizations')
+
+    expect(readNumbers(update, /size\(vars\.organizationIds\) <= (\d+)/g)).toEqual([MAX_AGENT_CONNECTION_ORGANIZATIONS])
+    expect(update).toContain('this == size(vars.organizationIds)')
+    expect(readOperation(webQueries, 'GetAgentConnections')).toContain(
+      'operation: "UpdateAgentConnectionOrganizations"',
+    )
+  })
+
   it('GetAgentConnections reads every connection a member may hold', () => {
     expect(readNumbers(readOperation(webQueries, 'GetAgentConnections'), /limit: (\d+)/g)).toEqual([
       MAX_AGENT_CONNECTIONS,

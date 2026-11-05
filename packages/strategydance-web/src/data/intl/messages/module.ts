@@ -336,7 +336,8 @@ const moduleMessages = defineMessages({
   },
   connectedAgentsLead: {
     id: 'module.connectedAgentsLead',
-    defaultMessage: 'The agents you allowed to act as you. Disconnecting one stops it at once.',
+    defaultMessage:
+      'The agents you allowed to act as you, and the organizations each acts in. Disconnecting one stops it at once.',
     description: "Explanation at the top of the account page's Connected agents tab.",
   },
   connectedAgentsEmptyTitle: {
@@ -366,6 +367,46 @@ const moduleMessages = defineMessages({
     defaultMessage: 'Reaches none of your organizations any more',
     description:
       'On a connected agent, in place of the organizations it acts in, when the member has left every one it was allowed in.',
+  },
+  editOrganizations: {
+    id: 'module.editOrganizations',
+    defaultMessage: 'Organizations',
+    description:
+      "Button on a connected agent, on the account page's Connected agents tab, that opens a dialog to change the organizations it acts in.",
+  },
+  editOrganizationsTitle: {
+    id: 'module.editOrganizationsTitle',
+    defaultMessage: 'Where {agentName} acts as you',
+    description:
+      "Title of the dialog where a member changes the organizations a connected agent acts in. {agentName} is the agent's name, such as Claude.",
+  },
+  editOrganizationsDescription: {
+    id: 'module.editOrganizationsDescription',
+    defaultMessage: 'Your change applies from its next call, with the access you allowed.',
+    description:
+      'Explanation in the dialog where a member changes the organizations a connected agent acts in, saying when a change takes effect. "Its" is the agent\'s.',
+  },
+  editOrganizationsCancel: {
+    id: 'module.editOrganizationsCancel',
+    defaultMessage: 'Cancel',
+    description: "Button that closes the dialog changing a connected agent's organizations, changing nothing.",
+  },
+  editOrganizationsSave: {
+    id: 'module.editOrganizationsSave',
+    defaultMessage: 'Save',
+    description: "Button that saves the organizations ticked in the dialog changing a connected agent's organizations.",
+  },
+  organizationsSaved: {
+    id: 'module.organizationsSaved',
+    defaultMessage: '{agentName} now acts in {count, plural, one {# organization} other {# organizations}}.',
+    description:
+      "Confirmation once a member changed the organizations a connected agent acts in. {agentName} is the agent's name and {count} how many organizations it acts in now.",
+  },
+  organizationsSaveError: {
+    id: 'module.organizationsSaveError',
+    defaultMessage: "{agentName}'s organizations could not be changed. Try again.",
+    description:
+      "Shown when changing the organizations a connected agent acts in failed. {agentName} is the agent's name.",
   },
   connectedOn: {
     id: 'module.connectedOn',

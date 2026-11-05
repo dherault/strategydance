@@ -5258,7 +5258,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.connectedAgentsLead": {
-        "hash": "7f8594b6b57af175",
+        "hash": "1f327976dc4acb3d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.connectedAgentsLoadError": {
@@ -5343,6 +5343,26 @@
       },
       "module.documentsWriteAccess": {
         "hash": "8387381ade568074",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editOrganizations": {
+        "hash": "7e237b094ee77aa3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editOrganizationsCancel": {
+        "hash": "02cdbc2faeb9a0da",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editOrganizationsDescription": {
+        "hash": "39ee8961ffe9a4a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editOrganizationsSave": {
+        "hash": "0c7dfa6674c04818",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editOrganizationsTitle": {
+        "hash": "0901d38d3856b978",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.expiredDescription": {
@@ -5431,6 +5451,14 @@
       },
       "module.organizationsRequired": {
         "hash": "2cc03a13207fe25e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.organizationsSaveError": {
+        "hash": "0382dea29e5f5267",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.organizationsSaved": {
+        "hash": "3379e88ae521c83e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.readAccess": {

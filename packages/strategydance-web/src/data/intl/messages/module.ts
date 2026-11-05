@@ -171,7 +171,7 @@ const moduleMessages = defineMessages({
   consentLead: {
     id: 'module.consentLead',
     defaultMessage:
-      'It will act as you in the organization you choose, with the access you allow, until you disconnect it from your account.',
+      'It will act as you in the organizations you choose, with the access you allow, until you disconnect it from your account.',
     description: 'Explanation under the title of the page where a member allows an external agent to use a module.',
   },
   redirectHost: {
@@ -198,6 +198,29 @@ const moduleMessages = defineMessages({
     defaultMessage: 'Organization',
     description:
       'Label of the organization a member chooses for an external agent to act in, on the page where they allow it.',
+  },
+  organizationsLabel: {
+    id: 'module.organizationsLabel',
+    defaultMessage: 'Organizations',
+    description:
+      'Label of the organizations a member ticks for an external agent to act in, on the page where they allow it and when they change them on their account page.',
+  },
+  organizationsHint: {
+    id: 'module.organizationsHint',
+    defaultMessage: 'It acts as you in each organization you tick, and names the one it acts in every time.',
+    description:
+      'Under the organizations a member ticks for an external agent, saying what ticking one means. "It" is the agent.',
+  },
+  organizationsRequired: {
+    id: 'module.organizationsRequired',
+    defaultMessage: 'Tick at least one organization.',
+    description: 'Under the organizations a member ticks for an external agent, when they ticked none.',
+  },
+  organizationsMax: {
+    id: 'module.organizationsMax',
+    defaultMessage: 'An agent acts in {max} organizations at most.',
+    description:
+      'Under the organizations a member ticks for an external agent, once they ticked as many as an agent may act in. {max} is that number.',
   },
   accessLabel: {
     id: 'module.accessLabel',
@@ -295,7 +318,7 @@ const moduleMessages = defineMessages({
   noOrganizationDescription: {
     id: 'module.noOrganizationDescription',
     defaultMessage:
-      'An agent acts as you in one of your organizations. Create one or join one, then connect the agent again.',
+      'An agent acts as you in the organizations you choose among yours. Create one or join one, then connect the agent again.',
     description:
       'Shown on the page where a member allows an external agent, when they belong to no organization the agent could act in.',
   },
@@ -401,7 +424,7 @@ const moduleMessages = defineMessages({
   agentsDescription: {
     id: 'module.agentsDescription',
     defaultMessage:
-      'Add this address to an AI agent of your own, such as Claude, ChatGPT or Cursor. It asks you to sign in and allow it, then acts as you, within what your organization lets agents do.',
+      'Add this address to an AI agent of your own, such as Claude, ChatGPT or Cursor. It asks you to sign in and allow it, then acts as you in the organizations you choose, within what each lets agents do.',
     description:
       "Lead of the dialog explaining how to connect an AI agent of the member's own to a module. Claude, ChatGPT and Cursor are product names, kept as they are.",
   },

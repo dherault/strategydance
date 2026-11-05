@@ -41,6 +41,7 @@ function ConversationMemberMessage({ conversationId, text, attachments, document
             ) : (
               <ConversationAttachmentChip
                 key={attachment.id}
+                conversationId={conversationId}
                 attachment={attachment}
               />
             ),

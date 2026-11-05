@@ -216,7 +216,7 @@ Each entry is one of:
   drawn as the agent's links to documents are, and everything else as the member typed it, Markdown
   and web addresses included, as David chose in M22; attachments above it, images as thumbnails (a
   click opens them in a dialog with their name and size), other files as chips with an icon, the
-  name and the size.
+  name and the size, which download the file when clicked.
 - **Strategy Dance's text**: full width, Markdown limited to paragraphs, bulleted and numbered lists,
   tables, bold, italic and links. A link to a document, `[title](doc:<id>)`, shows the document's
   current title with a file icon; a deleted one is struck through and muted. A link to a task,
@@ -224,9 +224,9 @@ Each entry is one of:
   and is struck through and muted the same way once the board no longer holds it (M17).
 - **A tool call**: a bordered row with an icon (a spinner while it runs, a plug for an integration,
   a wrench otherwise), the label or the server's name, a "Tool" or "MCP" badge, and under it the
-  tool's name in mono with its status ("Running", "Failed", "Cancelled"). Finished calls offer "View
-  output" or "View error": a dialog with the call's input and output as formatted JSON, its time and
-  duration, and a copy button. Consecutive calls stack without a gap. An integration that cannot
+  tool's name in mono with its status ("Running", "Failed", "Cancelled"). A finished call's row
+  darkens under the pointer and, clicked anywhere, opens a dialog with the call's input and output,
+  or its error, as formatted JSON, its time and duration, and a copy button. Consecutive calls stack without a gap. An integration that cannot
   run shows a warning strip under the row (the MCP milestones).
 - **A question**, waiting: "Waiting for your answer", the prompt, "Select one" or "Select all that
   apply", the options as radios or checkboxes, a last option with a "Write your own answer" field,
@@ -1291,8 +1291,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   - **The thread** draws a message's files in the order Claude reads them, which can differ from
     the tray's, since an image is shrunk before its upload reserves its place. Images are thumbnails
     up to 200 by 160 pixels, opening whole in a dialog under their name and size; any other file is
-    a chip with its icon, name and size, which reads nothing, as the design has it. An image's bytes
-    are read through `requestApiFile`, past the browser's HTTP cache, which keys them by address
+    a chip with its icon, name and size, which reads nothing until it is clicked, then downloads
+    the file under its name, as the design has it. A file's bytes, an image's as a downloaded
+    one's, are read through `requestApiFile`, past the browser's HTTP cache, which keys them by address
     alone, and kept for the tab by reader, never stale, a 403 or a 404 kept as no file, never asked
     again; the images the reader just sent are drawn from the bytes that went up, never read back. A
     thumbnail, in the thread as in the tray, is a small copy drawn from them one at a time

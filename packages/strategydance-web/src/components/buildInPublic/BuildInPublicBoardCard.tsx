@@ -10,6 +10,7 @@ import useLocalDate from '~hooks/common/useLocalDate'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import toCalendarDate from '~utils/date/toCalendarDate'
+import getTaskColumn from '~utils/task/getTaskColumn'
 
 import BuildInPublicCard from '~components/buildInPublic/BuildInPublicCard'
 import BuildInPublicLogo from '~components/buildInPublic/BuildInPublicLogo'
@@ -33,7 +34,7 @@ type Props = {
 }
 
 // The board as it is today, its four columns side by side, each with how many tasks it holds and
-// the first of them
+// the first of them in the board's order, Done's last done
 function BuildInPublicBoardCard({ settings, tasks, name, fields, values }: Props) {
   const { formatMessage, formatDate } = useIntl()
   const { organization } = useCurrentOrganization()
@@ -74,7 +75,7 @@ function BuildInPublicBoardCard({ settings, tasks, name, fields, values }: Props
       </div>
       <div className="mt-5 grid min-h-0 flex-1 grid-cols-4 gap-2">
         {TASK_STATUSES.map(status => {
-          const column = tasks.filter(task => task.status === status)
+          const column = getTaskColumn(tasks, status)
           const shown = column.length > MAX_SHOWN ? column.slice(0, MAX_SHOWN - 1) : column
 
           return (

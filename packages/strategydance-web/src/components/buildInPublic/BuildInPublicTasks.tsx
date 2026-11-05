@@ -12,6 +12,7 @@ import useTasks from '~hooks/task/useTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import getDaysBetween from '~utils/date/getDaysBetween'
+import getTaskColumn from '~utils/task/getTaskColumn'
 import toTaskAssigneeValue from '~utils/task/toTaskAssigneeValue'
 import getMemberName from '~utils/team/getMemberName'
 
@@ -65,7 +66,7 @@ function BuildInPublicTasks({ settings }: Props) {
         label: formatMessage(buildInPublicMessages.taskField),
         options: TASK_STATUSES.map(status => ({
           label: formatMessage(taskStatusMessages[status]),
-          options: pool.filter(task => task.status === status).map(task => ({ value: task.id, label: task.name })),
+          options: getTaskColumn(pool, status).map(task => ({ value: task.id, label: task.name })),
         })).filter(group => group.options.length),
         searchPlaceholder: formatMessage(buildInPublicMessages.searchTasks),
         emptyText: formatMessage(buildInPublicMessages.noTasksFound),
@@ -112,11 +113,8 @@ function BuildInPublicTasks({ settings }: Props) {
 
   const datedTasks = tasks.filter(task => task.dueDate !== null)
   const agentTasks = tasks.filter(task => task.isAssignedToAgent)
-  const status = readTask(
-    'task-status',
-    tasks,
-    tasks.find(task => task.status === TaskStatus.DONE),
-  )
+  // The last done, on top of Done
+  const status = readTask('task-status', tasks, getTaskColumn(tasks, TaskStatus.DONE)[0])
   const focus = readTask(
     'task-focus',
     tasks,

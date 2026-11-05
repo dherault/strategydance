@@ -380,12 +380,8 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
 
   const aspectNames = aspects.map(aspect => formatMessage(aspectMessages[aspect]))
 
-  // Half a screen of room under the text, so its end scrolls up past the middle of the screen while it is written there
   return (
-    <DocumentLayout
-      onBlur={handleBlur}
-      className="pb-[50svh]"
-    >
+    <DocumentLayout onBlur={handleBlur}>
       <div className="flex items-center gap-3">
         <DocumentsBackLink />
         <span
@@ -528,7 +524,9 @@ function DocumentEditor({ organizationId, documentId, organizationDocument, draf
             previewLink={readLinkPreview}
             mentions={mentions}
             onChange={changeContent}
-            className="border-t border-neutral-200"
+            // Half a screen of room under the text, so its end scrolls up past the middle of the
+            // screen while it is written there. The editor's own, so a press in it writes at the end
+            className="border-t border-neutral-200 pb-[50svh]"
           />
         ) : (
           // Holds the editor's height and its gutter while it loads, so the page does not jump when it arrives

@@ -211,7 +211,7 @@ export const InDialog: Story = {
   A page's body under its title, as a document is written: no frame, as tall as its text,
   the side menu in the margin to its left. Below `md` the page leaves no margin, as a phone's does,
   and the side menu sits in the body's own gutter instead. Enter in the title moves the caret into
-  the body
+  the body, and a press in the room under the text puts it at the end of the last line
 */
 export const Document: Story = {
   args: {
@@ -253,7 +253,7 @@ function DocumentExample(props: Parameters<typeof RichTextEditor>[0]) {
       <RichTextEditor
         {...props}
         ref={editorRef}
-        className="border-t border-neutral-200"
+        className="border-t border-neutral-200 pb-48"
       />
     </div>
   )

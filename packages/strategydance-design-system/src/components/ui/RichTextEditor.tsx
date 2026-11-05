@@ -11,7 +11,15 @@ import { withCollaboration } from '@blocknote/core/yjs'
 import { DesktopFormattingToolbarController, FilePanelController, TableHandlesController } from '@blocknote/react'
 import { BlockNoteView } from '@blocknote/shadcn'
 import '@blocknote/shadcn/style.css'
-import { type CSSProperties, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useState } from 'react'
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+  type Ref,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from 'react'
 import { createRichTextEditorFilePanel } from 'strategydance-design-system/components/ui/RichTextEditorFilePanel'
 import { RichTextEditorMentionMenuController } from 'strategydance-design-system/components/ui/RichTextEditorMentionMenu'
 import { RichTextEditorSideMenuController } from 'strategydance-design-system/components/ui/RichTextEditorSideMenu'
@@ -177,7 +185,9 @@ const EDITOR_CLASS_NAMES: Record<RichTextEditorAppearance, string> = {
 
   It is a framed field unless `appearance` makes it a document, the body of a page under its own
   title, which has no frame and grows with its text, its side menu hanging in the page's margin,
-  or below `md`, where a page has none, in a gutter of its own on the left.
+  or below `md`, where a page has none, in a gutter of its own on the left. A press under a
+  document's last line, in its own height or in a padding the caller gives it below, puts the caret
+  at the end of that line.
   `ref` takes a handle that focuses it from outside.
 
   Its menus portal into the editor itself, so inside a modal dialog they are inside the dialog, and
@@ -277,6 +287,35 @@ function RichTextEditor({
     onSubmit()
   }
 
+  /*
+    A press under a document's text, in the room the editor keeps below its last line, puts the
+    caret at the end of that line, the last block's deepest last child's, as a page's blank end
+    does. A last block with no text to put it in, a picture, a video or a link's card, gets an empty
+    paragraph after it to write in, which BlockNote would otherwise select whole, for a key to
+    replace. Only on the editor's own boxes, never on a block nor on a menu, which portal into it
+  */
+  function handleMouseDown(event: MouseEvent<HTMLDivElement>) {
+    const view = editor.domElement
+    const text = view?.firstElementChild
+
+    if (appearance !== 'document' || event.button !== 0 || !view || !text) return
+    if (event.target !== event.currentTarget && event.target !== view.parentElement && event.target !== view) return
+    if (event.clientY < text.getBoundingClientRect().bottom) return
+
+    event.preventDefault()
+
+    let last = editor.document.at(-1)
+
+    while (last?.children.length) last = last.children.at(-1)
+
+    const [block] =
+      last && last.content === undefined ? editor.insertBlocks([{ type: 'paragraph' }], last, 'after') : [last]
+
+    if (block) editor.setTextCursorPosition(block, 'end')
+
+    editor.focus()
+  }
+
   return (
     <div
       data-slot="rich-text-editor"
@@ -288,6 +327,7 @@ function RichTextEditor({
       )}
       style={{ '--rich-text-placeholder': JSON.stringify(placeholder) } as CSSProperties}
       onKeyDownCapture={handleKeyDownCapture}
+      onMouseDown={handleMouseDown}
     >
       <BlockNoteView
         editor={editor}

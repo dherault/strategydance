@@ -743,6 +743,13 @@ export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.inclu
 */
 export const MAX_AGENT_CONNECTIONS = 100
 
+/*
+  How many of the member's organizations one external agent's connection reaches at most. Every
+  tool of a module it calls names the organization it acts in, among those listed in the tool's
+  description and the server's instructions, so the list stays short enough to ride in each one
+*/
+export const MAX_AGENT_CONNECTION_ORGANIZATIONS = 20
+
 /* ---
   INTEGRATIONS
 --- */

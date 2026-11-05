@@ -55,6 +55,7 @@ function ConversationBrief({ parentId, text, attachmentIds, documents, tasks, si
             ) : (
               <ConversationAttachmentChip
                 key={attachment.id}
+                conversationId={parentId}
                 attachment={attachment}
               />
             ),

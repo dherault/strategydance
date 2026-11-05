@@ -2267,12 +2267,24 @@
         "hash": "fd1b6e0f58e02454",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.attachmentDownload": {
+        "hash": "ee0ca4dec95f4afd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.attachmentDownloadFailed": {
+        "hash": "96b45432d10005c3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.attachmentImageFailed": {
         "hash": "2525c05de3142631",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.attachmentOpen": {
         "hash": "227129cb8ee14e4c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.attachmentUnavailable": {
+        "hash": "c0f12708e086c0f3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.authorFilter.everyone": {

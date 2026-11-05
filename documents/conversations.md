@@ -216,7 +216,7 @@ Each entry is one of:
   drawn as the agent's links to documents are, and everything else as the member typed it, Markdown
   and web addresses included, as David chose in M22; attachments above it, images as thumbnails (a
   click opens them in a dialog with their name and size), other files as chips with an icon, the
-  name and the size.
+  name and the size, which download the file when clicked.
 - **Strategy Dance's text**: full width, Markdown limited to paragraphs, bulleted and numbered lists,
   tables, bold, italic and links. A link to a document, `[title](doc:<id>)`, shows the document's
   current title with a file icon; a deleted one is struck through and muted. A link to a task,
@@ -1291,8 +1291,9 @@ message before it is stored, directly after a `USER` entry, which Claude accepts
   - **The thread** draws a message's files in the order Claude reads them, which can differ from
     the tray's, since an image is shrunk before its upload reserves its place. Images are thumbnails
     up to 200 by 160 pixels, opening whole in a dialog under their name and size; any other file is
-    a chip with its icon, name and size, which reads nothing, as the design has it. An image's bytes
-    are read through `requestApiFile`, past the browser's HTTP cache, which keys them by address
+    a chip with its icon, name and size, which reads nothing until it is clicked, then downloads
+    the file under its name, as the design has it. A file's bytes, an image's as a downloaded
+    one's, are read through `requestApiFile`, past the browser's HTTP cache, which keys them by address
     alone, and kept for the tab by reader, never stale, a 403 or a 404 kept as no file, never asked
     again; the images the reader just sent are drawn from the bytes that went up, never read back. A
     thumbnail, in the thread as in the tray, is a small copy drawn from them one at a time

@@ -66,7 +66,9 @@ const { RichTextEditor } = window.StrategyDanceDesignSystem
   JSON `RichText` draws, given the same `blocks`
 - `appearance` is `field` unless set: a white box with a border, 134px tall at least, scrolling
   past 420px. `document` has no frame and grows with its text; its block handle hangs in the margin
-  to the left of the text, so leave it some 60px there
+  to the left of the text, so leave it some 60px there. A press under a document's last line, in
+  its own height or in a padding given it through `className`, puts the caret at the end of that
+  line, in a new empty paragraph after a picture, a video or a link's card
 - `blocks` is every block unless narrowed: a post writes `heading`, `quote`, `list` and
   `checklist`, a top priority `list` and `checklist`, a task's description adds `documentMention`,
   `taskMention` and `conversationMention`, and a document adds `code`, `table`, `image`, `video` and

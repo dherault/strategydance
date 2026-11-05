@@ -16,6 +16,7 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 
 import getCardStyle from '~utils/buildInPublic/getCardStyle'
 import renderCardImage from '~utils/buildInPublic/renderCardImage'
+import saveFile from '~utils/common/saveFile'
 import getLocalDate from '~utils/date/getLocalDate'
 
 import BuildInPublicCardSettings from '~components/buildInPublic/BuildInPublicCardSettings'
@@ -92,16 +93,7 @@ function BuildInPublicCard({
     setBusyAction('download')
 
     try {
-      const blob = await renderCardImage(surfaceRef.current)
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-
-      link.href = url
-      link.download = `strategy-dance-${cardKey}-${getLocalDate(Date.now())}.png`
-      document.body.append(link)
-      link.click()
-      link.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      saveFile(await renderCardImage(surfaceRef.current), `strategy-dance-${cardKey}-${getLocalDate(Date.now())}.png`)
       toast.success(formatMessage(buildInPublicMessages.imageDownloaded))
     } catch (error) {
       console.error('Failed to draw a card as an image', error)

@@ -7,6 +7,7 @@ import { MODULE_IDEMPOTENCY_KEY_META } from '~constants'
 import budgetModule from '~modules/budget/budgetModule'
 import BUDGET_TOOLS from '~modules/budget/budgetTools'
 import createModuleToolRegistrar from '~modules/createModuleToolRegistrar'
+import toModuleInstructions from '~modules/toModuleInstructions'
 
 // What the server tells an agent before it calls anything: what Strategy Dance is, what the budget
 // and the bills hold and how amounts are written, and how to write to them safely
@@ -27,7 +28,7 @@ Every write tool takes an idempotency key in the call's _meta, under "${MODULE_I
 function createBudgetServer(access: ModuleAccess) {
   const server = new McpServer(
     { name: 'strategydance-budget', title: budgetModule.title, version: '1.0.0' },
-    { capabilities: { tools: {} }, instructions: INSTRUCTIONS },
+    { capabilities: { tools: {} }, instructions: toModuleInstructions(INSTRUCTIONS, access) },
   )
   const registerTool = createModuleToolRegistrar(server, access, 'budget')
 

@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto'
 import { parseArgs } from 'node:util'
 
 import { serveStdio } from '@modelcontextprotocol/server/stdio'
-import { MODULES, toOrganizationPathSegment } from 'strategydance-core'
+import {
+  MAX_AGENT_CONNECTION_ORGANIZATIONS,
+  MODULES,
+  SERVED_MODULES,
+  toOrganizationPathSegment,
+} from 'strategydance-core'
 
 import type { ModuleAccess } from '~types'
 
@@ -15,9 +20,9 @@ import MODULE_SERVERS from '~modules/moduleServers'
   Claude Code say, reaches it before the authorization server exists. The package's scripts name the
   module, one each:
 
-    bun run mcp:documents <email> [--organization <id or slug>]
-    bun run mcp:tasks <email> [--organization <id or slug>]
-    bun run mcp:budget <email> [--organization <id or slug>]
+    bun run mcp:documents <email> [--organization <id or slug>]…
+    bun run mcp:tasks <email> [--organization <id or slug>]…
+    bun run mcp:budget <email> [--organization <id or slug>]…
     claude mcp add strategydance-documents-local -- bun run mcp:documents <email>
     claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>
     claude mcp add strategydance-budget-local -- bun run mcp:budget <email>
@@ -26,8 +31,11 @@ import MODULE_SERVERS from '~modules/moduleServers'
   `bun scripts/serveModule.ts knowledge <email>` with the three emulators' variables set.
 
   It acts as the account with that address, which has to have signed in to the app once, in the
-  organization named, or in the only one the account belongs to, with every scope of the module, as
-  an external agent would: its results carry each document's or task's address on the local web app.
+  organizations named, or in every one the account belongs to, up to as many as a connection
+  reaches, with every scope of the module, as an external agent would: each call names the
+  organization it acts in, and its results carry each document's or task's address on the local web
+  app. Knowledge, whose tools name no organization, acts in the one named, or in the account's only
+  one.
   Its idempotency keys are kept under a scope of its own, made each time it starts, as a connection's
   are.
 
@@ -53,7 +61,7 @@ console.info = console.error
 
 const { values, positionals } = parseArgs({
   args: process.argv.slice(2),
-  options: { organization: { type: 'string' } },
+  options: { organization: { type: 'string', multiple: true } },
   allowPositionals: true,
 })
 
@@ -64,7 +72,7 @@ const email = positionals[1]?.trim().toLowerCase()
 
 if (!served || !email || positionals.length > 2) {
   console.error(
-    `Usage: bun run mcp:${served?.name ?? `<${MODULES.map(({ name }) => name).join(' | ')}>`} <email> [--organization <id or slug>]`,
+    `Usage: bun run mcp:${served?.name ?? `<${MODULES.map(({ name }) => name).join(' | ')}>`} <email> [--organization <id or slug>]…`,
   )
   process.exit(1)
 }
@@ -78,8 +86,8 @@ async function findUserId() {
   }
 }
 
-// The membership the module acts through, with its `createdAt`, which every operation matches
-async function findMembership(userId: string) {
+// The memberships the module acts through, with their `createdAt`, which every operation matches
+async function findMemberships(userId: string) {
   const { data } = await dataConnect.executeGraphql<
     {
       userOrganizations: {
@@ -96,46 +104,47 @@ async function findMembership(userId: string) {
     { variables: { userId } },
   )
   const memberships = data.userOrganizations
-  const named = values.organization
-  const membership = named
-    ? memberships.find(
-        ({ organizationId, organization }) =>
-          organizationId === named.replaceAll('-', '').toLowerCase() || organization.slug === named,
-      )
-    : memberships.length === 1
-      ? memberships[0]
-      : undefined
+  const named = values.organization ?? []
+  const chosen = named.map(name =>
+    memberships.find(
+      ({ organizationId, organization }) =>
+        organizationId === name.replaceAll('-', '').toLowerCase() || organization.slug === name,
+    ),
+  )
+  const unknown = named.filter((_, index) => !chosen[index])
 
-  if (named && !membership) {
-    console.error(`${email} is not a member of ${named}`)
+  if (unknown.length) {
+    console.error(`${email} is not a member of ${unknown.join(', ')}`)
     process.exit(1)
   }
 
-  if (membership) return membership
+  const reached = named.length ? [...new Set(chosen.filter(membership => membership !== undefined))] : memberships
+  const most =
+    served && SERVED_MODULES.some(({ name }) => name === served.name) ? MAX_AGENT_CONNECTION_ORGANIZATIONS : 1
+
+  if (reached.length && reached.length <= most) return reached
 
   console.error(
     memberships.length
-      ? `${email} belongs to several organizations: name one with --organization\n${memberships.map(({ organizationId, organization }) => `  ${organization.slug ?? organizationId}  ${organization.name}`).join('\n')}`
+      ? `${email} belongs to ${memberships.length} organizations, more than this module reaches at once (${most}): name ${most === 1 ? 'one' : 'some'} with --organization\n${memberships.map(({ organizationId, organization }) => `  ${organization.slug ?? organizationId}  ${organization.name}`).join('\n')}`
       : `${email} belongs to no organization yet`,
   )
   process.exit(1)
 }
 
 const userId = await findUserId()
-const membership = await findMembership(userId)
+const memberships = await findMemberships(userId)
 const access: ModuleAccess = {
   kind: 'external',
   userId,
   scopes: [served.scopes.read, served.scopes.write],
   idempotencyScope: `connection:${randomUUID()}`,
-  organizations: [
-    {
-      organizationId: membership.organizationId,
-      membershipCreatedAt: membership.createdAt,
-      segment: toOrganizationPathSegment({ id: membership.organizationId, slug: membership.organization.slug }),
-      name: membership.organization.name,
-    },
-  ],
+  organizations: memberships.map(({ organizationId, createdAt, organization }) => ({
+    organizationId,
+    membershipCreatedAt: createdAt,
+    segment: toOrganizationPathSegment({ id: organizationId, slug: organization.slug }),
+    name: organization.name,
+  })),
 }
 
 serveStdio(() => MODULE_SERVERS[served.name](access), {
@@ -143,5 +152,5 @@ serveStdio(() => MODULE_SERVERS[served.name](access), {
 })
 
 console.error(
-  `Serving ${served.title} over stdio as ${email} in ${membership.organization.slug ?? membership.organizationId}`,
+  `Serving ${served.title} over stdio as ${email} in ${memberships.map(({ organizationId, organization }) => organization.slug ?? organizationId).join(', ')}`,
 )

@@ -7,6 +7,7 @@ import { MODULE_IDEMPOTENCY_KEY_META } from '~constants'
 import createModuleToolRegistrar from '~modules/createModuleToolRegistrar'
 import documentsModule from '~modules/documents/documentsModule'
 import DOCUMENTS_TOOLS from '~modules/documents/documentsTools'
+import toModuleInstructions from '~modules/toModuleInstructions'
 
 // What the server tells an agent before it calls anything: what Strategy Dance is, what the
 // documents are and how they are written, and how to write to them safely
@@ -25,7 +26,7 @@ Every write tool takes an idempotency key in the call's _meta, under "${MODULE_I
 function createDocumentsServer(access: ModuleAccess) {
   const server = new McpServer(
     { name: 'strategydance-documents', title: documentsModule.title, version: '1.0.0' },
-    { capabilities: { tools: {} }, instructions: INSTRUCTIONS },
+    { capabilities: { tools: {} }, instructions: toModuleInstructions(INSTRUCTIONS, access) },
   )
   const registerTool = createModuleToolRegistrar(server, access, 'documents')
 

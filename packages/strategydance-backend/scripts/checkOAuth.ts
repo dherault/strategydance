@@ -302,10 +302,18 @@ async function checkEndpoint(issuer: string, clientId: string, tokens: Tokens) {
   const { tools } = await client.listTools()
   const created = await client.callTool({
     name: 'create_document',
-    arguments: { title: `Checked ${checkId}`, aspects: [], content: 'Written by an external agent.' },
+    arguments: {
+      organization: organizationId,
+      title: `Checked ${checkId}`,
+      aspects: [],
+      content: 'Written by an external agent.',
+    },
   })
   const { id: documentId } = created.structuredContent as { id: string }
-  const found = await client.callTool({ name: 'read_document', arguments: { id: documentId } })
+  const found = await client.callTool({
+    name: 'read_document',
+    arguments: { organization: organizationId, id: documentId },
+  })
 
   check("the endpoint lists the module's eight tools to the access token", tools.length === 8)
   check(
@@ -522,7 +530,10 @@ async function checkFlow() {
 
   const challenged = await postModule(resource, narrowed.access_token, {
     method: 'tools/call',
-    params: { name: 'create_document', arguments: { title: 'Refused', aspects: [], content: 'Never written.' } },
+    params: {
+      name: 'create_document',
+      arguments: { organization: organizationId, title: 'Refused', aspects: [], content: 'Never written.' },
+    },
   })
   const challenge = challenged.headers.get('www-authenticate') ?? ''
 
@@ -992,13 +1003,16 @@ async function checkModuleEndpoint({
   const name = `Checked ${checkId}`
   const client = await openModule(module.resource, connected.accessToken)
   const { tools } = await client.listTools()
-  const written = await client.callTool({ name: write.tool, arguments: write.arguments(name) })
+  const written = await client.callTool({
+    name: write.tool,
+    arguments: { organization: organizationId, ...write.arguments(name) },
+  })
   const { id: itemId, url } = written.structuredContent as { id: string; url?: string }
   const searchesBefore = await countSearches()
-  const found = await client.callTool({ name: list.tool, arguments: { query: checkId } })
+  const found = await client.callTool({ name: list.tool, arguments: { organization: organizationId, query: checkId } })
   const searchesAfterQuery = await countSearches()
 
-  await client.callTool({ name: list.tool, arguments: {} })
+  await client.callTool({ name: list.tool, arguments: { organization: organizationId } })
 
   check(`the endpoint lists the ${title} module's ${toolCount} tools to its access token`, tools.length === toolCount)
   check(
@@ -1020,7 +1034,7 @@ async function checkModuleEndpoint({
   ])
   const challenged = await postModule(module.resource, readOnly.accessToken, {
     method: 'tools/call',
-    params: { name: write.tool, arguments: write.arguments(`Refused ${checkId}`) },
+    params: { name: write.tool, arguments: { organization: organizationId, ...write.arguments(`Refused ${checkId}`) } },
   })
   const challenge = challenged.headers.get('www-authenticate') ?? ''
 

@@ -1,5 +1,5 @@
 import type { AuthInfo } from '@modelcontextprotocol/server'
-import { MODULES } from 'strategydance-core'
+import { MAX_AGENT_CONNECTION_ORGANIZATIONS, MODULES } from 'strategydance-core'
 import { z } from 'zod'
 
 import type { ModuleAccess } from '~types'
@@ -29,7 +29,8 @@ const accessSchema = z.discriminatedUnion('kind', [
     ...commonShape,
     organizations: z
       .array(z.strictObject({ ...organizationShape, segment: z.string().min(1), name: z.string() }))
-      .length(1),
+      .min(1)
+      .max(MAX_AGENT_CONNECTION_ORGANIZATIONS),
   }),
 ])
 

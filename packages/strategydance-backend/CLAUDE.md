@@ -187,7 +187,8 @@ members' own agents at `/mcp/<name>` (conversations.md § Modules).
   `createdAt`. Only a worker's access has a `launcher`
 - A served module's tool registers through `createModuleToolRegistrar`, which hands its handler
   the call's caller and addresses: Strategy Dance's agent's tools register as written, so its pinned
-  bytes never move with it
+  bytes never move with it, and an external agent's take a required `organization`, one its
+  connection reaches, a value it does not reach refused rather than sent anywhere else
 - A write checks the write scope before reading anything, and inserts its `ModuleCallResult` first
   under the call's idempotency key (`com.strategydance/idempotencyKey` in `_meta`)
 - Its operations are `…ForAgent`, holding to the AI permissions, each write named in the refreshes
@@ -245,7 +246,7 @@ members' own agents at `/mcp/<name>` (conversations.md § Modules).
 | `send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message through `dev:backend` and prints the conversation's address |
 | `launch:subagent <email> --conversation <id> [--count <n>] <brief>` | Launches subagents as the module does, printing each report |
 | `measure:subagents` | Prices briefs run as subagents on each model weighed, capped at $15 in all |
-| `mcp:documents <email>`, `mcp:tasks <email>`, `mcp:budget <email>` | A module over stdio, as that account, for `claude mcp add … -- bun run mcp:documents <email>`. Over HTTP, the local backend serves `http://localhost:3003/mcp/<name>` |
+| `mcp:documents <email>`, `mcp:tasks <email>`, `mcp:budget <email>` | A module over stdio, as that account, in every organization it is in or each `--organization <id or slug>` named, for `claude mcp add … -- bun run mcp:documents <email>`. Over HTTP, the local backend serves `http://localhost:3003/mcp/<name>` |
 | `seed:budget <email>`, `sync:exchange-rates` | Fills an organization's Budget; syncs the ECB's rates, which the emulators need once |
 | `check:directories` | Runs the directories' check, about $0.10 a directory, into this checkout or, with `--publish`, the pull request |
 | `emulators:postgres` | The races' stack, four emulators on one Postgres, until Ctrl-C |

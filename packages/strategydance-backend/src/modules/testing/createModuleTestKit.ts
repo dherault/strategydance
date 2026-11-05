@@ -21,7 +21,8 @@ type ToolResult = Awaited<ReturnType<Client['callTool']>>
 async function createModuleTestKit(name: ModuleName, caller: ModuleCaller | ModuleAccess) {
   const handler = createModuleHandler(name)
   const path = MODULES.find(module => module.name === name)?.path ?? `/mcp/${name}`
-  const authInfo = toModuleAuthInfo('organizationId' in caller ? toTestModuleAccess(caller) : caller)
+  const access = 'organizationId' in caller ? toTestModuleAccess(caller) : caller
+  const authInfo = toModuleAuthInfo(access)
   const client = new Client(
     { name: 'strategydance-tests', version: '1.0.0' },
     { versionNegotiation: { mode: { pin: MODULE_PROTOCOL_VERSION } } },
@@ -32,11 +33,17 @@ async function createModuleTestKit(name: ModuleName, caller: ModuleCaller | Modu
 
   await client.connect(transport)
 
-  // Calls a tool, under an idempotency key when one is given
+  /*
+    Calls a tool, under an idempotency key when one is given. An external agent's call names the
+    first organization its access reaches unless the test names one, as `organization` or as
+    `undefined` to send none
+  */
   function call(tool: string, args: Record<string, unknown>, key?: string) {
+    const [first] = access.kind === 'external' ? access.organizations : []
+
     return client.callTool({
       name: tool,
-      arguments: args,
+      arguments: first && !('organization' in args) ? { organization: first.segment, ...args } : args,
       ...(key !== undefined && { _meta: { [MODULE_IDEMPOTENCY_KEY_META]: key } }),
     })
   }

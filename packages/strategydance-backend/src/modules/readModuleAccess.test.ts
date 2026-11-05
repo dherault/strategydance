@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 
+import { MAX_AGENT_CONNECTION_ORGANIZATIONS } from 'strategydance-core'
+
 import type { ModuleAccess } from '~types'
 
 import readModuleAccess from './readModuleAccess'
@@ -79,6 +81,19 @@ describe('readModuleAccess', () => {
     ]) {
       expect(() => readModuleAccess(carrying(access))).toThrow()
     }
+  })
+
+  it('reads back an external access reaching as many organizations as a connection may', () => {
+    const organizations = Array.from({ length: MAX_AGENT_CONNECTION_ORGANIZATIONS }, (_, index) => ({
+      ...ORGANIZATION,
+      segment: `organization-${index}`,
+      name: `Organization ${index}`,
+    }))
+
+    expect(readModuleAccess(toModuleAuthInfo({ ...EXTERNAL, organizations }))).toEqual({ ...EXTERNAL, organizations })
+    expect(() =>
+      readModuleAccess(carrying({ ...EXTERNAL, organizations: [...organizations, organizations[0]] })),
+    ).toThrow()
   })
 
   it('refuses an external access reaching no organization, or one named by nothing', () => {

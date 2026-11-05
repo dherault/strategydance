@@ -316,21 +316,28 @@ function useTaskChanges() {
     )
   }
 
-  // Moves a task into a column, before the task `beforeId`, or past its last one when that is null.
-  // Dropped where it already sits, it stays and nothing is written
+  /*
+    Moves a task into a column, before the task `beforeId`, or past its last one when that is null.
+    Dropped where it already sits, it stays and nothing is written.
+
+    Done is the exception: the board shows the last done on top, whatever the positions, so a move
+    within it changes nothing, and a task moved into it goes first in its positions too, where the
+    board shows it, for a reader of the positions alone, such as the Tasks module's list
+  */
   async function moveTask(taskId: string, status: TaskStatus, beforeId: string | null) {
     const tasks = readTasks()
     const moved = tasks.find(task => task.id === taskId)
 
-    if (!moved || beforeId === taskId) return
+    if (!moved || beforeId === taskId || (moved.status === TaskStatus.DONE && status === TaskStatus.DONE)) return
 
     const column = tasks.filter(task => task.status === status && task.id !== taskId)
-    const beforeIndex = beforeId === null ? -1 : column.findIndex(task => task.id === beforeId)
+    const targetId = status === TaskStatus.DONE ? (column[0]?.id ?? null) : beforeId
+    const beforeIndex = targetId === null ? -1 : column.findIndex(task => task.id === targetId)
     const index = beforeIndex < 0 ? column.length : beforeIndex
 
     if (moved.status === status && tasks.filter(task => task.status === status).indexOf(moved) === index) return
 
-    const position = getTaskMovePosition(column, beforeId)
+    const position = getTaskMovePosition(column, targetId)
 
     if (position !== null) {
       await placeTask(taskId, status, position)

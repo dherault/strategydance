@@ -26,9 +26,9 @@ type Props = {
 /*
   A task's dialog's Delegate section: a button that copies a prompt asking an agent of the member's
   own to take the task up, by its id and its name, through the Tasks module. While the member has
-  connected no agent to the module in this organization, used yet or not, it opens the dialog telling
-  how to connect one instead, as the board's agents button does, since the prompt would reach an
-  agent that cannot read the board. A list that could not be read says nothing either way, so the
+  connected no agent to the module reaching this organization, used yet or not, it opens the dialog
+  telling how to connect one instead, as the board's agents button does, since the prompt would
+  reach an agent that cannot read the board. A list that could not be read says nothing either way, so the
   prompt is copied then.
 
   The button waits while the list is first read. A write the browser
@@ -49,7 +49,7 @@ function TaskDelegation({ task }: Props) {
   const hasConnection =
     hasFailed
     || connections.some(
-      connection => connection.module === 'tasks' && connection.membership.organization.id === organization?.id,
+      connection => connection.module === 'tasks' && connection.organizations.some(({ id }) => id === organization?.id),
     )
 
   function handleClick(event: MouseEvent<HTMLButtonElement>) {

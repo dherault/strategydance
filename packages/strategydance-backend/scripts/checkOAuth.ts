@@ -3,13 +3,20 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
-import { DEVELOPMENT_API_URL, MAX_AGENT_CONNECTIONS, SERVED_MODULE_NAMES } from 'strategydance-core'
+import {
+  DEVELOPMENT_API_URL,
+  MAX_AGENT_CONNECTION_ORGANIZATIONS,
+  MAX_AGENT_CONNECTIONS,
+  readAgentConnectionReach,
+  SERVED_MODULE_NAMES,
+} from 'strategydance-core'
 import {
   approveOAuthAuthorizationRequest,
   connectorConfig,
   createOAuthAuthorizationRequest,
   denyOAuthAuthorizationRequest,
   exchangeOAuthAuthorizationCode,
+  getAgentConnectionForConsent,
   getAgentConnectionRefreshToken,
   getOAuthAuthorizationRequestByCode,
   pruneAgentConnectionTokens,
@@ -44,20 +51,24 @@ import readModuleAccess from '~modules/readModuleAccess'
   it writes, and revokes.
 
   Then what guards it in its operations' SQL conditions: a request decided once, a code used once, a
-  refresh token rotated once, one connection per member, client and module, and the cascades that
-  take a connection's tokens with it, calling the backend connector's own operations as the
-  endpoints call them, at once where two requests could race. The domain's tests run against a fake
+  refresh token rotated once, one connection per member, client and module, reaching only
+  organizations the member is in, and the cascades that take a connection's tokens with it, calling
+  the backend connector's own operations as the endpoints call them, at once where two requests
+  could race. The domain's tests run against a fake
   of these operations: this is what says the fake's conditions are the SQL's.
 
   And what the account page's Connected agents tab runs through the browser's connector: its list
   holds the member's connections alone, and Disconnect deletes one of theirs alone, with its tokens,
-  so the agent's next refresh and its next call to the module are refused. Allow holds a member to `MAX_AGENT_CONNECTIONS`, so the
-  tab lists every one.
+  so the agent's next refresh and its next call to the module are refused. Allow holds a member to
+  `MAX_AGENT_CONNECTIONS`, so the tab lists every one.
 
   And the Tasks and the Budget modules' endpoints, each beside the Documents module's, for one agent
   connected to both: each module's token opens that module alone, a query draws on the member's
   search allowance, a token granted read alone is challenged when it writes, and Disconnect of one
-  connection leaves the other working.
+  connection leaves the other working. And one agent connected in two of the member's organizations:
+  each call acts in the one it names, one it does not reach is refused, leaving one organization
+  leaves the other working, an invitation back reaches nothing until chosen again, and leaving every
+  one stops the token and its refresh.
 
   It makes a throwaway organization with a member, removes everything it made, then exits non-zero
   naming each check that failed. The sweep's deletes take no organization: they remove every expired
@@ -97,6 +108,8 @@ function createSecret() {
 const checkId = createId().slice(0, 8)
 const organizationId = createId()
 const otherOrganizationId = createId()
+// An organization the member is never in
+const strangerOrganizationId = createId()
 const userId = `check-oauth-${checkId}-member`
 const otherUserId = `check-oauth-${checkId}-other`
 // The backend's own issuer names its modules, so a token made here is one it refreshes
@@ -156,13 +169,20 @@ async function setUp() {
   }
 
   await write(
-    `mutation SetUp($organizationId: UUID!, $otherOrganizationId: UUID!, $userId: String!, $otherUserId: String!) {
+    `mutation SetUp(
+      $organizationId: UUID!
+      $otherOrganizationId: UUID!
+      $strangerOrganizationId: UUID!
+      $userId: String!
+      $otherUserId: String!
+    ) {
       organization_insert(data: { id: $organizationId, name: "Checked organization" })
       other: organization_insert(data: { id: $otherOrganizationId, name: "Another organization" })
+      stranger: organization_insert(data: { id: $strangerOrganizationId, name: "A stranger's organization" })
       userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: MEMBER })
       otherMember: userOrganization_insert(data: { userId: $otherUserId, organizationId: $organizationId, role: MEMBER })
     }`,
-    { organizationId, otherOrganizationId, userId, otherUserId },
+    { organizationId, otherOrganizationId, strangerOrganizationId, userId, otherUserId },
   )
 }
 
@@ -171,6 +191,7 @@ async function tearDown() {
     `mutation TearDown(
       $organizationId: UUID!
       $otherOrganizationId: UUID!
+      $strangerOrganizationId: UUID!
       $userId: String!
       $otherUserId: String!
       $clientIds: [String!]!
@@ -178,6 +199,7 @@ async function tearDown() {
     ) {
       organization_delete(id: $organizationId)
       other: organization_delete(id: $otherOrganizationId)
+      stranger: organization_delete(id: $strangerOrganizationId)
       user_delete(id: $userId)
       otherUser: user_delete(id: $otherUserId)
       oAuthAuthorizationRequest_deleteMany(where: { clientId: { in: $clientIds } })
@@ -186,6 +208,7 @@ async function tearDown() {
     {
       organizationId,
       otherOrganizationId,
+      strangerOrganizationId,
       userId,
       otherUserId,
       clientIds: [...clientIds],
@@ -425,22 +448,29 @@ async function checkFlow() {
   const headers = { Authorization: `Bearer ${await signIn()}`, 'Content-Type': 'application/json' }
   const reading = await fetch(`${apiUrl}/oauth/requests/${requestId}`, { headers })
   const { data: summary } = (await reading.json()) as {
-    data?: { module: string; client: { isVerified: boolean }; isLoopbackRedirect: boolean; scopes: string[] }
+    data?: {
+      module: string
+      client: { isVerified: boolean }
+      isLoopbackRedirect: boolean
+      scopes: string[]
+      reachedOrganizationIds: string[]
+    }
   }
 
   check(
-    'the consent page reads the request: the module, an unverified client, a loopback address, the access asked',
+    'the consent page reads the request: the module, an unverified client, a loopback address, the access asked, nothing reached yet',
     reading.status === 200
       && summary?.module === 'documents'
       && !summary.client.isVerified
       && summary.isLoopbackRedirect
-      && summary.scopes.join(' ') === READ_WRITE.join(' '),
+      && summary.scopes.join(' ') === READ_WRITE.join(' ')
+      && summary.reachedOrganizationIds.length === 0,
   )
 
   const approval = await fetch(`${apiUrl}/oauth/requests/${requestId}/approve`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ organizationId, scopes: READ_WRITE }),
+    body: JSON.stringify({ organizationIds: [organizationId], scopes: READ_WRITE }),
   })
   const { data: decision } = (await approval.json()) as { data?: { redirectUrl: string } }
   const answer = new URL(decision?.redirectUrl ?? 'invalid:')
@@ -586,10 +616,10 @@ function approve(
   clientId: string,
   {
     scopes = READ_WRITE,
-    organization = organizationId,
+    organizations = [organizationId],
     user = userId,
     module = DOCUMENTS,
-  }: { scopes?: string[]; organization?: string; user?: string; module?: CheckedModule } = {},
+  }: { scopes?: string[]; organizations?: string[]; user?: string; module?: CheckedModule } = {},
 ) {
   const connectionId = createId()
   const code = createSecret()
@@ -600,7 +630,7 @@ function approve(
     approval: approveOAuthAuthorizationRequest(dataConnect, {
       id: requestId,
       userId: user,
-      organizationId: organization,
+      organizationIds: organizations,
       connectionId,
       clientId,
       registeredClientId: null,
@@ -613,12 +643,12 @@ function approve(
   }
 }
 
-async function readConnections(clientId: string) {
-  const data = await read<{ agentConnections: { id: string; scopes: string[] }[] }>(
+async function readConnections(clientId: string, account = userId) {
+  const data = await read<{ agentConnections: { id: string; scopes: string[]; organizationIds: string[] }[] }>(
     `query ReadConnections($userId: String!, $clientId: String!) {
-      agentConnections(where: { membershipUserId: { eq: $userId }, clientId: { eq: $clientId } }) { id scopes }
+      agentConnections(where: { userId: { eq: $userId }, clientId: { eq: $clientId } }) { id scopes organizationIds }
     }`,
-    { userId, clientId },
+    { userId: account, clientId },
   )
 
   return data.agentConnections
@@ -758,23 +788,59 @@ async function checkConsent() {
     (await refusal(approve(readOnly, clientId).approval)) !== null,
   )
   const outsider = await refusal(
-    approve(readOnly, clientId, { scopes: ['documents:read'], organization: otherOrganizationId }).approval,
+    approve(readOnly, clientId, { scopes: ['documents:read'], organizations: [strangerOrganizationId] }).approval,
+  )
+  const besideOne = await refusal(
+    approve(readOnly, clientId, { scopes: ['documents:read'], organizations: [organizationId, strangerOrganizationId] })
+      .approval,
   )
 
   check(
     'an Allow for an organization the account is not in is refused, as the backend reads a membership refusal',
     outsider !== null && isMembershipRefusal(outsider),
   )
+  check(
+    'an Allow naming one the account is not in beside one it is is refused, as the backend reads a membership refusal',
+    besideOne !== null && isMembershipRefusal(besideOne),
+  )
+
+  const namedTwice = await refusal(
+    approve(readOnly, clientId, { scopes: ['documents:read'], organizations: [organizationId, organizationId] })
+      .approval,
+  )
+
+  check(
+    'an Allow naming an organization twice is refused, so the backend dedupes the list first',
+    namedTwice !== null && isMembershipRefusal(namedTwice),
+  )
+
+  const tooMany = await refusal(
+    approve(readOnly, clientId, {
+      scopes: ['documents:read'],
+      organizations: Array.from({ length: MAX_AGENT_CONNECTION_ORGANIZATIONS + 1 }, createId),
+    }).approval,
+  )
+
+  check(
+    'an Allow naming more organizations than a connection reaches is refused',
+    tooMany !== null && tooMany.includes("An agent reaches 1 to 20 of the member's organizations"),
+  )
 }
 
 // The Connected agents tab's list, through the browser's connector as the given account
 async function readAgentConnections(account: string) {
   const { data } = await webConnector.executeQuery<
-    { agentConnections: { id: string; membership: { organization: { id: string } } }[] },
+    {
+      agentConnections: { id: string; organizationIds: string[]; grantedAt: string }[]
+      memberships: { organizationId: string; createdAt: string }[]
+    },
     Variables
   >('GetAgentConnections', {}, { impersonate: { authClaims: { sub: account } } })
 
-  return data.agentConnections
+  return data.agentConnections.map(connection => ({
+    ...connection,
+    reached: readAgentConnectionReach(connection, data.memberships).map(({ organizationId }) => organizationId),
+  }))
 }
 
 // Disconnect, through the browser's connector as the member, naming the `$userId` given
@@ -810,8 +876,8 @@ async function checkConnectedAgents() {
   const listed = await readAgentConnections(userId)
 
   check(
-    "the Connected agents tab lists the member's connections, with their organization, and nobody else's",
-    listed.some(({ id, membership }) => id === connection.connectionId && membership.organization.id === organizationId)
+    "the Connected agents tab lists the member's connections, with the organizations they reach, and nobody else's",
+    listed.some(({ id, reached }) => id === connection.connectionId && reached.join() === organizationId)
       && !listed.some(({ id }) => id === otherConnection.connectionId),
   )
   check(
@@ -886,12 +952,12 @@ async function countSearches() {
   return data.conversationSearches.length
 }
 
-async function countTasksNamed(name: string) {
+async function countTasksNamed(name: string, organization = organizationId) {
   const data = await read<{ tasks: { id: string }[] }>(
     `query CountTasksNamed($organizationId: UUID!, $name: String!) {
       tasks(where: { organizationId: { eq: $organizationId }, name: { eq: $name } }) { id }
     }`,
-    { organizationId, name },
+    { organizationId: organization, name },
   )
 
   return data.tasks.length
@@ -1060,13 +1126,211 @@ async function checkModuleEndpoint({
   )
 }
 
+// The member joins an organization, or leaves it, as an invitation and a removal write the row
+async function join(organization: string) {
+  await write(
+    `mutation Join($userId: String!, $organizationId: UUID!) {
+      userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: MEMBER })
+    }`,
+    { userId, organizationId: organization },
+  )
+}
+
+async function leave(organization: string) {
+  await write(
+    `mutation Leave($userId: String!, $organizationId: UUID!) {
+      userOrganization_delete(key: { userId: $userId, organizationId: $organizationId })
+    }`,
+    { userId, organizationId: organization },
+  )
+}
+
+// What a refresh at the backend's token endpoint answers, for the Tasks module
+async function refreshTasks(metadata: Metadata, refreshToken: string, clientId: string) {
+  const response = await fetch(metadata.token_endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: clientId,
+      resource: TASKS.resource,
+    }),
+  })
+  const { error } = (await response.json()) as { error?: string }
+
+  return { status: response.status, error }
+}
+
+/*
+  One agent's connection reaching two of the member's organizations: one Allow lists both, the
+  consent read ticks both, and consenting again replaces the list. Through the Tasks module's
+  endpoint, every tool takes the organization, each call acts in the one it names, and one the
+  connection does not reach is refused. Leaving one organization leaves the other working, an
+  invitation back reaches nothing until the member chooses it again, and a connection whose member
+  left every organization it lists is refused its calls and its refresh. The member ends outside the
+  other organization, as the cap's check expects
+*/
+async function checkOrganizations() {
+  const metadata = await readMetadata()
+  const clientId = `https://check-${checkId}.example.com/organizations.json`
+  const scopes = ['tasks:read', 'tasks:write']
+  const both = [organizationId, otherOrganizationId]
+
+  await join(otherOrganizationId)
+
+  const requestId = await createRequest(clientId, scopes, TASKS)
+  const allowed = approve(requestId, clientId, { scopes, module: TASKS, organizations: both })
+
+  check('one Allow over two organizations goes through', (await refusal(allowed.approval)) === null)
+
+  const [connection] = await readConnections(clientId)
+
+  check(
+    'one Allow over two organizations makes one connection listing both',
+    [...(connection?.organizationIds ?? [])].sort().join() === [...both].sort().join(),
+  )
+
+  const { data: consent } = await getAgentConnectionForConsent(dataConnect, { userId, clientId, module: 'tasks' })
+
+  check(
+    'the consent read finds both organizations the connection reaches',
+    readAgentConnectionReach(
+      consent.agentConnections[0] ?? { organizationIds: [], grantedAt: '' },
+      consent.userOrganizations,
+    ).length === 2,
+  )
+
+  const exchanged = exchange(requestId, allowed.code, allowed.connectionId, { scopes, module: TASKS })
+
+  await exchanged.exchange
+
+  const client = await openModule(TASKS.resource, exchanged.accessToken)
+  const { tools } = await client.listTools()
+
+  check(
+    "every tool of the Tasks module's endpoint takes the organization a call acts in",
+    tools.length === 8 && tools.every(({ inputSchema }) => inputSchema.required?.includes('organization')),
+  )
+
+  const name = `Organizations ${checkId}`
+  const written = await Promise.all(
+    both.map(organization =>
+      client.callTool({ name: 'create_task', arguments: { organization, name, status: 'TODO' } }),
+    ),
+  )
+
+  check(
+    'a call acts in the organization it names, one task written in each',
+    written.every(({ isError }) => !isError)
+      && (await countTasksNamed(name, organizationId)) === 1
+      && (await countTasksNamed(name, otherOrganizationId)) === 1,
+  )
+
+  const elsewhere = await client.callTool({
+    name: 'create_task',
+    arguments: { organization: strangerOrganizationId, name: `Refused ${checkId}`, status: 'TODO' },
+  })
+
+  check(
+    'a call naming an organization the connection does not reach is refused, writing nothing',
+    Boolean(elsewhere.isError)
+      && JSON.stringify(elsewhere.content).includes('This connection does not reach')
+      && (await countTasksNamed(`Refused ${checkId}`, strangerOrganizationId)) === 0,
+  )
+
+  await client.close()
+
+  const listIn = async (organization: string) => {
+    const listing = await openModule(TASKS.resource, exchanged.accessToken)
+    const listed = await listing.callTool({ name: 'list_tasks', arguments: { organization, query: checkId } })
+
+    await listing.close()
+
+    return listed
+  }
+
+  await leave(otherOrganizationId)
+
+  check(
+    'leaving one organization refuses the calls there and leaves the other working',
+    Boolean((await listIn(otherOrganizationId)).isError) && !(await listIn(organizationId)).isError,
+  )
+
+  await join(otherOrganizationId)
+
+  check(
+    'an invitation back leaves the organization unreached until the member chooses it again',
+    Boolean((await listIn(otherOrganizationId)).isError),
+  )
+
+  const again = await createRequest(clientId, scopes, TASKS)
+
+  check(
+    'consenting again replaces the organizations the connection lists',
+    (await refusal(approve(again, clientId, { scopes, module: TASKS, organizations: [otherOrganizationId] }).approval))
+      === null && (await readConnections(clientId))[0]?.organizationIds.join() === otherOrganizationId,
+  )
+
+  // A connection reaching the other organization alone, whose member then leaves it
+  const onlyClientId = `https://check-${checkId}.example.com/only-other.json`
+  const onlyRequest = await createRequest(onlyClientId, scopes, TASKS)
+  const only = approve(onlyRequest, onlyClientId, { scopes, module: TASKS, organizations: [otherOrganizationId] })
+
+  await only.approval
+
+  const onlyTokens = exchange(onlyRequest, only.code, only.connectionId, { scopes, module: TASKS })
+
+  await onlyTokens.exchange
+  await leave(otherOrganizationId)
+
+  const refreshed = await refreshTasks(metadata, onlyTokens.refreshToken, onlyClientId)
+
+  check(
+    'a connection whose member left every organization it lists is refused its calls and its refresh',
+    (await postModule(TASKS.resource, onlyTokens.accessToken, { method: 'tools/list' })).status === 401
+      && refreshed.status === 400
+      && refreshed.error === 'invalid_grant',
+  )
+}
+
+// Deleting an account takes its connections with it, with their tokens
+async function checkAccountDeletion() {
+  const leaving = `check-oauth-${checkId}-leaving`
+  const clientId = `https://check-${checkId}.example.com/leaving.json`
+
+  await webConnector.executeMutation(
+    'CreateCurrentUser',
+    { locale: 'EN', authenticationProviders: [] },
+    { impersonate: { authClaims: { sub: leaving, email: `${leaving}@example.com` } } },
+  )
+  await write(
+    `mutation JoinLeaving($userId: String!, $organizationId: UUID!) {
+      userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: MEMBER })
+    }`,
+    { userId: leaving, organizationId: otherOrganizationId },
+  )
+
+  const requestId = await createRequest(clientId)
+  const allowed = approve(requestId, clientId, { user: leaving, organizations: [otherOrganizationId] })
+
+  await allowed.approval
+  await exchange(requestId, allowed.code, allowed.connectionId).exchange
+  await write(`mutation DeleteLeaving($userId: String!) { user_delete(id: $userId) }`, { userId: leaving })
+
+  check(
+    'deleting an account deletes its connections with their tokens',
+    (await readConnections(clientId, leaving)).length === 0 && (await countTokens(allowed.connectionId)) === 0,
+  )
+}
+
 // A member connects at most `MAX_AGENT_CONNECTIONS` agents, so the Connected agents tab lists every one
 async function checkConnectionCap() {
   const capClientIds: string[] = Array.from({ length: MAX_AGENT_CONNECTIONS + 1 }, (_, index) => {
     return `https://check-${checkId}-cap${index}.example.com/agent.json`
   })
   const { agentConnections: held } = await read<{ agentConnections: { id: string }[] }>(
-    `query Held($userId: String!) { agentConnections(where: { membershipUserId: { eq: $userId } }) { id } }`,
+    `query Held($userId: String!) { agentConnections(where: { userId: { eq: $userId } }) { id } }`,
     { userId },
   )
   // Literals, since a list of rows cannot travel as a variable
@@ -1074,7 +1338,7 @@ async function checkConnectionCap() {
     .slice(0, MAX_AGENT_CONNECTIONS - 1 - held.length)
     .map(
       clientId =>
-        `{ membershipUserId: "${userId}", membershipOrganizationId: "${organizationId}", clientId: "${clientId}", module: "documents", scopes: ["documents:read"] }`,
+        `{ userId: "${userId}", organizationIds: ["${organizationId}"], grantedAt_expr: "request.time", clientId: "${clientId}", module: "documents", scopes: ["documents:read"] }`,
     )
 
   await write(`mutation Fill { agentConnection_insertMany(data: [${rows.join(', ')}]) }`)
@@ -1121,7 +1385,7 @@ async function checkConnectionCap() {
   for (let round = 0; round < 5; round++) {
     await write(
       `mutation Free($userId: String!, $clientId: String!) {
-        agentConnection_deleteMany(where: { membershipUserId: { eq: $userId }, clientId: { eq: $clientId } })
+        agentConnection_deleteMany(where: { userId: { eq: $userId }, clientId: { eq: $clientId } })
       }`,
       { userId, clientId: capClientIds[round]! },
     )
@@ -1133,10 +1397,10 @@ async function checkConnectionCap() {
     const requests = await Promise.all(racing.map(clientId => createRequest(clientId)))
     const causes = await Promise.all([
       refusal(approve(requests[0]!, racing[0]!).approval),
-      refusal(approve(requests[1]!, racing[1]!, { organization: otherOrganizationId }).approval),
+      refusal(approve(requests[1]!, racing[1]!, { organizations: [otherOrganizationId] }).approval),
     ])
     const { agentConnections: connected } = await read<{ agentConnections: { id: string }[] }>(
-      `query Held($userId: String!) { agentConnections(where: { membershipUserId: { eq: $userId } }) { id } }`,
+      `query Held($userId: String!) { agentConnections(where: { userId: { eq: $userId } }) { id } }`,
       { userId },
     )
 
@@ -1152,7 +1416,7 @@ async function checkConnectionCap() {
 
   await write(
     `mutation Empty($userId: String!, $clientIds: [String!]!, $otherOrganizationId: UUID!) {
-      agentConnection_deleteMany(where: { membershipUserId: { eq: $userId }, clientId: { in: $clientIds } })
+      agentConnection_deleteMany(where: { userId: { eq: $userId }, clientId: { in: $clientIds } })
       userOrganization_delete(key: { userId: $userId, organizationId: $otherOrganizationId })
     }`,
     { userId, clientIds: capClientIds, otherOrganizationId },
@@ -1225,7 +1489,10 @@ async function checkTokens() {
   const other = approve(otherRequestId, otherClientId)
 
   await other.approval
-  await exchange(otherRequestId, other.code, other.connectionId).exchange
+
+  const otherTokens = exchange(otherRequestId, other.code, other.connectionId)
+
+  await otherTokens.exchange
   await revokeAgentConnection(dataConnect, { id: approval.connectionId })
 
   check('revoking a connection deletes its tokens', (await countTokens(approval.connectionId)) === 0)
@@ -1244,8 +1511,21 @@ async function checkTokens() {
     { organizationId, userId },
   )
 
-  check('removing the member deletes their connections', (await readConnections(otherClientId)).length === 0)
-  check("removing the member deletes their connections' tokens", (await countTokens(other.connectionId)) === 0)
+  check(
+    'removing the member leaves their connection, with its tokens, listing the organization',
+    (await readConnections(otherClientId))[0]?.organizationIds.join() === organizationId
+      && (await countTokens(other.connectionId)) === 2,
+  )
+  check(
+    "the verifier refuses the removed member's token, their connection reaching nothing",
+    (await refusal(createAgentConnectionTokenVerifier(new URL(resource)).verifyAccessToken(otherTokens.accessToken)))
+      !== null,
+  )
+  check(
+    "the refresh read finds no membership left for the removed member's connection, so the grant refuses it",
+    (await getAgentConnectionRefreshToken(dataConnect, { hash: createHashOf(otherTokens.refreshToken) })).data.token[0]
+      ?.connection.user.userOrganizations_on_user.length === 0,
+  )
 }
 
 async function checkPrunes() {
@@ -1255,9 +1535,9 @@ async function checkPrunes() {
   // no endpoint serves, to one a newer release may serve, made a moment ago, and to a module served
   await write(
     `mutation Unserved($userId: String!, $organizationId: UUID!, $clientId: String!, $weekAgo: Timestamp!) {
-      unserved: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "retired", scopes: ["retired:read"], createdAt: $weekAgo })
-      recent: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "newer", scopes: ["newer:read"] })
-      served: agentConnection_insert(data: { membershipUserId: $userId, membershipOrganizationId: $organizationId, clientId: $clientId, module: "documents", scopes: ["documents:read"], createdAt: $weekAgo })
+      unserved: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt: $weekAgo, clientId: $clientId, module: "retired", scopes: ["retired:read"], createdAt: $weekAgo })
+      recent: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt_expr: "request.time", clientId: $clientId, module: "newer", scopes: ["newer:read"] })
+      served: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt: $weekAgo, clientId: $clientId, module: "documents", scopes: ["documents:read"], createdAt: $weekAgo })
     }`,
     {
       userId: otherUserId,
@@ -1279,7 +1559,7 @@ async function checkPrunes() {
 
   const { agentConnections } = await read<{ agentConnections: { module: string }[] }>(
     `query Pruned($userId: String!, $clientId: String!) {
-      agentConnections(where: { membershipUserId: { eq: $userId }, clientId: { eq: $clientId } }) { module }
+      agentConnections(where: { userId: { eq: $userId }, clientId: { eq: $clientId } }) { module }
     }`,
     { userId: otherUserId, clientId },
   )
@@ -1300,6 +1580,8 @@ try {
   await checkConnectedAgents()
   await checkModuleEndpoint(TASKS_ENDPOINT)
   await checkModuleEndpoint(BUDGET_ENDPOINT)
+  await checkOrganizations()
+  await checkAccountDeletion()
   await checkConnectionCap()
   await checkTokens()
   await checkPrunes()

@@ -736,10 +736,10 @@ export const SERVED_MODULE_NAMES: readonly ModuleName[] = ['documents', 'tasks',
 export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.includes(module.name))
 
 /*
-  How many external agents a member connects across their organizations, a connection being one per
-  client, organization and module. Allow refuses another past it, so the account page's Connected
-  agents tab, which reads every one, lists each agent acting as them, and Disconnect reaches it.
-  Consenting again with an agent already connected replaces its connection, and counts once
+  How many external agents a member connects, a connection being one per client and module, reaching
+  some of their organizations. Allow refuses another past it, so the account page's Connected agents
+  tab, which reads every one, lists each agent acting as them, and Disconnect reaches it. Consenting
+  again with an agent already connected replaces its connection, and counts once
 */
 export const MAX_AGENT_CONNECTIONS = 100
 

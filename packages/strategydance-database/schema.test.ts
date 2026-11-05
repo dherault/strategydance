@@ -12,6 +12,8 @@ import {
   MAX_BILL_DESCRIPTION_LENGTH,
   MAX_BILL_NAME_LENGTH,
   MAX_AGENT_BILL_RECEIPT_SIZE,
+  MAX_AGENT_CONNECTION_ORGANIZATIONS,
+  MAX_AGENT_CONNECTIONS,
   MAX_BILL_RECEIPT_NAME_LENGTH,
   MAX_BILL_RECEIPT_SIZE,
   MAX_BILLS,
@@ -219,5 +221,29 @@ describe('the bills', () => {
     expect(readNumbers(claim, /size\(this\) < (\d+)/g)).toEqual(caps)
     expect(readNumbers(claim, /limit: (\d+)/g)).toEqual(caps)
     expect(readNumbers(readOperation(backendQueries, 'GetBillReceiptReads'), /limit: (\d+)/g)).toEqual(caps)
+  })
+})
+
+/*
+  An external agent's connection lists the organizations it reaches, at most as many as
+  strategydance-core lets one reach, among at most as many as anybody connects, which the
+  operations write out again, since they cannot import them
+*/
+describe('the agent connections', () => {
+  it('ApproveOAuthAuthorizationRequest holds the organizations to the cap and counts the connections to theirs', () => {
+    const approve = readOperation(backendMutations, 'ApproveOAuthAuthorizationRequest')
+
+    expect(readNumbers(approve, /size\(vars\.organizationIds\) <= (\d+)/g)).toEqual([
+      MAX_AGENT_CONNECTION_ORGANIZATIONS,
+    ])
+    expect(readNumbers(approve, /size\(this\) < (\d+)/g)).toEqual([MAX_AGENT_CONNECTIONS])
+    expect(readNumbers(approve, /limit: (\d+)/g)).toEqual([MAX_AGENT_CONNECTIONS])
+    expect(approve).toContain('this == size(vars.organizationIds)')
+  })
+
+  it('GetAgentConnections reads every connection a member may hold', () => {
+    expect(readNumbers(readOperation(webQueries, 'GetAgentConnections'), /limit: (\d+)/g)).toEqual([
+      MAX_AGENT_CONNECTIONS,
+    ])
   })
 })

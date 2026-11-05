@@ -2016,7 +2016,7 @@ mutation DeleteAgentConnection($userId: String!, $id: UUID!) @auth(level: USER) 
       id
     }
   }
-  agentConnection_deleteMany(where: { id: { eq: $id }, membershipUserId: { eq_expr: "auth.uid" } })
+  agentConnection_deleteMany(where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" } })
 }
 
 # Sets an organization's budget, or removes it, which only an administrator may: its currency, and

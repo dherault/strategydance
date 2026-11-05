@@ -1,13 +1,9 @@
 /*
-  Whether `ApproveOAuthAuthorizationRequest` refused a caller who is not the organization's member:
-  by its lock's check, or first by the connection's reference to the membership, which Data Connect
-  reports before the check
+  Whether `ApproveOAuthAuthorizationRequest` refused a caller who is not a member of every
+  organization they chose, which the count of the memberships it locks checks
 */
 function isMembershipRefusal(message: string) {
-  return (
-    message.includes('Only a member of an organization can connect an agent to it')
-    || message.includes('agent_connection_membership_fkey')
-  )
+  return message.includes('Only a member of an organization can connect an agent to it')
 }
 
 export default isMembershipRefusal

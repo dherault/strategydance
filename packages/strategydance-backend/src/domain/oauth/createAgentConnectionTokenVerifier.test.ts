@@ -19,6 +19,8 @@ const { default: readModuleAccess } = await import('~modules/readModuleAccess')
 const DOCUMENTS = 'http://localhost:3003/mcp/documents'
 const TASKS = 'http://localhost:3003/mcp/tasks'
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
+const OTHER_ORGANIZATION_ID = '1a2b3c4d5e6f47089a0b1c2d3e4f5a6b'
+const THIRD_ORGANIZATION_ID = '2b3c4d5e6f7a48190b1c2d3e4f5a6b7c'
 const MEMBER = 'member'
 const CONNECTION_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
@@ -33,11 +35,13 @@ function connect({
   scopes = ['documents:read'],
   resource = DOCUMENTS,
   accessScopes,
-}: { scopes?: string[]; resource?: string; accessScopes?: string[] } = {}) {
+  organizationIds = [ORGANIZATION_ID],
+}: { scopes?: string[]; resource?: string; accessScopes?: string[]; organizationIds?: string[] } = {}) {
   fake.connections.set(CONNECTION_ID, {
     id: CONNECTION_ID,
     userId: MEMBER,
-    organizationId: ORGANIZATION_ID,
+    organizationIds,
+    grantedAt: fake.stamp(),
     clientId: 'https://client.example.com/oauth/metadata.json',
     registeredClientId: null,
     clientName: 'Example Agent',
@@ -165,6 +169,49 @@ describe('createAgentConnectionTokenVerifier', () => {
     fake.removeMember(MEMBER, ORGANIZATION_ID)
 
     expect(await refusal('access')).toBe('invalid_token')
+  })
+
+  test('acts in every organization the connection reaches, in the order the member joined them', async () => {
+    const joined = fake.addMember(MEMBER, OTHER_ORGANIZATION_ID, { slug: 'beta-k3j4', name: 'Beta' })
+
+    connect({ organizationIds: [OTHER_ORGANIZATION_ID, ORGANIZATION_ID] })
+
+    expect(readModuleAccess(await verifier.verifyAccessToken('access'))).toMatchObject({
+      organizations: [
+        { organizationId: ORGANIZATION_ID, membershipCreatedAt, segment: ORGANIZATION_ID },
+        { organizationId: OTHER_ORGANIZATION_ID, membershipCreatedAt: joined, segment: 'beta-k3j4', name: 'Beta' },
+      ],
+    })
+  })
+
+  test('leaves out an organization it does not list, one the member left, and one they were invited back to since', async () => {
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
+    fake.addMember(MEMBER, THIRD_ORGANIZATION_ID)
+    connect({ organizationIds: [ORGANIZATION_ID, OTHER_ORGANIZATION_ID] })
+
+    const reached = async () =>
+      (
+        readModuleAccess(await verifier.verifyAccessToken('access')) as { organizations: { organizationId: string }[] }
+      ).organizations.map(({ organizationId }) => organizationId)
+
+    expect(await reached()).toEqual([ORGANIZATION_ID, OTHER_ORGANIZATION_ID])
+
+    fake.removeMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    expect(await reached()).toEqual([ORGANIZATION_ID])
+
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    expect(await reached()).toEqual([ORGANIZATION_ID])
+  })
+
+  test('refuses a token whose connection reaches none of the member’s organizations any more, marking nothing used', async () => {
+    connect()
+    fake.removeMember(MEMBER, ORGANIZATION_ID)
+    fake.addMember(MEMBER, ORGANIZATION_ID)
+
+    expect(await refusal('access')).toBe('invalid_token')
+    expect(fake.calls).not.toContain('RecordAgentConnectionUse')
   })
 
   test('marks the connection used on a verified call, then at most once a minute', async () => {

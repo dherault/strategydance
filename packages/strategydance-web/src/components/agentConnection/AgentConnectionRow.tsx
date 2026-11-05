@@ -27,7 +27,8 @@ type Props = {
 
 /*
   One connected agent: who it is and what vouches for it, the module and the access it holds, the
-  organization it acts in, when it connected and when it last called the module, and Disconnect,
+  organizations it reaches, or that it reaches none of the reader's any more, when it connected and
+  when it last called the module, and Disconnect,
   which asks twice, since only a new consent from the agent undoes it. Disconnecting deletes the
   connection with its tokens, so the agent's next call or refresh is refused, and the live list
   drops the row
@@ -39,7 +40,6 @@ function AgentConnectionRow({ connection, now }: Props) {
 
   const agentName = connection.clientName ?? formatMessage(moduleMessages.unnamedAgent)
   const definition = MODULES.find(({ name }) => name === connection.module)
-  const { organization } = connection.membership
 
   async function disconnect() {
     if (!viewer) return
@@ -77,16 +77,27 @@ function AgentConnectionRow({ connection, now }: Props) {
               })
             : connection.module}
         </span>
+        {connection.organizations.length ? (
+          <ul className="m-0 flex list-none flex-wrap items-center gap-x-3 gap-y-1 p-0 text-xs text-muted-foreground">
+            {connection.organizations.map(organization => (
+              <li
+                key={organization.id}
+                className="flex min-w-0 items-center gap-1.5"
+              >
+                <OrganizationMark
+                  name={organization.name}
+                  logoUrl={organization.logoThumbnailUrl ?? organization.logoUrl}
+                  color={organization.color}
+                  size="sm"
+                />
+                <span className="truncate">{organization.name}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="text-xs text-muted-foreground">{formatMessage(moduleMessages.connectionReachesNone)}</span>
+        )}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <OrganizationMark
-              name={organization.name}
-              logoUrl={organization.logoThumbnailUrl ?? organization.logoUrl}
-              color={organization.color}
-              size="sm"
-            />
-            <span className="truncate">{organization.name}</span>
-          </span>
           <time
             dateTime={connection.createdAt}
             title={formatDate(connection.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}

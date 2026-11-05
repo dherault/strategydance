@@ -338,6 +338,12 @@ const moduleMessages = defineMessages({
     description:
       'On a connected agent, the module it may use and its access, such as "Documents · Read and write". {moduleName} is the module\'s name and {access} the access\'s short label.',
   },
+  connectionReachesNone: {
+    id: 'module.connectionReachesNone',
+    defaultMessage: 'Reaches none of your organizations any more',
+    description:
+      'On a connected agent, in place of the organizations it acts in, when the member has left every one it was allowed in.',
+  },
   connectedOn: {
     id: 'module.connectedOn',
     defaultMessage: 'Connected {date}',

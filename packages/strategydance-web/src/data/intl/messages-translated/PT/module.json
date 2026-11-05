@@ -30,6 +30,7 @@
   "module.connectedAgentsTab": "Agentes conectados",
   "module.connectedOn": "Conectado em {date}",
   "module.connectionModule": "{moduleName} · {access}",
+  "module.connectionReachesNone": "Não alcança mais nenhuma das suas organizações",
   "module.consentEyebrow": "Conectar um agente",
   "module.consentLead": "Irá agir em seu nome na organização que escolher, com o acesso que permitir, até que o desconecte da sua conta.",
   "module.consentTitle": "Conectar {agentName} a {moduleName}",

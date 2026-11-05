@@ -5277,6 +5277,10 @@
         "hash": "0165f7f9695277e9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.connectionReachesNone": {
+        "hash": "cab2285b9f0e7aa8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.consentEyebrow": {
         "hash": "65c76837ec671669",
         "locales": "DE,ES,FR,JA,PT,ZH"

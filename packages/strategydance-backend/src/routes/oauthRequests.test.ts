@@ -7,6 +7,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import {
   ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS,
   ERROR_CODE_UNAUTHORIZED_AUTHENTICATION,
+  MAX_AGENT_CONNECTION_ORGANIZATIONS,
   MAX_AGENT_CONNECTIONS,
 } from 'strategydance-core'
 
@@ -95,8 +96,12 @@ async function call<Data>(
   return { status: response.status, answer: (await response.json()) as Answer<Data> }
 }
 
-function approve(requestId: string, scopes = ['documents:read', 'documents:write'], organizationId = ORGANIZATION_ID) {
-  return call<{ redirectUrl: string }>(`${requestId}/approve`, { method: 'POST', body: { organizationId, scopes } })
+function approve(
+  requestId: string,
+  scopes = ['documents:read', 'documents:write'],
+  organizationIds: string[] = [ORGANIZATION_ID],
+) {
+  return call<{ redirectUrl: string }>(`${requestId}/approve`, { method: 'POST', body: { organizationIds, scopes } })
 }
 
 function deny(requestId: string) {
@@ -216,6 +221,7 @@ describe('GET /oauth/requests/:requestId', () => {
           module: 'documents',
           scopes: ['documents:read', 'documents:write'],
           expiresAt: expect.any(String),
+          reachedOrganizationIds: [],
         },
       },
     })
@@ -258,6 +264,50 @@ describe('GET /oauth/requests/:requestId', () => {
     }
   })
 
+  test("names the organizations the caller's connection for that client and module reaches, to tick them to begin with", async () => {
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    await approve(await createRequest(), undefined, [OTHER_ORGANIZATION_ID, ORGANIZATION_ID])
+
+    const again = await createRequest()
+    const reached = async (viewer = MEMBER) =>
+      (await call<{ reachedOrganizationIds: string[] }>(again, { viewer })).answer
+
+    expect(await reached()).toEqual({
+      status: 'success',
+      data: expect.objectContaining({ reachedOrganizationIds: [ORGANIZATION_ID, OTHER_ORGANIZATION_ID] }),
+    })
+
+    fake.removeMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    expect(await reached()).toEqual({
+      status: 'success',
+      data: expect.objectContaining({ reachedOrganizationIds: [ORGANIZATION_ID] }),
+    })
+
+    // Invited back, the member finds the organization unticked until they tick it again
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    expect(await reached()).toEqual({
+      status: 'success',
+      data: expect.objectContaining({ reachedOrganizationIds: [ORGANIZATION_ID] }),
+    })
+
+    fake.addMember('stranger', ORGANIZATION_ID)
+
+    expect(await reached('stranger')).toEqual({
+      status: 'success',
+      data: expect.objectContaining({ reachedOrganizationIds: [] }),
+    })
+
+    const elsewhere = await createRequest({ clientId: createDocumentClient() })
+
+    expect((await call<{ reachedOrganizationIds: string[] }>(elsewhere)).answer).toEqual({
+      status: 'success',
+      data: expect.objectContaining({ reachedOrganizationIds: [] }),
+    })
+  })
+
   test('answers 404 for a request unknown or expired', async () => {
     const requestId = await createRequest()
 
@@ -286,7 +336,8 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     expect(connection).toEqual(
       expect.objectContaining({
         userId: MEMBER,
-        organizationId: ORGANIZATION_ID,
+        organizationIds: [ORGANIZATION_ID],
+        grantedAt: connection!.createdAt,
         clientId: CLIENT_ID_URL,
         clientName: 'Example Agent',
         module: 'documents',
@@ -315,12 +366,54 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     expect(fake.connections.size).toBe(0)
   })
 
-  test('refuses an organization the caller is not in', async () => {
+  test('makes one connection reaching every organization the member chose, each once, whichever form its id came in', async () => {
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    const hyphenated = `${OTHER_ORGANIZATION_ID.slice(0, 8)}-${OTHER_ORGANIZATION_ID.slice(8, 12)}-${OTHER_ORGANIZATION_ID.slice(12, 16)}-${OTHER_ORGANIZATION_ID.slice(16, 20)}-${OTHER_ORGANIZATION_ID.slice(20)}`
+
+    expect(
+      (
+        await approve(await createRequest(), undefined, [
+          ORGANIZATION_ID,
+          hyphenated.toUpperCase(),
+          OTHER_ORGANIZATION_ID,
+        ])
+      ).status,
+    ).toBe(200)
+    expect([...fake.connections.values()].map(({ organizationIds }) => organizationIds)).toEqual([
+      [ORGANIZATION_ID, OTHER_ORGANIZATION_ID],
+    ])
+  })
+
+  test('refuses an organization the caller is not in, even beside one they are', async () => {
     const requestId = await createRequest()
 
-    expect((await approve(requestId, undefined, OTHER_ORGANIZATION_ID)).status).toBe(403)
+    expect((await approve(requestId, undefined, [OTHER_ORGANIZATION_ID])).status).toBe(403)
+    expect((await approve(requestId, undefined, [ORGANIZATION_ID, OTHER_ORGANIZATION_ID])).status).toBe(403)
     expect(fake.connections.size).toBe(0)
     expect(fake.requests.get(requestId)?.decidedAt).toBeNull()
+  })
+
+  test('refuses no organization, and more than a connection reaches', async () => {
+    const requestId = await createRequest()
+    const many = Array.from({ length: MAX_AGENT_CONNECTION_ORGANIZATIONS + 1 }, (_, index) =>
+      `${index}`.padStart(32, 'a'),
+    )
+
+    expect((await approve(requestId, undefined, [])).status).toBe(400)
+    expect((await approve(requestId, undefined, many)).status).toBe(400)
+    expect(fake.connections.size).toBe(0)
+  })
+
+  test('takes the one organization a consent page from before several sends, for the release that brings them', async () => {
+    const requestId = await createRequest()
+    const { status } = await call<{ redirectUrl: string }>(`${requestId}/approve`, {
+      method: 'POST',
+      body: { organizationId: ORGANIZATION_ID, scopes: ['documents:read'] },
+    })
+
+    expect(status).toBe(200)
+    expect([...fake.connections.values()][0]?.organizationIds).toEqual([ORGANIZATION_ID])
   })
 
   test('decides a request once: Allow sent twice makes one connection and one code', async () => {
@@ -373,6 +466,32 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     expect(fake.tokens.size).toBe(0)
   })
 
+  test('replaces the organizations the connection reached with those chosen again, granted anew', async () => {
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    await approve(await createRequest(), undefined, [ORGANIZATION_ID])
+
+    const [earlier] = fake.connections.values()
+
+    await approve(await createRequest(), undefined, [OTHER_ORGANIZATION_ID])
+
+    const [connection] = fake.connections.values()
+
+    expect(fake.connections.size).toBe(1)
+    expect(connection?.organizationIds).toEqual([OTHER_ORGANIZATION_ID])
+    expect(connection!.grantedAt > earlier!.grantedAt).toBe(true)
+  })
+
+  test('leaves one connection when two consents for one client and module go at once, in any organizations', async () => {
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    const requests = await Promise.all([createRequest(), createRequest()])
+
+    await Promise.all([approve(requests[0]!), approve(requests[1]!, undefined, [OTHER_ORGANIZATION_ID])])
+
+    expect(fake.connections.size).toBe(1)
+  })
+
   test('leaves one connection when two consents for one client, organization and module go at once', async () => {
     const requests = await Promise.all([createRequest(), createRequest()])
 
@@ -393,7 +512,8 @@ describe('POST /oauth/requests/:requestId/approve', () => {
       fake.connections.set(`connection-${index}`, {
         id: `connection-${index}`,
         userId: MEMBER,
-        organizationId: ORGANIZATION_ID,
+        organizationIds: [ORGANIZATION_ID],
+        grantedAt: fake.stamp(),
         clientId: index ? `https://agent${index}.example.com/metadata.json` : CLIENT_ID_URL,
         registeredClientId: null,
         clientName: 'An agent',
@@ -415,14 +535,15 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     expect(fake.connections.has('connection-0')).toBe(false)
   })
 
-  test('holds the cap across organizations when consents in two of them go at once', async () => {
+  test('holds the cap when consents in two organizations go at once', async () => {
     fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
 
     for (let index = 0; index < MAX_AGENT_CONNECTIONS - 1; index++) {
       fake.connections.set(`connection-${index}`, {
         id: `connection-${index}`,
         userId: MEMBER,
-        organizationId: ORGANIZATION_ID,
+        organizationIds: [ORGANIZATION_ID],
+        grantedAt: fake.stamp(),
         clientId: `https://agent${index}.example.com/metadata.json`,
         registeredClientId: null,
         clientName: 'An agent',
@@ -435,15 +556,15 @@ describe('POST /oauth/requests/:requestId/approve', () => {
 
     const requests = await Promise.all([createRequest(), createRequest({ clientId: createDocumentClient() })])
     const answers = await Promise.all([
-      approve(requests[0]!, undefined, ORGANIZATION_ID),
-      approve(requests[1]!, undefined, OTHER_ORGANIZATION_ID),
+      approve(requests[0]!, undefined, [ORGANIZATION_ID]),
+      approve(requests[1]!, undefined, [OTHER_ORGANIZATION_ID]),
     ])
 
     expect(answers.map(({ status }) => status).sort()).toEqual([200, 409])
     expect(fake.connections.size).toBe(MAX_AGENT_CONNECTIONS)
   })
 
-  test('removing the member deletes the connection with its tokens', async () => {
+  test('removing the member from an organization leaves the connection, listing it, for the verifier to leave out', async () => {
     await approve(await createRequest())
 
     const [connection] = fake.connections.values()
@@ -463,8 +584,8 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     })
     fake.removeMember(MEMBER, ORGANIZATION_ID)
 
-    expect(fake.connections.size).toBe(0)
-    expect(fake.tokens.size).toBe(0)
+    expect([...fake.connections.values()].map(({ organizationIds }) => organizationIds)).toEqual([[ORGANIZATION_ID]])
+    expect(fake.tokens.size).toBe(1)
   })
 })
 

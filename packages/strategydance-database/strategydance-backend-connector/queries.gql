@@ -2939,10 +2939,10 @@ query GetOAuthAuthorizationRequestByCode($codeHash: String!) @auth(level: NO_ACC
   }
 }
 
-# A refresh token, unexpired, with its connection, and the same token again when it was rotated
-# within the last 30 seconds (`OAUTH_REFRESH_GRACE_SECONDS` in the backend: change the two
-# together), by the database's clock, which wrote `usedAt`: a duplicate within them is answered
-# with the pair its first use issued, and one after them revokes the connection
+# A refresh token, unexpired, with its connection and what it reaches, and the same token again
+# when it was rotated within the last 30 seconds (`OAUTH_REFRESH_GRACE_SECONDS` in the backend:
+# change the two together), by the database's clock, which wrote `usedAt`: a duplicate within them
+# is answered with the pair its first use issued, and one after them revokes the connection
 query GetAgentConnectionRefreshToken($hash: String!) @auth(level: NO_ACCESS) {
   token: agentConnectionTokens(
     where: { hash: { eq: $hash }, kind: { eq: REFRESH }, expiresAt: { gt_time: { now: true } } }
@@ -2957,6 +2957,16 @@ query GetAgentConnectionRefreshToken($hash: String!) @auth(level: NO_ACCESS) {
       id
       clientId
       scopes
+      # What it reaches, by the member's memberships, so a connection reaching none is refused
+      # rather than refreshed
+      organizationIds
+      grantedAt
+      user {
+        userOrganizations_on_user(limit: 100) {
+          organizationId
+          createdAt
+        }
+      }
     }
   }
   recentlySpent: agentConnectionTokens(
@@ -2989,8 +2999,10 @@ query GetAgentConnectionTokens($hashes: [String!]!) @auth(level: NO_ACCESS) {
 }
 
 # The token verifier's one read, on every call an external agent makes to a module: an unexpired
-# access token alone, never a refresh token, with its connection and the membership it belongs to,
-# and the organization's slug and name, which the module's calls name it by
+# access token alone, never a refresh token, with its connection, the organizations it lists and
+# the member's memberships, their organizations' slugs and names, which the module's calls name them
+# by, so the verifier keeps those the connection reaches. At most 100, joined-at order, as the
+# organization switcher reads them
 query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
   agentConnectionTokens(
     where: { hash: { eq: $hash }, kind: { eq: ACCESS }, expiresAt: { gt_time: { now: true } } }
@@ -3001,19 +3013,37 @@ query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
     expiresAt
     connection {
       id
+      userId
       clientId
       module
       scopes
-      membership {
-        userId
-        organizationId
-        createdAt
-        organization {
-          slug
-          name
+      organizationIds
+      grantedAt
+      user {
+        userOrganizations_on_user(orderBy: [{ createdAt: ASC }, { organizationId: ASC }], limit: 100) {
+          organizationId
+          createdAt
+          organization {
+            slug
+            name
+          }
         }
       }
     }
+  }
+}
+
+# What the consent page ticks to begin with: the organizations the member's connection for this
+# client and module reaches already, by the memberships they hold, read once they are signed in.
+# `$userId` is the uid the backend verified
+query GetAgentConnectionForConsent($userId: String!, $clientId: String!, $module: String!) @auth(level: NO_ACCESS) {
+  agentConnections(where: { userId: { eq: $userId }, clientId: { eq: $clientId }, module: { eq: $module } }, limit: 1) {
+    organizationIds
+    grantedAt
+  }
+  userOrganizations(where: { userId: { eq: $userId } }, limit: 100) {
+    organizationId
+    createdAt
   }
 }
 

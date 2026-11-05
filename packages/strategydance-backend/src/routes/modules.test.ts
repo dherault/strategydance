@@ -76,6 +76,7 @@ const TASKS_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/
 const BUDGET = `${ISSUER}/mcp/budget`
 const BUDGET_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/budget`
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
+const OTHER_ORGANIZATION_ID = '1a2b3c4d5e6f47089a0b1c2d3e4f5a6b'
 // What every call of an external agent names: the organization it acts in, among those it reaches
 const IN_ORGANIZATION = { organization: ORGANIZATION_ID }
 const MEMBER = 'member'
@@ -117,7 +118,8 @@ function encode(parameters: Record<string, string>) {
 async function connect({
   scopes = ['documents:read', 'documents:write'],
   resource = DOCUMENTS,
-}: { scopes?: string[]; resource?: string } = {}) {
+  organizationIds = [ORGANIZATION_ID],
+}: { scopes?: string[]; resource?: string; organizationIds?: string[] } = {}) {
   const { data } = await (
     fake.sdk.createOAuthAuthorizationRequest as (
       ...args: unknown[]
@@ -137,7 +139,7 @@ async function connect({
   const approved = await fetch(`${origin}/oauth/requests/${data.oAuthAuthorizationRequest_insert.id}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: ORGANIZATION_ID, scopes }),
+    body: JSON.stringify({ organizationIds, scopes }),
   })
   const { data: decision } = (await approved.json()) as { data: { redirectUrl: string } }
   const exchanged = await fetch(`${origin}/oauth/token`, {
@@ -282,6 +284,49 @@ describe('the Documents module for external agents', () => {
     await client.close()
   })
 
+  test('serves one token in each organization its connection reaches, each call in the one it names', async () => {
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID, { slug: 'beta-k3j4', name: 'Beta' })
+
+    const client = await open(
+      (await connect({ organizationIds: [ORGANIZATION_ID, OTHER_ORGANIZATION_ID] })).access_token,
+    )
+    const [createDocument] = (await client.listTools()).tools.filter(({ name }) => name === 'create_document')
+
+    expect(createDocument!.inputSchema.required).toContain('organization')
+    expect(client.getInstructions()).toContain(`"beta-k3j4" ("Beta")`)
+
+    for (const [organization, title] of [
+      [ORGANIZATION_ID, 'In the first'],
+      ['beta-k3j4', 'In the second'],
+    ] as const) {
+      const created = await client.callTool({
+        name: 'create_document',
+        arguments: { organization, title, aspects: [], content: `${title} organization.` },
+      })
+
+      expect((created.structuredContent as { url: string }).url).toStartWith(`http://localhost:5173/${organization}/`)
+    }
+
+    const listed = async (organization: string) =>
+      (
+        (await client.callTool({ name: 'list_documents', arguments: { organization } })).structuredContent as {
+          documents: { title: string }[]
+        }
+      ).documents.map(({ title }) => title)
+
+    expect(await listed(ORGANIZATION_ID)).toEqual(['In the first'])
+    expect(await listed('beta-k3j4')).toEqual(['In the second'])
+
+    fake.removeMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    const refused = await client.callTool({ name: 'list_documents', arguments: { organization: 'beta-k3j4' } })
+
+    expect(refused.isError).toBe(true)
+    expect(await listed(ORGANIZATION_ID)).toEqual(['In the first'])
+
+    await client.close()
+  })
+
   test("refuses a Tasks token, a revoked one, a removed member's and a refresh token as a bearer token", async () => {
     const tasks = await connect({ scopes: ['tasks:read'], resource: TASKS })
     const documents = await connect()
@@ -336,7 +381,7 @@ describe('the Documents module for external agents', () => {
 
     const readWrite = await connect({ scopes: ['documents:read', 'documents:write'] })
 
-    expect(fake.connectionsOf(MEMBER, ORGANIZATION_ID)).toHaveLength(1)
+    expect(fake.connectionsOf(MEMBER)).toHaveLength(1)
     expect((await send({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { token: readOnly.access_token })).status).toBe(
       401,
     )
@@ -367,7 +412,7 @@ describe('the Documents module for external agents', () => {
     expect(second.structuredContent).toEqual(first.structuredContent)
     expect(documentsOfOrganization()).toHaveLength(1)
 
-    const [connection] = fake.connectionsOf(MEMBER, ORGANIZATION_ID)
+    const [connection] = fake.connectionsOf(MEMBER)
 
     expect([...fake.results.values()].map(result => result.idempotencyScope)).toEqual([`connection:${connection!.id}`])
 
@@ -485,7 +530,7 @@ describe('the Documents module for external agents', () => {
     await send(list, { token })
     await send(list, { token })
 
-    const [connection] = fake.connectionsOf(MEMBER, ORGANIZATION_ID)
+    const [connection] = fake.connectionsOf(MEMBER)
 
     expect(connection!.lastUsedAt).not.toBeNull()
     expect(fake.calls.filter(name => name === 'RecordAgentConnectionUse')).toHaveLength(1)
@@ -639,7 +684,7 @@ describe('the Tasks module for external agents', () => {
     const documents = await connect()
     const tasks = await connect({ scopes: READ_WRITE, resource: TASKS })
 
-    expect(fake.connectionsOf(MEMBER, ORGANIZATION_ID)).toHaveLength(2)
+    expect(fake.connectionsOf(MEMBER)).toHaveLength(2)
 
     await fetch(`${origin}/oauth/revoke`, {
       method: 'POST',

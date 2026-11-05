@@ -47,13 +47,14 @@ function AgentConnectionOrganizationsField({ organizations, chosenIds, onChange,
       aria-describedby={messageId}
       className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0"
     >
-      <legend className={cn(fieldLabelClassName, 'mb-0 p-0')}>
+      {/* A legend takes no part in the fieldset's flex, so it keeps its own space below */}
+      <legend className={cn(fieldLabelClassName, 'mb-1.5 p-0')}>
         {formatMessage(moduleMessages.organizationsLabel)}
       </legend>
       <p
         id={messageId}
         aria-live="polite"
-        className={cn('-mt-1.5 mb-0 text-xs', chosenIds.length ? 'text-muted-foreground' : 'text-danger')}
+        className={cn('m-0 text-xs', chosenIds.length ? 'text-muted-foreground' : 'text-danger')}
       >
         {!chosenIds.length
           ? formatMessage(moduleMessages.organizationsRequired)

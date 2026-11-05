@@ -115,6 +115,9 @@ through the `strategydance-tasks` MCP server, which acts as the person in produc
 
 - What follows "task" is an id, which `read_task` takes hyphenated or not, or a piece of its name,
   which `list_tasks` finds with `query`. Several matches are a question for the person, never a pick
+- Every call names its `organization`, among those the tools' descriptions list: the one the
+  request names, as a task's Delegate prompt does, or else the organization named Strategy Dance.
+  A task not found there is a question for the person, never a search through the others
 - The description is the brief: `read_task` opens a `task:<id>` link, and the Documents module's
   `read_document` a `doc:<id>` one. A task it waits on that is not done blocks it: say so first
 - Without `strategydance-tasks` tools, or when they ask to sign in, say so and stop: the person

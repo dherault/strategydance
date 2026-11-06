@@ -2379,19 +2379,6 @@
     "inactiveReason": "UNREACHABLE"
   },
   {
-    "id": "yet-another-ai-tool-directory",
-    "name": "Yet Another AI Tool Directory",
-    "type": "WEBSITE",
-    "rootUrl": "https://yaatd.com/",
-    "submissionUrl": "https://yaatd.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "UNKNOWN",
-    "lastChecked": null,
-    "unreachableSince": null,
-    "inactiveReason": "BROKEN_SUBMISSION"
-  },
-  {
     "id": "yourstack",
     "name": "YourStack",
     "type": "WEBSITE",

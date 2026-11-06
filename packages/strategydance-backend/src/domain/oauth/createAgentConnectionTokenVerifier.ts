@@ -1,8 +1,8 @@
 import { OAuthError, OAuthErrorCode, type OAuthTokenVerifier } from '@modelcontextprotocol/server'
-import type { ModuleScope } from 'strategydance-core'
+import { type ModuleScope, readAgentConnectionReach, toOrganizationPathSegment } from 'strategydance-core'
 import { getAgentConnectionAccessToken } from 'strategydance-database/backend'
 
-import type { ModuleCaller } from '~types'
+import type { ModuleAccess } from '~types'
 
 import { dataConnect } from '~firebase'
 
@@ -15,14 +15,15 @@ import toModuleAuthInfo from '~modules/toModuleAuthInfo'
 /*
   The verifier a module's public endpoint checks every call's bearer token with, for the SDK's
   `requireBearerAuth`: one read, by the token's hash, of an unexpired access token alone, never a
-  refresh token, with its connection and the membership it belongs to. A token issued for another
-  module's address is refused, so a token for one module never opens another. A member removed takes
-  their connections with them, so their tokens are found no more. A token that passes marks its connection
-  used, at most once a minute.
+  refresh token, with its connection and the member's memberships. A token issued for another
+  module's address is refused, so a token for one module never opens another. The connection acts
+  in the organizations it reaches (`readAgentConnectionReach`), so one the member left, or left and
+  rejoined, drops out at its next call, and a connection reaching none is refused. A token that
+  passes marks its connection used, at most once a minute.
 
-  It answers the SDK's `AuthInfo` carrying the caller the module acts as, an external agent on the
-  member's membership, with the connection's scopes and its own idempotency scope, and the token's
-  expiry and resource, which the bearer check requires
+  It answers the SDK's `AuthInfo` carrying the access the module acts with, an external agent in
+  each organization reached, with its membership, its slug and its name, the connection's scopes and
+  its own idempotency scope, and the token's expiry and resource, which the bearer check requires
 */
 function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
   const expectedResource = parseModuleResource(resource.href)?.resource
@@ -39,21 +40,32 @@ function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
       }
 
       const { connection } = stored
-      const { membership } = connection
+      const reached = readAgentConnectionReach(connection, connection.user.userOrganizations_on_user)
 
-      const caller: ModuleCaller = {
+      if (!reached.length) {
+        throw new OAuthError(
+          OAuthErrorCode.InvalidToken,
+          "The connection reaches none of the member's organizations any more",
+        )
+      }
+
+      const access: ModuleAccess = {
         kind: 'external',
-        userId: membership.userId,
-        organizationId: membership.organizationId,
-        membershipCreatedAt: membership.createdAt,
+        userId: connection.userId,
         // What the token holds, which a refresh may have narrowed, within its connection's
         scopes: stored.scopes.filter(scope => connection.scopes.includes(scope)) as ModuleScope[],
         idempotencyScope: `connection:${connection.id}`,
+        organizations: reached.map(({ organizationId, createdAt, organization }) => ({
+          organizationId,
+          membershipCreatedAt: createdAt,
+          segment: toOrganizationPathSegment({ id: organizationId, slug: organization.slug }),
+          name: organization.name,
+        })),
       }
 
-      await recordUse(connection.id, membership.userId)
+      await recordUse(connection.id, connection.userId)
 
-      return toModuleAuthInfo(caller, {
+      return toModuleAuthInfo(access, {
         token,
         clientId: connection.clientId,
         expiresAt: Math.floor(Date.parse(stored.expiresAt) / 1000),

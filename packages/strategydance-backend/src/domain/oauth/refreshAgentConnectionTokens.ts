@@ -1,3 +1,4 @@
+import { readAgentConnectionReach } from 'strategydance-core'
 import {
   getAgentConnectionRefreshToken,
   getAgentConnectionTokens,
@@ -42,7 +43,8 @@ function refuse(error: string, description: string): TokenResult {
   under the secret's version its first use recorded, so whichever answer arrives last, the client
   holds tokens that work. Presented after that, it revokes the connection: whoever holds it replays
   a token somebody else already used. Only a refresh token is taken here, never an access token, and
-  only from the client it was issued to, for the resource it was issued for.
+  only from the client it was issued to, for the resource it was issued for, and only while its
+  connection reaches one of the member's organizations.
 
   A refresh may name fewer scopes than its token was granted, never others (RFC 6749, 6): the access
   token it issues holds those alone, and the refresh token keeps the ones it had, so a later refresh
@@ -66,6 +68,12 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
 
   if (!target || target.resource !== token.resource) {
     return refuse('invalid_target', 'The refresh token was issued for another resource')
+  }
+
+  // A connection reaching none of the member's organizations any more opens nothing, so nothing is
+  // issued for it: its client asks the member again rather than refresh what the verifier refuses
+  if (!readAgentConnectionReach(token.connection, token.connection.user.userOrganizations_on_user).length) {
+    return refuse('invalid_grant', "The connection reaches none of the member's organizations any more")
   }
 
   // What the access token holds: the scopes the refresh names, read always among them, within the

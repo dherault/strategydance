@@ -102,7 +102,11 @@ there, its files and subagents included, and only its author writes in it, answe
 changes it, so the list shows each conversation's author and narrows to one member's, another
 member's page shows a notice in the composer's place, and the search, the files' route and the
 system prompt follow (see Decisions); what earlier notes say of a conversation being
-private held until then.
+private held until then. Revised on 2026-11-05, as David asked: one external agent's connection
+reaches several of the member's organizations, which they tick on the consent page and change on
+the Connected agents tab, every external tool call naming the organization it acts in, and the
+connections made before are deleted once, their agents asking the member again (see External
+agents); what earlier notes say of a connection belonging to one membership held until then.
 When a decision changes, change it here first.
 
 ## The design
@@ -137,7 +141,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Attachments | Images, PDFs and text files, read by Claude natively, through the Files API |
 | Questions | Multiple-choice questions through a tool, as designed |
 | Replies | Whole messages, as designed. The thinking indicator shows live progress. No token streaming to the browser |
-| Modules (MCP) | Strategy Dance's own capabilities as MCP servers, one per module, which its agent uses and which a member can add to an external agent (claude.ai, ChatGPT, Claude Code, Cursor). Documents first, from M14, then the team's tasks, from M15, then Subagents, from M32, which only Strategy Dance's agents reach until a later plan serves it, then the budget, from budget-milestones.md's M8, then Knowledge, Strategy Dance's frameworks, marketing tactics and directories, from knowledge-milestones.md's M1, which only Strategy Dance's agents reach as well; software solutions later. The agent reaches a module in process, over MCP; an external agent reaches it at `https://api.strategydance.com/mcp/<module>`, through Strategy Dance's own OAuth authorization server, acting as one member in the one organization they chose. The AI permissions hold for every agent. Members decide which agents they connect: no organization setting governs it |
+| Modules (MCP) | Strategy Dance's own capabilities as MCP servers, one per module, which its agent uses and which a member can add to an external agent (claude.ai, ChatGPT, Claude Code, Cursor). Documents first, from M14, then the team's tasks, from M15, then Subagents, from M32, which only Strategy Dance's agents reach until a later plan serves it, then the budget, from budget-milestones.md's M8, then Knowledge, Strategy Dance's frameworks, marketing tactics and directories, from knowledge-milestones.md's M1, which only Strategy Dance's agents reach as well; software solutions later. The agent reaches a module in process, over MCP; an external agent reaches it at `https://api.strategydance.com/mcp/<module>`, through Strategy Dance's own OAuth authorization server, acting as one member in the organizations they chose, each call naming the one it acts in. The AI permissions hold for every agent. Members decide which agents they connect: no organization setting governs it |
 | Integrations (MCP) | Other companies' MCP servers, which the agent calls; the reverse of modules. The last milestones. Administrators choose the organization's servers. Each member connects their own account to an OAuth server, and the agent acts as them. A key-based server's one key serves the whole organization. Every integration call waits for the member's approval, except the tools an administrator has allowed to run without it. A subagent calls only those, since nobody can approve a call for it (M36) |
 | Usage limits | Daily caps from M35, over a rolling 24 hours, as David chose on 2026-10-13: 20 conversations and 100 runs a member in each organization, 100 conversations and 500 runs an organization, and 30 subagents a member in each organization (see Usage caps), until a credit system replaces them. From the same milestone, as David chose on 2026-10-16: an account's ceilings across every organization it is in, 40 conversations, 200 runs and 60 subagents a day, since an account creates organizations at will; a run stops at $10 of estimated cost, priced from its ledger, since a cap on starts bounds nothing a single run spends; and what finishes work under way, an answer's continuation, an Allow's and a reaction, passes a cap only up to one and a half times it. Above them the workspace's spend limit in the Anthropic Console caps what Claude costs, and the project's budget alert on Google Cloud watches the rest. Every run records its token usage for it. Per-run safety limits on steps and duration stay, and so do bounds on how much runs at once (three runs per member in each organization, fifty dispatches across the queue), which cap concurrency rather than usage. Subagents have bounds of their own (ten per member action, five at once per member, four runs each, twenty dispatches on their own queue), as David chose on 2026-10-12. From M39, as David chose on 2026-10-18 after the review of M1 to M38, daily ceilings in dollars beside the caps, $25 a member in each organization, $50 an account and $150 an organization, as he set them on 2026-10-19, summed from what each run may have cost and held before every request and at every start: the caps on starts let one account spend some $5400 a day, and the workspace's spend limit, shared by every customer, would stop them all at once |
 | Conversation size | One safety cap of 2000 entries, which refuses a send and stops a run, and the measured request, which marks a conversation full before its context window does. No room is reserved ahead |
@@ -1485,17 +1489,29 @@ member.
   one handler. What a tool does lives in `domain/`, `domain/documents/` and `domain/tasks/` for
   these two, and a tool's file only validates, calls and shapes the result.
 - **The caller**, `{ kind, userId, organizationId, membershipCreatedAt, scopes, idempotencyScope }`,
-  is verified before the server is built: from the run for Strategy Dance's agent (`kind: 'agent'`),
-  from the token for an external one (`kind: 'external'`). It reaches the server inside the SDK's
-  `AuthInfo`, which requires a `token`, a `clientId` and `scopes` and keeps whatever else in
-  `extra`: a small wrapper, `toModuleAuthInfo`, puts the caller in `extra` and fills the required
-  fields: for an external agent from the verified access token's row, its `expiresAt` and its
-  `resource` included, since `requireBearerAuth` refuses a token whose `AuthInfo` has no expiry and
-  `expectedResource` compares the resource; for Strategy Dance's agent with fixed values naming the
-  worker, and the factory reads the caller back out of `extra`, refusing a request that carries
-  none. Nothing in it comes from a tool's arguments, as the backend's rule for `$userId` asks. Every
-  operation a tool runs matches the membership on `membershipCreatedAt`, as a run's writes do, so
-  removing a member stops every agent acting as them at its next call.
+  is what every function of `domain/` takes, one call's, in one organization. What is verified
+  before the server is built is the access, `ModuleAccess`: from the run for Strategy Dance's agent
+  (`kind: 'agent'`), in the run's one organization, from the token for an external one (`kind:
+  'external'`), in each organization its connection reaches, with its membership's `createdAt`, its
+  slug and its name. It reaches the server inside the SDK's `AuthInfo`, which requires a `token`, a
+  `clientId` and `scopes` and keeps whatever else in `extra`: a small wrapper, `toModuleAuthInfo`,
+  puts the access in `extra` and fills the required fields: for an external agent from the verified
+  access token's row, its `expiresAt` and its `resource` included, since `requireBearerAuth` refuses
+  a token whose `AuthInfo` has no expiry and `expectedResource` compares the resource; for Strategy
+  Dance's agent with fixed values naming the worker, and the factory reads the access back out of
+  `extra` (`readModuleAccess`), refusing a request that carries none. Each tool registers through
+  `createModuleToolRegistrar`, which builds the call's caller: Strategy Dance's agent's in its run's
+  organization, its tools registered as written, so the bytes its requests send never move; an
+  external agent's in the organization its call names in `organization`, a parameter every tool
+  of a served module takes for it, required even when the connection reaches one, so a client
+  holding the tools of a connection since changed never writes where it did not mean to. A value the
+  connection does not reach is refused with the organizations it reaches now, never sent to
+  another, and the parameter's description and the server's instructions list them, each by its
+  slug, or its id while it has none, and its name, quoted. Nothing else comes from a tool's
+  arguments, as the backend's rule for `$userId` asks. Every operation a tool runs matches the
+  membership on `membershipCreatedAt`, as a run's writes do, so removing a member stops every agent
+  acting as them at its next call. No tool lists the organizations, since one name across three
+  modules would clash, and the description, the instructions and a refusal name them already.
 - **One server per module**, at its own address, `https://api.strategydance.com/mcp/documents` and
   `https://api.strategydance.com/mcp/tasks` for these two. Each is its own OAuth resource, so a
   member connects modules one by one, and a module that touches money later asks for its own
@@ -1695,7 +1711,8 @@ everything its runs do, is in Subagents. Its tools, in the order it registers th
   carries none: `measureConversationMessage` connects them before any run exists, to count the
   tools list, and lists the Subagents module's tools like any others. Every Subagents tool refuses a
   caller without a launcher, so listing is all such a caller can do. The launcher joins the caller's
-  strict schema in `readModuleCaller`, which refuses a field it does not know. Every tool reads the
+  strict schema in `readModuleAccess` (`readModuleCaller` until 2026-11-05), which refuses a field
+  it does not know. Every tool reads the
   launching run on the terms of its fence: still `RUNNING`, not asked to stop, and its conversation
   no subagent. A launch also refuses a reaction's run, `REPORTS`, inside its mutation (see A launch
   is one mutation); the reads and `stop_subagent` serve a reaction, whose entry points to
@@ -1892,8 +1909,10 @@ authorization server from M18 and a consent page from M19:
     for a registered client and with its metadata document's domain otherwise, and the host it will
     send the member back to, with a warning when that is only a loopback address, which any program
     on the member's computer could be listening on, as the specification asks; the module; the
-    organization, chosen among the member's; and the access, read, or read and write when the client
-    asked for both. Never the client's logo, which would load an address of its choosing. Allow and
+    organizations, ticked among the member's, at least one and at most 20
+    (`MAX_AGENT_CONNECTION_ORGANIZATIONS`), as many as the agent's connection for that client and
+    module reaches already ticked to begin with, or the organization the member has open; and the
+    access, read, or read and write when the client asked for both, for every organization ticked. Never the client's logo, which would load an address of its choosing. Allow and
     Deny call `POST /oauth/requests/:requestId/approve` and `…/deny`, with the member's ID token and
     App Check, as every route the app calls.
   - Allow and Deny each decide the request under `@check(this == 1)` on a request still undecided
@@ -1907,11 +1926,13 @@ authorization server from M18 and a consent page from M19:
     tokens the code issued may have rotated already, as RFC 6749 asks of a reused code. The browser
     goes back to the client's redirect address with `code`, `state` and `iss`, the exact issuer,
     since RFC 9207 has every authorization response name it, a success as much as an error, and the
-    metadata says it does. Consenting again with the same client, organization and module replaces
-    the earlier connection, atomically: `AgentConnection` is unique on its membership, its client
-    and its module, and Allow locks the member's membership row, deletes the earlier connection with
-    its tokens and inserts the new one in one mutation, so two consents at once leave one connection
-    and one family of tokens.
+    metadata says it does. Consenting again with the same client and module replaces the earlier
+    connection, the organizations it reaches with it, atomically: `AgentConnection` is unique on
+    its account, its client and its module, and Allow locks the member's own row, then each
+    membership chosen, counted against the list so it refuses one the member is not in, deletes
+    the earlier connection with its tokens and inserts the new one in one mutation, so two consents
+    at once leave one connection and one family of tokens. The backend dedupes the list first,
+    since the count would refuse one named twice.
   - `POST /oauth/token` takes exactly one `grant_type`, `authorization_code` or `refresh_token`,
     reads that grant's parameters and no other's, and refuses anything else. It exchanges the code
     for an access token, valid for an hour, and a refresh token, for 30 days: 256 random bits each,
@@ -1953,25 +1974,36 @@ authorization server from M18 and a consent page from M19:
 - **The data**: `OAuthClient` (a registered client's name and redirect addresses, `createdAt`,
   `lastUsedAt`), `OAuthAuthorizationRequest` (the client, its redirect address, the PKCE challenge,
   the resource, the scopes asked for, `state` and `expiresAt`; once decided, `decidedAt`, and on
-  Allow its connection and its code's hash and expiry), `AgentConnection` (the membership, the
-  client's id and name, the module, the scopes granted, `createdAt`, `lastUsedAt`) and
+  Allow its connection and its code's hash and expiry), `AgentConnection` (the account, the
+  organizations it lists and `grantedAt`, when the list was last written, the client's id and name,
+  the module, the scopes granted, `createdAt`, `lastUsedAt`) and
   `AgentConnectionToken` (its connection, its kind, its hash, its resource, its scopes, `issuedFrom`,
   `expiresAt`, `usedAt`, `successorKeyVersion`). `issuedFrom` names what a token was issued from,
   the authorization request whose code was exchanged or the refresh token rotated, so a replayed
   refresh token is traced to its connection, as a reused code is to the request it was issued for.
-  `AgentConnection` references the member's `UserOrganization` row, by the two columns
-  `UserOrganization` names for it, since Data Connect cannot reference a key made of references (M18),
-  unlike every other table, which
-  references the account and the organization apart: a connection belongs to the membership, so
-  removing the member or deleting the organization deletes it with its tokens, and a member invited
-  back connects again. The verifier still checks the membership on every request, and checked the
-  staff gate until M38 removed it.
+  `AgentConnection` references the account, so deleting the account deletes it with its tokens,
+  and lists the organizations it reaches rather than reference their memberships, from 2026-11-05:
+  until then it referenced one `UserOrganization` row (M18), and a client keeping one token per
+  module's address held one organization at a time. A join table would have made Allow a mutation
+  per organization, since nothing batch inserts. What the references gave, the reach keeps: an
+  organization listed is reached while the member's current membership there was created at or
+  before `grantedAt`, as strategydance-core's `readAgentConnectionReach` reads it for the verifier,
+  the refresh grant, the consent page and the Connected agents tab alike, so one the member left, or
+  that was deleted, is reached no more at the next call, and a member invited back finds the agent
+  acting as them there only once they tick it again. Every write of the list, Allow and the tab's
+  edit, locks and counts each membership it names. A connection reaching none is refused as an
+  `invalid_token` and its refresh as an `invalid_grant`, and stays listed for the member to change or
+  disconnect. The verifier reads the connection with the member's memberships on every request, and
+  checked the staff gate until M38 removed it.
 - **Connected agents**, a tab of the account page, lists the member's connections, live, refreshed
-  by connecting, disconnecting and `RemoveOrganizationMember` for the member they concern, and by
-  `DeleteOrganization` for every reader, since it names only the administrator deleting and every
-  member's connections go with it; never by `lastUsedAt`: each with its client, organization, module
-  and access, when it connected and when it was last used, and Disconnect, which deletes it with its
-  tokens. A connection to a module no endpoint serves any more, renamed or retired, goes with its
+  by connecting, disconnecting, changing a connection's organizations and `RemoveOrganizationMember`
+  for the member they concern, and by `DeleteOrganization` for every reader, since it names only the
+  administrator deleting and every member's connections reach that organization no more; never by
+  `lastUsedAt`: each with its client, the organizations it reaches, or that it reaches none any
+  more, its module and access, when it connected and when it was last used, Organizations, whose
+  dialog ticks what it reaches and saves another list without the agent
+  (`UpdateAgentConnectionOrganizations`, from its next call), and Disconnect, which deletes it with
+  its tokens. A connection to a module no endpoint serves any more, renamed or retired, goes with its
   tokens in the daily sweep (`pruneUnservedAgentConnections`) once neither made nor used for a week,
   so a worker left on an older release, which the deploy updates after the backend, never takes a
   newer module's; its agent connects again to the module that took its place.
@@ -1981,10 +2013,12 @@ authorization server from M18 and a consent page from M19:
   connector), ChatGPT, Claude Code (`claude mcp add --transport http strategydance-documents
   https://api.strategydance.com/mcp/documents`) and Cursor. The Tasks page has the same button for
   its module, from M21, the one dialog taking the module it describes (`claude mcp add --transport
-  http strategydance-tasks https://api.strategydance.com/mcp/tasks`).
-- **Development.** From M14, `bun run mcp:documents <email> [--organization <id or slug>]` serves
+  http strategydance-tasks https://api.strategydance.com/mcp/tasks`). One address serves every
+  organization: the member ticks which on the consent page.
+- **Development.** From M14, `bun run mcp:documents <email> [--organization <id or slug>]…` serves
   the module over stdio as that account against the emulators, refusing anywhere else, so Claude
-  Code reaches it locally before the authorization server exists. From M20 the local backend serves
+  Code reaches it locally before the authorization server exists, in every organization the account
+  is in or each one named, from 2026-11-05. From M20 the local backend serves
   `http://localhost:3003/mcp/documents` as its own issuer, with the consent page on the local web
   app, and `bun run check:oauth` runs the whole flow against it, refresh, reuse and revocation
   included. The Tasks module follows the same path: `bun run mcp:tasks <email>` from M15, the same
@@ -3163,14 +3197,22 @@ members' once they write.
   M29's approval entry can gate those writes too. The text of a document the team keeps from AI
   never reaches the model, so nothing injected can get it read out.
 - **External agents act as the member.** One a member connected reads and, with read and write
-  access, changes whatever AI may in that organization, every task on its board included, which
-  carries no AI permission, on that member's word alone: no setting lets an organization refuse
-  external agents, and no administrator sees the connections, by David's decision on 2026-10-07.
-  What AI may read then reaches the agent's provider, OpenAI or Cursor say, which the legal review
-  in M37 names; injected text reaching that agent can do what its access allows. The AI
-  permissions bound it, a connection can be read only, and the member disconnects it from Connected
-  agents. If teams ask for more, an organization switch and an administrators' view of connections
-  fit the data as it is.
+  access, changes whatever AI may in each organization it reaches, every task on its board
+  included, which carries no AI permission, on that member's word alone: no setting lets an
+  organization refuse external agents, and no administrator sees the connections, by David's
+  decision on 2026-10-07. What AI may read then reaches the agent's provider, OpenAI or Cursor say,
+  which the legal review in M37 names; injected text reaching that agent can do what its access
+  allows. The AI permissions bound it, a connection can be read only, and the member disconnects it
+  from Connected agents, or narrows the organizations it reaches there. If teams ask for more, an
+  administrators' view of connections fits the data as it is.
+- **One connection reaching several organizations widens what it holds**, from 2026-11-05, by
+  David's decision: an agent can read in one organization and write in another, so injected text
+  in one can reach the others; one leaked token opens every organization it reaches, until the
+  member disconnects it or leaves them; one access, read or read and write, covers them all; the
+  rate limit is the connection's across them, while each organization keeps its own search
+  allowance. The organizations a connection lists reference no membership, so the reach rule
+  (`readAgentConnectionReach`) is what keeps a member who left out: a reader of `organizationIds`
+  that skips it would act where the member is no longer, which the database's `CLAUDE.md` forbids.
 - **The authorization server is code that guards everything.** It is written by hand, since the
   SDK's helpers for one are frozen, and a mistake in it opens the organization's documents to
   whoever finds it. M18 follows the MCP specification's authorization pages and OAuth's current

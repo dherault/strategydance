@@ -17,9 +17,13 @@ The Data Connect service's conventions, beside the root `CLAUDE.md`: the schema 
 - The server's values win over variables: `id_expr: "auth.uid"`, `email_expr: "auth.token.email"`,
   `updatedAt_expr: "request.time"`
 - A table references the account and the organization apart, so removing a member, which deletes
-  the membership, keeps what they wrote. What belongs to the membership, its connections and their
-  tokens, goes with it. A reference to `UserOrganization` names its `userId` and `organizationId`
-  columns with `@ref`, its constraint's name within Postgres' 63 bytes
+  the membership, keeps what they wrote. What belongs to the membership goes with it, as their
+  accounts at the organization's MCP servers do. A reference to `UserOrganization` names its
+  `userId` and `organizationId` columns with `@ref`, its constraint's name within Postgres' 63 bytes
+- An external agent's connection belongs to the account and lists the organizations it reaches,
+  since a consent writes it in one row: every read of them goes through core's
+  `readAgentConnectionReach`, which leaves out a membership gone or newer than `grantedAt`, and
+  every write of the list locks and counts each membership it names (`this == size(vars.…)`)
 - A variable joins an operation optional, so an older page can leave it out, and its `@check` reads
   `!has(vars.x) || vars.x == null || …`, since `vars.x == null` alone errors on an absent variable
 - `Locale`, `Currency` and `KnowledgeKind` are declared in both `schema.gql` and core, which

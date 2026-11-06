@@ -1,8 +1,7 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { MAX_DOCUMENT_CONTENT_LENGTH } from 'strategydance-core'
 import { z } from 'zod'
 
-import type { DocumentEdit, DocumentsToolContext } from '~types'
+import type { DocumentEdit, RegisterModuleTool } from '~types'
 
 import updateDocument from '~domain/documents/updateDocument'
 
@@ -87,8 +86,8 @@ function toEdit({
 }
 
 // `update_document`: a document's title, or an edit of its shared text, or both
-function registerUpdateDocument(server: McpServer, context: DocumentsToolContext) {
-  server.registerTool(
+function registerUpdateDocument(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Update a document',
@@ -102,7 +101,7 @@ function registerUpdateDocument(server: McpServer, context: DocumentsToolContext
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(documentsModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readDocumentsWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

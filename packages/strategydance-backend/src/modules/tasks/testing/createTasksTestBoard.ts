@@ -5,6 +5,7 @@ import markdownToTaskDescription from '~domain/tasks/markdownToTaskDescription'
 import type { FakeTask } from '~domain/tasks/testing/createTasksDatabaseFake'
 
 import createModuleTestKit from '~modules/testing/createModuleTestKit'
+import toTestModuleAccess from '~modules/testing/toTestModuleAccess'
 
 /*
   What the Tasks module's tests set a board up with: a member's connection to the module, tasks
@@ -13,16 +14,22 @@ import createModuleTestKit from '~modules/testing/createModuleTestKit'
 */
 function createTasksTestBoard(fake: ModuleDatabaseFake, organizationId: string) {
   // The module as the member `userId` reaches it, Strategy Dance's agent unless told otherwise
-  function connect(fields: Partial<ModuleCaller> = {}, userId = 'member') {
-    return createModuleTestKit('tasks', {
-      kind: 'agent',
-      userId,
-      organizationId,
-      membershipCreatedAt: fake.addMember(userId, organizationId, { displayName: 'Ada' }),
-      scopes: ['tasks:read', 'tasks:write'],
-      idempotencyScope: 'conversation:checked',
-      ...fields,
-    })
+  function connect(fields: Partial<ModuleCaller> = {}, userId = 'member', named: { segment?: string } = {}) {
+    return createModuleTestKit(
+      'tasks',
+      toTestModuleAccess(
+        {
+          kind: 'agent',
+          userId,
+          organizationId,
+          membershipCreatedAt: fake.addMember(userId, organizationId, { displayName: 'Ada' }),
+          scopes: ['tasks:read', 'tasks:write'],
+          idempotencyScope: 'conversation:checked',
+          ...fields,
+        },
+        named,
+      ),
+    )
   }
 
   function add(fields: Partial<FakeTask> = {}) {

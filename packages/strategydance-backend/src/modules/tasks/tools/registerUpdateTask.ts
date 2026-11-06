@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { TasksToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import updateTask from '~domain/tasks/updateTask'
 
@@ -73,8 +72,8 @@ const outputSchema = z.object({
 })
 
 // `update_task`: the fields of a task a call names, and no other
-function registerUpdateTask(server: McpServer, context: TasksToolContext) {
-  server.registerTool(
+function registerUpdateTask(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Update a task',
@@ -85,7 +84,7 @@ function registerUpdateTask(server: McpServer, context: TasksToolContext) {
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(tasksModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readTasksWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

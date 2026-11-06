@@ -1,26 +1,28 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { MODULES, type ModuleName } from 'strategydance-core'
 
-import type { ModuleCaller } from '~types'
+import type { ModuleAccess, ModuleCaller } from '~types'
 
 import { MODULE_IDEMPOTENCY_KEY_META, MODULE_PROTOCOL_VERSION } from '~constants'
 
 import createModuleHandler from '~modules/createModuleHandler'
+import toTestModuleAccess from '~modules/testing/toTestModuleAccess'
 import toModuleAuthInfo from '~modules/toModuleAuthInfo'
 
 type ToolResult = Awaited<ReturnType<Client['callTool']>>
 
 /*
-  A module as its tests reach it, as Strategy Dance's agent will: the SDK's client,
-  pinned to the 2026-07-28 revision, on a transport whose `fetch` hands each request to the module's
-  own handler with the caller as its `authInfo`. Nothing is dialled, and the server, its tools and
-  their checks are those every caller gets. Not the SDK's in-memory transport, which speaks only the
-  2025 revisions
+  A module as its tests reach it, as Strategy Dance's agent will: the SDK's client, pinned to the
+  2026-07-28 revision, on a transport whose `fetch` hands each request to the module's own handler
+  with the access as its `authInfo`, built from the one caller a test acts as unless it gives the
+  access itself. Nothing is dialled, and the server, its tools and their checks are those every
+  caller gets. Not the SDK's in-memory transport, which speaks only the 2025 revisions
 */
-async function createModuleTestKit(name: ModuleName, caller: ModuleCaller) {
+async function createModuleTestKit(name: ModuleName, caller: ModuleCaller | ModuleAccess) {
   const handler = createModuleHandler(name)
   const path = MODULES.find(module => module.name === name)?.path ?? `/mcp/${name}`
-  const authInfo = toModuleAuthInfo(caller)
+  const access = 'organizationId' in caller ? toTestModuleAccess(caller) : caller
+  const authInfo = toModuleAuthInfo(access)
   const client = new Client(
     { name: 'strategydance-tests', version: '1.0.0' },
     { versionNegotiation: { mode: { pin: MODULE_PROTOCOL_VERSION } } },
@@ -31,11 +33,17 @@ async function createModuleTestKit(name: ModuleName, caller: ModuleCaller) {
 
   await client.connect(transport)
 
-  // Calls a tool, under an idempotency key when one is given
+  /*
+    Calls a tool, under an idempotency key when one is given. An external agent's call names the
+    first organization its access reaches unless the test names one, as `organization` or as
+    `undefined` to send none
+  */
   function call(tool: string, args: Record<string, unknown>, key?: string) {
+    const [first] = access.kind === 'external' ? access.organizations : []
+
     return client.callTool({
       name: tool,
-      arguments: args,
+      arguments: first && !('organization' in args) ? { organization: first.segment, ...args } : args,
       ...(key !== undefined && { _meta: { [MODULE_IDEMPOTENCY_KEY_META]: key } }),
     })
   }

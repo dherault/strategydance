@@ -7551,29 +7551,31 @@ mutation RecordOAuthClientUse($id: UUID!) @auth(level: NO_ACCESS) {
   oAuthClient_update(id: $id, data: { lastUsedAt_expr: "request.time" })
 }
 
-# A member allows an external agent to act as them on one module in one organization: the connection
-# and the code, valid for a minute (`OAUTH_CODE_LIFETIME_MS` in the backend), bound to the request.
+# A member allows an external agent to act as them on one module in the organizations they chose:
+# the connection and the code, valid for a minute (`OAUTH_CODE_LIFETIME_MS` in the backend), bound
+# to the request.
 #
-# The first step writes the member's own row, a lock every consent of theirs takes in whichever
-# organization, so their consents take turns, two at once for one client, organization and module
-# included. Nothing else writes a user row and a membership both, so taking the two in this order
-# waits on nobody holding them the other way. The second writes the member's membership, the lock a
-# run's start and a search take too, and refuses anybody who is not that member: by its check, or
-# first by the connection's reference to the membership (`agent_connection_membership_fkey`), which
-# Data Connect reports before the check, and the backend reads the two as one refusal. A member
-# connects at most 100 agents across their organizations (`MAX_AGENT_CONNECTIONS` in
-# strategydance-core), counted after both, leaving out the connection this one replaces, so the
-# Connected agents tab, which reads that many, lists every one. The earlier connection for that
-# client and module goes, with its tokens, and the new one takes its place, so the member holds
-# one connection for it, of the access they last allowed. The request is decided last, since it references the connection, and only while it is
-# undecided and unexpired, for the client and the resource it names, granting no scope it did not
-# ask for: a check refusing it rolls the whole mutation back, so a double submit, or an Allow racing
-# a Deny, decides it once. `$userId` is the uid the backend verified, and `$connectionId` and
-# `$codeHash` are the backend's own
+# The first step writes the member's own row, a lock every consent of theirs takes, and every edit of
+# a connection's organizations, so their consents and edits take turns, two at once for one client
+# and module included. Nothing else writes a user row and a membership both, so taking the two in
+# this order waits on nobody holding them the other way. The second writes each membership chosen,
+# the lock a run's start and a search take too, read through the first's response so it runs as a
+# statement of its own, and refuses unless the member is in every organization named: the
+# backend dedupes the list first, since one named twice is counted once. A connection reaches 1 to 20
+# organizations (`MAX_AGENT_CONNECTION_ORGANIZATIONS` in strategydance-core). A member connects at
+# most 100 agents (`MAX_AGENT_CONNECTIONS` in strategydance-core), counted after both, leaving out
+# the connection this one replaces, so the Connected agents tab, which reads that many, lists every
+# one. The earlier connection for that client and module goes, with its tokens, and the new one takes
+# its place, so the member holds one connection for it, of the organizations and the access they
+# last allowed, granted now. The request is decided last, since it references the connection, and
+# only while it is undecided and unexpired, for the client and the resource it names, granting no
+# scope it did not ask for: a check refusing it rolls the whole mutation back, so a double submit, or
+# an Allow racing a Deny, decides it once. `$userId` is the uid the backend verified, and
+# `$connectionId` and `$codeHash` are the backend's own
 mutation ApproveOAuthAuthorizationRequest(
   $id: UUID!
   $userId: String!
-  $organizationId: UUID!
+  $organizationIds: [UUID!]!
   $connectionId: UUID!
   $clientId: String!
   $registeredClientId: UUID
@@ -7583,23 +7585,28 @@ mutation ApproveOAuthAuthorizationRequest(
   $scopes: [String!]!
   $codeHash: String!
 ) @auth(level: NO_ACCESS) @transaction {
-  user_update(key: { id: $userId }, data: { updatedAt_expr: "request.time" }) @redact
-  userOrganization_update(
-    key: { userId: $userId, organizationId: $organizationId }
+  user_update(key: { id: $userId }, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can connect an agent to it")
+    @check(
+      expr: "size(vars.organizationIds) >= 1 && size(vars.organizationIds) <= 20"
+      message: "An agent reaches 1 to 20 of the member's organizations"
+    )
+  userOrganization_updateMany(
+    where: { userId: { eq_expr: "response.user_update.id" }, organizationId: { in: $organizationIds } }
     data: { updatedAt_expr: "request.time" }
-  ) @redact @check(expr: "this != null", message: "Only a member of an organization can connect an agent to it")
+  )
+    @redact
+    @check(
+      expr: "this == size(vars.organizationIds)"
+      message: "Only a member of an organization can connect an agent to it"
+    )
   query @redact {
     agentConnections(
       where: {
         _and: [
-          { membershipUserId: { eq: $userId } }
-          {
-            _not: {
-              membershipOrganizationId: { eq: $organizationId }
-              clientId: { eq: $clientId }
-              module: { eq: $module }
-            }
-          }
+          { userId: { eq_expr: "response.user_update.id" } }
+          { _not: { clientId: { eq: $clientId }, module: { eq: $module } } }
         ]
       }
       limit: 100
@@ -7607,19 +7614,14 @@ mutation ApproveOAuthAuthorizationRequest(
       id
     }
   }
-  agentConnection_deleteMany(
-    where: {
-      membershipUserId: { eq: $userId }
-      membershipOrganizationId: { eq: $organizationId }
-      clientId: { eq: $clientId }
-      module: { eq: $module }
-    }
-  ) @redact
+  agentConnection_deleteMany(where: { userId: { eq: $userId }, clientId: { eq: $clientId }, module: { eq: $module } })
+    @redact
   agentConnection_insert(
     data: {
       id: $connectionId
-      membershipUserId: $userId
-      membershipOrganizationId: $organizationId
+      userId: $userId
+      organizationIds: $organizationIds
+      grantedAt_expr: "request.time"
       clientId: $clientId
       registeredClientId: $registeredClientId
       clientName: $clientName
@@ -7782,7 +7784,7 @@ mutation RecordAgentConnectionUse($id: UUID!, $userId: String!) @auth(level: NO_
     where: {
       _and: [
         { id: { eq: $id } }
-        { membershipUserId: { eq: $userId } }
+        { userId: { eq: $userId } }
         { _or: [{ lastUsedAt: { isNull: true } }, { lastUsedAt: { lt_time: { now: true, sub: { minutes: 1 } } } }] }
       ]
     }

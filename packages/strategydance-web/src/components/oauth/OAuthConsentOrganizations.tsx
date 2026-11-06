@@ -3,12 +3,12 @@ import { useIntl } from 'react-intl'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button, buttonVariants } from 'strategydance-design-system/components/ui/Button'
 import { fieldLabelClassName } from 'strategydance-design-system/components/ui/Field'
-import { Select } from 'strategydance-design-system/components/ui/Select'
 
 import type { Organization } from '~types'
 
 import useUserOrganizations from '~hooks/userOrganization/useUserOrganizations'
 
+import AgentConnectionOrganizationsField from '~components/agentConnection/AgentConnectionOrganizationsField'
 import Spinner from '~components/common/Spinner'
 import OrganizationMark from '~components/organization/OrganizationMark'
 
@@ -16,9 +16,9 @@ import globalMessages from '~data/intl/messages/global'
 import moduleMessages from '~data/intl/messages/module'
 
 type Props = {
-  // The one the agent will act in, among the reader's, or null when they are in none
-  organization: Organization | null
-  onChange: (organizationId: string) => void
+  // Those the agent will act in, among the reader's
+  chosenIds: string[]
+  onChange: (chosenIds: string[]) => void
   disabled: boolean
 }
 
@@ -37,11 +37,11 @@ function OrganizationLabel({ organization }: { organization: Organization }) {
 }
 
 /*
-  Which of the reader's organizations the agent will act in: a choice among several, the one they
-  are in, or why there is none to choose. The consent page sits outside the app, which would send
-  somebody in no organization to the prologue, so it says so itself, and offers the prologue
+  Which of the reader's organizations the agent will act in: those they tick among several, the one
+  they are in, or why there is none to choose. The consent page sits outside the app, which would
+  send somebody in no organization to the prologue, so it says so itself, and offers the prologue
 */
-function OAuthConsentOrganization({ organization, onChange, disabled }: Props) {
+function OAuthConsentOrganizations({ chosenIds, onChange, disabled }: Props) {
   const { formatMessage } = useIntl()
   const { data: memberships, hasFailed, loading, refetch } = useUserOrganizations()
 
@@ -62,7 +62,9 @@ function OAuthConsentOrganization({ organization, onChange, disabled }: Props) {
     )
   }
 
-  if (!organization) {
+  const [only] = memberships
+
+  if (!only) {
     return (
       <Alert
         title={formatMessage(moduleMessages.noOrganizationTitle)}
@@ -84,23 +86,19 @@ function OAuthConsentOrganization({ organization, onChange, disabled }: Props) {
     return (
       <div className="flex flex-col gap-1.5">
         <span className={fieldLabelClassName}>{formatMessage(moduleMessages.organizationLabel)}</span>
-        <OrganizationLabel organization={organization} />
+        <OrganizationLabel organization={only.organization} />
       </div>
     )
   }
 
   return (
-    <Select
-      label={formatMessage(moduleMessages.organizationLabel)}
-      value={organization.id}
-      onValueChange={onChange}
+    <AgentConnectionOrganizationsField
+      organizations={memberships.map(({ organization }) => organization)}
+      chosenIds={chosenIds}
+      onChange={onChange}
       disabled={disabled}
-      options={memberships.map(({ organization: option }) => ({
-        value: option.id,
-        label: <OrganizationLabel organization={option} />,
-      }))}
     />
   )
 }
 
-export default OAuthConsentOrganization
+export default OAuthConsentOrganizations

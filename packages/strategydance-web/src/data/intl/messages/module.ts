@@ -171,7 +171,7 @@ const moduleMessages = defineMessages({
   consentLead: {
     id: 'module.consentLead',
     defaultMessage:
-      'It will act as you in the organization you choose, with the access you allow, until you disconnect it from your account.',
+      'It will act as you in the organizations you choose, with the access you allow, until you disconnect it from your account.',
     description: 'Explanation under the title of the page where a member allows an external agent to use a module.',
   },
   redirectHost: {
@@ -198,6 +198,29 @@ const moduleMessages = defineMessages({
     defaultMessage: 'Organization',
     description:
       'Label of the organization a member chooses for an external agent to act in, on the page where they allow it.',
+  },
+  organizationsLabel: {
+    id: 'module.organizationsLabel',
+    defaultMessage: 'Organizations',
+    description:
+      'Label of the organizations a member ticks for an external agent to act in, on the page where they allow it and when they change them on their account page.',
+  },
+  organizationsHint: {
+    id: 'module.organizationsHint',
+    defaultMessage: 'It acts as you in each organization you tick, and names the one it acts in every time.',
+    description:
+      'Under the organizations a member ticks for an external agent, saying what ticking one means. "It" is the agent.',
+  },
+  organizationsRequired: {
+    id: 'module.organizationsRequired',
+    defaultMessage: 'Tick at least one organization.',
+    description: 'Under the organizations a member ticks for an external agent, when they ticked none.',
+  },
+  organizationsMax: {
+    id: 'module.organizationsMax',
+    defaultMessage: 'An agent acts in {max} organizations at most.',
+    description:
+      'Under the organizations a member ticks for an external agent, once they ticked as many as an agent may act in. {max} is that number.',
   },
   accessLabel: {
     id: 'module.accessLabel',
@@ -295,7 +318,7 @@ const moduleMessages = defineMessages({
   noOrganizationDescription: {
     id: 'module.noOrganizationDescription',
     defaultMessage:
-      'An agent acts as you in one of your organizations. Create one or join one, then connect the agent again.',
+      'An agent acts as you in the organizations you choose among yours. Create one or join one, then connect the agent again.',
     description:
       'Shown on the page where a member allows an external agent, when they belong to no organization the agent could act in.',
   },
@@ -313,7 +336,8 @@ const moduleMessages = defineMessages({
   },
   connectedAgentsLead: {
     id: 'module.connectedAgentsLead',
-    defaultMessage: 'The agents you allowed to act as you. Disconnecting one stops it at once.',
+    defaultMessage:
+      'The agents you allowed to act as you, and the organizations each acts in. Disconnecting one stops it at once.',
     description: "Explanation at the top of the account page's Connected agents tab.",
   },
   connectedAgentsEmptyTitle: {
@@ -337,6 +361,52 @@ const moduleMessages = defineMessages({
     defaultMessage: '{moduleName} · {access}',
     description:
       'On a connected agent, the module it may use and its access, such as "Documents · Read and write". {moduleName} is the module\'s name and {access} the access\'s short label.',
+  },
+  connectionReachesNone: {
+    id: 'module.connectionReachesNone',
+    defaultMessage: 'Reaches none of your organizations any more',
+    description:
+      'On a connected agent, in place of the organizations it acts in, when the member has left every one it was allowed in.',
+  },
+  editOrganizations: {
+    id: 'module.editOrganizations',
+    defaultMessage: 'Organizations',
+    description:
+      "Button on a connected agent, on the account page's Connected agents tab, that opens a dialog to change the organizations it acts in.",
+  },
+  editOrganizationsTitle: {
+    id: 'module.editOrganizationsTitle',
+    defaultMessage: 'Where {agentName} acts as you',
+    description:
+      "Title of the dialog where a member changes the organizations a connected agent acts in. {agentName} is the agent's name, such as Claude.",
+  },
+  editOrganizationsDescription: {
+    id: 'module.editOrganizationsDescription',
+    defaultMessage: 'Your change applies from its next call, with the access you allowed.',
+    description:
+      'Explanation in the dialog where a member changes the organizations a connected agent acts in, saying when a change takes effect. "Its" is the agent\'s.',
+  },
+  editOrganizationsCancel: {
+    id: 'module.editOrganizationsCancel',
+    defaultMessage: 'Cancel',
+    description: "Button that closes the dialog changing a connected agent's organizations, changing nothing.",
+  },
+  editOrganizationsSave: {
+    id: 'module.editOrganizationsSave',
+    defaultMessage: 'Save',
+    description: "Button that saves the organizations ticked in the dialog changing a connected agent's organizations.",
+  },
+  organizationsSaved: {
+    id: 'module.organizationsSaved',
+    defaultMessage: '{agentName} now acts in {count, plural, one {# organization} other {# organizations}}.',
+    description:
+      "Confirmation once a member changed the organizations a connected agent acts in. {agentName} is the agent's name and {count} how many organizations it acts in now.",
+  },
+  organizationsSaveError: {
+    id: 'module.organizationsSaveError',
+    defaultMessage: "{agentName}'s organizations could not be changed. Try again.",
+    description:
+      "Shown when changing the organizations a connected agent acts in failed. {agentName} is the agent's name.",
   },
   connectedOn: {
     id: 'module.connectedOn',
@@ -395,7 +465,7 @@ const moduleMessages = defineMessages({
   agentsDescription: {
     id: 'module.agentsDescription',
     defaultMessage:
-      'Add this address to an AI agent of your own, such as Claude, ChatGPT or Cursor. It asks you to sign in and allow it, then acts as you, within what your organization lets agents do.',
+      'Add this address to an AI agent of your own, such as Claude, ChatGPT or Cursor. It asks you to sign in and allow it, then acts as you in the organizations you choose, within what each lets agents do.',
     description:
       "Lead of the dialog explaining how to connect an AI agent of the member's own to a module. Claude, ChatGPT and Cursor are product names, kept as they are.",
   },

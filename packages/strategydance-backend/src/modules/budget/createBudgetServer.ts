@@ -1,12 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/server'
 
-import type { ModuleCaller } from '~types'
+import type { ModuleAccess } from '~types'
 
 import { MODULE_IDEMPOTENCY_KEY_META } from '~constants'
 
 import budgetModule from '~modules/budget/budgetModule'
 import BUDGET_TOOLS from '~modules/budget/budgetTools'
-import createModuleAddresses from '~modules/createModuleAddresses'
+import createModuleToolRegistrar from '~modules/createModuleToolRegistrar'
+import toModuleInstructions from '~modules/toModuleInstructions'
 
 // What the server tells an agent before it calls anything: what Strategy Dance is, what the budget
 // and the bills hold and how amounts are written, and how to write to them safely
@@ -20,15 +21,18 @@ The bills are the team's: any member adds, changes and deletes any bill, and mem
 
 Every write tool takes an idempotency key in the call's _meta, under "${MODULE_IDEMPOTENCY_KEY_META}": send a new one with each write, and the same one when you send the same write again after losing its answer. A write sent again without a key can be applied twice.`
 
-// The Budget module's MCP server, built for one caller, whom every tool acts as
-function createBudgetServer(caller: ModuleCaller) {
+/*
+  The Budget module's MCP server, built for one access, whose caller every tool acts as, in
+  the organization its call acts in
+*/
+function createBudgetServer(access: ModuleAccess) {
   const server = new McpServer(
     { name: 'strategydance-budget', title: budgetModule.title, version: '1.0.0' },
-    { capabilities: { tools: {} }, instructions: INSTRUCTIONS },
+    { capabilities: { tools: {} }, instructions: toModuleInstructions(INSTRUCTIONS, access) },
   )
-  const context = { caller, toAddress: createModuleAddresses(caller, 'budget') }
+  const registerTool = createModuleToolRegistrar(server, access, 'budget')
 
-  for (const register of BUDGET_TOOLS) register(server, context)
+  for (const register of BUDGET_TOOLS) register(registerTool)
 
   return server
 }

@@ -1,12 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/server'
 
-import type { ModuleCaller } from '~types'
+import type { ModuleAccess } from '~types'
 
 import { MODULE_IDEMPOTENCY_KEY_META } from '~constants'
 
-import createModuleAddresses from '~modules/createModuleAddresses'
+import createModuleToolRegistrar from '~modules/createModuleToolRegistrar'
 import documentsModule from '~modules/documents/documentsModule'
 import DOCUMENTS_TOOLS from '~modules/documents/documentsTools'
+import toModuleInstructions from '~modules/toModuleInstructions'
 
 // What the server tells an agent before it calls anything: what Strategy Dance is, what the
 // documents are and how they are written, and how to write to them safely
@@ -18,15 +19,18 @@ The team shares every document, and members may be editing one while you do: rea
 
 Every write tool takes an idempotency key in the call's _meta, under "${MODULE_IDEMPOTENCY_KEY_META}": send a new one with each write, and the same one when you send the same write again after losing its answer. A write sent again without a key can be applied twice.`
 
-// The Documents module's MCP server, built for one caller, whom every tool acts as
-function createDocumentsServer(caller: ModuleCaller) {
+/*
+  The Documents module's MCP server, built for one access, whose caller every tool acts as, in
+  the organization its call acts in
+*/
+function createDocumentsServer(access: ModuleAccess) {
   const server = new McpServer(
     { name: 'strategydance-documents', title: documentsModule.title, version: '1.0.0' },
-    { capabilities: { tools: {} }, instructions: INSTRUCTIONS },
+    { capabilities: { tools: {} }, instructions: toModuleInstructions(INSTRUCTIONS, access) },
   )
-  const context = { caller, toAddress: createModuleAddresses(caller, 'documents') }
+  const registerTool = createModuleToolRegistrar(server, access, 'documents')
 
-  for (const register of DOCUMENTS_TOOLS) register(server, context)
+  for (const register of DOCUMENTS_TOOLS) register(registerTool)
 
   return server
 }

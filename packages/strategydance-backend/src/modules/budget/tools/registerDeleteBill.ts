@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { BudgetToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import deleteBill from '~domain/budget/deleteBill'
 
@@ -22,8 +21,8 @@ const outputSchema = z.object({
 })
 
 // `delete_bill`: a bill deleted as the Budget page's Delete does, restorable for a day
-function registerDeleteBill(server: McpServer, context: BudgetToolContext) {
-  server.registerTool(
+function registerDeleteBill(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Delete a bill',
@@ -34,7 +33,7 @@ function registerDeleteBill(server: McpServer, context: BudgetToolContext) {
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(budgetModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readBudgetWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

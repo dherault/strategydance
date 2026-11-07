@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { TasksToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import removeTaskDependency from '~domain/tasks/removeTaskDependency'
 
@@ -27,8 +26,8 @@ const outputSchema = z.object({
 })
 
 // `remove_task_dependency`: a task stops waiting on another
-function registerRemoveTaskDependency(server: McpServer, context: TasksToolContext) {
-  server.registerTool(
+function registerRemoveTaskDependency(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Unlink tasks',
@@ -39,7 +38,7 @@ function registerRemoveTaskDependency(server: McpServer, context: TasksToolConte
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(tasksModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readTasksWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

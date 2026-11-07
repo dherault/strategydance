@@ -58,7 +58,8 @@ function insertConnection(
   fake.connections.set(id, {
     id,
     userId: 'member',
-    organizationId: ORGANIZATION_ID,
+    organizationIds: [ORGANIZATION_ID],
+    grantedAt: fake.stamp(),
     clientId: registeredClientId ?? 'https://client.example.com/oauth/metadata.json',
     registeredClientId,
     clientName: null,

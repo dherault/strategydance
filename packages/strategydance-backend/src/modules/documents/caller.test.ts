@@ -12,6 +12,7 @@ mock.module('~firebase', () => ({ dataConnect: {} }))
 mock.module('strategydance-database/backend', () => fake.sdk)
 
 const { default: createModuleTestKit } = await import('~modules/testing/createModuleTestKit')
+const { default: toTestModuleAccess } = await import('~modules/testing/toTestModuleAccess')
 
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 
@@ -19,16 +20,22 @@ const documents = createTestDocuments(fake, ORGANIZATION_ID)
 
 const NOT_MEMBER = 'The member is no longer in this organization, so its documents are closed to you.'
 
-function connect(fields: Partial<ModuleCaller> = {}) {
-  return createModuleTestKit('documents', {
-    kind: 'agent',
-    userId: 'member',
-    organizationId: ORGANIZATION_ID,
-    membershipCreatedAt: fake.addMember('member', ORGANIZATION_ID),
-    scopes: ['documents:read', 'documents:write'],
-    idempotencyScope: 'conversation:checked',
-    ...fields,
-  })
+function connect(fields: Partial<ModuleCaller> = {}, named: { segment?: string } = {}) {
+  return createModuleTestKit(
+    'documents',
+    toTestModuleAccess(
+      {
+        kind: 'agent',
+        userId: 'member',
+        organizationId: ORGANIZATION_ID,
+        membershipCreatedAt: fake.addMember('member', ORGANIZATION_ID),
+        scopes: ['documents:read', 'documents:write'],
+        idempotencyScope: 'conversation:checked',
+        ...fields,
+      },
+      named,
+    ),
+  )
 }
 
 afterEach(() => fake.reset())
@@ -94,7 +101,7 @@ describe('the caller', () => {
     expect(await kit.refusal('update_document', { id: document.id, append: 'More' })).toBe(NOT_MEMBER)
   })
 
-  it('gives an external caller the web address of each document, by the slug of its organization or its id, and the agent none', async () => {
+  it('gives an external caller the web address of each document, by the segment its access names the organization by, and the agent none', async () => {
     const agent = await connect()
     const document = documents.store('Pricing plan', { title: 'Pricing' })
 
@@ -105,9 +112,10 @@ describe('the caller', () => {
 
     expect(found.documents[0]!.url).toBe(`http://localhost:5173/${ORGANIZATION_ID}/documents/${document.id}`)
 
-    fake.organizations.get(ORGANIZATION_ID)!.slug = 'strategy-dance-ad34'
-
-    const withSlug = await connect({ kind: 'external', idempotencyScope: 'connection:checked' })
+    const withSlug = await connect(
+      { kind: 'external', idempotencyScope: 'connection:checked' },
+      { segment: 'strategy-dance-ad34' },
+    )
     const reading = await withSlug.answer<{ url: string }>('read_document', { id: document.id })
     const created = await withSlug.answer<{ url: string }>('create_document', {
       title: 'New',

@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { BudgetToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import restoreBill from '~domain/budget/restoreBill'
 
@@ -21,8 +20,8 @@ const outputSchema = z.object({
 })
 
 // `restore_bill`: a delete taken back, within a day of it
-function registerRestoreBill(server: McpServer, context: BudgetToolContext) {
-  server.registerTool(
+function registerRestoreBill(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Restore a bill',
@@ -33,7 +32,7 @@ function registerRestoreBill(server: McpServer, context: BudgetToolContext) {
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(budgetModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readBudgetWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

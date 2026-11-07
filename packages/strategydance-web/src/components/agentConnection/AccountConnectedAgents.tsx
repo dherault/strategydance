@@ -21,12 +21,12 @@ import moduleMessages from '~data/intl/messages/module'
 
 /*
   The account page's Connected agents tab: the external agents the reader allowed to act as them,
-  each with Disconnect, newest first; or that there are none; or that the list could not be read,
+  each with the organizations it acts in, a way to change them, and Disconnect, newest first; or that there are none; or that the list could not be read,
   with a way to try again rather than a verdict on an empty list
 */
 function AccountConnectedAgents() {
   const { formatMessage } = useIntl()
-  const { data: connections, hasFailed, loading, refetch } = useAgentConnections()
+  const { data: connections, memberships, hasFailed, loading, refetch } = useAgentConnections()
   const now = useNow()
 
   if (hasFailed) {
@@ -74,6 +74,7 @@ function AccountConnectedAgents() {
           <AgentConnectionRow
             key={connection.id}
             connection={connection}
+            memberships={memberships}
             now={now}
           />
         ))}

@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { TasksToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import listTasks from '~domain/tasks/listTasks'
 
@@ -29,8 +28,8 @@ const outputSchema = z.object({
 })
 
 // `list_tasks`: the board's live tasks, filtered as its own filters are, a page at a time
-function registerListTasks(server: McpServer, { caller, toAddress }: TasksToolContext) {
-  server.registerTool(
+function registerListTasks(registerTool: RegisterModuleTool) {
+  registerTool(
     'list_tasks',
     {
       title: 'List tasks',
@@ -40,7 +39,7 @@ function registerListTasks(server: McpServer, { caller, toAddress }: TasksToolCo
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
-    async ({ query, status, assignee, aspects, cursor }) => {
+    async ({ query, status, assignee, aspects, cursor }, _serverContext, { caller, toAddress }) => {
       const listed = await listTasks(caller, { query, status, assignee, aspects: aspects ?? [], cursor }, toAddress)
 
       if (listed.outcome !== 'listed') return toTasksRefusal(listed)

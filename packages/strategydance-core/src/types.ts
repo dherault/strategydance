@@ -304,11 +304,11 @@ export type ModuleScope = (typeof MODULES)[number]['scopes'][keyof ModuleDefinit
 
 /*
   What the consent page reads of an authorization request an external agent made: who is asking,
-  where the member will be sent back, the module and the access asked for. A registered client is
-  unverified, since nothing proves who registered it; a client ID metadata document's is verified,
-  and its domain is the document's. The name is the client's own, stripped of control and
-  direction characters and cut short, and never comes with a logo, which would load an address of
-  the client's choosing
+  where the member will be sent back, the module, the access asked for, and what the member's
+  connection for them reaches already. A registered client is unverified, since nothing proves who
+  registered it; a client ID metadata document's is verified, and its domain is the document's. The
+  name is the client's own, stripped of control and direction characters and cut short, and never
+  comes with a logo, which would load an address of the client's choosing
 */
 export type OAuthAuthorizationRequestSummary = {
   client: {
@@ -322,6 +322,9 @@ export type OAuthAuthorizationRequestSummary = {
   module: ModuleName
   scopes: ModuleScope[]
   expiresAt: string
+  // The organizations the reader's connection for this client and module reaches already, which
+  // the page ticks to begin with: none when they have no such connection
+  reachedOrganizationIds: string[]
 }
 
 // Where the consent page sends the browser once the member allowed or denied a request: back to

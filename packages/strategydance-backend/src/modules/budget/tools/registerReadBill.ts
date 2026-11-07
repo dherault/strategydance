@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { BudgetToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import readBill from '~domain/budget/readBill'
 
@@ -27,8 +26,8 @@ const outputSchema = z.object({
 })
 
 // `read_bill`: one live bill, with its receipt, this year's payments, who added it and who saved it last
-function registerReadBill(server: McpServer, { caller, toAddress }: BudgetToolContext) {
-  server.registerTool(
+function registerReadBill(registerTool: RegisterModuleTool) {
+  registerTool(
     'read_bill',
     {
       title: 'Read a bill',
@@ -38,7 +37,7 @@ function registerReadBill(server: McpServer, { caller, toAddress }: BudgetToolCo
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
-    async ({ id }) => {
+    async ({ id }, _serverContext, { caller, toAddress }) => {
       const read = await readBill(caller, { id }, toAddress)
 
       if (read.outcome !== 'read') return toBudgetRefusal(read)

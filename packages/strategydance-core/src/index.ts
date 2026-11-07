@@ -29,3 +29,5 @@ export * from './helpers/bill'
 export * from './helpers/exchangeRate'
 
 export * from './helpers/budget'
+
+export * from './helpers/agentConnection'

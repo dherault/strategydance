@@ -114,9 +114,14 @@ export type AdministrationUser = GetAdministrationUsersData['users'][number]
 // An organization as the administration's organizations page lists it, with its member count
 export type AdministrationOrganization = GetAdministrationOrganizationsData['organizations'][number]
 
+// One of the reader's memberships, as the Connected agents tab reads them beside their connections
+export type AgentConnectionMembership = GetAgentConnectionsData['memberships'][number]
+
 // An external agent the reader connected, as the account page's Connected agents tab lists it, with
-// the organization it acts in
-export type AgentConnection = GetAgentConnectionsData['agentConnections'][number]
+// the organizations it reaches, among those it lists, by the reader's memberships
+export type AgentConnection = GetAgentConnectionsData['agentConnections'][number] & {
+  organizations: AgentConnectionMembership['organization'][]
+}
 
 // A picture chosen and being saved, with an object URL that previews it, or undefined for none
 export type StagedImage =

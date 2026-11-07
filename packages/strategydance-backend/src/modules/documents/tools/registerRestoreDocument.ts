@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { DocumentsToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import restoreDocument from '~domain/documents/restoreDocument'
 
@@ -21,8 +20,8 @@ const outputSchema = z.object({
 })
 
 // `restore_document`: a document deleted less than a day ago, brought back
-function registerRestoreDocument(server: McpServer, context: DocumentsToolContext) {
-  server.registerTool(
+function registerRestoreDocument(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Restore a document',
@@ -33,7 +32,7 @@ function registerRestoreDocument(server: McpServer, context: DocumentsToolContex
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(documentsModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readDocumentsWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

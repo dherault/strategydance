@@ -68,8 +68,13 @@ function AgentConnectionOrganizationsField({ organizations, chosenIds, onChange,
         return (
           <Checkbox
             key={organization.id}
+            /*
+              The checkbox is set on a 20px line of text, which the 24px mark overhangs by 2px each
+              side to stay centered on it: the row's padding gives that space back
+            */
+            className="py-0.5"
             label={
-              <span className="flex min-w-0 items-center gap-2">
+              <span className="-my-0.5 flex min-w-0 items-center gap-2">
                 <OrganizationMark
                   name={organization.name}
                   logoUrl={organization.logoThumbnailUrl ?? organization.logoUrl}

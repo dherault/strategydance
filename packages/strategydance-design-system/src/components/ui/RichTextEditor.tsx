@@ -415,6 +415,9 @@ function createEditor({
     ],
     // A table's first row or column made a header from its handles, and no colors nor merged cells
     tables: { headers: true },
+    // The side menu answers the pointer up to 250px either side of the editor, since a document's
+    // hangs in the page's margin, outside it
+    sideMenu: { hoverMargin: 250 },
     uploadFile: uploadImage ? (file: File, blockId?: string) => uploadFile(uploadImage, file, blockId) : undefined,
   }
 

@@ -35,7 +35,7 @@ function RichTextEditorToolbar() {
 
   return (
     <FormattingToolbar>
-      <BlockTypeSelect items={getRichTextBlockTypeSelectItems(editor.dictionary)} />
+      <BlockTypeSelect items={getRichTextBlockTypeSelectItems(editor)} />
       <FileCaptionButton />
       <FileReplaceButton />
       <FileDeleteButton />

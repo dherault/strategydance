@@ -552,10 +552,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aitooltrek.com/",
     "submissionUrl": "https://aitooltrek.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, such as image, video, writing and business, where makers submit their own AI products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-07",
     "unreachableSince": null
   },
   {
@@ -805,10 +807,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.aidirectory.org/",
     "submissionUrl": "https://www.aidirectory.org/user-submit/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of artificial intelligence and machine learning companies, filterable by AI category and location, where companies submit their own listings.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-07",
     "unreachableSince": null
   },
   {
@@ -1327,10 +1332,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://appsandwebsites.com/",
     "submissionUrl": "https://appsandwebsites.com/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools and SaaS business software sorted by category, where makers can submit their AI or SaaS tools through a form.",
+    "categories": [
+      "AI_TOOLS",
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-07",
     "unreachableSince": null
   },
   {
@@ -2115,6 +2123,20 @@
     "unreachableSince": null
   },
   {
+    "id": "drop-your-ai",
+    "name": "Drop Your AI",
+    "type": "WEBSITE",
+    "rootUrl": "https://www.dropyourai.com/",
+    "submissionUrl": "https://www.dropyourai.com/submit-tool",
+    "description": "Directory of AI tools sorted by category such as writing, video, design, coding and marketing, where makers submit their own AI tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-11-07",
+    "unreachableSince": null
+  },
+  {
     "id": "dynamite-ai",
     "name": "Dynamite AI",
     "type": "WEBSITE",
@@ -2134,10 +2156,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://e27.co/",
     "submissionUrl": "https://e27.co/startup/create/profile/",
-    "description": "",
-    "categories": [],
+    "description": "Asian startup ecosystem platform with news and a database of startup and investor profiles, where founders can add their own company profile.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null,
+    "lastChecked": "2026-11-07",
     "unreachableSince": null
   },
   {
@@ -2789,10 +2813,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://groupify.ai/",
     "submissionUrl": "https://groupify.ai/new-tool-form",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools and AI courses, sorted by category and business function, where makers submit their AI tools for listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-07",
     "unreachableSince": null
   },
   {
@@ -2903,10 +2929,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://tally.so/",
     "submissionUrl": "https://tally.so/r/w2poXD",
-    "description": "",
-    "categories": [],
+    "description": "Inc42 Startup Spotlight, an editorial feature where Indian tech startups apply to be profiled on Inc42 and listed on Inc42 Datalabs.",
+    "categories": [
+      "ANY_STARTUP",
+      "REGIONAL"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-11-07",
     "unreachableSince": null
   },
   {
@@ -2953,10 +2982,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://indiepa.ge/",
     "submissionUrl": "https://indiepa.ge/",
-    "description": "",
-    "categories": [],
+    "description": "Link-in-bio pages where indie founders showcase their startups and revenue, with a public startups directory, leaderboard and marketplace.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-07",
     "unreachableSince": null
   },
   {
@@ -3348,10 +3379,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.launchpact.io/",
     "submissionUrl": "https://www.launchpact.io/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "description": "Product Hunt launch-support network where founders list upcoming launches and form mutual upvote pacts, plus a startup directory where makers list products.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_BADGE",
+    "lastChecked": "2026-11-07",
     "unreachableSince": null
   },
   {
@@ -3446,10 +3479,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.listbulb.com/",
     "submissionUrl": "https://www.listbulb.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Hand-reviewed directory of AI tools and SaaS products, where founders submit their own products for listing and a launch page.",
+    "categories": [
+      "AI_TOOLS",
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-07",
     "unreachableSince": null
   },
   {
@@ -3982,10 +4018,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.ogimage.gallery/",
     "submissionUrl": "https://www.ogimage.gallery/submit",
-    "description": "",
-    "categories": [],
+    "description": "Hand-picked gallery of Open Graph (OG) share images from websites, sorted by category, where visitors can suggest sites for review.",
+    "categories": [
+      "DESIGN"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-11-07",
     "unreachableSince": null
   },
   {

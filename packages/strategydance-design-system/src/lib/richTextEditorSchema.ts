@@ -76,6 +76,9 @@ function createRichTextCodeBlockSpec() {
     indentLineWithTab: true,
   })
   const { parse, render } = spec.implementation
+  // Optional for a layout block alone, which draws a frame instead
+  if (!render) throw new Error("BlockNote's code block has no render")
+
   const implementation: typeof spec.implementation = {
     ...spec.implementation,
     parse: element => {

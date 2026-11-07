@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 
 import { BlockNoteEditor } from '@blocknote/core'
-import { en } from '@blocknote/core/locales'
 import { getRichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { RICH_TEXT_EDITOR_BLOCKS } from 'strategydance-design-system/lib/richText'
 import {
@@ -10,9 +9,19 @@ import {
 } from 'strategydance-design-system/lib/richTextEditorMenus'
 import { createRichTextSchema } from 'strategydance-design-system/lib/richTextEditorSchema'
 
+// An editor writing `blocks`, in English
+function createEditor(blocks: Parameters<typeof createRichTextSchema>[0]) {
+  return BlockNoteEditor.create({
+    schema: createRichTextSchema(blocks),
+    dictionary: getRichTextDictionary('EN', { placeholder: 'Write' }),
+  })
+}
+
 describe('getRichTextBlockTypeSelectItems', () => {
   it('offers the three heading levels, without the toggle prop this heading lacks', () => {
-    const headings = getRichTextBlockTypeSelectItems(en).filter(item => item.type === 'heading')
+    const headings = getRichTextBlockTypeSelectItems(createEditor(RICH_TEXT_EDITOR_BLOCKS)).filter(
+      item => item.type === 'heading',
+    )
 
     expect(headings.map(item => [item.name, item.props])).toEqual([
       ['Heading 1', { level: 1 }],
@@ -22,7 +31,7 @@ describe('getRichTextBlockTypeSelectItems', () => {
   })
 
   it('offers code after the blocks of text, which BlockNote leaves out', () => {
-    const last = getRichTextBlockTypeSelectItems(en).at(-1)
+    const last = getRichTextBlockTypeSelectItems(createEditor(RICH_TEXT_EDITOR_BLOCKS)).at(-1)
 
     expect([last?.name, last?.type, last?.props]).toEqual(['Code Block', 'codeBlock', undefined])
   })
@@ -31,11 +40,7 @@ describe('getRichTextBlockTypeSelectItems', () => {
 describe('getRichTextSlashMenuItems', () => {
   // The menu's items for an editor writing `blocks`, by title and group, all of them as nothing is typed
   async function readItems(blocks: Parameters<typeof createRichTextSchema>[0], hasMentions?: boolean) {
-    const editor = BlockNoteEditor.create({
-      schema: createRichTextSchema(blocks),
-      dictionary: getRichTextDictionary('EN', { placeholder: 'Write' }),
-    })
-    const items = await getRichTextSlashMenuItems(editor, { hasMentions })('')
+    const items = await getRichTextSlashMenuItems(createEditor(blocks), { hasMentions })('')
 
     return items.map(item => `${item.group}: ${item.title}`)
   }

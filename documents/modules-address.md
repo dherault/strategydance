@@ -70,10 +70,11 @@ Proposed on 2026-11-07, for David to settle in review:
   connection it replaces holds beside those the client asks for, held as they were, so a client
   that asks for Tasks alone keeps Documents unless the member unticks it. The token's answer names
   every scope granted, as OAuth asks when they differ from those asked for (RFC 6749, 3.3).
-- **A connection keeps its id through a consent.** Allow updates the connection it replaces in
-  place, rather than deleting it and inserting another, so its idempotency scope,
-  `connection:<id>`, outlives the consent. A write whose answer was lost while the member consented
-  again is then found under its key, rather than applied twice.
+- **The idempotency scope outlives a consent.** Allow still replaces a connection by deleting it and
+  inserting another, so a code, a refresh token or a revocation read before a consent finds nothing
+  to act on after it. An external agent's idempotency scope comes from what a consent keeps rather
+  than the connection's id: the member's account, the client and the address. A write whose answer
+  was lost while the member consented again is then found under its key, rather than applied twice.
 - **One connection per client.** `AgentConnection.module` holds the address's name, `strategydance`
   for the one address. A connection there is a row beside the per-module ones, with no change to the
   schema and nothing for a release to stop on.
@@ -178,30 +179,27 @@ A per-module address says what it says today.
 - **Allow** takes the scopes chosen, checked against the rule above, each asked for or held by the
   connection it replaces: a consent never grants what neither the agent asked for nor the member
   granted before.
-  - Consenting again with the same client at the same address replaces the connection, since
-    `AgentConnection` is unique on its account, its client and its address's name.
-  - It replaces it in place, at every address, the per-module ones included, where the same gap
-    is open today. The connection keeps its id and takes the organizations, scopes and `grantedAt`
-    chosen now, its tokens are deleted, and every earlier request's reference to it is cleared, so
-    a code issued before opens nothing, as a deleted connection's does now. Two consents at once
-    still leave one connection and one family of tokens, under the member's lock.
-  - `ApproveOAuthAuthorizationRequest` changes with it. It updates the connection it replaces,
-    keeping the id, or inserts one when there is none, rather than deleting and inserting. Today it
-    holds the scopes granted to the request's (`includesAll`): the backend now splits the scopes
-    chosen into those the request asked for and those only the connection held, and the mutation
-    checks each against its own row. `GetAgentConnectionForConsent` answers the connection's id and
-    scopes, for the page and for that split.
-- **Revocations stay with their credential.** `RevokeAgentConnection` deletes a connection by its
-  id alone, for a code presented again (`exchangeOAuthAuthorizationCode`), a spent refresh token
-  replayed (`refreshAgentConnectionTokens`) and a refresh token its client revokes
-  (`revokeAgentConnectionToken`). With an id that outlives a consent, one that read its credential
-  before an Allow and deleted after would delete the connection the member just consented to.
-  - Each passes the `grantedAt` it read with the credential, which every Allow moves, and deletes
-    on the id and that `grantedAt`. The condition is on the connection's own row, which Postgres
-    checks again on the version that an Allow committing meanwhile wrote.
-  - One that deletes nothing reads its credential again. It stops when the credential is gone,
-    since an Allow deleted it, and otherwise deletes again on the `grantedAt` it reads now, which an
-    edit of the organizations on Connected agents moves too.
+  - Consenting again with the same client at the same address replaces the connection, as today.
+    Allow deletes it with its tokens and inserts another, in one mutation under the member's lock,
+    since `AgentConnection` is unique on its account, its client and its address's name.
+  - So a code presented again, a refresh token rotated or a revocation that read its credential
+    before a consent acts on nothing after it: the connection it would join or revoke is gone, and
+    its tokens with it. An update in place would keep the id reachable from every earlier
+    credential, so the id changes with each consent, and the idempotency scope does not depend on
+    it (below).
+  - `ApproveOAuthAuthorizationRequest` holds the scopes granted to the request's today
+    (`includesAll`). The backend now splits the scopes chosen into those the request asked for and
+    those only the connection held, and the mutation checks the first against the request and the
+    second against the connection, before it deletes the connection. `GetAgentConnectionForConsent`
+    answers the connection's scopes, for the page and for that split.
+- **The idempotency scope outlives a consent.** The verifier builds an external agent's scope as
+  `agent:` and the base64url SHA-256 of the member's account, the client's id and the address's
+  name, rather than `connection:<id>`, which every consent changes. This holds at every address,
+  the per-module ones included, where the same gap is open today.
+  - The rate limit, keyed on the scope, outlives a consent with it.
+  - A document revision an external agent's edit keeps carries the new scope. The web reads it as an
+    external agent's, as `readDocumentRevisionSource` reads any scope that is not a conversation's.
+  - Rows kept under a `connection:<id>` scope expire within a day, as they do now.
 - **The daily sweep keeps the one address's connections.** `pruneUnservedAgentConnections` passes
   the served modules' names today, so it would delete a connection to the one address once neither
   made nor used for a week. From M2 it takes the served addresses' names, `strategydance` and each
@@ -294,9 +292,9 @@ times.
 - **Read this document first**, and conversations.md § Modules for what every module keeps.
 - **The tools Strategy Dance's agent sends never change.** `buildConversationTools.test.ts` stays as
   it is, and `bun run probe:claude` runs once M1 lands, as for any change to the modules.
-- **No migration.** Operations change, not columns: M2 changes `ApproveOAuthAuthorizationRequest`,
-  `RevokeAgentConnection` and `GetAgentConnectionForConsent`, M3 adds `UpdateAgentConnectionScopes`,
-  and the schema's comments follow.
+- **No migration.** Operations change, not columns: M2 changes `ApproveOAuthAuthorizationRequest`
+  and `GetAgentConnectionForConsent`, M3 adds `UpdateAgentConnectionScopes`, and the schema's
+  comments follow.
 - **Messages.** `bun run translate` runs whenever a message changes, in the same commit, and no
   message holds an em dash.
 - **Every milestone ends with the four checks green.** Its **To verify** list is what its session runs
@@ -327,7 +325,7 @@ changes: each per-module address serves its module through the server built with
 ### M2: One OAuth resource at `/mcp`
 
 The OAuth resource above: the endpoint, its metadata, resource and scope parsing, the challenge, the
-consent page, Allow, the revocations and the sweep.
+consent page, Allow, the idempotency scope and the sweep.
 
 **Tests:**
 - `parseModuleScopes` for the one address: two modules read, one read and write, write without read
@@ -337,12 +335,11 @@ consent page, Allow, the revocations and the sweep.
 - The challenge naming the connection's scopes with the write.
 - The consent page: a module left unallowed, Allow off with none allowed, a connection replaced
   keeping its choices as defaults, and a request for one module listing the others it holds.
-- Allow: consenting again keeps the connection's id, deletes its tokens and leaves an earlier code
-  opening nothing; a scope neither asked for nor held refused; a write retried under its key after
-  a consent answered from its stored result.
-- The revocations, on the OAuth fake: a reused code, a replayed refresh token and a client's
-  revocation, each read before an Allow and deleting after it, leaving the new connection, and
-  each deleting the connection when no Allow came between.
+- Allow: consenting again replaces the connection with its tokens, leaving an earlier code and an
+  earlier refresh token opening nothing; a scope neither asked for nor held refused.
+- The idempotency scope: the same before and after a consent of one client at one address,
+  different for another client, another address or another member, and a write retried under its
+  key after a consent answered from its stored result.
 - The sweep keeping an idle connection to the one address, and deleting one to a module served at
   no address.
 

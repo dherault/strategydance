@@ -5,7 +5,7 @@ A package with conventions of its own keeps them in its own `CLAUDE.md`, which C
 when it works there: the backend, the database, the web, the design system and the emails.
 
 **Every change to a tracked file ships without asking**: on its own branch, committed granularly,
-pushed, opened as a pull request into `dev` and taken through the CodeRabbit review loop, until all
+pushed, opened as a pull request into `dev` and taken through the Copilot review loop, until all
 that is left for a human is the merge. [Workflow](#workflow) says how.
 
 ## Vision
@@ -130,7 +130,7 @@ through the `strategydance-tasks` MCP server, which acts as the person in produc
 ## Workflow
 
 **This is the person's standing request in every session.** A task that changes a tracked file,
-however small, goes branch → granular commits → push → pull request into `dev` → CodeRabbit review
+however small, goes branch → granular commits → push → pull request into `dev` → Copilot review
 loop → handed to a human, in one go. Never ask whether to commit, push, open the pull request or
 address the review: the answer is yes, and a turn that ends on such a question has failed. Work is
 done when its pull request is green, reviewed and waiting for a human.
@@ -142,7 +142,7 @@ scripts. A turn ends with the pull request handed over, or blocked on what only 
 supply: a credential, a product decision, a check failing for a reason outside the change.
 
 This section reads the same in sunshine and strategydance but for each repository's commands, and
-`scripts/codeRabbitReview.sh` and `scripts/ship.sh` are the same file in both: an improvement to one
+`scripts/copilotReview.sh` and `scripts/ship.sh` are the same file in both: an improvement to one
 goes to the other.
 
 ### Where to work
@@ -256,30 +256,38 @@ EOF
 ```
 
 `--base dev` is required, since the default branch is `main`, and a pull request is never a draft,
-which CodeRabbit skips. The person may merge at any moment, so every push and description edit goes
-behind `bun run review open <number> &&`, which fails unless the pull request is open. On `MERGED`,
-open a new pull request for what `git log origin/dev..HEAD` lists; on `CLOSED`, stop and ask.
+which the `dev` ruleset has Copilot skip. The person may merge at any moment, so every push and
+description edit goes behind `bun run review open <number> &&`, which fails unless the pull request
+is open. On `MERGED`, open a new pull request for what `git log origin/dev..HEAD` lists; on
+`CLOSED`, stop and ask.
 
-### CodeRabbit review loop
+### Copilot review loop
 
-CodeRabbit reviews each push to a pull request into `dev`, writing its progress into the head
-commit's `CodeRabbit` status. `bun run review` (`scripts/codeRabbitReview.sh`) holds the loop's
-GitHub calls, since a worktree session refuses `gh` inside `$(…)` or a loop.
+The `dev` ruleset asks Copilot for a review when a pull request opens and at each push, at the
+Balanced effort the repository's Copilot settings name. `bun run review`
+(`scripts/copilotReview.sh`) holds the loop's GitHub calls, since a worktree session refuses `gh`
+inside `$(…)` or a loop.
 
-1. Run `bun run review wait <number>` in the foreground, in the same turn. It returns once the
-   pushed head is reviewed, asking CodeRabbit when it waits to be asked, and exits 75 after nine
-   minutes: run it again until it returns. Never ask by hand, since the account has ten reviews an
-   hour, sunshine's and strategydance's together. A clean round leaves no review at all
+1. Run `bun run review wait <number> <baseline>` in the foreground, in the same turn. It returns
+   once Copilot's reviews outnumber the baseline, and exits 75 after nine minutes: run it again
+   until it returns. The baseline is 0 for a pull request just opened, and otherwise the
+   `bun run review count <number>` read before the push: never after it, nor after `gh pr create`,
+   since the round may already be counted and the wait would hold out for one that never comes.
+   Never request a review by hand, which only adds a second one of the same push. A review's
+   overview names its effort: say so when it is not Balanced, since the author's own Copilot
+   setting outranks the repository's
 2. Wait for CI (`gh pr checks <number> --watch`) and fix what fails
-3. Answer every finding, with a fix or a reply saying why it does not apply, checking its *Prompt
-   for AI Agents* against the code first. Reply on each thread, then resolve it, never the other way:
-   `bun run review threads <number>`, `bun run review reply <thread id> -` with the reply on stdin,
-   `bun run review resolve <thread id>`. Read the review's body too (`bun run review body
-   <number>`): answer its *Outside diff range* and *Duplicate* comments in one `gh pr comment`, and
-   fix a nitpick that is right
-4. Commit the fixes granularly, then push them as one batch behind the open check, once the round
-   is answered: a push while a review runs spends it on a head about to be replaced
-5. Repeat from step 1 until a round brings nothing but nitpicks or praise
+3. Answer every finding, with a fix or a reply saying why it does not apply. Reply on each thread,
+   then resolve it, never the other way: `bun run review threads <number>`,
+   `bun run review reply <thread id> -` with the reply on stdin,
+   `bun run review resolve <thread id>`. Read the review's body too
+   (`bun run review body <number>`): answer its *Previously missed* findings, against lines the
+   round's diff did not touch, in one `gh pr comment`
+4. Commit the fixes granularly, then, once the round is answered, read the count and push them as
+   one batch behind the open check: a push while a review runs draws findings against a head about
+   to be replaced
+5. Repeat from step 1, with that count as the baseline, until a round brings nothing but nitpicks
+   or praise
 
 ### Hand the pull request to a human
 

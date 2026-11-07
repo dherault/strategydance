@@ -65,7 +65,15 @@ Proposed on 2026-11-07, for David to settle in review:
   - A connection lists the tools of each module it holds the read scope of, and none of a module it
     does not: a member who left Budget out finds no bill tool in their agent.
   - The write tools of a module held read only stay listed and challenged, as today.
-  - Adding a module is consenting again, which replaces the connection.
+  - Adding a module is consenting again.
+- **Consenting again keeps what the connection held.** The consent page lists each module the
+  connection it replaces holds beside those the client asks for, held as they were, so a client
+  that asks for Tasks alone keeps Documents unless the member unticks it. The token's answer names
+  every scope granted, as OAuth asks when they differ from those asked for (RFC 6749, 3.3).
+- **A connection keeps its id through a consent.** Allow updates the connection it replaces in
+  place, rather than deleting it and inserting another, so its idempotency scope,
+  `connection:<id>`, outlives the consent. A write whose answer was lost while the member consented
+  again is then found under its key, rather than applied twice.
 - **One connection per client.** `AgentConnection.module` holds the address's name, `strategydance`
   for the one address. A connection there is a row beside the per-module ones, with no change to the
   schema and nothing for a release to stop on.
@@ -160,16 +168,23 @@ A per-module address says what it says today.
   exactly the challenge's scopes then keeps every module it held, and names each write with its
   read, which `parseModuleScopes` asks for. `requireModuleWriteScope` writes it as a
   `ScopeChallengeHandler` of its own.
-- **The consent page** lists each module the request asks for, with its access: not allowed, read,
-  or read and write when write was asked for.
+- **The consent page** lists each module the request asks for, and each the connection it replaces
+  holds, with its access: not allowed, read, or read and write when write was asked for or is held.
   - It is worded by the module from the `module` catalogue, as `OAuthConsentAccess` words one now.
-  - To begin with, a module is chosen as the connection it replaces holds it, otherwise read and
-    write when asked, read when not.
+  - To begin with, a module is chosen as the connection it replaces holds it, or with what was
+    asked for when that is more; a module only asked for, read and write when asked, read when not.
   - The organizations are ticked once for every module, as today.
   - Allow stays off while no module is allowed.
-- **Allow** takes the scopes chosen, checked against the rule above and against what was asked.
-  Consenting again with the same client at the same address replaces the connection, as today, since
-  `AgentConnection` is unique on its account, its client and its address's name.
+- **Allow** takes the scopes chosen, checked against the rule above, each asked for or held by the
+  connection it replaces: a consent never grants what neither the agent asked for nor the member
+  granted before.
+  - Consenting again with the same client at the same address replaces the connection, since
+    `AgentConnection` is unique on its account, its client and its address's name.
+  - It replaces it in place, at every address, the per-module ones included, where the same gap
+    is open today. The connection keeps its id and takes the organizations, scopes and `grantedAt`
+    chosen now, its tokens are deleted, and every earlier request's reference to it is cleared, so
+    a code issued before opens nothing, as a deleted connection's does now. Two consents at once
+    still leave one connection and one family of tokens, under the member's lock.
 - **Tokens** are bound to the one address as their resource, under the same verifier. A token issued
   for `/mcp/tasks` never opens `/mcp`, nor one for `/mcp` a module's address. At every call the
   verifier narrows a token's scopes to its connection's, as it does now.
@@ -189,7 +204,7 @@ A per-module address says what it says today.
 - **Access** is a button beside Organizations on a row of the one address. It opens a dialog that
   narrows what the connection may do in each module, through `UpdateAgentConnectionScopes`, from its
   next call, since the verifier reads the connection's scopes.
-  - It never widens them, since a consent never grants more than the agent asked for: a member who
+  - It never widens them, since only a consent grants, through the agent's own request: a member who
     wants more consents again through the agent.
   - At least one module stays read.
 - **"Use with your agents"**, on Documents, Tasks and Budget, gives the one address, with the same
@@ -299,7 +314,10 @@ consent page and Allow.
 - The verifier refusing a token for `/mcp/tasks` at `/mcp`, and the reverse.
 - The challenge naming the connection's scopes with the write.
 - The consent page: a module left unallowed, Allow off with none allowed, a connection replaced
-  keeping its choices as defaults.
+  keeping its choices as defaults, and a request for one module listing the others it holds.
+- Allow: consenting again keeps the connection's id, deletes its tokens and leaves an earlier code
+  opening nothing; a scope neither asked for nor held refused; a write retried under its key after
+  a consent answered from its stored result.
 
 **To verify, once implemented:**
 - `bun run check:oauth` against `http://localhost:3003/mcp`, as How it works lists.

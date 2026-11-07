@@ -12,8 +12,8 @@
     "translate:messages": "bun scripts/translateIntlMessages.ts"
   },
   "dependencies": {
-    "@google/genai": "^2.29.1",
-    "dotenv": "^18.0.7",
+    "@google/genai": "^2.32.0",
+    "dotenv": "^18.0.9",
     "strategydance-core": "workspace:*",
     "zod": "^4.6.7"
   },

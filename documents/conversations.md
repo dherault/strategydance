@@ -1515,7 +1515,8 @@ member.
 - **One server per module**, at its own address, `https://api.strategydance.com/mcp/documents` and
   `https://api.strategydance.com/mcp/tasks` for these two. Each is its own OAuth resource, so a
   member connects modules one by one, and a module that touches money later asks for its own
-  consent.
+  consent. [modules-address.md](modules-address.md) plans one address for every module, whose
+  milestones rewrite this section as they land.
 - **Tool names** are snake_case, letters, digits and underscores, which Claude's tool names allow
   (`^[a-zA-Z0-9_-]{1,128}$`: no dot, though MCP allows one), and unique across modules and the
   agent's built-in tools (`web_search`, `ask_user` and the integration tools), since Strategy Dance's

@@ -185,6 +185,27 @@ A per-module address says what it says today.
     chosen now, its tokens are deleted, and every earlier request's reference to it is cleared, so
     a code issued before opens nothing, as a deleted connection's does now. Two consents at once
     still leave one connection and one family of tokens, under the member's lock.
+  - `ApproveOAuthAuthorizationRequest` changes with it. It updates the connection it replaces,
+    keeping the id, or inserts one when there is none, rather than deleting and inserting. Today it
+    holds the scopes granted to the request's (`includesAll`): the backend now splits the scopes
+    chosen into those the request asked for and those only the connection held, and the mutation
+    checks each against its own row. `GetAgentConnectionForConsent` answers the connection's id and
+    scopes, for the page and for that split.
+- **Revocations stay with their credential.** `RevokeAgentConnection` deletes a connection by its
+  id alone, for a code presented again (`exchangeOAuthAuthorizationCode`), a spent refresh token
+  replayed (`refreshAgentConnectionTokens`) and a refresh token its client revokes
+  (`revokeAgentConnectionToken`). With an id that outlives a consent, one that read its credential
+  before an Allow and deleted after would delete the connection the member just consented to.
+  - Each passes the `grantedAt` it read with the credential, which every Allow moves, and deletes
+    on the id and that `grantedAt`. The condition is on the connection's own row, which Postgres
+    checks again on the version that an Allow committing meanwhile wrote.
+  - One that deletes nothing reads its credential again. It stops when the credential is gone,
+    since an Allow deleted it, and otherwise deletes again on the `grantedAt` it reads now, which an
+    edit of the organizations on Connected agents moves too.
+- **The daily sweep keeps the one address's connections.** `pruneUnservedAgentConnections` passes
+  the served modules' names today, so it would delete a connection to the one address once neither
+  made nor used for a week. From M2 it takes the served addresses' names, `strategydance` and each
+  per-module address's.
 - **Tokens** are bound to the one address as their resource, under the same verifier. A token issued
   for `/mcp/tasks` never opens `/mcp`, nor one for `/mcp` a module's address. At every call the
   verifier narrows a token's scopes to its connection's, as it does now.
@@ -221,10 +242,9 @@ A per-module address says what it says today.
 When David chooses, a release takes the per-module addresses out of `MODULE_ADDRESSES`:
 - Their endpoints and metadata answer 404, and their tokens are refused at the next call, as for an
   address no module has.
-- `pruneUnservedAgentConnections` takes the served addresses' names rather than the served modules',
-  so their rows go a week after their last use, as a retired module's do. Through the transition its
-  list holds every served address's name, `strategydance` among them, so no connection to the one
-  address is swept.
+- Their names leave the served addresses' names that `pruneUnservedAgentConnections` takes from M2,
+  so their rows go a week after their last use, as a retired module's do, while `strategydance`
+  stays.
 - The paths stay reserved, never reused, so no token issued for one can ever open anything else, as
   knowledge.md asks of `/mcp/knowledge`.
 
@@ -261,7 +281,7 @@ times.
 | # | Milestone | Packages | Depends on | Implementation PR |
 | --- | --- | --- | --- | --- |
 | M1 | One server, any modules | core, backend | | |
-| M2 | One OAuth resource at `/mcp` | backend, web | M1 | |
+| M2 | One OAuth resource at `/mcp` | database, backend, web | M1 | |
 | M3 | Connected agents and the module pages | database, backend, web, root | M2 | |
 
 ### Conventions for every milestone
@@ -274,7 +294,9 @@ times.
 - **Read this document first**, and conversations.md § Modules for what every module keeps.
 - **The tools Strategy Dance's agent sends never change.** `buildConversationTools.test.ts` stays as
   it is, and `bun run probe:claude` runs once M1 lands, as for any change to the modules.
-- **No migration.** The schema's comments change, and M3 adds an operation, not a column.
+- **No migration.** Operations change, not columns: M2 changes `ApproveOAuthAuthorizationRequest`,
+  `RevokeAgentConnection` and `GetAgentConnectionForConsent`, M3 adds `UpdateAgentConnectionScopes`,
+  and the schema's comments follow.
 - **Messages.** `bun run translate` runs whenever a message changes, in the same commit, and no
   message holds an em dash.
 - **Every milestone ends with the four checks green.** Its **To verify** list is what its session runs
@@ -305,7 +327,7 @@ changes: each per-module address serves its module through the server built with
 ### M2: One OAuth resource at `/mcp`
 
 The OAuth resource above: the endpoint, its metadata, resource and scope parsing, the challenge, the
-consent page and Allow.
+consent page, Allow, the revocations and the sweep.
 
 **Tests:**
 - `parseModuleScopes` for the one address: two modules read, one read and write, write without read
@@ -318,6 +340,11 @@ consent page and Allow.
 - Allow: consenting again keeps the connection's id, deletes its tokens and leaves an earlier code
   opening nothing; a scope neither asked for nor held refused; a write retried under its key after
   a consent answered from its stored result.
+- The revocations, on the OAuth fake: a reused code, a replayed refresh token and a client's
+  revocation, each read before an Allow and deleting after it, leaving the new connection, and
+  each deleting the connection when no Allow came between.
+- The sweep keeping an idle connection to the one address, and deleting one to a module served at
+  no address.
 
 **To verify, once implemented:**
 - `bun run check:oauth` against `http://localhost:3003/mcp`, as How it works lists.

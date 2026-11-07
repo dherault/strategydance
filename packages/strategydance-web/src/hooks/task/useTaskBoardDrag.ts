@@ -1,5 +1,5 @@
 import { type DragEvent, useState } from 'react'
-import type { TaskStatus } from 'strategydance-database/web'
+import { TaskStatus } from 'strategydance-database/web'
 
 import type { Task } from '~types'
 
@@ -25,6 +25,9 @@ type Options = {
   to draw the line where the card would land. Dropping calls `onMove` once. A card dragged out of
   the board, or let go where it already sits among the cards its column shows, moves nothing, so a
   drop that changes nothing in sight never moves it past cards the filters hide.
+
+  Done shows the last done on top, which nobody reorders: it takes no card of its own, and a card
+  from another column lands on top, wherever the pointer is.
 
   The keyboard moves a card through its dialog's status instead, which says where it went
 */
@@ -57,15 +60,22 @@ function useTaskBoardDrag({ onMove }: Options) {
       onDragOver: (event: DragEvent<HTMLElement>) => {
         if (draggedId === null) return
 
+        const cards = [...event.currentTarget.querySelectorAll<HTMLElement>('[data-task-id]')]
+        const isDone = status === TaskStatus.DONE
+
+        // A card of Done over Done: its default kept, so the pointer says it cannot drop there
+        if (isDone && cards.some(card => card.dataset.taskId === draggedId)) return
+
         event.preventDefault()
         event.dataTransfer.dropEffect = 'move'
 
-        const cards = [...event.currentTarget.querySelectorAll<HTMLElement>('[data-task-id]')]
-        const before = cards.find(card => {
-          const rect = card.getBoundingClientRect()
+        const before = isDone
+          ? cards[0]
+          : cards.find(card => {
+              const rect = card.getBoundingClientRect()
 
-          return event.clientY < rect.top + rect.height / 2
-        })
+              return event.clientY < rect.top + rect.height / 2
+            })
         const beforeId = before?.dataset.taskId ?? null
 
         if (dropTarget?.status !== status || dropTarget.beforeId !== beforeId) setDropTarget({ status, beforeId })

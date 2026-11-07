@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { TasksToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import addTaskDependency from '~domain/tasks/addTaskDependency'
 
@@ -27,8 +26,8 @@ const outputSchema = z.object({
 })
 
 // `add_task_dependency`: a task waits on another
-function registerAddTaskDependency(server: McpServer, context: TasksToolContext) {
-  server.registerTool(
+function registerAddTaskDependency(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Link tasks',
@@ -39,7 +38,7 @@ function registerAddTaskDependency(server: McpServer, context: TasksToolContext)
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(tasksModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readTasksWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

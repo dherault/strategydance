@@ -62,7 +62,7 @@ export type FakeOperation = (variables: AnyVariables) => unknown
 
 function createModuleDatabaseFakeBase() {
   const memberships = new Map<string, FakeMembership>()
-  const organizations = new Map<string, { slug: string | null }>()
+  const organizations = new Map<string, { slug: string | null; name: string }>()
   const results = new Map<string, FakeModuleCallResult>()
   // The searches counted against each member's allowance, as `ConversationSearch` rows
   const searches: { userId: string; organizationId: string; createdAt: string }[] = []
@@ -117,11 +117,12 @@ function createModuleDatabaseFakeBase() {
     organizationId: string,
     {
       slug = null,
+      name = 'Checked organization',
       displayName = null,
       createdAt = stamp(),
-    }: { slug?: string | null; displayName?: string | null; createdAt?: string } = {},
+    }: { slug?: string | null; name?: string; displayName?: string | null; createdAt?: string } = {},
   ) {
-    if (!organizations.has(id(organizationId))) organizations.set(id(organizationId), { slug })
+    if (!organizations.has(id(organizationId))) organizations.set(id(organizationId), { slug, name })
 
     memberships.set(membershipKey(userId, organizationId), { createdAt, displayName })
 
@@ -250,12 +251,6 @@ function createModuleDatabaseFakeBase() {
   }
 
   addOperations({
-    GetOrganizationForAgent: variables => {
-      const organization = organizations.get(id(variables.organizationId))
-
-      return { organization: organization ? { id: id(variables.organizationId), slug: organization.slug } : null }
-    },
-
     GetModuleCallResult: variables => {
       const stored = results.get(resultKey(variables.idempotencyScope, variables.idempotencyKey))
 

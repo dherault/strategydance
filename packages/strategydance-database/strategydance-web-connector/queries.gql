@@ -2936,25 +2936,26 @@ query GetConversationBriefAttachments($organizationId: UUID!, $conversationId: U
   }
 }
 
-# The external agents the caller connected, across every organization they are in, newest first, as
-# the account page's Connected agents tab lists them: each one's client, organization, module, access
-# and when it connected and was last used. Keyed by the uid off the token, so nobody reads another
-# member's. A connection exists only while its membership does, so the organization is always one the
-# caller is in.
+# The external agents the caller connected, newest first, as the account page's Connected agents tab
+# lists them: each one's client, module, access, the organizations it lists and when they were
+# granted, and when it connected and was last used, with the caller's memberships, so the tab shows
+# the organizations each one reaches, as strategydance-core's `readAgentConnectionReach` reads them.
+# Keyed by the uid off the token, so nobody reads another member's.
 #
 # Read up to 100, as many as anybody may connect (`MAX_AGENT_CONNECTIONS` in strategydance-core), so
 # the list is never cut short: Allow counts them under a lock on the member's own row, so their
-# consents in every organization take turns.
+# consents take turns. The memberships are read up to 100 too, in the order the organization
+# switcher lists them.
 #
-# A live query, refreshed by what adds or removes a connection of the caller's: Allow on the consent
-# page, which the backend runs through the Admin SDK with the verified `$userId`, Disconnect, and the
-# caller's removal from an organization, whose `$userId` is the member removed. Deleting an
-# organization names only the administrator deleting it, while every member's connections there go
-# with it, so it refreshes every reader, a rare enough event. Never the write of `lastUsedAt`, which
-# an agent's call makes as often as once a minute, nor a revocation or a reused code, which the
-# backend's protocol endpoints make knowing no `$userId`, nor the daily sweep's prune of the
-# connections to a module no endpoint serves, which deletes nothing most days: the tab reads them on
-# its next read
+# A live query, refreshed by what adds or removes a connection of the caller's, or changes what one
+# reaches: Allow on the consent page, which the backend runs through the Admin SDK with the verified
+# `$userId`, Disconnect, an edit of a connection's organizations, and the caller's removal from an
+# organization, whose `$userId` is the member removed. Deleting an organization names only the
+# administrator deleting it, while every member's connections there reach it no more, so it
+# refreshes every reader, a rare enough event. Never the write of `lastUsedAt`, which an agent's call
+# makes as often as once a minute, nor a revocation or a reused code, which the backend's protocol
+# endpoints make knowing no `$userId`, nor the daily sweep's prune of the connections to a module no
+# endpoint serves, which deletes nothing most days: the tab reads them on its next read
 query GetAgentConnections
 @auth(level: USER)
 @refresh(
@@ -2968,28 +2969,42 @@ query GetAgentConnections
 )
 @refresh(
   onMutationExecuted: {
+    operation: "UpdateAgentConnectionOrganizations"
+    condition: "mutation.variables.userId == request.auth.uid"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.userId == request.auth.uid"
   }
 )
 @refresh(onMutationExecuted: { operation: "DeleteOrganization" }) {
-  agentConnections(where: { membershipUserId: { eq_expr: "auth.uid" } }, orderBy: [{ createdAt: DESC }], limit: 100) {
+  agentConnections(where: { userId: { eq_expr: "auth.uid" } }, orderBy: [{ createdAt: DESC }], limit: 100) {
     id
     clientId
     clientName
     module
     scopes
+    organizationIds
+    grantedAt
     createdAt
     lastUsedAt
-    membership {
-      organization {
-        id
-        slug
-        name
-        logoUrl
-        logoThumbnailUrl
-        color
-      }
+  }
+  memberships: userOrganizations(
+    where: { userId: { eq_expr: "auth.uid" } }
+    orderBy: [{ createdAt: ASC }, { organizationId: ASC }]
+    limit: 100
+  ) {
+    organizationId
+    createdAt
+    organization {
+      id
+      slug
+      name
+      logoUrl
+      logoThumbnailUrl
+      color
     }
   }
 }

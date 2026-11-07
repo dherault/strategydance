@@ -90,7 +90,7 @@ describe('the caller', () => {
     expect(fake.tasks.get(task.id)!.name).toBe('Plan')
   })
 
-  it('gives an external caller the web address of each task, by the slug of its organization or its id, and the agent none', async () => {
+  it('gives an external caller the web address of each task, by the segment its access names the organization by, and the agent none', async () => {
     const agent = await board.connect()
     const task = board.add({ name: 'Pricing' })
 
@@ -102,9 +102,9 @@ describe('the caller', () => {
 
     expect(listed.tasks[0]!.url).toBe(`http://localhost:5173/${ORGANIZATION_ID}/tasks/${task.id}`)
 
-    fake.organizations.get(ORGANIZATION_ID)!.slug = 'strategy-dance-ad34'
-
-    const withSlug = await board.connect({ kind: 'external', idempotencyScope: 'connection:checked' })
+    const withSlug = await board.connect({ kind: 'external', idempotencyScope: 'connection:checked' }, 'member', {
+      segment: 'strategy-dance-ad34',
+    })
     const reading = await withSlug.answer<{ url: string }>('read_task', { id: task.id })
     const created = await withSlug.answer<{ url: string }>('create_task', { name: 'New', status: 'TODO' })
 

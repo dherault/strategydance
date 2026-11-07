@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { DocumentsToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import deleteDocument from '~domain/documents/deleteDocument'
 
@@ -22,8 +21,8 @@ const outputSchema = z.object({
 })
 
 // `delete_document`: a document deleted as its page's Delete does, restorable for a day
-function registerDeleteDocument(server: McpServer, context: DocumentsToolContext) {
-  server.registerTool(
+function registerDeleteDocument(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Delete a document',
@@ -34,7 +33,7 @@ function registerDeleteDocument(server: McpServer, context: DocumentsToolContext
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(documentsModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readDocumentsWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

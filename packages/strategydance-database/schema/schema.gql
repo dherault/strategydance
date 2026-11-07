@@ -149,8 +149,8 @@ type Organization @table {
 type UserOrganization @table(key: ["user", "organization"]) {
   # Cascade deleting, as is `organization`. Each reference's column is named here, as Data Connect
   # would name it anyway, since a table cannot reference a key made of references: naming them is
-  # what lets `AgentConnection`, `IntegrationConnection` and `IntegrationAuthorization` reference the
-  # membership by the two. `userId` is a String because `User.id` is a Firebase uid
+  # what lets `IntegrationConnection`, `IntegrationAuthorization` and `KnowledgeMemberLink` reference
+  # the membership by the two. `userId` is a String because `User.id` is a Firebase uid
   user: User! @ref(fields: "userId")
   userId: String!
   organization: Organization! @ref(fields: "organizationId")
@@ -1167,30 +1167,32 @@ type OAuthClient @table @index(fields: ["createdAt"]) {
   lastUsedAt: Timestamp
 }
 
-# An external agent a member allowed to act as them on one module in one organization, read only or
-# read and write, until they disconnect it, consent again, or stop being that member.
+# An external agent a member allowed to act as them on one module in some of their organizations,
+# read only or read and write, until they disconnect it, consent again, or leave every one of them.
 #
-# It references the membership rather than the account and the organization apart, as a member's
-# accounts at the organization's MCP servers do (`IntegrationConnection`): a connection belongs to
-# the membership, so removing the member, or deleting the organization, deletes it with its tokens,
-# and a member invited back connects again rather than finding an agent still acting as them.
+# It references the account, so deleting the account deletes it with its tokens, and lists the
+# organizations it reaches rather than reference their memberships, since a consent writes it in one
+# row: nothing batch inserts, so a row per membership would make Allow several mutations. The reach
+# stands in for the references, and every reader goes through strategydance-core's
+# `readAgentConnectionReach`: an organization listed is reached while the member's membership there
+# was created at or before `grantedAt`, so one the member left, or that was deleted, is reached no
+# more, and a member invited back finds the agent acting as them there only once they tick it
+# again. Every write of the list locks and counts each membership it names, so it never lists one
+# the member was not in.
 #
-# Unique on its membership, its client and its module, so consenting again replaces the connection
-# rather than adding one: Allow locks the membership, deletes the earlier connection with its tokens
-# and inserts the new one in one mutation
-type AgentConnection @table @unique(fields: ["membership", "clientId", "module"]) {
+# Unique on its account, its client and its module, so consenting again replaces the connection
+# rather than adding one: Allow locks the member's own row, deletes the earlier connection with its
+# tokens and inserts the new one in one mutation
+type AgentConnection @table @unique(fields: ["user", "clientId", "module"]) {
   id: UUID! @default(expr: "uuidV4()")
-  # Cascade deleting. Its columns are named here, as the membership's are, since Data Connect
-  # cannot reference a key made of references, and its constraint is named short of Postgres' 63
-  # bytes
-  membership: UserOrganization!
-    @ref(
-      fields: ["membershipUserId", "membershipOrganizationId"]
-      references: ["userId", "organizationId"]
-      constraintName: "agent_connection_membership_fkey"
-    )
-  membershipUserId: String!
-  membershipOrganizationId: UUID!
+  # Cascade deleting. Implies a `userId: String!` column
+  user: User!
+  # The organizations it reaches, 1 to 20 (`MAX_AGENT_CONNECTION_ORGANIZATIONS` in
+  # strategydance-core), canonical, each one the member was in when the list was written
+  organizationIds: [UUID!]!
+  # When the list was last written, by Allow or by an edit on the Connected agents tab: an
+  # organization listed is reached while the member's membership there is no newer
+  grantedAt: Timestamp!
   # The client's `client_id` as it presented it: a registered client's id, or the address of its
   # client ID metadata document
   clientId: String!
@@ -1201,7 +1203,8 @@ type AgentConnection @table @unique(fields: ["membership", "clientId", "module"]
   clientName: String
   # The module's name, one of `MODULES` in strategydance-core
   module: String!
-  # The scopes granted: the module's read scope, alone or with its write scope
+  # The scopes granted, in every organization it reaches: the module's read scope, alone or with its
+  # write scope
   scopes: [String!]!
   createdAt: Timestamp! @default(expr: "request.time")
   # When an agent last called the module through it, written at most once a minute
@@ -1425,8 +1428,8 @@ enum IntegrationConnectionStatus {
 # acts as when it calls the server for them (M29): one per member and server, made when the member's
 # page finishes a Connect, and replaced by the next.
 #
-# It references the membership, as `AgentConnection` does: removing the member, or deleting the
-# organization, deletes it with its tokens. A deleted server's goes once the server is pruned, and a
+# It references the membership: removing the member, or deleting the organization, deletes it with
+# its tokens. A deleted server's goes once the server is pruned, and a
 # change of the server's address, authentication or issuer deletes it in the very mutation that makes
 # the change (`ReconfigureOrganizationIntegration`, `ChangeOrganizationIntegrationIssuer`), so no
 # token reaches a server it was not given for.
@@ -1438,7 +1441,7 @@ type IntegrationConnection @table @unique(fields: ["integration", "membership"])
   id: UUID! @default(expr: "uuidV4()")
   # Implies an `integrationId: UUID!` column, cascade deleting
   integration: OrganizationIntegration!
-  # Cascade deleting. Its columns are named here, as `AgentConnection`'s are, and its constraint is
+  # Cascade deleting. Its columns are named here, as the membership's are, and its constraint is
   # named short of Postgres' 63 bytes
   membership: UserOrganization!
     @ref(
@@ -1808,7 +1811,7 @@ type KnowledgeMemberLink @table(key: ["organization", "kind", "itemId", "members
   organization: Organization!
   kind: KnowledgeKind!
   itemId: String!
-  # Cascade deleting. Its columns are named here, as `AgentConnection`'s are, since Data Connect
+  # Cascade deleting. Its columns are named here, as the membership's are, since Data Connect
   # cannot reference a key made of references, and its constraint is named short of Postgres' 63
   # bytes. `membershipOrganizationId` is always `organizationId`
   membership: UserOrganization!

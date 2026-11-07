@@ -76,6 +76,9 @@ const TASKS_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/
 const BUDGET = `${ISSUER}/mcp/budget`
 const BUDGET_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/budget`
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
+const OTHER_ORGANIZATION_ID = '1a2b3c4d5e6f47089a0b1c2d3e4f5a6b'
+// What every call of an external agent names: the organization it acts in, among those it reaches
+const IN_ORGANIZATION = { organization: ORGANIZATION_ID }
 const MEMBER = 'member'
 const REDIRECT_URI = 'https://client.example.com/callback'
 const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'
@@ -115,7 +118,8 @@ function encode(parameters: Record<string, string>) {
 async function connect({
   scopes = ['documents:read', 'documents:write'],
   resource = DOCUMENTS,
-}: { scopes?: string[]; resource?: string } = {}) {
+  organizationIds = [ORGANIZATION_ID],
+}: { scopes?: string[]; resource?: string; organizationIds?: string[] } = {}) {
   const { data } = await (
     fake.sdk.createOAuthAuthorizationRequest as (
       ...args: unknown[]
@@ -135,7 +139,7 @@ async function connect({
   const approved = await fetch(`${origin}/oauth/requests/${data.oAuthAuthorizationRequest_insert.id}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: ORGANIZATION_ID, scopes }),
+    body: JSON.stringify({ organizationIds, scopes }),
   })
   const { data: decision } = (await approved.json()) as { data: { redirectUrl: string } }
   const exchanged = await fetch(`${origin}/oauth/token`, {
@@ -263,16 +267,62 @@ describe('the Documents module for external agents', () => {
 
     const created = await client.callTool({
       name: 'create_document',
-      arguments: { title: 'Launch plan', aspects: ['MARKETING'], content: 'We launch in spring.' },
+      arguments: { ...IN_ORGANIZATION, title: 'Launch plan', aspects: ['MARKETING'], content: 'We launch in spring.' },
     })
 
     expect(created.isError).toBeFalsy()
     expect(created.structuredContent).toMatchObject({ title: 'Launch plan' })
     expect((created.structuredContent as { url: string }).url).toStartWith(`http://localhost:5173/${ORGANIZATION_ID}/`)
 
-    const found = await client.callTool({ name: 'search_documents', arguments: { query: 'launch' } })
+    const found = await client.callTool({
+      name: 'search_documents',
+      arguments: { ...IN_ORGANIZATION, query: 'launch' },
+    })
 
     expect((found.structuredContent as { documents: unknown[] }).documents).toHaveLength(1)
+
+    await client.close()
+  })
+
+  test('serves one token in each organization its connection reaches, each call in the one it names', async () => {
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID, { slug: 'beta-k3j4', name: 'Beta' })
+
+    const client = await open(
+      (await connect({ organizationIds: [ORGANIZATION_ID, OTHER_ORGANIZATION_ID] })).access_token,
+    )
+    const [createDocument] = (await client.listTools()).tools.filter(({ name }) => name === 'create_document')
+
+    expect(createDocument!.inputSchema.required).toContain('organization')
+    expect(client.getInstructions()).toContain(`"beta-k3j4" ("Beta")`)
+
+    for (const [organization, title] of [
+      [ORGANIZATION_ID, 'In the first'],
+      ['beta-k3j4', 'In the second'],
+    ] as const) {
+      const created = await client.callTool({
+        name: 'create_document',
+        arguments: { organization, title, aspects: [], content: `${title} organization.` },
+      })
+
+      expect((created.structuredContent as { url: string }).url).toStartWith(`http://localhost:5173/${organization}/`)
+    }
+
+    const listed = async (organization: string) =>
+      (
+        (await client.callTool({ name: 'list_documents', arguments: { organization } })).structuredContent as {
+          documents: { title: string }[]
+        }
+      ).documents.map(({ title }) => title)
+
+    expect(await listed(ORGANIZATION_ID)).toEqual(['In the first'])
+    expect(await listed('beta-k3j4')).toEqual(['In the second'])
+
+    fake.removeMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    const refused = await client.callTool({ name: 'list_documents', arguments: { organization: 'beta-k3j4' } })
+
+    expect(refused.isError).toBe(true)
+    expect(await listed(ORGANIZATION_ID)).toEqual(['In the first'])
 
     await client.close()
   })
@@ -315,9 +365,12 @@ describe('the Documents module for external agents', () => {
 
     expect(listed.body.result.tools.map((tool: { name: string }) => tool.name)).toContain('create_document')
 
-    const challenged = await send(callTool('create_document', { title: 'New', aspects: [], content: 'Text' }), {
-      token: readOnly.access_token,
-    })
+    const challenged = await send(
+      callTool('create_document', { ...IN_ORGANIZATION, title: 'New', aspects: [], content: 'Text' }),
+      {
+        token: readOnly.access_token,
+      },
+    )
 
     expect(challenged.status).toBe(403)
     expect(challenged.body.error).toBe('insufficient_scope')
@@ -328,14 +381,17 @@ describe('the Documents module for external agents', () => {
 
     const readWrite = await connect({ scopes: ['documents:read', 'documents:write'] })
 
-    expect(fake.connectionsOf(MEMBER, ORGANIZATION_ID)).toHaveLength(1)
+    expect(fake.connectionsOf(MEMBER)).toHaveLength(1)
     expect((await send({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { token: readOnly.access_token })).status).toBe(
       401,
     )
 
-    const written = await send(callTool('create_document', { title: 'New', aspects: [], content: 'Text' }), {
-      token: readWrite.access_token,
-    })
+    const written = await send(
+      callTool('create_document', { ...IN_ORGANIZATION, title: 'New', aspects: [], content: 'Text' }),
+      {
+        token: readWrite.access_token,
+      },
+    )
 
     expect(written.status).toBe(200)
     expect(written.body.result.isError).toBeFalsy()
@@ -346,7 +402,7 @@ describe('the Documents module for external agents', () => {
     const client = await open((await connect()).access_token)
     const write = {
       name: 'create_document',
-      arguments: { title: 'Once', aspects: [], content: 'Written once.' },
+      arguments: { ...IN_ORGANIZATION, title: 'Once', aspects: [], content: 'Written once.' },
       _meta: { [MODULE_IDEMPOTENCY_KEY_META]: 'retried' },
     }
 
@@ -356,7 +412,7 @@ describe('the Documents module for external agents', () => {
     expect(second.structuredContent).toEqual(first.structuredContent)
     expect(documentsOfOrganization()).toHaveLength(1)
 
-    const [connection] = fake.connectionsOf(MEMBER, ORGANIZATION_ID)
+    const [connection] = fake.connectionsOf(MEMBER)
 
     expect([...fake.results.values()].map(result => result.idempotencyScope)).toEqual([`connection:${connection!.id}`])
 
@@ -377,7 +433,10 @@ describe('the Documents module for external agents', () => {
   test("hands a POST's JSON body to the handler whole, past the parser's default limit", async () => {
     const { access_token: token } = await connect()
     const text = 'Grüße aus Tōkyō 🌸, he said "hello" and left. '.repeat(3000).trim()
-    const written = await send(callTool('create_document', { title: 'Long', aspects: [], content: text }), { token })
+    const written = await send(
+      callTool('create_document', { ...IN_ORGANIZATION, title: 'Long', aspects: [], content: text }),
+      { token },
+    )
 
     expect(Buffer.byteLength(text)).toBeGreaterThan(100 * 1024)
     expect(written.status).toBe(200)
@@ -421,7 +480,7 @@ describe('the Documents module for external agents', () => {
       fake.searches.push({ userId: MEMBER, organizationId: ORGANIZATION_ID, createdAt: new Date().toISOString() })
     }
 
-    const { status, body } = await send(callTool('search_documents', { query: 'plan' }), { token })
+    const { status, body } = await send(callTool('search_documents', { ...IN_ORGANIZATION, query: 'plan' }), { token })
 
     expect(status).toBe(200)
     expect(body.result.isError).toBe(true)
@@ -451,7 +510,7 @@ describe('the Documents module for external agents', () => {
     expect(((await malformed.json()) as { error: { code: number } }).error.code).toBe(-32700)
 
     const oversized = await send(
-      callTool('create_document', { title: 'Big', aspects: [], content: 'a'.repeat(1100000) }),
+      callTool('create_document', { ...IN_ORGANIZATION, title: 'Big', aspects: [], content: 'a'.repeat(1100000) }),
       {
         token,
       },
@@ -471,7 +530,7 @@ describe('the Documents module for external agents', () => {
     await send(list, { token })
     await send(list, { token })
 
-    const [connection] = fake.connectionsOf(MEMBER, ORGANIZATION_ID)
+    const [connection] = fake.connectionsOf(MEMBER)
 
     expect(connection!.lastUsedAt).not.toBeNull()
     expect(fake.calls.filter(name => name === 'RecordAgentConnectionUse')).toHaveLength(1)
@@ -561,15 +620,18 @@ describe('the Tasks module for external agents', () => {
 
     expect((await client.listTools()).tools).toHaveLength(8)
 
-    const created = await client.callTool({ name: 'create_task', arguments: { name: 'Launch plan', status: 'TODO' } })
+    const created = await client.callTool({
+      name: 'create_task',
+      arguments: { ...IN_ORGANIZATION, name: 'Launch plan', status: 'TODO' },
+    })
     const { id, url } = created.structuredContent as { id: string; url: string }
 
     expect(created.isError).toBeFalsy()
     expect(url).toBe(`http://localhost:5173/${ORGANIZATION_ID}/tasks/${id}`)
     expect(tasksOfOrganization()).toHaveLength(1)
 
-    const listed = await client.callTool({ name: 'list_tasks', arguments: { query: 'launch' } })
-    const read = await client.callTool({ name: 'read_task', arguments: { id } })
+    const listed = await client.callTool({ name: 'list_tasks', arguments: { ...IN_ORGANIZATION, query: 'launch' } })
+    const read = await client.callTool({ name: 'read_task', arguments: { ...IN_ORGANIZATION, id } })
 
     expect((listed.structuredContent as { tasks: unknown[] }).tasks).toEqual([expect.objectContaining({ id, url })])
     expect(read.structuredContent).toMatchObject({ id, url })
@@ -595,7 +657,7 @@ describe('the Tasks module for external agents', () => {
       'restore_task',
     ])
 
-    const challenged = await send(callTool('create_task', { name: 'New', status: 'TODO' }), {
+    const challenged = await send(callTool('create_task', { ...IN_ORGANIZATION, name: 'New', status: 'TODO' }), {
       token: readOnly.access_token,
       path: TASKS_PATH,
     })
@@ -608,7 +670,7 @@ describe('the Tasks module for external agents', () => {
     expect(tasksOfOrganization()).toEqual([])
 
     const readWrite = await connect({ scopes: READ_WRITE, resource: TASKS })
-    const written = await send(callTool('create_task', { name: 'New', status: 'TODO' }), {
+    const written = await send(callTool('create_task', { ...IN_ORGANIZATION, name: 'New', status: 'TODO' }), {
       token: readWrite.access_token,
       path: TASKS_PATH,
     })
@@ -622,7 +684,7 @@ describe('the Tasks module for external agents', () => {
     const documents = await connect()
     const tasks = await connect({ scopes: READ_WRITE, resource: TASKS })
 
-    expect(fake.connectionsOf(MEMBER, ORGANIZATION_ID)).toHaveLength(2)
+    expect(fake.connectionsOf(MEMBER)).toHaveLength(2)
 
     await fetch(`${origin}/oauth/revoke`, {
       method: 'POST',
@@ -636,7 +698,7 @@ describe('the Tasks module for external agents', () => {
 
   test("answers a query past the member's allowance with a result saying so, and never counts a list without one", async () => {
     const { access_token: token } = await connect({ scopes: READ_WRITE, resource: TASKS })
-    const unfiltered = await send(callTool('list_tasks', {}), { token, path: TASKS_PATH })
+    const unfiltered = await send(callTool('list_tasks', { ...IN_ORGANIZATION }), { token, path: TASKS_PATH })
 
     expect(unfiltered.body.result.isError).toBeFalsy()
     expect(fake.searches).toEqual([])
@@ -645,14 +707,19 @@ describe('the Tasks module for external agents', () => {
       fake.searches.push({ userId: MEMBER, organizationId: ORGANIZATION_ID, createdAt: new Date().toISOString() })
     }
 
-    const { status, body } = await send(callTool('list_tasks', { query: 'plan' }), { token, path: TASKS_PATH })
+    const { status, body } = await send(callTool('list_tasks', { ...IN_ORGANIZATION, query: 'plan' }), {
+      token,
+      path: TASKS_PATH,
+    })
 
     expect(status).toBe(200)
     expect(body.result.isError).toBe(true)
     expect(body.result.content[0].text).toContain(
       `limited to ${MAX_CONVERSATION_SEARCHES} in ${CONVERSATION_SEARCH_WINDOW_MINUTES} minutes`,
     )
-    expect((await send(callTool('list_tasks', {}), { token, path: TASKS_PATH })).body.result.isError).toBeFalsy()
+    expect(
+      (await send(callTool('list_tasks', { ...IN_ORGANIZATION }), { token, path: TASKS_PATH })).body.result.isError,
+    ).toBeFalsy()
   })
 })
 
@@ -702,16 +769,16 @@ describe('the Budget module for external agents', () => {
 
     expect((await client.listTools()).tools).toHaveLength(7)
 
-    const added = await client.callTool({ name: 'add_bill', arguments: NOTION })
+    const added = await client.callTool({ name: 'add_bill', arguments: { ...IN_ORGANIZATION, ...NOTION } })
     const { id, url } = added.structuredContent as { id: string; url: string }
 
     expect(added.isError).toBeFalsy()
     expect(url).toBe(`http://localhost:5173/${ORGANIZATION_ID}/budget/${id}`)
     expect(billsOfOrganization()).toEqual([expect.objectContaining({ id, name: 'Notion', paidById: MEMBER })])
 
-    const listed = await client.callTool({ name: 'list_bills', arguments: { query: 'notion' } })
-    const read = await client.callTool({ name: 'read_bill', arguments: { id } })
-    const budget = await client.callTool({ name: 'read_budget', arguments: {} })
+    const listed = await client.callTool({ name: 'list_bills', arguments: { ...IN_ORGANIZATION, query: 'notion' } })
+    const read = await client.callTool({ name: 'read_bill', arguments: { ...IN_ORGANIZATION, id } })
+    const budget = await client.callTool({ name: 'read_budget', arguments: { ...IN_ORGANIZATION } })
 
     expect((listed.structuredContent as { bills: unknown[] }).bills).toEqual([expect.objectContaining({ id, url })])
     expect(read.structuredContent).toMatchObject({ id, url })
@@ -746,7 +813,10 @@ describe('the Budget module for external agents', () => {
       ['delete_bill', { id: bill.id }],
       ['restore_bill', { id: bill.id }],
     ] as const) {
-      const challenged = await send(callTool(name, args), { token: readOnly.access_token, path: BUDGET_PATH })
+      const challenged = await send(callTool(name, { ...IN_ORGANIZATION, ...args }), {
+        token: readOnly.access_token,
+        path: BUDGET_PATH,
+      })
 
       expect(challenged.status).toBe(403)
       expect(challenged.body.error).toBe('insufficient_scope')
@@ -758,7 +828,10 @@ describe('the Budget module for external agents', () => {
     expect(billsOfOrganization()).toEqual([expect.objectContaining({ id: bill.id, name: bill.name, deletedAt: null })])
 
     const readWrite = await connect({ scopes: READ_WRITE, resource: BUDGET })
-    const written = await send(callTool('add_bill', NOTION), { token: readWrite.access_token, path: BUDGET_PATH })
+    const written = await send(callTool('add_bill', { ...IN_ORGANIZATION, ...NOTION }), {
+      token: readWrite.access_token,
+      path: BUDGET_PATH,
+    })
 
     expect(written.status).toBe(200)
     expect(written.body.result.isError).toBeFalsy()
@@ -768,6 +841,7 @@ describe('the Budget module for external agents', () => {
   test("takes the largest receipt an agent may hand over within the endpoint's body, and refuses a larger one with a sentence", async () => {
     const { access_token: token } = await connect({ scopes: READ_WRITE, resource: BUDGET })
     const largest = callTool('add_bill', {
+      ...IN_ORGANIZATION,
       ...NOTION,
       receipt: { name: 'Receipt.png', contentType: 'image/png', base64: createPng(MAX_AGENT_BILL_RECEIPT_SIZE) },
     })
@@ -789,6 +863,7 @@ describe('the Budget module for external agents', () => {
 
     const tooLarge = await send(
       callTool('add_bill', {
+        ...IN_ORGANIZATION,
         ...NOTION,
         receipt: {
           name: 'Receipt.png',
@@ -808,7 +883,7 @@ describe('the Budget module for external agents', () => {
 
   test("answers a query past the member's allowance with a result saying so, and never counts a list without one", async () => {
     const { access_token: token } = await connect({ scopes: READ_WRITE, resource: BUDGET })
-    const unfiltered = await send(callTool('list_bills', {}), { token, path: BUDGET_PATH })
+    const unfiltered = await send(callTool('list_bills', { ...IN_ORGANIZATION }), { token, path: BUDGET_PATH })
 
     expect(unfiltered.body.result.isError).toBeFalsy()
     expect(fake.searches).toEqual([])
@@ -817,14 +892,19 @@ describe('the Budget module for external agents', () => {
       fake.searches.push({ userId: MEMBER, organizationId: ORGANIZATION_ID, createdAt: new Date().toISOString() })
     }
 
-    const { status, body } = await send(callTool('list_bills', { query: 'notion' }), { token, path: BUDGET_PATH })
+    const { status, body } = await send(callTool('list_bills', { ...IN_ORGANIZATION, query: 'notion' }), {
+      token,
+      path: BUDGET_PATH,
+    })
 
     expect(status).toBe(200)
     expect(body.result.isError).toBe(true)
     expect(body.result.content[0].text).toContain(
       `limited to ${MAX_CONVERSATION_SEARCHES} in ${CONVERSATION_SEARCH_WINDOW_MINUTES} minutes`,
     )
-    expect((await send(callTool('list_bills', {}), { token, path: BUDGET_PATH })).body.result.isError).toBeFalsy()
+    expect(
+      (await send(callTool('list_bills', { ...IN_ORGANIZATION }), { token, path: BUDGET_PATH })).body.result.isError,
+    ).toBeFalsy()
   })
 })
 

@@ -2016,7 +2016,44 @@ mutation DeleteAgentConnection($userId: String!, $id: UUID!) @auth(level: USER) 
       id
     }
   }
-  agentConnection_deleteMany(where: { id: { eq: $id }, membershipUserId: { eq_expr: "auth.uid" } })
+  agentConnection_deleteMany(where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" } })
+}
+
+# Changes the organizations one of the caller's external agents reaches, from the account page's
+# Connected agents tab, without the agent: the list is replaced and granted now, so an organization
+# the caller left and rejoined is reached again once they tick it, and the agent's next call acts in
+# the organizations ticked. It locks the caller's own row first, then each membership named, as Allow
+# does, so an edit and a consent take turns, and refuses unless the caller is in every organization
+# named, 1 to 20 of them (`MAX_AGENT_CONNECTION_ORGANIZATIONS` in strategydance-core), the page
+# sending each once. A connection gone meanwhile, disconnected or replaced, is refused, so the page
+# says so rather than claim a change.
+#
+# `$userId` is the caller's own, checked against the token: the Connected agents list's refresh
+# condition reads it, since a mutation's variables are all a condition can match
+mutation UpdateAgentConnectionOrganizations($userId: String!, $id: UUID!, $organizationIds: [UUID!]!)
+@auth(level: USER)
+@transaction {
+  user_update(key: { id_expr: "auth.uid" }, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only somebody signed in can change an agent's organizations")
+    @check(
+      expr: "vars.userId == auth.uid"
+      message: "An agent's organizations are changed by the member it acts as alone"
+    )
+    @check(
+      expr: "size(vars.organizationIds) >= 1 && size(vars.organizationIds) <= 20"
+      message: "An agent reaches 1 to 20 of the member's organizations"
+    )
+  userOrganization_updateMany(
+    where: { userId: { eq_expr: "response.user_update.id" }, organizationId: { in: $organizationIds } }
+    data: { updatedAt_expr: "request.time" }
+  )
+    @redact
+    @check(expr: "this == size(vars.organizationIds)", message: "An agent reaches only organizations you are in")
+  agentConnection_updateMany(
+    where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" } }
+    data: { organizationIds: $organizationIds, grantedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "The agent was disconnected")
 }
 
 # Sets an organization's budget, or removes it, which only an administrator may: its currency, and

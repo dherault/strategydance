@@ -2267,12 +2267,24 @@
         "hash": "fd1b6e0f58e02454",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.attachmentDownload": {
+        "hash": "ee0ca4dec95f4afd",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.attachmentDownloadFailed": {
+        "hash": "96b45432d10005c3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.attachmentImageFailed": {
         "hash": "2525c05de3142631",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.attachmentOpen": {
         "hash": "227129cb8ee14e4c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.attachmentUnavailable": {
+        "hash": "c0f12708e086c0f3",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.authorFilter.everyone": {
@@ -5202,7 +5214,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsDescription": {
-        "hash": "ebd0452c9d14f857",
+        "hash": "5e638c44391a8fc1",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsManage": {
@@ -5246,7 +5258,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.connectedAgentsLead": {
-        "hash": "7f8594b6b57af175",
+        "hash": "1f327976dc4acb3d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.connectedAgentsLoadError": {
@@ -5265,12 +5277,16 @@
         "hash": "0165f7f9695277e9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.connectionReachesNone": {
+        "hash": "cab2285b9f0e7aa8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.consentEyebrow": {
         "hash": "65c76837ec671669",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.consentLead": {
-        "hash": "2b484295597c4040",
+        "hash": "8a5f62e28bde841a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.consentTitle": {
@@ -5327,6 +5343,26 @@
       },
       "module.documentsWriteAccess": {
         "hash": "8387381ade568074",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editOrganizations": {
+        "hash": "7e237b094ee77aa3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editOrganizationsCancel": {
+        "hash": "02cdbc2faeb9a0da",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editOrganizationsDescription": {
+        "hash": "39ee8961ffe9a4a9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editOrganizationsSave": {
+        "hash": "0c7dfa6674c04818",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editOrganizationsTitle": {
+        "hash": "0901d38d3856b978",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.expiredDescription": {
@@ -5386,7 +5422,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.noOrganizationDescription": {
-        "hash": "adea0315985b644a",
+        "hash": "f836ea214de20f0b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.noOrganizationTitle": {
@@ -5399,6 +5435,30 @@
       },
       "module.organizationLabel": {
         "hash": "ed1c9abd1e50c4ba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.organizationsHint": {
+        "hash": "3bbf2c7e07940900",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.organizationsLabel": {
+        "hash": "a3d3425ba06cf7c1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.organizationsMax": {
+        "hash": "6b09311a90e68ec9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.organizationsRequired": {
+        "hash": "2cc03a13207fe25e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.organizationsSaveError": {
+        "hash": "0382dea29e5f5267",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.organizationsSaved": {
+        "hash": "3379e88ae521c83e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.readAccess": {
@@ -6172,7 +6232,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.delegatePrompt": {
-        "hash": "e45b0816b8ef2945",
+        "hash": "92cc65bc23cdcaeb",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.delegatePromptCopied": {

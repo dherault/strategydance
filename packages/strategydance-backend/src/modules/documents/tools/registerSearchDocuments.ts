@@ -1,8 +1,7 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { MAX_SEARCH_QUERY_LENGTH, MAX_SEARCH_TERMS, splitSearchTerms } from 'strategydance-core'
 import { z } from 'zod'
 
-import type { DocumentsToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import { MAX_DOCUMENT_SEARCH_RESULTS } from '~constants'
 
@@ -41,8 +40,8 @@ const outputSchema = z.object({
 })
 
 // `search_documents`: the organization's documents agents may read that hold every word of a query
-function registerSearchDocuments(server: McpServer, { caller, toAddress }: DocumentsToolContext) {
-  server.registerTool(
+function registerSearchDocuments(registerTool: RegisterModuleTool) {
+  registerTool(
     'search_documents',
     {
       title: 'Search documents',
@@ -52,7 +51,7 @@ function registerSearchDocuments(server: McpServer, { caller, toAddress }: Docum
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
-    async ({ query, aspects, limit }) => {
+    async ({ query, aspects, limit }, _serverContext, { caller, toAddress }) => {
       const found = await searchDocuments(caller, {
         query,
         aspects: aspects ?? [],

@@ -2,22 +2,26 @@ import { useQuery } from '@tanstack/react-query'
 import { executeQuery } from 'firebase/data-connect'
 import { type GetAgentConnectionsData, getAgentConnectionsRef } from 'strategydance-database/web'
 
-import type { AgentConnection, DataSource } from '~types'
+import type { AgentConnection, AgentConnectionMembership, DataSource } from '~types'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useLiveQuerySubscription from '~hooks/common/useLiveQuerySubscription'
 
+import toAgentConnections from '~utils/agentConnection/toAgentConnections'
+
 import { dataConnect } from '~data/firebase'
 
 const EMPTY_CONNECTIONS: AgentConnection[] = []
+const EMPTY_MEMBERSHIPS: AgentConnectionMembership[] = []
 
 /*
-  The external agents the reader connected, across their organizations, newest first, kept live.
+  The external agents the reader connected, newest first, each with the organizations it reaches,
+  and the reader's memberships beside them, kept live.
 
   The first read is an ordinary query, which is what `AgentConnectionsWait` waits on, and the
   subscription beside it writes each result the server pushes into the same cache entry:
   `GetAgentConnections` is refreshed by Allow on the consent page, by Disconnect, and by the
-  reader's removal from an organization or its deletion. A revocation the agent makes itself, or a
+  reader's removal from an organization or its deletion, which change what a connection reaches. A revocation the agent makes itself, or a
   code it presented twice, names no member, so the tab shows it on its next read, as the page
   regains focus. `useQuery` is called directly rather than through the generated hook, as
   `useOrganizationTeam` explains.
@@ -26,19 +30,23 @@ const EMPTY_CONNECTIONS: AgentConnection[] = []
   nothing cached a retry resets the query to pending, the waiter unmounts the tab, and the tab's
   return would retry again, forever
 */
-function useAgentConnections(): DataSource<AgentConnection[]> & { hasFailed: boolean } {
+function useAgentConnections(): DataSource<AgentConnection[]> & {
+  memberships: AgentConnectionMembership[]
+  hasFailed: boolean
+} {
   const { data: viewer } = useAuthentication()
 
   const viewerId = viewer?.uid ?? null
   const isEnabled = Boolean(viewerId)
 
-  const { data, isPending, isFetching, isError, refetch } = useQuery<GetAgentConnectionsData>({
+  const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey: ['GetAgentConnections', viewerId],
-    queryFn: async () => {
+    queryFn: async (): Promise<GetAgentConnectionsData> => {
       const { data: connections } = await executeQuery(getAgentConnectionsRef(dataConnect))
 
       return connections
     },
+    select: toAgentConnections,
     enabled: isEnabled,
     retryOnMount: false,
   })
@@ -50,7 +58,8 @@ function useAgentConnections(): DataSource<AgentConnection[]> & { hasFailed: boo
   })
 
   return {
-    data: data?.agentConnections ?? EMPTY_CONNECTIONS,
+    data: data?.connections ?? EMPTY_CONNECTIONS,
+    memberships: data?.memberships ?? EMPTY_MEMBERSHIPS,
     initialLoading: isEnabled && isPending && !isError,
     loading: isEnabled && isFetching,
     refetch: async () => {

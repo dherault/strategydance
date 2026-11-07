@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
+import { MAX_AGENT_CONNECTION_ORGANIZATIONS } from 'strategydance-core'
 import { approveOAuthAuthorizationRequest as approveRequest } from 'strategydance-database/backend'
 
 import { OAUTH_ISSUER } from '~constants'
@@ -18,8 +19,8 @@ type Approval = {
   requestId: string
   // The member allowing it, as the backend verified them
   userId: string
-  // The organization the member chose, among theirs
-  organizationId: string
+  // The organizations the member chose, among theirs, in either form and maybe twice
+  organizationIds: string[]
   // The access the member allows, read alone or read and write
   scopes: string[]
 }
@@ -33,18 +34,21 @@ type Approved =
   | { outcome: 'full' }
 
 /*
-  A member allows an external agent to act as them on one module in one organization: the client
-  and its redirect address are checked again, the access allowed never exceeds what was asked for,
-  read always among it, and the request is decided once, making the connection and a code valid for
-  a minute, which goes back to the client with its `state` and the issuer. Consenting again with the
-  same client, organization and module replaces the earlier connection with its tokens. The
-  database refuses anybody who is not the organization's member, a member who connected as many
-  agents as they may (`MAX_AGENT_CONNECTIONS`), and a request decided already or expired
+  A member allows an external agent to act as them on one module in the organizations they chose:
+  the client and its redirect address are checked again, the access allowed never exceeds what was
+  asked for, read always among it, and the request is decided once, making the connection and a
+  code valid for a minute, which goes back to the client with its `state` and the issuer.
+  Consenting again with the same client and module replaces the earlier connection with its tokens,
+  and what it reached with the organizations chosen now. The organizations go canonical and once
+  each, since the database counts the memberships it locks against the list. The database refuses
+  anybody who is not a member of each of them, more of them than a connection reaches
+  (`MAX_AGENT_CONNECTION_ORGANIZATIONS`), a member who connected as many agents as they may
+  (`MAX_AGENT_CONNECTIONS`), and a request decided already or expired
 */
 async function approveOAuthAuthorizationRequest({
   requestId,
   userId,
-  organizationId,
+  organizationIds,
   scopes,
 }: Approval): Promise<Approved> {
   const loaded = await loadOAuthAuthorizationRequest(requestId)
@@ -59,13 +63,22 @@ async function approveOAuthAuthorizationRequest({
     return { outcome: 'invalid', reason: `Allow ${module.scopes.read}, alone or with the access the request asked for` }
   }
 
+  const chosen = [...new Set(organizationIds.map(toCanonicalUuid))]
+
+  if (!chosen.length || chosen.length > MAX_AGENT_CONNECTION_ORGANIZATIONS) {
+    return {
+      outcome: 'invalid',
+      reason: `Allow the agent in 1 to ${MAX_AGENT_CONNECTION_ORGANIZATIONS} of your organizations`,
+    }
+  }
+
   const code = createOpaqueToken()
 
   try {
     await approveRequest(dataConnect, {
       id: request.id,
       userId,
-      organizationId: toCanonicalUuid(organizationId),
+      organizationIds: chosen,
       connectionId: randomUUID().replaceAll('-', ''),
       clientId: request.clientId,
       registeredClientId: client.registeredClientId,

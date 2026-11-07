@@ -61,6 +61,7 @@ const ISSUER = 'http://localhost:3003'
 const DOCUMENTS = `${ISSUER}/mcp/documents`
 const TASKS = `${ISSUER}/mcp/tasks`
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
+const OTHER_ORGANIZATION_ID = '1f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const MEMBER = 'member'
 const REDIRECT_URI = 'https://client.example.com/callback'
 const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'
@@ -121,7 +122,8 @@ async function issueCode({
   clientId = CLIENT_ID,
   scopes = ['documents:read', 'documents:write'],
   allowed = scopes,
-}: { clientId?: string; scopes?: string[]; allowed?: string[] } = {}) {
+  organizationIds = [ORGANIZATION_ID],
+}: { clientId?: string; scopes?: string[]; allowed?: string[]; organizationIds?: string[] } = {}) {
   const { data } = await (
     fake.sdk.createOAuthAuthorizationRequest as (
       ...args: unknown[]
@@ -142,7 +144,7 @@ async function issueCode({
   const response = await fetch(`${origin}/oauth/requests/${requestId}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationId: ORGANIZATION_ID, scopes: allowed }),
+    body: JSON.stringify({ organizationIds, scopes: allowed }),
   })
   const { data: decision } = (await response.json()) as { data: { redirectUrl: string } }
 
@@ -290,7 +292,9 @@ describe('POST /oauth/token, the authorization code grant', () => {
     const { code } = await issueCode()
 
     fake.beforeOperation = async name => {
-      if (name === 'ExchangeOAuthAuthorizationCode') fake.removeMember(MEMBER, ORGANIZATION_ID)
+      if (name === 'ExchangeOAuthAuthorizationCode') {
+        for (const { id } of fake.connectionsOf(MEMBER)) fake.deleteConnection(id)
+      }
     }
 
     expectError(await exchange(code), 'invalid_grant')
@@ -464,7 +468,9 @@ describe('POST /oauth/token, the refresh token grant', () => {
     const { tokens } = await connect()
 
     fake.beforeOperation = async name => {
-      if (name === 'RotateAgentConnectionRefreshToken') fake.removeMember(MEMBER, ORGANIZATION_ID)
+      if (name === 'RotateAgentConnectionRefreshToken') {
+        for (const { id } of fake.connectionsOf(MEMBER)) fake.deleteConnection(id)
+      }
     }
 
     expectError(await refresh(tokens.refresh_token), 'invalid_grant')
@@ -484,12 +490,30 @@ describe('POST /oauth/token, the refresh token grant', () => {
     expectError(await refresh(tokens.refresh_token), 'invalid_grant')
   })
 
-  test('refuses a refresh token once the member is removed', async () => {
+  test('refuses a refresh token once its connection reaches none of the member’s organizations, rotating nothing', async () => {
     const { tokens } = await connect()
+    const stored = fake.tokens.size
 
     fake.removeMember(MEMBER, ORGANIZATION_ID)
 
     expectError(await refresh(tokens.refresh_token), 'invalid_grant')
+    expect(fake.tokens.size).toBe(stored)
+    expect([...fake.tokens.values()].every(({ usedAt }) => usedAt === null)).toBe(true)
+
+    // Invited back, the member finds the connection reaching nothing still, until they choose again
+    fake.addMember(MEMBER, ORGANIZATION_ID)
+
+    expectError(await refresh(tokens.refresh_token), 'invalid_grant')
+  })
+
+  test('refreshes a connection that still reaches one of its organizations after the member leaves another', async () => {
+    fake.addMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    const { tokens } = await connect({ organizationIds: [ORGANIZATION_ID, OTHER_ORGANIZATION_ID] })
+
+    fake.removeMember(MEMBER, OTHER_ORGANIZATION_ID)
+
+    expect((await refresh(tokens.refresh_token)).status).toBe(200)
   })
 })
 

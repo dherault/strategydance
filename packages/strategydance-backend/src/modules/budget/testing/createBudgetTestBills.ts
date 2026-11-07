@@ -4,6 +4,7 @@ import type { FakeBill } from '~domain/budget/testing/createBudgetDatabaseFake'
 import type { ModuleDatabaseFake } from '~domain/modules/testing/createModuleDatabaseFake'
 
 import createModuleTestKit from '~modules/testing/createModuleTestKit'
+import toTestModuleAccess from '~modules/testing/toTestModuleAccess'
 
 // The prototype's seed bills, as strategydance-core's tests hold its computations to them, in cents
 const SEED_BILLS: Partial<FakeBill>[] = [
@@ -68,16 +69,22 @@ export const SEED_TODAY = '2026-10-19'
 // A budget's bills for the Budget module's tests, and the module as a member's agent reaches it
 function createBudgetTestBills(fake: ModuleDatabaseFake, organizationId: string) {
   // The module as a member's agent reaches it, every scope unless told otherwise
-  function connect(fields: Partial<ModuleCaller> = {}, userId = 'member') {
-    return createModuleTestKit('budget', {
-      kind: 'agent',
-      userId,
-      organizationId,
-      membershipCreatedAt: fake.addMember(userId, organizationId, { displayName: 'Ada' }),
-      scopes: ['budget:read', 'budget:write'],
-      idempotencyScope: 'conversation:checked',
-      ...fields,
-    })
+  function connect(fields: Partial<ModuleCaller> = {}, userId = 'member', named: { segment?: string } = {}) {
+    return createModuleTestKit(
+      'budget',
+      toTestModuleAccess(
+        {
+          kind: 'agent',
+          userId,
+          organizationId,
+          membershipCreatedAt: fake.addMember(userId, organizationId, { displayName: 'Ada' }),
+          scopes: ['budget:read', 'budget:write'],
+          idempotencyScope: 'conversation:checked',
+          ...fields,
+        },
+        named,
+      ),
+    )
   }
 
   function add(fields: Partial<FakeBill> = {}) {

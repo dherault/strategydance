@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { TasksToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import deleteTask from '~domain/tasks/deleteTask'
 
@@ -22,8 +21,8 @@ const outputSchema = z.object({
 })
 
 // `delete_task`: a task deleted as its dialog's Delete does, restorable for a day
-function registerDeleteTask(server: McpServer, context: TasksToolContext) {
-  server.registerTool(
+function registerDeleteTask(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Delete a task',
@@ -34,7 +33,7 @@ function registerDeleteTask(server: McpServer, context: TasksToolContext) {
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(tasksModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readTasksWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

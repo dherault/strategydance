@@ -3582,10 +3582,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://makerhunt.io/",
     "submissionUrl": "https://makerhunt.io/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "PAID",
-    "lastChecked": null,
+    "description": "Weekly launch platform where makers submit AI projects and other digital products to compete for community votes, badges and backlinks.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": "2026-11-05",
     "unreachableSince": null
   },
   {
@@ -3934,10 +3936,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://noonlaunch.com/",
     "submissionUrl": "https://noonlaunch.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Weekly launch board where founders submit any product to collect votes, with winners and a permanent directory page for each listing.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-05",
     "unreachableSince": null
   },
   {
@@ -4298,10 +4302,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://productwatch.io/",
     "submissionUrl": "https://productwatch.io/",
-    "description": "",
-    "categories": [],
+    "description": "Community launch platform for new tech products, apps and startups, where makers submit launches that users upvote and discuss daily.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-05",
     "unreachableSince": null
   },
   {
@@ -5224,10 +5230,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://spiff.store/",
     "submissionUrl": "https://spiff.store/submit-tool",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, such as productivity, video, marketing and coding, where makers submit their own AI products.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-05",
     "unreachableSince": null
   },
   {
@@ -5236,10 +5244,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://partners.spotsaas.com/",
     "submissionUrl": "https://partners.spotsaas.com/register",
-    "description": "",
-    "categories": [],
+    "description": "Software review and comparison directory listing SaaS and business software products by category, where vendors create free profiles to reach buyers.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-05",
     "unreachableSince": null
   },
   {
@@ -5413,7 +5423,7 @@
     "description": "",
     "categories": [],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-11-05",
     "unreachableSince": null
   },
   {
@@ -5957,10 +5967,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://thesaasdirectory.com/",
     "submissionUrl": "https://thesaasdirectory.com/create-listing/",
-    "description": "",
-    "categories": [],
+    "description": "Global directory of SaaS companies sorted by software category, where vendors register an account and create their own listing.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-05",
     "unreachableSince": null
   },
   {
@@ -6113,10 +6125,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.toolify.ai/",
     "submissionUrl": "https://www.toolify.ai/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools and GPTs sorted into hundreds of categories, where AI product makers submit their tools to be listed.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-05",
     "unreachableSince": null
   },
   {
@@ -6139,10 +6153,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://robopost.app/",
     "submissionUrl": "https://robopost.app/en/toolpasta/submit",
-    "description": "",
-    "categories": [],
+    "description": "ToolPasta is an AI tools directory run by Robopost, where makers submit their AI-powered tools for listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-05",
     "unreachableSince": null
   },
   {
@@ -6595,11 +6611,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://webcurate.co/",
     "submissionUrl": "https://webcurate.co/",
-    "description": "",
-    "categories": [],
+    "description": "Hand-curated directory of useful and interesting websites and online tools in 200+ categories, where site owners can submit their websites for review.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": "2026-11-02",
-    "unreachableSince": "2026-11-02"
+    "lastChecked": "2026-11-05",
+    "unreachableSince": null
   },
   {
     "id": "website-hunt",

@@ -6,6 +6,7 @@ import {
   ERROR_CODE_NOT_FOUND,
   ERROR_CODE_OAUTH_CLIENT_REFUSED,
   ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS,
+  MAX_AGENT_CONNECTION_ORGANIZATIONS,
   MAX_AGENT_CONNECTIONS,
   type OAuthAuthorizationDecision,
   type OAuthAuthorizationRequestSummary,
@@ -37,10 +38,16 @@ function createOAuthRequestsRouter() {
   const router = Router()
 
   const paramsSchema = z.object({ requestId: z.string().regex(UUID_PATTERN) })
-  const approvalSchema = z.object({
-    organizationId: z.string().regex(UUID_PATTERN),
-    scopes: z.array(z.string().max(100)).min(1).max(2),
-  })
+  const scopesSchema = z.array(z.string().max(100)).min(1).max(2)
+  const approvalSchema = z.union([
+    z.object({
+      organizationIds: z.array(z.string().regex(UUID_PATTERN)).min(1).max(MAX_AGENT_CONNECTION_ORGANIZATIONS),
+      scopes: scopesSchema,
+    }),
+    // A consent page from before a connection reached several organizations, which a browser may
+    // still have open while the release that brings them reaches Hosting last
+    z.object({ organizationId: z.string().regex(UUID_PATTERN), scopes: scopesSchema }),
+  ])
 
   type RequestParams = z.infer<typeof paramsSchema>
 
@@ -51,7 +58,7 @@ function createOAuthRequestsRouter() {
     oauthRequestRateLimitMiddleware,
     validateMiddleware({ params: paramsSchema }),
     async (request: Request<RequestParams>, response: Response<ApiResponse<OAuthAuthorizationRequestSummary>>) => {
-      const reading = await readOAuthAuthorizationRequest(request.params.requestId)
+      const reading = await readOAuthAuthorizationRequest(request.params.requestId, readViewer(request).id)
 
       if (reading.outcome === 'unknown') {
         respondError(response, 404, ERROR_CODE_NOT_FOUND, UNKNOWN_MESSAGE)
@@ -83,7 +90,8 @@ function createOAuthRequestsRouter() {
       const approval = await approveOAuthAuthorizationRequest({
         requestId: request.params.requestId,
         userId: readViewer(request).id,
-        organizationId: request.body.organizationId,
+        organizationIds:
+          'organizationIds' in request.body ? request.body.organizationIds : [request.body.organizationId],
         scopes: request.body.scopes,
       })
 

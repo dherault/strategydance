@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { DocumentsToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import setDocumentAspects from '~domain/documents/setDocumentAspects'
 
@@ -26,8 +25,8 @@ const outputSchema = z.object({
 })
 
 // `set_document_aspects`: the aspects a document is tagged with, replaced whole
-function registerSetDocumentAspects(server: McpServer, context: DocumentsToolContext) {
-  server.registerTool(
+function registerSetDocumentAspects(registerTool: RegisterModuleTool) {
+  registerTool(
     TOOL,
     {
       title: 'Tag a document',
@@ -38,7 +37,7 @@ function registerSetDocumentAspects(server: McpServer, context: DocumentsToolCon
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       scopeChallenge: requireModuleWriteScope(documentsModule),
     },
-    async (args, serverContext) => {
+    async (args, serverContext, context) => {
       const prepared = readDocumentsWriteCall(context, serverContext, TOOL, args)
 
       if (prepared.outcome === 'refused') return prepared.result

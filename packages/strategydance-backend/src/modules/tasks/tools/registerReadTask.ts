@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { TasksToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import readTask from '~domain/tasks/readTask'
 
@@ -38,8 +37,8 @@ const outputSchema = z.object({
 })
 
 // `read_task`: a live task, its description and its links both ways
-function registerReadTask(server: McpServer, { caller, toAddress }: TasksToolContext) {
-  server.registerTool(
+function registerReadTask(registerTool: RegisterModuleTool) {
+  registerTool(
     'read_task',
     {
       title: 'Read a task',
@@ -49,7 +48,7 @@ function registerReadTask(server: McpServer, { caller, toAddress }: TasksToolCon
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
-    async ({ id }) => {
+    async ({ id }, _serverContext, { caller, toAddress }) => {
       const read = await readTask(caller, { id }, toAddress)
 
       if (read.outcome !== 'read') return toTasksRefusal(read)

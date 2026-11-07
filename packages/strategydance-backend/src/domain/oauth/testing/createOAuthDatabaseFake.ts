@@ -1,4 +1,4 @@
-import { MAX_AGENT_CONNECTIONS } from 'strategydance-core'
+import { MAX_AGENT_CONNECTION_ORGANIZATIONS, MAX_AGENT_CONNECTIONS } from 'strategydance-core'
 
 import { OAUTH_REFRESH_GRACE_SECONDS } from '~constants'
 
@@ -12,8 +12,9 @@ import type { AnyVariables, ModuleDatabaseFakeBase } from '~domain/modules/testi
   `check:oauth` checks those conditions against the emulators, which is what keeps the two alike:
   change one with the other.
 
-  Times are the clock's, which a test moves with `setSystemTime`, as the database's are. Removing a
-  member deletes their connections with the tokens, as the reference to the membership cascades
+  Times are the clock's, which a test moves with `setSystemTime`, as the database's are. A
+  connection references the account alone, so removing a member leaves it, listing an organization
+  it reaches no more
 */
 
 export type FakeOAuthClient = {
@@ -46,7 +47,8 @@ export type FakeOAuthAuthorizationRequest = {
 export type FakeAgentConnection = {
   id: string
   userId: string
-  organizationId: string
+  organizationIds: string[]
+  grantedAt: string
   clientId: string
   registeredClientId: string | null
   clientName: string | null
@@ -109,6 +111,22 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
     return memberships.get(`${userId}:${id(organizationId)}`) ?? null
   }
 
+  // An organization's slug and name, as a read through its membership selects them
+  function organizationOf(organizationId: unknown) {
+    const { slug = null, name = '' } = base.organizations.get(id(organizationId)) ?? {}
+
+    return { slug, name }
+  }
+
+  // A member's memberships, in joined order, the organization's id breaking a tie, as
+  // `userOrganizations_on_user` reads them
+  function membershipsOfUser(userId: unknown) {
+    return [...memberships.entries()]
+      .filter(([key]) => key.startsWith(`${userId}:`))
+      .map(([key, { createdAt }]) => ({ organizationId: key.slice(String(userId).length + 1), createdAt }))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.organizationId.localeCompare(b.organizationId))
+  }
+
   // Deletes a connection with its tokens, and lets go of the requests that named it, as the
   // references cascade and set null
   function deleteConnection(connectionId: string) {
@@ -143,19 +161,13 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
     }
   }
 
-  function connectionsOf(userId: string, organizationId: string) {
-    return [...connections.values()].filter(
-      connection => connection.userId === userId && connection.organizationId === id(organizationId),
-    )
+  function connectionsOf(userId: string) {
+    return [...connections.values()].filter(connection => connection.userId === userId)
   }
 
   function tokensOf(connectionId: string) {
     return [...tokens.values()].filter(token => token.connectionId === connectionId)
   }
-
-  base.onRemoveMember((userId, organizationId) => {
-    for (const connection of connectionsOf(userId, organizationId)) deleteConnection(connection.id)
-  })
 
   base.addOperations({
     GetOAuthClient: variables => ({ oAuthClient: clients.get(id(variables.id)) ?? null }),
@@ -200,7 +212,14 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
             scopes: [...token.scopes],
             usedAt: token.usedAt,
             successorKeyVersion: token.successorKeyVersion,
-            connection: { id: connection.id, clientId: connection.clientId, scopes: [...connection.scopes] },
+            connection: {
+              id: connection.id,
+              clientId: connection.clientId,
+              scopes: [...connection.scopes],
+              organizationIds: [...connection.organizationIds],
+              grantedAt: connection.grantedAt,
+              user: { userOrganizations_on_user: membershipsOfUser(connection.userId) },
+            },
           },
         ],
         recentlySpent: isRecentlySpent ? [{ id: token.id }] : [],
@@ -227,7 +246,6 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       if (!token || token.kind !== 'ACCESS' || !isFuture(token.expiresAt)) return { agentConnectionTokens: [] }
 
       const connection = connections.get(token.connectionId)!
-      const membership = membershipOf(connection.userId, connection.organizationId)!
 
       return {
         agentConnectionTokens: [
@@ -237,17 +255,34 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
             expiresAt: token.expiresAt,
             connection: {
               id: connection.id,
+              userId: connection.userId,
               clientId: connection.clientId,
               module: connection.module,
               scopes: [...connection.scopes],
-              membership: {
-                userId: connection.userId,
-                organizationId: connection.organizationId,
-                createdAt: membership.createdAt,
+              organizationIds: [...connection.organizationIds],
+              grantedAt: connection.grantedAt,
+              user: {
+                userOrganizations_on_user: membershipsOfUser(connection.userId).map(membership => ({
+                  ...membership,
+                  organization: organizationOf(membership.organizationId),
+                })),
               },
             },
           },
         ],
+      }
+    },
+
+    GetAgentConnectionForConsent: variables => {
+      const connection = connectionsOf(String(variables.userId)).find(
+        ({ clientId, module }) => clientId === variables.clientId && module === variables.module,
+      )
+
+      return {
+        agentConnections: connection
+          ? [{ organizationIds: [...connection.organizationIds], grantedAt: connection.grantedAt }]
+          : [],
+        userOrganizations: membershipsOfUser(variables.userId),
       }
     },
 
@@ -335,23 +370,25 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       const registeredClientId = variables.registeredClientId ? id(variables.registeredClientId) : null
       const scopes = variables.scopes as string[]
 
-      // Data Connect reports the connection's reference to the membership before the lock's check
-      if (!membershipOf(variables.userId, variables.organizationId)) {
-        refuse('violates SQL foreign key constraint: agent_connection_membership_fkey (aborted)')
+      const organizationIds = (variables.organizationIds as string[]).map(id)
+
+      if (organizationIds.length < 1 || organizationIds.length > MAX_AGENT_CONNECTION_ORGANIZATIONS) {
+        refuse("An agent reaches 1 to 20 of the member's organizations")
+      }
+      // The memberships locked, counted against the list, so one named twice fails as a stranger's
+      if (
+        new Set(organizationIds).size !== organizationIds.length
+        || organizationIds.some(organizationId => !membershipOf(variables.userId, organizationId))
+      ) {
+        refuse('Only a member of an organization can connect an agent to it')
       }
       if (registeredClientId && !clients.has(registeredClientId)) {
         refuse('violates SQL foreign key constraint: agent_connection_registered_client_id_fkey (aborted)')
       }
       // Counted after the lock, leaving out the connection this one replaces
       if (
-        [...connections.values()].filter(
-          connection =>
-            connection.userId === variables.userId
-            && !(
-              connection.organizationId === id(variables.organizationId)
-              && connection.clientId === variables.clientId
-              && connection.module === variables.module
-            ),
+        connectionsOf(String(variables.userId)).filter(
+          connection => !(connection.clientId === variables.clientId && connection.module === variables.module),
         ).length >= MAX_AGENT_CONNECTIONS
       ) {
         refuse('A member connects at most 100 agents')
@@ -370,22 +407,24 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         refuse('violates SQL unique constraint: o_auth_authorization_request_codeHash_uidx (aborted)')
       }
 
-      for (const connection of connectionsOf(String(variables.userId), String(variables.organizationId))) {
+      for (const connection of connectionsOf(String(variables.userId))) {
         if (connection.clientId === variables.clientId && connection.module === variables.module) {
           deleteConnection(connection.id)
         }
       }
 
+      const time = stamp()
       const connection: FakeAgentConnection = {
         id: id(variables.connectionId),
         userId: variables.userId,
-        organizationId: id(variables.organizationId),
+        organizationIds,
+        grantedAt: time,
         clientId: variables.clientId,
         registeredClientId,
         clientName: variables.clientName ?? null,
         module: variables.module,
         scopes: [...scopes],
-        createdAt: stamp(),
+        createdAt: time,
         lastUsedAt: null,
       }
 
@@ -605,6 +644,8 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
     tokens,
     connectionsOf,
     tokensOf,
+    membershipsOfUser,
+    deleteConnection,
   })
 }
 

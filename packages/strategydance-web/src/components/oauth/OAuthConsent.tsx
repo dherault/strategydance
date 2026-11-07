@@ -1,7 +1,12 @@
 import { Link } from '@tanstack/react-router'
 import { type ReactNode, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS, MAX_AGENT_CONNECTIONS, SERVED_MODULES } from 'strategydance-core'
+import {
+  ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS,
+  MAX_AGENT_CONNECTION_ORGANIZATIONS,
+  MAX_AGENT_CONNECTIONS,
+  SERVED_MODULES,
+} from 'strategydance-core'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button, buttonVariants } from 'strategydance-design-system/components/ui/Button'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
@@ -20,7 +25,7 @@ import OAuthClientVerification from '~components/oauth/OAuthClientVerification'
 import OAuthConsentAccess from '~components/oauth/OAuthConsentAccess'
 import OAuthConsentFailureNotice from '~components/oauth/OAuthConsentFailureNotice'
 import OAuthConsentNotice from '~components/oauth/OAuthConsentNotice'
-import OAuthConsentOrganization from '~components/oauth/OAuthConsentOrganization'
+import OAuthConsentOrganizations from '~components/oauth/OAuthConsentOrganizations'
 
 import { ApiError } from '~data/api'
 import moduleMessages from '~data/intl/messages/module'
@@ -32,12 +37,18 @@ type Props = {
 // What became of the request once the member answered it
 type Outcome = 'redirecting' | 'denied' | 'expired' | 'refused'
 
+// Whether two ids name one organization, whichever form each came in
+function isSameId(a: string, b: string) {
+  return a.replaceAll('-', '').toLowerCase() === b.replaceAll('-', '').toLowerCase()
+}
+
 /*
   An external agent's request, for the member to allow or deny: who is asking, and what vouches
   for it, never its logo, which would load an address of its choosing; where the member goes back
-  to, with a warning when that is only their own computer; the organization the agent will act in,
-  the one they have open unless they choose another; and the access, read and write when the agent
-  asked for both unless they reduce it.
+  to, with a warning when that is only their own computer; the organizations the agent will act in,
+  ticked to begin with as the connection it replaces reaches them, or the one they have open, among
+  which they choose at least one; and the access, read and write when the agent asked for both
+  unless they reduce it.
 
   Either answer sends the browser back to the agent, replacing this page, so going back never lands
   on a request already decided. While it leaves, the page says where it is going, and both buttons
@@ -52,7 +63,8 @@ function OAuthConsent({ requestId }: Props) {
   const { data: memberships } = useUserOrganizations()
   const { organization: currentOrganization } = useCurrentOrganization()
 
-  const [chosenOrganizationId, setChosenOrganizationId] = useState<string | null>(null)
+  // What the reader ticked, or null while they keep what the page ticked to begin with
+  const [chosenOrganizationIds, setChosenOrganizationIds] = useState<string[] | null>(null)
   const [isWriteChosen, setIsWriteChosen] = useState(true)
   const [decision, setDecision] = useState<'allow' | 'deny' | null>(null)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
@@ -64,12 +76,14 @@ function OAuthConsent({ requestId }: Props) {
 
   const agentName = request.client.name ?? formatMessage(moduleMessages.unnamedAgent)
   const moduleName = formatMessage(getModuleMessages(definition.name).name)
-  const organizations = memberships.map(({ organization }) => organization)
-  const organization =
-    organizations.find(({ id }) => id === chosenOrganizationId)
-    ?? organizations.find(({ id }) => id === currentOrganization?.id)
-    ?? organizations[0]
-    ?? null
+  const organizationIds = memberships.map(({ organization }) => organization.id)
+  const reachedIds = organizationIds.filter(id => request.reachedOrganizationIds.some(reached => isSameId(reached, id)))
+  const initialIds = reachedIds.length
+    ? reachedIds
+    : [organizationIds.find(id => id === currentOrganization?.id) ?? organizationIds[0]].filter(id => id !== undefined)
+  const chosenIds = (chosenOrganizationIds ?? initialIds)
+    .filter(id => organizationIds.includes(id))
+    .slice(0, MAX_AGENT_CONNECTION_ORGANIZATIONS)
   const isWriteAsked = request.scopes.includes(definition.scopes.write)
   const scopes =
     isWriteAsked && isWriteChosen ? [definition.scopes.read, definition.scopes.write] : [definition.scopes.read]
@@ -103,13 +117,13 @@ function OAuthConsent({ requestId }: Props) {
   }
 
   async function allow() {
-    if (!organization) return
+    if (!chosenIds.length) return
 
     setDecision('allow')
     setIsFull(false)
 
     try {
-      const redirectUrl = await approveOAuthAuthorizationRequest(requestId, organization.id, scopes)
+      const redirectUrl = await approveOAuthAuthorizationRequest(requestId, chosenIds, scopes)
 
       if (redirectUrl) leave(redirectUrl)
       else setOutcome('refused')
@@ -186,9 +200,9 @@ function OAuthConsent({ requestId }: Props) {
         </p>
       )}
       <div className="flex flex-col gap-6">
-        <OAuthConsentOrganization
-          organization={organization}
-          onChange={setChosenOrganizationId}
+        <OAuthConsentOrganizations
+          chosenIds={chosenIds}
+          onChange={setChosenOrganizationIds}
           disabled={isDeciding}
         />
         <OAuthConsentAccess
@@ -219,7 +233,7 @@ function OAuthConsent({ requestId }: Props) {
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <Button
-          disabled={isDeciding || !organization}
+          disabled={isDeciding || !chosenIds.length}
           icon={decision === 'allow' ? <Spinner tone="current" /> : undefined}
           onClick={allow}
         >

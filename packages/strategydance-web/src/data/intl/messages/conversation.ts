@@ -1050,6 +1050,24 @@ const conversationMessages = defineMessages({
     description:
       "Accessible name of the placeholder shown instead of an image the reader sent in a message, when the image could not be read. {name} is the image's file name, such as screenshot.png.",
   },
+  attachmentDownload: {
+    id: 'conversation.attachmentDownload',
+    defaultMessage: 'Download {name}',
+    description:
+      "Accessible name and tooltip of a file other than an image sent in a conversation, such as a PDF, which downloads it when clicked. {name} is the file's name, such as plan.pdf.",
+  },
+  attachmentDownloadFailed: {
+    id: 'conversation.attachmentDownloadFailed',
+    defaultMessage: '{name} could not be downloaded. Check your connection, then try again.',
+    description:
+      "Shown in a notification when a file sent in a conversation could not be downloaded, for a reason trying again may fix. {name} is the file's name, such as plan.pdf.",
+  },
+  attachmentUnavailable: {
+    id: 'conversation.attachmentUnavailable',
+    defaultMessage: '{name} is no longer available.',
+    description:
+      "Shown in a notification when the reader tried to download a file sent in a conversation that was deleted, or that they may no longer read. {name} is the file's name, such as plan.pdf.",
+  },
   threadEmpty: {
     id: 'conversation.threadEmpty',
     defaultMessage: 'Ask about your company, a decision, or what to do next. Type @ to mention a document.',

@@ -1,7 +1,6 @@
-import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { BudgetToolContext } from '~types'
+import type { RegisterModuleTool } from '~types'
 
 import { BILL_LIST_PAGE_SIZE } from '~constants'
 
@@ -47,8 +46,8 @@ const outputSchema = z.object({
 })
 
 // `list_bills`: a page of the live bills, filtered, the latest paid first
-function registerListBills(server: McpServer, { caller, toAddress }: BudgetToolContext) {
-  server.registerTool(
+function registerListBills(registerTool: RegisterModuleTool) {
+  registerTool(
     'list_bills',
     {
       title: 'List bills',
@@ -57,7 +56,7 @@ function registerListBills(server: McpServer, { caller, toAddress }: BudgetToolC
       outputSchema,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     },
-    async filters => {
+    async (filters, _serverContext, { caller, toAddress }) => {
       const listed = await listBills(caller, filters, toAddress)
 
       if (listed.outcome !== 'listed') return toBudgetRefusal(listed)

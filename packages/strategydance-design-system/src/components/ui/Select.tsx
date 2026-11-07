@@ -93,7 +93,8 @@ function Select({
     While the list is open, Radix turns pointer events off outside it, so a tap on the trigger
     lands on the page and closes the list. Unlike a mouse's click, the tap's click then reaches the
     trigger, which opens the list again: that click is swallowed, so a second tap closes the list as
-    a second click does
+    a second click does. The next gesture or a cancelled tap ends the wait, since a label's click or
+    an assistive technology's comes without a tap on the trigger
   */
   const isClosingTapRef = useRef(false)
 
@@ -118,9 +119,6 @@ function Select({
           'group flex cursor-pointer items-center justify-between gap-2 text-left data-placeholder:text-muted-foreground data-[state=open]:border-secondary data-[state=open]:bg-white [&>span]:truncate',
           !hasField && className,
         )}
-        onPointerDown={() => {
-          isClosingTapRef.current = false
-        }}
         onClick={event => {
           if (!isClosingTapRef.current) return
           isClosingTapRef.current = false
@@ -139,15 +137,21 @@ function Select({
           side={side}
           sideOffset={4}
           onPointerDownOutside={event => {
+            const trigger = triggerRef.current
             const { pointerType, clientX, clientY } = event.detail.originalEvent
-            const rect = triggerRef.current?.getBoundingClientRect()
-            isClosingTapRef.current =
-              pointerType !== 'mouse'
-              && !!rect
-              && clientX >= rect.left
-              && clientX <= rect.right
-              && clientY >= rect.top
-              && clientY <= rect.bottom
+            if (!trigger || pointerType === 'mouse') return
+            const rect = trigger.getBoundingClientRect()
+            if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return
+
+            isClosingTapRef.current = true
+            const { ownerDocument } = trigger
+            const endTap = () => {
+              isClosingTapRef.current = false
+              ownerDocument.removeEventListener('pointerdown', endTap, true)
+              ownerDocument.removeEventListener('pointercancel', endTap, true)
+            }
+            ownerDocument.addEventListener('pointerdown', endTap, true)
+            ownerDocument.addEventListener('pointercancel', endTap, true)
           }}
           className="z-50 max-h-[min(280px,var(--radix-select-content-available-height))] w-(--radix-select-trigger-width) overflow-hidden rounded-xs border border-border bg-popover font-sans shadow-md duration-150 ease-out data-[side=bottom]:slide-in-from-top-[2px] data-[side=top]:slide-in-from-bottom-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0"
         >

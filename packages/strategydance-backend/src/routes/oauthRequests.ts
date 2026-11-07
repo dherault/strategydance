@@ -38,16 +38,10 @@ function createOAuthRequestsRouter() {
   const router = Router()
 
   const paramsSchema = z.object({ requestId: z.string().regex(UUID_PATTERN) })
-  const scopesSchema = z.array(z.string().max(100)).min(1).max(2)
-  const approvalSchema = z.union([
-    z.object({
-      organizationIds: z.array(z.string().regex(UUID_PATTERN)).min(1).max(MAX_AGENT_CONNECTION_ORGANIZATIONS),
-      scopes: scopesSchema,
-    }),
-    // A consent page from before a connection reached several organizations, which a browser may
-    // still have open while the release that brings them reaches Hosting last
-    z.object({ organizationId: z.string().regex(UUID_PATTERN), scopes: scopesSchema }),
-  ])
+  const approvalSchema = z.object({
+    organizationIds: z.array(z.string().regex(UUID_PATTERN)).min(1).max(MAX_AGENT_CONNECTION_ORGANIZATIONS),
+    scopes: z.array(z.string().max(100)).min(1).max(2),
+  })
 
   type RequestParams = z.infer<typeof paramsSchema>
 
@@ -90,8 +84,7 @@ function createOAuthRequestsRouter() {
       const approval = await approveOAuthAuthorizationRequest({
         requestId: request.params.requestId,
         userId: readViewer(request).id,
-        organizationIds:
-          'organizationIds' in request.body ? request.body.organizationIds : [request.body.organizationId],
+        organizationIds: request.body.organizationIds,
         scopes: request.body.scopes,
       })
 

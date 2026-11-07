@@ -793,19 +793,6 @@
     "inactiveReason": "PARKED"
   },
   {
-    "id": "drop-your-ai",
-    "name": "Drop Your AI",
-    "type": "WEBSITE",
-    "rootUrl": "https://www.dropyourai.com/",
-    "submissionUrl": "https://www.dropyourai.com/submit-tool",
-    "description": "",
-    "categories": [],
-    "businessModel": "UNKNOWN",
-    "lastChecked": null,
-    "unreachableSince": null,
-    "inactiveReason": "BROKEN_SUBMISSION"
-  },
-  {
     "id": "earlylaunch",
     "name": "EarlyLaunch",
     "type": "WEBSITE",
@@ -2377,19 +2364,6 @@
     "lastChecked": null,
     "unreachableSince": null,
     "inactiveReason": "UNREACHABLE"
-  },
-  {
-    "id": "yet-another-ai-tool-directory",
-    "name": "Yet Another AI Tool Directory",
-    "type": "WEBSITE",
-    "rootUrl": "https://yaatd.com/",
-    "submissionUrl": "https://yaatd.com/",
-    "description": "",
-    "categories": [],
-    "businessModel": "UNKNOWN",
-    "lastChecked": null,
-    "unreachableSince": null,
-    "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
     "id": "yourstack",

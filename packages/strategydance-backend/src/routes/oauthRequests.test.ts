@@ -405,15 +405,15 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     expect(fake.connections.size).toBe(0)
   })
 
-  test('takes the one organization a consent page from before several sends, for the release that brings them', async () => {
+  test('refuses the single organizationId a consent page from before several organizations sent', async () => {
     const requestId = await createRequest()
     const { status } = await call<{ redirectUrl: string }>(`${requestId}/approve`, {
       method: 'POST',
       body: { organizationId: ORGANIZATION_ID, scopes: ['documents:read'] },
     })
 
-    expect(status).toBe(200)
-    expect([...fake.connections.values()][0]?.organizationIds).toEqual([ORGANIZATION_ID])
+    expect(status).toBe(400)
+    expect(fake.connections.size).toBe(0)
   })
 
   test('decides a request once: Allow sent twice makes one connection and one code', async () => {

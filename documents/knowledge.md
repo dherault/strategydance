@@ -140,9 +140,10 @@ writes none of them, so no live query watches them until a page does.
 - its title is "Strategy Dance Knowledge";
 - its scopes are `knowledge:read` and `knowledge:write`.
 
-Its server is `createKnowledgeServer(caller)`, in `src/modules/knowledge/`, with one file per tool, on
-`domain/knowledge/`. Like the Tasks module, it carries no AI permission of its own: an agent acting as
-a member reads the catalogue and keeps the company's state as that member could.
+It registers its tools with `registerKnowledgeModule(server, access)`, in `src/modules/knowledge/`,
+with one file per tool, on `domain/knowledge/`, on the server of the modules its caller names. Like
+the Tasks module, it carries no AI permission of its own: an agent acting as a member reads the
+catalogue and keeps the company's state as that member could.
 
 Its tools, in their frozen order:
 

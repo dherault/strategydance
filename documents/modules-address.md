@@ -165,7 +165,10 @@ given several modules says, in order:
 3. the idempotency key, once;
 4. the organizations the connection reaches, once, as `toModuleInstructions` writes them.
 
-A server given one module says what it says today.
+The key and the organizations are said where a served module is listed, whose tools take both:
+Knowledge's and Subagents' servers never said them. A module listed alone on a server given several
+is worded as beside none, and its server keeps the name `strategydance`. A server given one module
+says what it says today.
 
 ### Addresses (M2)
 

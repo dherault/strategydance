@@ -1041,6 +1041,56 @@ describe('the one address, every served module at /mcp', () => {
     expect(tasksOfOrganization()).toEqual([])
   })
 
+  test("challenges a call to a tool of a module the connection does not hold for that module's read, writing nothing", async () => {
+    const tokens = await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+    const narrowed = await refresh(tokens, { resource: ONE_ADDRESS, scope: 'tasks:read' })
+    const cases = [
+      [
+        tokens.access_token,
+        callTool('read_budget', { ...IN_ORGANIZATION }),
+        'documents:read documents:write tasks:read budget:read',
+        'read_budget needs budget:read',
+      ],
+      [
+        narrowed.access_token,
+        createDocument('Refused'),
+        'documents:read documents:write tasks:read',
+        'create_document needs documents:read',
+      ],
+    ] as const
+
+    for (const [token, call, scope, description] of cases) {
+      const challenged = await send(call, { token, path: ONE_PATH })
+
+      expect(challenged.status).toBe(403)
+      expect(challenged.body.error).toBe('insufficient_scope')
+      expect(challenged.headers.get('www-authenticate')).toContain(`scope="${scope}"`)
+      expect(challenged.headers.get('www-authenticate')).toContain(`error_description="Calling ${description}"`)
+      expect(challenged.headers.get('www-authenticate')).toContain(
+        `resource_metadata="${ONE_ADDRESS_RESOURCE_METADATA}"`,
+      )
+    }
+
+    expect(documentsOfOrganization()).toEqual([])
+  })
+
+  test("answers a call to a name no module of the address has as the SDK does, at a module's own address too", async () => {
+    const oneAddress = await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+    const documents = await connect()
+
+    for (const [token, path, name] of [
+      [oneAddress.access_token, ONE_PATH, 'no_such_tool'],
+      // A tool of a module served to no external agent
+      [oneAddress.access_token, ONE_PATH, 'link_knowledge'],
+      [documents.access_token, '/mcp/documents', 'read_budget'],
+    ] as const) {
+      const answered = await send(callTool(name, { ...IN_ORGANIZATION }), { token, path })
+
+      expect(answered.status).toBe(200)
+      expect(answered.body.error.message).toContain('not found')
+    }
+  })
+
   test('applies a write retried after a consent again once, its scope outliving the connection it replaced', async () => {
     const write = {
       ...createDocument('Once'),

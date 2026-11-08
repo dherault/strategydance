@@ -15,6 +15,7 @@ import respondJsonRpcError from '~utils/respondJsonRpcError'
 
 import moduleAddressRateLimitMiddleware from '~middleware/moduleAddressRateLimit'
 import moduleRateLimitMiddleware from '~middleware/moduleRateLimit'
+import createUnheldModuleChallengeMiddleware from '~middleware/unheldModuleChallenge'
 
 import createAgentConnectionTokenVerifier from '~domain/oauth/createAgentConnectionTokenVerifier'
 
@@ -40,6 +41,8 @@ import createModuleHandler from '~modules/createModuleHandler'
     server lists the modules of the address whose read the token holds
   - The connection's rate limit, then the body, read only now, so nobody unverified has a megabyte
     buffered, and handed to the handler whole, since the parser has consumed the stream
+  - A call to a tool of a module the address serves but the token cannot read answers 403, naming
+    the scopes the client asks again for, since the server lists no tool of such a module
 
   No App Check, which no external agent can carry: the token is the guard. Everything answers in
   MCP's JSON-RPC, never the app's envelope
@@ -58,6 +61,8 @@ function createModulesRouter() {
       onerror: error => logger.error(`POST ${address.path} failed`, error),
     })
 
+    const resourceMetadataUrl = getOAuthProtectedResourceMetadataUrl(resource)
+
     router.post(
       path,
       checkOrigin,
@@ -65,10 +70,11 @@ function createModulesRouter() {
       requireBearerAuth({
         verifier: createAgentConnectionTokenVerifier(resource),
         expectedResource: resource,
-        resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resource),
+        resourceMetadataUrl,
       }),
       moduleRateLimitMiddleware,
       parseBody,
+      createUnheldModuleChallengeMiddleware(address, resourceMetadataUrl),
       (request: Request, response: Response) => nodeHandler(request, response, request.body),
     )
 

@@ -82,3 +82,5 @@ const { Select } = window.StrategyDanceDesignSystem
   around it, since a disabled control takes no pointer events
 - The keyboard works as a native select's: arrows move, typing jumps to a match, Enter picks and
   Escape closes
+- A press outside the open list only closes it, a tap as a click: a second press on the trigger
+  closes the list, and a press on its label or anywhere else clicks nothing there

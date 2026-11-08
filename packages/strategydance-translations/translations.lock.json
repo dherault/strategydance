@@ -5162,7 +5162,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsAddress": {
-        "hash": "c52dbb98674d4f25",
+        "hash": "7bb02f4a185877f0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsChatGpt": {
@@ -5198,7 +5198,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsCopyAddress": {
-        "hash": "9bcf5514a52635bc",
+        "hash": "964c1097aa17dfb2",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsCopySetup": {
@@ -5214,7 +5214,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsDescription": {
-        "hash": "5e638c44391a8fc1",
+        "hash": "2ea13a1cb835e388",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsManage": {

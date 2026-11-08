@@ -501,19 +501,21 @@ const moduleMessages = defineMessages({
   agentsDescription: {
     id: 'module.agentsDescription',
     defaultMessage:
-      'Add this address to an AI agent of your own, such as Claude, ChatGPT or Cursor. It asks you to sign in and allow it, then acts as you in the organizations you choose, within what each lets agents do.',
+      'Add this address to an AI agent of your own, such as Claude, ChatGPT or Cursor. One connection reaches every module you allow: it asks you to sign in and choose what it may do in each, then acts as you in the organizations you choose, within what each lets agents do.',
     description:
-      "Lead of the dialog explaining how to connect an AI agent of the member's own to a module. Claude, ChatGPT and Cursor are product names, kept as they are.",
+      "Lead of the dialog explaining how to connect an AI agent of the member's own to Strategy Dance, from a module's page. The address serves every module, Documents, Tasks and Budget, and the member chooses on one consent what the agent may do in each. Claude, ChatGPT and Cursor are product names, kept as they are.",
   },
   agentsAddress: {
     id: 'module.agentsAddress',
     defaultMessage: 'Address',
-    description: "Label of the module's web address, which the member adds to their agent, in the agents dialog.",
+    description:
+      "Label of Strategy Dance's web address for agents, which serves every module and which the member adds to their agent, in the agents dialog.",
   },
   agentsCopyAddress: {
     id: 'module.agentsCopyAddress',
     defaultMessage: 'Copy the address',
-    description: "Accessible name and tooltip of the button that copies the module's address in the agents dialog.",
+    description:
+      "Accessible name and tooltip of the button that copies Strategy Dance's address for agents in the agents dialog.",
   },
   agentsCopySetup: {
     id: 'module.agentsCopySetup',

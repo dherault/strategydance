@@ -14,7 +14,7 @@
   "module.agentsCopySetup": "Copiar",
   "module.agentsCursor": "Cursor",
   "module.agentsCursorSteps": "Adicione este servidor ao ficheiro mcp.json que o Cursor abre a partir das suas definições de MCP.",
-  "module.agentsDescription": "Adicione este endereço a um agente de IA seu, como o Claude, ChatGPT ou Cursor. Ele pedirá para iniciar sessão e autorizar, passando a agir em seu nome nas organizações que escolher, dentro do que cada uma permite que os agentes façam.",
+  "module.agentsDescription": "Adicione este endereço a um agente de IA seu, como o Claude, ChatGPT ou Cursor. Uma única conexão alcança todos os módulos que permitir: pede para iniciar sessão e escolher o que ele pode fazer em cada um, agindo depois em seu nome nas organizações que escolher, dentro do que cada uma permite que os agentes façam.",
   "module.agentsManage": "Pode ver e desconectar os seus agentes em Agentes conectados, na sua conta.",
   "module.agentsOpenConnectedAgents": "Abrir Agentes conectados",
   "module.agentsTitle": "Usar {module} com os seus agentes",

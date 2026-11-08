@@ -14,7 +14,7 @@
   "module.agentsCopySetup": "复制",
   "module.agentsCursor": "Cursor",
   "module.agentsCursorSteps": "将此服务器添加到 Cursor 从其 MCP 设置中打开的 mcp.json 文件中。",
-  "module.agentsDescription": "将此地址添加到您自己的 AI 智能体（例如 Claude、ChatGPT 或 Cursor）中。它会提示您登录并授权，随后在各组织允许智能体执行的权限范围内，代表您在所选组织中开展操作。",
+  "module.agentsDescription": "将此地址添加到您自己的 AI 智能体（例如 Claude、ChatGPT 或 Cursor）中。只需一次连接即可访问您允许的每个模块：它会提示您登录并选择其在各个模块中可执行的操作，随后在各组织允许智能体执行的权限范围内，代表您在所选组织中进行操作。",
   "module.agentsManage": "您可以在账户的“已连接智能体”中查看并断开智能体连接。",
   "module.agentsOpenConnectedAgents": "打开已连接智能体",
   "module.agentsTitle": "配合您的智能体使用 {module}",

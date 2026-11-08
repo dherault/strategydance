@@ -554,18 +554,36 @@ describe('POST /oauth/token, the refresh token grant', () => {
       expect(scopesOf(refreshed.refresh_token)).toEqual(['documents:read', 'documents:write', 'tasks:read'])
     })
 
-    test('refuses a refresh asking again for a write taken away', async () => {
+    test('issues what is left to a refresh still naming a write taken away, as a client repeating its first scope does', async () => {
       const { tokens } = await connect({ resource: ONE_ADDRESS, scopes })
 
       narrow(['documents:read', 'tasks:read', 'tasks:write'])
 
+      const refreshed = (await refresh(tokens.refresh_token, { ...atOneAddress, scope: scopes.join(' ') }))
+        .body as unknown as Tokens
+
+      expect(refreshed.scope).toBe('documents:read tasks:read tasks:write')
+      expect(scopesOf(refreshed.access_token)).toEqual(['documents:read', 'tasks:read', 'tasks:write'])
+    })
+
+    test('refuses a refresh naming only what was taken away, or a scope its token was never granted', async () => {
+      const { tokens } = await connect({ resource: ONE_ADDRESS, scopes })
+
+      narrow(['documents:read'])
+
       expectError(
-        await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'documents:read documents:write' }),
+        await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'tasks:read tasks:write' }),
         'invalid_scope',
       )
-      expect((await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'documents:read' })).body.scope).toBe(
-        'documents:read',
+      expectError(
+        await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'documents:read budget:read' }),
+        'invalid_scope',
       )
+      expectError(
+        await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'documents:read tasks:write' }),
+        'invalid_scope',
+      )
+      expect((await refresh(tokens.refresh_token, atOneAddress)).body.scope).toBe('documents:read')
     })
 
     test('answers a duplicate of a rotation from before the narrowing with its pair, naming what is left', async () => {

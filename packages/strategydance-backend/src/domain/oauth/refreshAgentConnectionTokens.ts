@@ -52,8 +52,10 @@ function refuse(error: string, description: string): TokenResult {
   A refresh may name fewer scopes than its token was granted, never others (RFC 6749, 6): the access
   token it issues holds those alone, and the refresh token keeps the ones it had, so a later refresh
   naming none gets them all back. Both keep within what the connection holds now, which the member
-  may have narrowed since on Connected agents, so a client is never told of access taken away, and a
-  refresh asking for it again is refused as for any scope never granted
+  may have narrowed since on Connected agents, so a client is never told of access taken away. A
+  refresh still naming it, as a client repeating the scope it first asked for does, gets what is
+  left, which its answer names (RFC 6749, 5.1), rather than a refusal that would send the member
+  through a consent again
 */
 async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promise<TokenResult> {
   const { refresh_token: refreshToken, client_id: clientId, resource, scope } = values
@@ -81,25 +83,31 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
     return refuse('invalid_grant', "The connection reaches none of the member's organizations any more")
   }
 
-  // What the access token holds: the scopes the refresh names, within the refresh token's, in its
-  // order, under the rule a consent holds to: at least one module's read, and never a write without
-  // its read. The refresh token's are those of a module its address still serves, so a module the
-  // address stops serving drops out rather than refuse every refresh, and those its connection still
-  // holds, so a narrowing on Connected agents carries on into the pair issued. A narrowing that
-  // commits between this read and the rotation shows from the next call, since the verifier narrows
-  // an access token to its connection's at every call
-  const connectionScopes = readHeldScopes(target.modules, token.connection.scopes)
-  const refreshScopes = readHeldScopes(target.modules, token.scopes).filter(granted =>
-    connectionScopes.includes(granted),
-  )
-  const asked = scope ? new Set(scope.split(' ').filter(Boolean)) : new Set(refreshScopes)
-  const accessScopes = refreshScopes.filter(granted => asked.has(granted))
+  // What the refresh names: the refresh token's scopes or fewer, under the rule a consent holds to,
+  // at least one module's read and never a write without its read. The refresh token's are those of
+  // a module its address still serves, so a module the address stops serving drops out rather than
+  // refuse every refresh
+  const tokenScopes = readHeldScopes(target.modules, token.scopes)
+  const granted = new Set<string>(tokenScopes)
+  const asked = scope ? new Set(scope.split(' ').filter(Boolean)) : granted
 
-  if (accessScopes.length !== asked.size || !checkModuleScopes(target.modules, accessScopes)) {
+  if ([...asked].some(named => !granted.has(named)) || !checkModuleScopes(target.modules, [...asked])) {
     return refuse(
       'invalid_scope',
       `A refresh asks for ${describeModuleScopes(target.modules)}, within the scopes its token was granted`,
     )
+  }
+
+  // What the pair holds: those within what the connection still holds, so a narrowing on Connected
+  // agents carries on into it, in `MODULES`' order. A narrowing that commits between this read and
+  // the rotation shows from the next call, since the verifier narrows an access token to its
+  // connection's at every call
+  const connectionScopes = readHeldScopes(target.modules, token.connection.scopes)
+  const refreshScopes = tokenScopes.filter(held => connectionScopes.includes(held))
+  const accessScopes = refreshScopes.filter(held => asked.has(held))
+
+  if (!checkModuleScopes(target.modules, accessScopes)) {
+    return refuse('invalid_scope', 'The member has since taken away every module this refresh asks for')
   }
 
   if (!token.usedAt) {

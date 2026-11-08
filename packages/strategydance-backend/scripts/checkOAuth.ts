@@ -1083,14 +1083,12 @@ async function checkAccess() {
       && duplicate.scope === tasksRead.join(' '),
   )
 
-  const refreshed = (await (await refreshAtOneAddress(agent, rotated.refresh_token)).json()) as Tokens
-  const askedAgain = await refreshAtOneAddress(agent, refreshed.refresh_token, 'tasks:read tasks:write')
+  // A client repeating the scope it first asked for, as many refresh with
+  const refreshed = (await (await refreshAtOneAddress(agent, rotated.refresh_token, every.join(' '))).json()) as Tokens
 
   check(
-    'a refresh after the narrowing issues and names the narrowed scopes, and one asking for the write again is refused',
-    refreshed.scope === tasksRead.join(' ')
-      && askedAgain.status === 400
-      && ((await askedAgain.json()) as { error?: string }).error === 'invalid_scope',
+    'a refresh after the narrowing, still naming the write taken away, issues and names what is left',
+    refreshed.scope === tasksRead.join(' '),
   )
 
   const refusals = {

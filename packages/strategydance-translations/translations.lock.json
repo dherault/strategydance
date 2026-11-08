@@ -5157,6 +5157,14 @@
         "hash": "eed7784f542e3a9c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.accessSaveError": {
+        "hash": "c1454bee91a42cf1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.accessSaved": {
+        "hash": "1f70402d06a29931",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.agentDomain": {
         "hash": "204d5ac88da1feaa",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -5359,6 +5367,26 @@
       },
       "module.documentsWriteAccess": {
         "hash": "8387381ade568074",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editAccess": {
+        "hash": "1580fd15ea6fd7cb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editAccessCancel": {
+        "hash": "dffd2b19f0d0dc46",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editAccessDescription": {
+        "hash": "f2611b8e2c4d4ca7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editAccessSave": {
+        "hash": "051038f382d2a828",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editAccessTitle": {
+        "hash": "5701809b4614f370",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.editOrganizations": {

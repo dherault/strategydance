@@ -416,6 +416,47 @@ const moduleMessages = defineMessages({
     description:
       'On a connected agent, in place of the organizations it acts in, when the member has left every one it was allowed in.',
   },
+  editAccess: {
+    id: 'module.editAccess',
+    defaultMessage: 'Access',
+    description:
+      "Button on an agent connected at Strategy Dance's one address, on the account page's Connected agents tab, that opens a dialog to narrow what it may do in each module.",
+  },
+  editAccessTitle: {
+    id: 'module.editAccessTitle',
+    defaultMessage: 'What {agentName} may do',
+    description:
+      "Title of the dialog where a member narrows what a connected agent may do in each module. {agentName} is the agent's name, such as Claude.",
+  },
+  editAccessDescription: {
+    id: 'module.editAccessDescription',
+    defaultMessage:
+      'Your change applies from its next call. To allow it more, connect it again from the agent and choose on the consent page.',
+    description:
+      'Explanation in the dialog where a member narrows what a connected agent may do in each module: here access only goes down, and only the agent connecting again can ask for more. "Its" and "it" are the agent.',
+  },
+  editAccessCancel: {
+    id: 'module.editAccessCancel',
+    defaultMessage: 'Cancel',
+    description: "Button that closes the dialog narrowing a connected agent's access, changing nothing.",
+  },
+  editAccessSave: {
+    id: 'module.editAccessSave',
+    defaultMessage: 'Save',
+    description: "Button that saves the access chosen in the dialog narrowing a connected agent's access.",
+  },
+  accessSaved: {
+    id: 'module.accessSaved',
+    defaultMessage: '{agentName} now has the access you chose.',
+    description:
+      "Confirmation once a member narrowed what a connected agent may do in each module. {agentName} is the agent's name.",
+  },
+  accessSaveError: {
+    id: 'module.accessSaveError',
+    defaultMessage: "{agentName}'s access could not be changed. Try again.",
+    description:
+      "Shown when narrowing what a connected agent may do in each module failed. {agentName} is the agent's name.",
+  },
   editOrganizations: {
     id: 'module.editOrganizations',
     defaultMessage: 'Organizations',

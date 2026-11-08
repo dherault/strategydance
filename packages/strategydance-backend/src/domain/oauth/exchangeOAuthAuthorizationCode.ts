@@ -1,3 +1,4 @@
+import { toModuleScopesInOrder } from 'strategydance-core'
 import {
   exchangeOAuthAuthorizationCode as exchangeCode,
   getOAuthAuthorizationRequestByCode,
@@ -69,6 +70,9 @@ async function exchangeOAuthAuthorizationCode(values: CodeExchange): Promise<Tok
 
   const accessToken = createOpaqueToken()
   const refreshToken = createOpaqueToken()
+  // What the connection grants, in the one order a grant is named in, whichever order Allow stored
+  // the scopes it kept in
+  const scopes = toModuleScopesInOrder(request.connection.scopes)
 
   try {
     await exchangeCode(dataConnect, {
@@ -76,7 +80,7 @@ async function exchangeOAuthAuthorizationCode(values: CodeExchange): Promise<Tok
       codeHash,
       connectionId: request.connection.id,
       resource: request.resource,
-      scopes: request.connection.scopes,
+      scopes,
       accessTokenHash: hashOAuthToken(accessToken),
       refreshTokenHash: hashOAuthToken(refreshToken),
     })
@@ -96,7 +100,7 @@ async function exchangeOAuthAuthorizationCode(values: CodeExchange): Promise<Tok
     return refuse('invalid_grant', 'The code has expired')
   }
 
-  return { outcome: 'tokens', tokens: toTokenAnswer({ accessToken, refreshToken, scopes: request.connection.scopes }) }
+  return { outcome: 'tokens', tokens: toTokenAnswer({ accessToken, refreshToken, scopes }) }
 }
 
 export default exchangeOAuthAuthorizationCode

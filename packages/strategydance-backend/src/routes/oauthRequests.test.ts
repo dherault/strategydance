@@ -223,6 +223,7 @@ describe('GET /oauth/requests/:requestId', () => {
           address: 'documents',
           module: 'documents',
           scopes: ['documents:read', 'documents:write'],
+          heldScopes: [],
           expiresAt: expect.any(String),
           reachedOrganizationIds: [],
         },
@@ -243,6 +244,37 @@ describe('GET /oauth/requests/:requestId', () => {
     expect(answer.status === 'success' && answer.data).toEqual(
       expect.objectContaining({ address: 'strategydance', module: null, scopes: ['documents:read', 'tasks:read'] }),
     )
+  })
+
+  test("names the access the caller's connection for that client at that address holds, beside what was asked for", async () => {
+    const all = ['documents:read', 'documents:write', 'tasks:read', 'tasks:write', 'budget:read', 'budget:write']
+
+    await approve(await createRequest({ resource: ONE_ADDRESS, scopes: all }), [
+      'budget:read',
+      'documents:read',
+      'documents:write',
+    ])
+    await approve(await createRequest({ scopes: ['documents:read'] }), ['documents:read'])
+
+    const { answer } = await call<Record<string, unknown>>(
+      await createRequest({ resource: ONE_ADDRESS, scopes: ['tasks:read'] }),
+    )
+    const { answer: atModule } = await call<Record<string, unknown>>(await createRequest())
+    const { answer: forStranger } = await call<Record<string, unknown>>(
+      await createRequest({ resource: ONE_ADDRESS, scopes: ['tasks:read'] }),
+      { viewer: 'stranger' },
+    )
+
+    expect(answer.status === 'success' && answer.data).toEqual(
+      expect.objectContaining({
+        scopes: ['tasks:read'],
+        heldScopes: ['documents:read', 'documents:write', 'budget:read'],
+      }),
+    )
+    expect(atModule.status === 'success' && atModule.data).toEqual(
+      expect.objectContaining({ heldScopes: ['documents:read'] }),
+    )
+    expect(forStranger.status === 'success' && forStranger.data).toEqual(expect.objectContaining({ heldScopes: [] }))
   })
 
   test('shows a registered client unverified, and its loopback address with the port it named', async () => {
@@ -401,6 +433,80 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     }
 
     expect(fake.connections.size).toBe(0)
+  })
+
+  test('keeps what the connection it replaces held beside what was asked for, and nothing neither asked for nor held', async () => {
+    await approve(await createRequest({ resource: ONE_ADDRESS, scopes: ['documents:read', 'documents:write'] }))
+
+    const [earlier] = fake.connections.values()
+    const tasksAlone = await createRequest({ resource: ONE_ADDRESS, scopes: ['tasks:read'] })
+
+    expect((await approve(tasksAlone, ['tasks:read', 'budget:read'])).status).toBe(400)
+    expect((await approve(tasksAlone, ['documents:read', 'documents:write', 'tasks:write'])).status).toBe(400)
+    expect([...fake.connections.values()]).toEqual([earlier])
+    expect((await approve(tasksAlone, ['tasks:read', 'documents:read', 'documents:write'])).status).toBe(200)
+
+    const [replaced] = fake.connections.values()
+
+    expect(replaced?.id).not.toBe(earlier?.id)
+    expect(new Set(replaced?.scopes)).toEqual(new Set(['documents:read', 'documents:write', 'tasks:read']))
+  })
+
+  test('lets the member keep a held module, drop one, or narrow it to read', async () => {
+    const all = ['documents:read', 'documents:write', 'tasks:read', 'tasks:write']
+
+    await approve(await createRequest({ resource: ONE_ADDRESS, scopes: all }), all)
+    await approve(await createRequest({ resource: ONE_ADDRESS, scopes: ['budget:read'] }), [
+      'documents:read',
+      'budget:read',
+    ])
+
+    expect(new Set([...fake.connections.values()][0]?.scopes)).toEqual(new Set(['documents:read', 'budget:read']))
+  })
+
+  test('refuses held access the connection lost before Allow reached the database', async () => {
+    await approve(await createRequest({ resource: ONE_ADDRESS, scopes: ['documents:read', 'documents:write'] }))
+
+    const requestId = await createRequest({ resource: ONE_ADDRESS, scopes: ['tasks:read'] })
+    const [connection] = fake.connections.values()
+
+    // The connection narrowed to read once the backend read what it held, before the mutation's lock
+    fake.beforeOperation = async name => {
+      if (name === 'ApproveOAuthAuthorizationRequest') connection!.scopes = ['documents:read']
+    }
+
+    const { status, answer } = await approve(requestId, ['documents:read', 'documents:write', 'tasks:read'])
+
+    expect(status).toBe(400)
+    expect(answer.status === 'error' && answer.message).toBe(
+      'The connection this consent replaces no longer holds that access',
+    )
+    expect([...fake.connections.values()]).toEqual([connection])
+  })
+
+  test('refuses a scope the request did not ask for when the call names no held scopes, as the backend before the one address sends it', async () => {
+    await approve(await createRequest({ resource: ONE_ADDRESS, scopes: ['documents:read', 'documents:write'] }))
+
+    const requestId = await createRequest({ resource: ONE_ADDRESS, scopes: ['tasks:read'] })
+    const approveRequest = fake.sdk.approveOAuthAuthorizationRequest as (...args: unknown[]) => Promise<unknown>
+    const variables = {
+      id: requestId,
+      userId: MEMBER,
+      organizationIds: [ORGANIZATION_ID],
+      connectionId: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      clientId: CLIENT_ID_URL,
+      registeredClientId: null,
+      clientName: 'Example Agent',
+      module: 'strategydance',
+      resource: ONE_ADDRESS,
+      codeHash: 'hash',
+    }
+
+    expect(approveRequest({}, { ...variables, scopes: ['tasks:read', 'documents:read'] })).rejects.toThrow(
+      'The authorization request was decided already or has expired',
+    )
+    expect(await approveRequest({}, { ...variables, scopes: ['tasks:read'] })).toBeDefined()
+    expect([...fake.connections.values()][0]?.scopes).toEqual(['tasks:read'])
   })
 
   test("takes every served module's two scopes, and no more", async () => {

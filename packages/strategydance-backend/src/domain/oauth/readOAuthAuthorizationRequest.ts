@@ -10,6 +10,7 @@ import { dataConnect } from '~firebase'
 
 import isLoopbackRedirectUri from '~domain/oauth/isLoopbackRedirectUri'
 import loadOAuthAuthorizationRequest from '~domain/oauth/loadOAuthAuthorizationRequest'
+import readHeldScopes from '~domain/oauth/readHeldScopes'
 
 type Reading =
   | { outcome: 'found'; summary: OAuthAuthorizationRequestSummary }
@@ -20,10 +21,10 @@ type Reading =
   What the consent page shows of a request to the member reading it: the client, its name cleaned,
   marked unverified when it registered and with its document's domain otherwise, never its logo;
   the host the member will be sent back to, and whether it is only a loopback address, which any
-  program on the member's computer could be listening on; the address, the access asked for, and the
-  organizations the member's connection for that client at that address reaches already, which the
-  page ticks to begin with. A module's own address names its module too, for a page loaded before
-  the one address
+  program on the member's computer could be listening on; the address, the access asked for, and
+  what the member's connection for that client at that address holds and reaches already, which the
+  page keeps and ticks to begin with. A module's own address names its module too, for a page loaded
+  before the one address
 */
 async function readOAuthAuthorizationRequest(requestId: string, userId: string): Promise<Reading> {
   const loaded = await loadOAuthAuthorizationRequest(requestId)
@@ -49,6 +50,7 @@ async function readOAuthAuthorizationRequest(requestId: string, userId: string):
       address: address.name,
       module: address.name === modules[0]?.name ? (address.name as ModuleName) : null,
       scopes: toModuleScopesInOrder(request.scopes),
+      heldScopes: connection ? readHeldScopes(modules, connection.scopes) : [],
       expiresAt: request.expiresAt,
       reachedOrganizationIds: reached.map(({ organizationId }) => organizationId),
     },

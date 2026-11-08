@@ -323,6 +323,30 @@ describe('POST /oauth/token, the authorization code grant', () => {
     expectError(await exchange(code), 'invalid_grant')
   })
 
+  test('at the one address, a consent again keeping what was held opens nothing for an earlier code or refresh token', async () => {
+    const atOneAddress = { resource: ONE_ADDRESS }
+    const { tokens } = await connect({ ...atOneAddress, scopes: ['documents:read', 'documents:write'] })
+    const { code: earlierCode } = await issueCode({
+      ...atOneAddress,
+      scopes: ['documents:read'],
+      allowed: ['documents:read', 'documents:write'],
+    })
+    const { code } = await issueCode({
+      ...atOneAddress,
+      scopes: ['tasks:read'],
+      allowed: ['tasks:read', 'documents:read', 'documents:write'],
+    })
+
+    expectError(await exchange(earlierCode, atOneAddress), 'invalid_grant')
+    expectError(await refresh(tokens.refresh_token, atOneAddress), 'invalid_grant')
+
+    const { status, body } = await exchange(code, atOneAddress)
+
+    expect(status).toBe(200)
+    // In the one order a grant is named in, though Allow appended what it kept
+    expect(body.scope).toBe('documents:read documents:write tasks:read')
+  })
+
   test('reads none of a refresh token’s parameters in a code exchange', async () => {
     const { tokens } = await connect()
     const { code } = await issueCode({ clientId: OTHER_CLIENT_ID })

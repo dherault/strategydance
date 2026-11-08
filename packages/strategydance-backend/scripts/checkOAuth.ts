@@ -1118,6 +1118,8 @@ async function checkAccess() {
       && (await readConnection())?.scopes.join(' ') === tasksRead.join(' '),
   )
 
+  // A pair a refresh narrowed to Tasks, before the member narrows the connection to Documents
+  const tasksOnly = (await (await refreshAtOneAddress(agent, refreshed.refresh_token, 'tasks:read')).json()) as Tokens
   const documentsOnly = await narrow(['documents:read'])
   const narrowedClient = await openModule(agent.endpoint, refreshed.access_token)
   const narrowedNames = (await narrowedClient.listTools()).tools.map(({ name }) => name)
@@ -1133,6 +1135,17 @@ async function checkAccess() {
       && !narrowedNames.includes('list_tasks')
       && task.status === 403
       && task.header.includes('scope="documents:read tasks:read"'),
+  )
+
+  const unopened = await postModule(agent.endpoint, tasksOnly.access_token, { method: 'tools/list' })
+  const recovered = (await (await refreshAtOneAddress(agent, tasksOnly.refresh_token)).json()) as Tokens
+
+  check(
+    'a token the narrowing left reading nothing is refused as invalid, and its refresh issues what the connection holds',
+    tasksOnly.scope === 'tasks:read'
+      && unopened.status === 401
+      && (unopened.headers.get('www-authenticate') ?? '').includes('error="invalid_token"')
+      && recovered.scope === 'documents:read',
   )
 }
 

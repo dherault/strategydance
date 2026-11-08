@@ -139,6 +139,15 @@ describe('createAgentConnectionTokenVerifier', () => {
     expect(readModuleAccess(authInfo).scopes).toEqual(['documents:read'])
   })
 
+  test('refuses a token reading no module its connection still holds, so its client refreshes', async () => {
+    const oneAddress = createAgentConnectionTokenVerifier(new URL(ONE_ADDRESS))
+
+    // Narrowed by a refresh to Tasks, then the member narrowed the connection to Documents
+    connect({ scopes: ['documents:read'], accessScopes: ['tasks:read'], resource: ONE_ADDRESS })
+
+    expect(await refusal('access', oneAddress)).toBe('invalid_token')
+  })
+
   test('refuses a token for another module', async () => {
     connect()
 

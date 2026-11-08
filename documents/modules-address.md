@@ -183,7 +183,9 @@ An address's scopes are its modules' read and write scopes, and `ModuleAddressNa
 routes, the protected resource metadata, `OAUTH_PROTOCOL_PATHS`, every reader of
 `parseModuleResource`, the consent page, the sweep and Connected agents read the addresses here.
 `OAUTH_PROTOCOL_PATHS` lists the paths that answer any origin, each served module's metadata among
-them, so a client in a browser reads `/mcp`'s metadata as it reads a module's. All of it lands in
+them, so a client in a browser reads `/mcp`'s metadata as it reads a module's. The metadata routers
+mount the longest path first: the SDK mounts each with a prefix match, so `/mcp`'s would otherwise
+answer every module's first. All of it lands in
 the milestone that serves the one address, so nothing answers at `/mcp` before its scopes, its
 refresh and its sweep are in place. A per-module address is the case of one module, so it behaves
 as today. The backend's `CLAUDE.md` § Modules names the one address and `MODULE_ADDRESSES` in the
@@ -200,7 +202,8 @@ same milestone.
   and answers it. Each of its readers takes the address and its modules rather than one module:
   starting an authorization, loading the consent's request, exchanging a code, refreshing, and the
   verifier.
-- **`parseModuleScopes(address, scope)`**:
+- **`parseModuleScopes(modules, scope)`**, given the address's modules, under one rule,
+  `checkModuleScopes`, which a refresh and Allow hold to too:
   - for each of the address's modules: its read scope, alone or with its write scope, or neither;
   - at least one module's read scope;
   - never a write without its read, nor a scope of a module the address does not serve;
@@ -214,7 +217,8 @@ same milestone.
   than the write scope alone, which the SDK's `requireScopes` names. A client that asks again for
   exactly the challenge's scopes then keeps every module it held, and names each write with its
   read, which `parseModuleScopes` asks for. `requireModuleWriteScope` writes it as a
-  `ScopeChallengeHandler` of its own.
+  `ScopeChallengeHandler` of its own, through `toModuleScopeChallenge`, which the challenge of a tool
+  of a module not held shares.
   - A challenge reads only the call's `authInfo`, whose scopes are the token's, which a refresh may
     have narrowed below its connection's. So the verifier carries the connection's scopes in the
     access too, `connectionScopes` beside `scopes`, and the challenge names those. `ModuleAccess`'s
@@ -224,9 +228,10 @@ same milestone.
   SDK answers a call to a tool it does not list with a protocol error, `Tool … not found`, and
   challenges only the tools it lists, which the backend's rule of refusing through
   `toToolRefusal` forbids. So the endpoint reads a `tools/call`'s tool name before the server is
-  built, and for a tool of a served module whose read the access lacks, answers 403
-  `insufficient_scope` naming the connection's scopes with that module's read, as the write's
-  challenge does. A stateless server sends no `list_changed`, so this is how a client learns a
+  built, once the body is parsed, and for a tool of a module the address serves whose read the
+  access lacks, answers 403 `insufficient_scope` naming the connection's scopes with that module's
+  read, as the write's challenge does. `findToolModule` knows each tool's module by registering
+  every served module once on a stand-in that records the names. A stateless server sends no `list_changed`, so this is how a client learns a
   module is gone, or asks for one.
 - **The consent page** lists each module the request asks for, and each the connection it replaces
   holds, with its access: not allowed, read, or read and write when write was asked for or is held.
@@ -237,7 +242,10 @@ same milestone.
     it. Every module the page grants is shown with its access, held ones included, so nothing is
     granted out of the member's sight.
   - The organizations are ticked once for every module, as today.
-  - Allow stays off while no module is allowed.
+  - Allow stays off while no module is allowed. "Not allowed" is offered only beside another module,
+    and a module's own address shows its one module as it always has.
+  - A module's own address keeps what its connection held the same way, its write included, since it
+    goes through the same rule.
 - **Allow** takes the scopes chosen, checked against the rule above, each asked for or held by the
   connection it replaces: a consent never grants what neither the agent asked for nor the member
   granted before.
@@ -259,8 +267,13 @@ same milestone.
     while Allow waited on the lock, never the statement's older snapshot.
   - The request's check stays on `$scopes`, required as it is, so the backend before M2, which sends
     nothing else, is refused a scope its request did not ask for as today. The held scopes join as
-    an optional variable, and leaving it out grants nothing beyond `$scopes`: never an optional list
-    in a filter, which the database's `CLAUDE.md` says is dropped when left out, matching every row.
+    an optional variable, `$heldScopes`, and leaving it out grants nothing beyond `$scopes`: never an
+    optional list in a filter, which the database's `CLAUDE.md` says is dropped when left out,
+    matching every row. Its check is a CEL `all` over the replaced connection's `scopes`.
+  - The connection is inserted with `$scopes`, and `$heldScopes` appended in a step of its own that
+    reads the insert's response (`scopes_update: [{ append: … }]`): the emulator showed a step in the
+    same statement never sees the insert, and an append of an absent or empty list changes nothing.
+    A code's exchange then names the scopes in `MODULES`' order, whatever order they were stored in.
   - The approve route's body takes up to two scopes for each served module, where it takes two.
 - **Through the release.** A release deploys Data Connect, then the backend, then the web, so for a
   few minutes each serves the one before it:
@@ -315,9 +328,9 @@ may ship alone, so the app reads such a connection from M2:
 - **Delegate** on a task copies its prompt for a connection to the one address holding `tasks:read`
   in the task's organization, as for one to `/mcp/tasks`. `TaskDelegation` counts a connection
   whose module is `tasks` alone today.
-- **The Delegate prompt**, `task.delegatePrompt`, names the task board's tools rather than "the
-  Strategy Dance Tasks MCP server", the per-module server's title, so an agent connected at either
-  address finds them. Its description, which asks to keep that name, follows, and `bun run translate`
+- **The Delegate prompt**, `task.delegatePrompt`, names the task board's tools, `read_task` and
+  `update_task`, rather than "the Strategy Dance Tasks MCP server", the per-module server's title,
+  so an agent connected at either address finds them. Its description, which asks to keep that name, follows, and `bun run translate`
   runs.
 
 ### Access and the module pages (M3)

@@ -123,7 +123,7 @@ function readText(result: CallResult) {
 
 // Lets go of the client, whatever closing it answers, since nothing is left to do with it
 async function release(client: Client) {
-  await Promise.allSettled([client.close()])
+  await client.close().catch(() => undefined)
 }
 
 export default connectConversationModules

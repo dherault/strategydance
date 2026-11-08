@@ -60,6 +60,7 @@ const { default: createOAuthRequestsRouter } = await import('./oauthRequests')
 const ISSUER = 'http://localhost:3003'
 const DOCUMENTS = `${ISSUER}/mcp/documents`
 const TASKS = `${ISSUER}/mcp/tasks`
+const ONE_ADDRESS = `${ISSUER}/mcp`
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const OTHER_ORGANIZATION_ID = '1f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const MEMBER = 'member'
@@ -123,7 +124,8 @@ async function issueCode({
   scopes = ['documents:read', 'documents:write'],
   allowed = scopes,
   organizationIds = [ORGANIZATION_ID],
-}: { clientId?: string; scopes?: string[]; allowed?: string[]; organizationIds?: string[] } = {}) {
+  resource = DOCUMENTS,
+}: { clientId?: string; scopes?: string[]; allowed?: string[]; organizationIds?: string[]; resource?: string } = {}) {
   const { data } = await (
     fake.sdk.createOAuthAuthorizationRequest as (
       ...args: unknown[]
@@ -135,7 +137,7 @@ async function issueCode({
       registeredClientId: null,
       redirectUri: REDIRECT_URI,
       codeChallenge: CHALLENGE,
-      resource: DOCUMENTS,
+      resource,
       scopes,
       state: 'opaque state',
     },
@@ -181,7 +183,10 @@ function refresh(refreshToken: string, parameters: Record<string, string | null>
 
 async function connect(options?: Parameters<typeof issueCode>[0]) {
   const { code, requestId } = await issueCode(options)
-  const { body } = await exchange(code, options?.clientId ? { client_id: options.clientId } : {})
+  const { body } = await exchange(code, {
+    ...(options?.clientId && { client_id: options.clientId }),
+    ...(options?.resource && { resource: options.resource }),
+  })
 
   return { code, requestId, tokens: body as unknown as Tokens }
 }
@@ -462,6 +467,25 @@ describe('POST /oauth/token, the refresh token grant', () => {
     expectError(await refresh(tokens.refresh_token, { scope: 'documents:read tasks:read' }), 'invalid_scope')
     expectError(await refresh(tokens.refresh_token, { scope: 'documents:write' }), 'invalid_scope')
     expect((await refresh(tokens.refresh_token, { scope: 'documents:read' })).body.scope).toBe('documents:read')
+  })
+
+  test('at the one address, narrows to one module, and refuses a refresh naming no read or a write without its read', async () => {
+    const scopes = ['documents:read', 'documents:write', 'tasks:read', 'tasks:write']
+    const { tokens } = await connect({ resource: ONE_ADDRESS, scopes })
+    const atOneAddress = { resource: ONE_ADDRESS }
+
+    expect(tokens.scope).toBe(scopes.join(' '))
+    expectError(await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'tasks:write' }), 'invalid_scope')
+    expectError(
+      await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'documents:read tasks:write' }),
+      'invalid_scope',
+    )
+    expectError(await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'budget:read' }), 'invalid_scope')
+    expectError(await refresh(tokens.refresh_token, { scope: 'documents:read' }), 'invalid_target')
+
+    const narrowed = await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'tasks:read tasks:write' })
+
+    expect(narrowed.body.scope).toBe('tasks:read tasks:write')
   })
 
   test('refuses a refresh whose connection goes while it rotates, as revoked rather than a server error', async () => {

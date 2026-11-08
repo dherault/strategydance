@@ -1,14 +1,15 @@
-import { SERVED_MODULES } from 'strategydance-core'
+import { MODULE_ADDRESSES, MODULES } from 'strategydance-core'
 
 import { OAUTH_ISSUER } from '~constants'
 
 import hasUriControlCharacters from '~domain/oauth/hasUriControlCharacters'
 
 /*
-  The module an authorization or a token request names in its `resource` (RFC 8707), and its
-  address in the one form a token is bound to: the module's address under the issuer. The scheme
-  and the host may come in any case, which the URL parser lowers, but nothing else may differ: no
-  user, query, fragment, trailing slash, space or control character. Null for anything else, a resource naming no module
+  The address an authorization or a token request names in its `resource` (RFC 8707), with the
+  modules it serves, in `MODULES`' order, and the address in the one form a token is bound to: its
+  path under the issuer, the one address `/mcp` or a module's own. The scheme and the host may come
+  in any case, which the URL parser lowers, but nothing else may differ: no user, query, fragment,
+  trailing slash, space or control character. Null for anything else, a resource naming no address
   included, and so is one naming a module served to no external agent, as Subagents is, so no
   consent makes a connection that no endpoint serves
 */
@@ -22,9 +23,11 @@ function parseModuleResource(value: string | undefined) {
 
   const resource = `${url.origin}${url.pathname}`
   const issuer = new URL(OAUTH_ISSUER).origin
-  const module = SERVED_MODULES.find(({ path }) => `${issuer}${path}` === resource)
+  const address = MODULE_ADDRESSES.find(({ path }) => `${issuer}${path}` === resource)
 
-  return module ? { module, resource } : null
+  if (!address) return null
+
+  return { address, modules: MODULES.filter(({ name }) => address.modules.includes(name)), resource }
 }
 
 export default parseModuleResource

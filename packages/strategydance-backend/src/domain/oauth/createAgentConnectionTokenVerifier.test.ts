@@ -18,6 +18,7 @@ const { default: readModuleAccess } = await import('~modules/readModuleAccess')
 
 const DOCUMENTS = 'http://localhost:3003/mcp/documents'
 const TASKS = 'http://localhost:3003/mcp/tasks'
+const ONE_ADDRESS = 'http://localhost:3003/mcp'
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const OTHER_ORGANIZATION_ID = '1a2b3c4d5e6f47089a0b1c2d3e4f5a6b'
 const THIRD_ORGANIZATION_ID = '2b3c4d5e6f7a48190b1c2d3e4f5a6b7c'
@@ -141,6 +142,20 @@ describe('createAgentConnectionTokenVerifier', () => {
     connect()
 
     expect(await refusal('access', createAgentConnectionTokenVerifier(new URL(TASKS)))).toBe('invalid_token')
+  })
+
+  test("refuses a module's own address's token at the one address, and the one address's at a module's", async () => {
+    const oneAddress = createAgentConnectionTokenVerifier(new URL(ONE_ADDRESS))
+
+    connect({ scopes: ['tasks:read'], resource: TASKS })
+
+    expect(await refusal('access', oneAddress)).toBe('invalid_token')
+
+    connect({ scopes: ['documents:read', 'tasks:read'], resource: ONE_ADDRESS })
+
+    expect(await refusal('access', createAgentConnectionTokenVerifier(new URL(TASKS)))).toBe('invalid_token')
+    expect(await refusal('access')).toBe('invalid_token')
+    expect((await oneAddress.verifyAccessToken('access')).scopes).toEqual(['documents:read', 'tasks:read'])
   })
 
   test('refuses a refresh token presented as an access token', async () => {

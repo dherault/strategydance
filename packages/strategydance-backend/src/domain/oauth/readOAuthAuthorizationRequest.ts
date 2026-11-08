@@ -1,8 +1,8 @@
 import {
   type ModuleName,
-  type ModuleScope,
   type OAuthAuthorizationRequestSummary,
   readAgentConnectionReach,
+  toModuleScopesInOrder,
 } from 'strategydance-core'
 import { getAgentConnectionForConsent } from 'strategydance-database/backend'
 
@@ -20,9 +20,10 @@ type Reading =
   What the consent page shows of a request to the member reading it: the client, its name cleaned,
   marked unverified when it registered and with its document's domain otherwise, never its logo;
   the host the member will be sent back to, and whether it is only a loopback address, which any
-  program on the member's computer could be listening on; the module, the access asked for, and the
-  organizations the member's connection for that client and module reaches already, which the page
-  ticks to begin with
+  program on the member's computer could be listening on; the address, the access asked for, and the
+  organizations the member's connection for that client at that address reaches already, which the
+  page ticks to begin with. A module's own address names its module too, for a page loaded before
+  the one address
 */
 async function readOAuthAuthorizationRequest(requestId: string, userId: string): Promise<Reading> {
   const loaded = await loadOAuthAuthorizationRequest(requestId)
@@ -30,11 +31,11 @@ async function readOAuthAuthorizationRequest(requestId: string, userId: string):
   if (loaded.outcome === 'unknown') return loaded
   if (loaded.outcome === 'refused') return { outcome: 'refused', reason: loaded.reason }
 
-  const { request, client, module } = loaded
+  const { request, client, address, modules } = loaded
   const { data } = await getAgentConnectionForConsent(dataConnect, {
     userId,
     clientId: request.clientId,
-    module: module.name,
+    module: address.name,
   })
   const [connection] = data.agentConnections
   const reached = connection ? readAgentConnectionReach(connection, data.userOrganizations) : []
@@ -45,8 +46,9 @@ async function readOAuthAuthorizationRequest(requestId: string, userId: string):
       client: { name: client.name, isVerified: client.isVerified, domain: client.domain },
       redirectHost: new URL(request.redirectUri).host,
       isLoopbackRedirect: isLoopbackRedirectUri(request.redirectUri),
-      module: module.name as ModuleName,
-      scopes: request.scopes as ModuleScope[],
+      address: address.name,
+      module: address.name === modules[0]?.name ? (address.name as ModuleName) : null,
+      scopes: toModuleScopesInOrder(request.scopes),
       expiresAt: request.expiresAt,
       reachedOrganizationIds: reached.map(({ organizationId }) => organizationId),
     },

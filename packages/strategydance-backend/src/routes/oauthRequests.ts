@@ -10,6 +10,7 @@ import {
   MAX_AGENT_CONNECTIONS,
   type OAuthAuthorizationDecision,
   type OAuthAuthorizationRequestSummary,
+  SERVED_MODULES,
 } from 'strategydance-core'
 import { z } from 'zod'
 
@@ -40,7 +41,12 @@ function createOAuthRequestsRouter() {
   const paramsSchema = z.object({ requestId: z.string().regex(UUID_PATTERN) })
   const approvalSchema = z.object({
     organizationIds: z.array(z.string().regex(UUID_PATTERN)).min(1).max(MAX_AGENT_CONNECTION_ORGANIZATIONS),
-    scopes: z.array(z.string().max(100)).min(1).max(2),
+    // Read, or read and write, for each module an address serves: every served module's at the one
+    // address
+    scopes: z
+      .array(z.string().max(100))
+      .min(1)
+      .max(SERVED_MODULES.length * 2),
   })
 
   type RequestParams = z.infer<typeof paramsSchema>

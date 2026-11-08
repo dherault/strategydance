@@ -61,6 +61,7 @@ const { default: createOAuthRequestsRouter } = await import('./oauthRequests')
 
 const ISSUER = 'http://localhost:3003'
 const DOCUMENTS = `${ISSUER}/mcp/documents`
+const ONE_ADDRESS = `${ISSUER}/mcp`
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const OTHER_ORGANIZATION_ID = '1f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const MEMBER = 'member'
@@ -113,7 +114,8 @@ async function createRequest({
   clientId = CLIENT_ID_URL,
   redirectUri = 'https://client.example.com/callback',
   scopes = ['documents:read', 'documents:write'],
-}: { clientId?: string; redirectUri?: string; scopes?: string[] } = {}) {
+  resource = DOCUMENTS,
+}: { clientId?: string; redirectUri?: string; scopes?: string[]; resource?: string } = {}) {
   const { data } = await (
     fake.sdk.createOAuthAuthorizationRequest as (
       ...args: unknown[]
@@ -125,7 +127,7 @@ async function createRequest({
       registeredClientId: /^[0-9a-f]{32}$/.test(clientId) ? clientId : null,
       redirectUri,
       codeChallenge: CHALLENGE,
-      resource: DOCUMENTS,
+      resource,
       scopes,
       state: 'opaque state',
     },
@@ -218,6 +220,7 @@ describe('GET /oauth/requests/:requestId', () => {
           client: { name: 'Example Agent', isVerified: true, domain: `client${documentCount}.example.com` },
           redirectHost: 'client.example.com',
           isLoopbackRedirect: false,
+          address: 'documents',
           module: 'documents',
           scopes: ['documents:read', 'documents:write'],
           expiresAt: expect.any(String),
@@ -231,6 +234,15 @@ describe('GET /oauth/requests/:requestId', () => {
     await call(requestId)
 
     expect(fetchOutbound).toHaveBeenCalledTimes(1)
+  })
+
+  test('names the one address and no module, which a page loaded before it reads alone and draws nothing for', async () => {
+    const requestId = await createRequest({ resource: ONE_ADDRESS, scopes: ['tasks:read', 'documents:read'] })
+    const { answer } = await call<Record<string, unknown>>(requestId)
+
+    expect(answer.status === 'success' && answer.data).toEqual(
+      expect.objectContaining({ address: 'strategydance', module: null, scopes: ['documents:read', 'tasks:read'] }),
+    )
   })
 
   test('shows a registered client unverified, and its loopback address with the port it named', async () => {
@@ -364,6 +376,40 @@ describe('POST /oauth/requests/:requestId/approve', () => {
     expect((await approve(both, ['documents:write'])).status).toBe(400)
     expect((await approve(both, ['documents:read', 'tasks:read'])).status).toBe(400)
     expect(fake.connections.size).toBe(0)
+  })
+
+  test("makes a connection at the one address under its name, holding each module's access allowed, in `MODULES`' order", async () => {
+    const requestId = await createRequest({
+      resource: ONE_ADDRESS,
+      scopes: ['documents:read', 'documents:write', 'tasks:read', 'tasks:write', 'budget:read'],
+    })
+
+    expect((await approve(requestId, ['tasks:read', 'documents:write', 'documents:read'])).status).toBe(200)
+    expect([...fake.connections.values()]).toEqual([
+      expect.objectContaining({ module: 'strategydance', scopes: ['documents:read', 'documents:write', 'tasks:read'] }),
+    ])
+  })
+
+  test('refuses at the one address no module read, a write without its read, and a module not asked for', async () => {
+    const requestId = await createRequest({
+      resource: ONE_ADDRESS,
+      scopes: ['documents:read', 'tasks:read', 'tasks:write'],
+    })
+
+    for (const scopes of [['tasks:write'], ['documents:read', 'tasks:write'], ['documents:read', 'budget:read']]) {
+      expect((await approve(requestId, scopes)).status).toBe(400)
+    }
+
+    expect(fake.connections.size).toBe(0)
+  })
+
+  test("takes every served module's two scopes, and no more", async () => {
+    const all = ['documents:read', 'documents:write', 'tasks:read', 'tasks:write', 'budget:read', 'budget:write']
+    const requestId = await createRequest({ resource: ONE_ADDRESS, scopes: all })
+
+    expect((await approve(requestId, [...all, 'documents:read'])).status).toBe(400)
+    expect((await approve(requestId, all)).status).toBe(200)
+    expect([...fake.connections.values()][0]?.scopes).toEqual(all)
   })
 
   test('makes one connection reaching every organization the member chose, each once, whichever form its id came in', async () => {

@@ -148,6 +148,7 @@ const access: ModuleAccess = {
   kind: 'external',
   userId,
   scopes: modules.flatMap(({ scopes }) => [scopes.read, scopes.write]),
+  connectionScopes: modules.flatMap(({ scopes }) => [scopes.read, scopes.write]),
   idempotencyScope: `connection:${randomUUID()}`,
   organizations: memberships.map(({ organizationId, createdAt, organization }) => ({
     organizationId,

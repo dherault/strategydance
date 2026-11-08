@@ -568,10 +568,10 @@ async function checkFlow() {
   const challenge = challenged.headers.get('www-authenticate') ?? ''
 
   check(
-    "the endpoint challenges a read-only token's write, naming the write scope",
+    "the endpoint challenges a narrowed token's write, naming the connection's scopes with the write",
     challenged.status === 403
       && challenge.includes('error="insufficient_scope"')
-      && challenge.includes('scope="documents:write"'),
+      && challenge.includes('scope="documents:read documents:write"'),
   )
 
   // The client revokes
@@ -1105,10 +1105,10 @@ async function checkModuleEndpoint({
   const challenge = challenged.headers.get('www-authenticate') ?? ''
 
   check(
-    `the endpoint challenges a read-only ${title} token's write, naming ${scopes.write}, and writes nothing`,
+    `the endpoint challenges a read-only ${title} token's write, naming ${scopes.read} with ${scopes.write}, and writes nothing`,
     challenged.status === 403
       && challenge.includes('error="insufficient_scope"')
-      && challenge.includes(`scope="${scopes.write}"`)
+      && challenge.includes(`scope="${scopes.read} ${scopes.write}"`)
       && (await countNamed(`Refused ${checkId}`)) === 0,
   )
 

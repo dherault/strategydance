@@ -117,9 +117,10 @@ function encode(parameters: Record<string, string>) {
 // An agent the member connected, through the whole flow: authorization, Allow and the exchange
 async function connect({
   scopes = ['documents:read', 'documents:write'],
+  allowed = scopes,
   resource = DOCUMENTS,
   organizationIds = [ORGANIZATION_ID],
-}: { scopes?: string[]; resource?: string; organizationIds?: string[] } = {}) {
+}: { scopes?: string[]; allowed?: string[]; resource?: string; organizationIds?: string[] } = {}) {
   const { data } = await (
     fake.sdk.createOAuthAuthorizationRequest as (
       ...args: unknown[]
@@ -139,7 +140,7 @@ async function connect({
   const approved = await fetch(`${origin}/oauth/requests/${data.oAuthAuthorizationRequest_insert.id}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationIds, scopes }),
+    body: JSON.stringify({ organizationIds, scopes: allowed }),
   })
   const { data: decision } = (await approved.json()) as { data: { redirectUrl: string } }
   const exchanged = await fetch(`${origin}/oauth/token`, {
@@ -156,6 +157,23 @@ async function connect({
   })
 
   return (await exchanged.json()) as Tokens
+}
+
+// A refresh of a connection's tokens, naming the scopes it asks for, or none for all of its own
+async function refresh(tokens: Tokens, { resource = DOCUMENTS, scope }: { resource?: string; scope?: string } = {}) {
+  const refreshed = await fetch(`${origin}/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: encode({
+      grant_type: 'refresh_token',
+      refresh_token: tokens.refresh_token,
+      client_id: CLIENT_ID,
+      resource,
+      ...(scope && { scope }),
+    }),
+  })
+
+  return (await refreshed.json()) as Tokens
 }
 
 // An external agent on a module's endpoint, as the SDK's client calls it over HTTP with its bearer token
@@ -375,7 +393,7 @@ describe('the Documents module for external agents', () => {
     expect(challenged.status).toBe(403)
     expect(challenged.body.error).toBe('insufficient_scope')
     expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
-    expect(challenged.headers.get('www-authenticate')).toContain('scope="documents:write"')
+    expect(challenged.headers.get('www-authenticate')).toContain('scope="documents:read documents:write"')
     expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${RESOURCE_METADATA}"`)
     expect(documentsOfOrganization()).toEqual([])
 
@@ -396,6 +414,23 @@ describe('the Documents module for external agents', () => {
     expect(written.status).toBe(200)
     expect(written.body.result.isError).toBeFalsy()
     expect(documentsOfOrganization()).toHaveLength(1)
+  })
+
+  test("challenges a write of a token a refresh narrowed to read with its connection's scopes, which a client asks for again", async () => {
+    const narrowed = await refresh(await connect(), { scope: 'documents:read' })
+
+    expect(narrowed.scope).toBe('documents:read')
+
+    const challenged = await send(
+      callTool('create_document', { ...IN_ORGANIZATION, title: 'New', aspects: [], content: 'Text' }),
+      { token: narrowed.access_token },
+    )
+
+    expect(challenged.status).toBe(403)
+    expect(challenged.headers.get('www-authenticate')).toContain('scope="documents:read documents:write"')
+    expect(challenged.headers.get('www-authenticate')).toContain(
+      'error_description="Writing here needs documents:write"',
+    )
   })
 
   test('applies a write retried with its key once, under the connection', async () => {
@@ -665,7 +700,7 @@ describe('the Tasks module for external agents', () => {
     expect(challenged.status).toBe(403)
     expect(challenged.body.error).toBe('insufficient_scope')
     expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
-    expect(challenged.headers.get('www-authenticate')).toContain('scope="tasks:write"')
+    expect(challenged.headers.get('www-authenticate')).toContain('scope="tasks:read tasks:write"')
     expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${TASKS_RESOURCE_METADATA}"`)
     expect(tasksOfOrganization()).toEqual([])
 
@@ -821,7 +856,7 @@ describe('the Budget module for external agents', () => {
       expect(challenged.status).toBe(403)
       expect(challenged.body.error).toBe('insufficient_scope')
       expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
-      expect(challenged.headers.get('www-authenticate')).toContain('scope="budget:write"')
+      expect(challenged.headers.get('www-authenticate')).toContain('scope="budget:read budget:write"')
       expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${BUDGET_RESOURCE_METADATA}"`)
     }
 

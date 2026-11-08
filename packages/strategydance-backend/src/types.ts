@@ -312,7 +312,11 @@ export type ModuleAccess =
   | {
       kind: 'external'
       userId: string
+      // What the token holds, which a refresh may have narrowed, within its connection's
       scopes: ModuleScope[]
+      // What the connection holds, which a scope challenge names beside what a call needs, so a
+      // client asking again for exactly the challenge's scopes keeps every module it held
+      connectionScopes: ModuleScope[]
       idempotencyScope: string
       organizations: ReachedModuleOrganization[]
     }

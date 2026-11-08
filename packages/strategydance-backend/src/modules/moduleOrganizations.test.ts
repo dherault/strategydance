@@ -27,6 +27,7 @@ function reachBoth(module: (typeof SERVED_MODULES)[number]): ModuleAccess {
     kind: 'external',
     userId: 'member',
     scopes: [module.scopes.read, module.scopes.write],
+    connectionScopes: [module.scopes.read, module.scopes.write],
     idempotencyScope: 'connection:checked',
     organizations: [
       {

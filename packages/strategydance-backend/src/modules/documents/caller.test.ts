@@ -67,7 +67,7 @@ describe('the caller', () => {
     ] as const) {
       await expect(kit.call(name, args)).rejects.toMatchObject({
         name: 'InsufficientScopeError',
-        requiredScope: 'documents:write',
+        requiredScope: 'documents:read documents:write',
       })
     }
 

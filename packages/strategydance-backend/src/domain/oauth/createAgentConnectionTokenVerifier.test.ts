@@ -108,6 +108,7 @@ describe('createAgentConnectionTokenVerifier', () => {
       kind: 'external',
       userId: MEMBER,
       scopes: ['documents:read', 'documents:write'],
+      connectionScopes: ['documents:read', 'documents:write'],
       idempotencyScope: `connection:${CONNECTION_ID}`,
       organizations: [
         {

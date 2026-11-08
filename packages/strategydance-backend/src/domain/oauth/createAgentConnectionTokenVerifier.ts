@@ -1,5 +1,10 @@
 import { OAuthError, OAuthErrorCode, type OAuthTokenVerifier } from '@modelcontextprotocol/server'
-import { type ModuleScope, readAgentConnectionReach, toOrganizationPathSegment } from 'strategydance-core'
+import {
+  type ModuleScope,
+  readAgentConnectionReach,
+  toModuleScopesInOrder,
+  toOrganizationPathSegment,
+} from 'strategydance-core'
 import { getAgentConnectionAccessToken } from 'strategydance-database/backend'
 
 import type { ModuleAccess } from '~types'
@@ -54,6 +59,7 @@ function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
         userId: connection.userId,
         // What the token holds, which a refresh may have narrowed, within its connection's
         scopes: stored.scopes.filter(scope => connection.scopes.includes(scope)) as ModuleScope[],
+        connectionScopes: toModuleScopesInOrder(connection.scopes),
         idempotencyScope: `connection:${connection.id}`,
         organizations: reached.map(({ organizationId, createdAt, organization }) => ({
           organizationId,

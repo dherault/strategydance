@@ -40,6 +40,7 @@ const EXTERNAL: Extract<ModuleAccess, { kind: 'external' }> = {
   kind: 'external',
   userId: 'member',
   scopes: MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
+  connectionScopes: MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
   idempotencyScope: 'connection:checked',
   organizations: [
     {

@@ -30,6 +30,8 @@
   "module.connectedAgentsTab": "Agents connectés",
   "module.connectedOn": "Connecté le {date}",
   "module.connectionModule": "{moduleName} · {access}",
+  "module.connectionModuleRead": "{moduleName} : lecture.",
+  "module.connectionModuleReadWrite": "{moduleName} : lecture et écriture.",
   "module.connectionReachesNone": "N'a plus accès à aucune de vos organisations",
   "module.consentEyebrow": "Connecter un agent",
   "module.consentLead": "Il agira en votre nom dans les organisations de votre choix, avec les autorisations que vous accordez, jusqu'à ce que vous le déconnectiez de votre compte.",

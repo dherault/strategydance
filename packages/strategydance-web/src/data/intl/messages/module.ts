@@ -386,6 +386,18 @@ const moduleMessages = defineMessages({
     description:
       'On a connected agent, the module it may use and its access, such as "Documents · Read and write". {moduleName} is the module\'s name and {access} the access\'s short label.',
   },
+  connectionModuleRead: {
+    id: 'module.connectionModuleRead',
+    defaultMessage: '{moduleName}: read.',
+    description:
+      'On an agent connected to several modules at once, one module it may read but not change, as in "Documents: read and write. Tasks: read.". {moduleName} is the module\'s name.',
+  },
+  connectionModuleReadWrite: {
+    id: 'module.connectionModuleReadWrite',
+    defaultMessage: '{moduleName}: read and write.',
+    description:
+      'On an agent connected to several modules at once, one module it may read and change, as in "Documents: read and write. Tasks: read.". {moduleName} is the module\'s name.',
+  },
   connectionReachesNone: {
     id: 'module.connectionReachesNone',
     defaultMessage: 'Reaches none of your organizations any more',

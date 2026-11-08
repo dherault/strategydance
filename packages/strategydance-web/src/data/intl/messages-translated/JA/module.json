@@ -30,6 +30,8 @@
   "module.connectedAgentsTab": "連携中のエージェント",
   "module.connectedOn": "{date}に連携",
   "module.connectionModule": "{moduleName} · {access}",
+  "module.connectionModuleRead": "{moduleName}: 読み取り。",
+  "module.connectionModuleReadWrite": "{moduleName}: 読み取りと書き込み。",
   "module.connectionReachesNone": "どの組織にもアクセスできなくなりました",
   "module.consentEyebrow": "エージェントを連携",
   "module.consentLead": "アカウントから連携を解除するまで、選択した組織において許可したアクセスの範囲内であなたとして動作します。",

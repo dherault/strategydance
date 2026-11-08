@@ -30,6 +30,8 @@
   "module.connectedAgentsTab": "已连接的智能体",
   "module.connectedOn": "连接于 {date}",
   "module.connectionModule": "{moduleName} · {access}",
+  "module.connectionModuleRead": "{moduleName}：读取。",
+  "module.connectionModuleReadWrite": "{moduleName}：读取和写入。",
   "module.connectionReachesNone": "不再关联您的任何组织",
   "module.consentEyebrow": "连接智能体",
   "module.consentLead": "它将在您选择的组织中代表您执行操作，并具有您所授予的权限，直到您从账户中将其断开连接为止。",

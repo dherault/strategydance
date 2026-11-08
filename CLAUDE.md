@@ -51,7 +51,7 @@ A [Bun](https://bun.com) workspaces monorepo. A package imports another by its n
 | `bun run typecheck` / `test` / `build` | `tsc` across the packages; `bun test`, each file in a fresh global; Storybook, then the web |
 | `bun run preview` | Builds against the emulators and serves it on http://localhost:5050 |
 | `bun run translate` | Fills the locale catalogues from the `defaultMessage`s |
-| `bun run review <command>` | The review loop's GitHub calls |
+| `bun run pr open <number>` | Fails unless the pull request is open: chain a push after it |
 | `bun run kill` / `kill:backend` / `kill:emulators` | Kills whatever listens on their ports |
 | `bun run grant:administrator <email>` | Makes an account an administrator of Strategy Dance, in the emulators |
 | `bun run ship` / `deploy:*` | Humans only (see [Workflow](#workflow)) |
@@ -124,7 +124,7 @@ through the `strategydance-tasks` MCP server, which acts as the person in produc
   runs `claude mcp add --transport http strategydance-tasks https://api.strategydance.com/mcp/tasks`,
   then `/mcp`
 - `update_task` moves it to `ONGOING` before the first edit, and to `DONE` once its pull request
-  merges (`bun run review open` says `MERGED`, or the person does), naming the tasks that can start
+  merges (`bun run pr open` says `MERGED`, or the person does), naming the tasks that can start
   now (`canStartNow`). Nothing else on the board changes unless the person asks
 
 ## Workflow
@@ -142,7 +142,7 @@ scripts. A turn ends with the pull request handed over, or blocked on what only 
 supply: a credential, a product decision, a check failing for a reason outside the change.
 
 This section reads the same in sunshine and strategydance but for each repository's commands, and
-`scripts/copilotReview.sh` and `scripts/ship.sh` are the same file in both: an improvement to one
+`scripts/pullRequest.sh` and `scripts/ship.sh` are the same file in both: an improvement to one
 goes to the other.
 
 ### Where to work
@@ -257,7 +257,7 @@ EOF
 
 `--base dev` is required, since the default branch is `main`, and a pull request is never a draft,
 which cannot be merged. The person may merge at any moment, so every push and description edit
-goes behind `bun run review open <number> &&`, which fails unless the pull request is open. On
+goes behind `bun run pr open <number> &&`, which fails unless the pull request is open. On
 `MERGED`, open a new pull request for what `git log origin/dev..HEAD` lists; on `CLOSED`, stop and
 ask.
 

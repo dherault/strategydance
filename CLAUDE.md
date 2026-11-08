@@ -5,8 +5,8 @@ A package with conventions of its own keeps them in its own `CLAUDE.md`, which C
 when it works there: the backend, the database, the web, the design system and the emails.
 
 **Every change to a tracked file ships without asking**: on its own branch, committed granularly,
-pushed, opened as a pull request into `dev` and taken through the Copilot review loop, until all
-that is left for a human is the merge. [Workflow](#workflow) says how.
+pushed, opened as a pull request into `dev`, reviewed with the code-review skill and its findings
+acted on, until all that is left for a human is the merge. [Workflow](#workflow) says how.
 
 ## Vision
 
@@ -130,8 +130,8 @@ through the `strategydance-tasks` MCP server, which acts as the person in produc
 ## Workflow
 
 **This is the person's standing request in every session.** A task that changes a tracked file,
-however small, goes branch → granular commits → push → pull request into `dev` → Copilot review
-loop → handed to a human, in one go. Never ask whether to commit, push, open the pull request or
+however small, goes branch → granular commits → push → pull request into `dev` → code review →
+handed to a human, in one go. Never ask whether to commit, push, open the pull request or
 address the review: the answer is yes, and a turn that ends on such a question has failed. Work is
 done when its pull request is green, reviewed and waiting for a human.
 
@@ -182,8 +182,8 @@ ln -s <main checkout>/packages/strategydance-translations/.env packages/strategy
   --strictPort` in `packages/strategydance-web`, and aim a browser at that port alone
 - Remove the worktree once its pull request merges: `git worktree remove .claude/worktrees/<branch>`
 
-**The main checkout changes hands only on the person's word**: at the end of the loop, a session in
-a worktree asks whether they want its branch checked out, and "check it out" is the same yes.
+**The main checkout changes hands only on the person's word**: at the handover, a session in a
+worktree asks whether they want its branch checked out, and "check it out" is the same yes.
 
 1. Unless the checkout is on a clean `dev`, message each other session of this repository
    (`ListAgents` names them `strategydance-…`): you are taking it for `<branch>`, the session on
@@ -256,45 +256,36 @@ EOF
 ```
 
 `--base dev` is required, since the default branch is `main`, and a pull request is never a draft,
-which the `dev` ruleset has Copilot skip. The person may merge at any moment, so every push and
-description edit goes behind `bun run review open <number> &&`, which fails unless the pull request
-is open. On `MERGED`, open a new pull request for what `git log origin/dev..HEAD` lists; on
-`CLOSED`, stop and ask.
+which cannot be merged. The person may merge at any moment, so every push and description edit
+goes behind `bun run review open <number> &&`, which fails unless the pull request is open. On
+`MERGED`, open a new pull request for what `git log origin/dev..HEAD` lists; on `CLOSED`, stop and
+ask.
 
-### Copilot review loop
+### Code review
 
-The `dev` ruleset asks Copilot for a review when a pull request opens and at each push, at the
-Balanced effort the repository's Copilot settings name. `bun run review`
-(`scripts/copilotReview.sh`) holds the loop's GitHub calls, since a worktree session refuses `gh`
-inside `$(…)` or a loop.
+No bot reviews a pull request: Copilot and CodeRabbit are out of the loop, so never request either.
+The session reviews its own work with Claude Code's code-review skill, once the work is done.
 
-1. Run `bun run review wait <number> <baseline>` in the foreground, in the same turn. It returns
-   once Copilot's reviews outnumber the baseline, and exits 75 after nine minutes: run it again
-   until it returns. The baseline is 0 for a pull request just opened, and otherwise the
-   `bun run review count <number>` read before the push: never after it, nor after `gh pr create`,
-   since the round may already be counted and the wait would hold out for one that never comes.
-   Never request a review by hand, which only adds a second one of the same push. A review's
-   overview names its effort: say so when it is not Balanced, since the author's own Copilot
-   setting outranks the repository's
+1. Once the pull request is open, in the same turn, run the skill on it: `Skill` with `code-review`
+   and the args `high <number>`. The number has it read the diff against `dev`, and `high` is the
+   level, never `max` nor `ultra`, which only the person asks for. Pass neither `--comment` nor
+   `--fix`: the findings come back to the session, which weighs each one
 2. Wait for CI (`gh pr checks <number> --watch`) and fix what fails
-3. Answer every finding, with a fix or a reply saying why it does not apply. Reply on each thread,
-   then resolve it, never the other way: `bun run review threads <number>`,
-   `bun run review reply <thread id> -` with the reply on stdin,
-   `bun run review resolve <thread id>`. Read the review's body too
-   (`bun run review body <number>`): answer its *Previously missed* findings, against lines the
-   round's diff did not touch, in one `gh pr comment`
-4. Commit the fixes granularly, then, once the round is answered, read the count and push them as
-   one batch behind the open check: a push while a review runs draws findings against a head about
-   to be replaced
-5. Repeat from step 1, with that count as the baseline, until a round brings nothing but nitpicks
-   or praise
+3. Once the findings are ready, answer every one: a fix, committed granularly, or a reason it does
+   not apply. A finding is a claim to check against the code, not an order
+4. Push the fixes as one batch behind the open check, then, behind it too, post one
+   `gh pr comment` naming each finding and what became of it, or that there was none, so whoever
+   merges sees the review
+5. A second review is the session's call, when the first's fixes changed enough to need one: run
+   it the same way once they are pushed, and answer it the same way. Never a third: the human's
+   review comes next
 
 ### Hand the pull request to a human
 
-Never merge a pull request, nor set it to merge itself. Once CI is green and the review clean, say
-so with its link and, unless you are the primary, ask in the same message whether the person wants
-the branch checked out on the main checkout, a yes being a handover. Then stop. Humans merge with a
-merge commit, never a squash, since the granular commits are the point.
+Never merge a pull request, nor set it to merge itself. Once CI is green and every finding of the
+review answered, say so with its link and, unless you are the primary, ask in the same message
+whether the person wants the branch checked out on the main checkout, a yes being a handover. Then
+stop. Humans merge with a merge commit, never a squash, since the granular commits are the point.
 
 ### Ship `dev` to `main`
 

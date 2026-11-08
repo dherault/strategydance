@@ -1084,12 +1084,13 @@ async function checkAccess() {
       && duplicate.scope === tasksRead.join(' '),
   )
 
-  // A client repeating the scope it first asked for, as many refresh with
-  const refreshed = (await (await refreshAtOneAddress(agent, rotated.refresh_token, every.join(' '))).json()) as Tokens
+  // A client repeating the scope it first asked for at every refresh, as many do
+  const repeated = (await (await refreshAtOneAddress(agent, rotated.refresh_token, every.join(' '))).json()) as Tokens
+  const refreshed = (await (await refreshAtOneAddress(agent, repeated.refresh_token, every.join(' '))).json()) as Tokens
 
   check(
-    'a refresh after the narrowing, still naming the write taken away, issues and names what is left',
-    refreshed.scope === tasksRead.join(' '),
+    'refreshes after the narrowing, still naming the write taken away, each issue and name what is left',
+    repeated.scope === tasksRead.join(' ') && refreshed.scope === tasksRead.join(' '),
   )
 
   const refusals = {

@@ -1982,19 +1982,21 @@ address from modules-address.md's M2:
     token's row records the secret's version it used, `successorKeyVersion`, and a duplicate derives
     again with that very version, read from Secret Manager by its number and kept per version, so
     instances a rotation left on different versions still answer one pair. A refresh may name fewer
-    scopes than its token holds, never others (RFC 6749, 6): its access token holds those alone, and
-    its refresh token keeps its own, so each token carries its scopes and the verifier reads the
-    access token's (M18). Both keep within what the connection holds now, which Access may have
-    narrowed since, so a refresh never names a scope the member took away, and one still naming it
-    gets what is left (modules-address.md's M3). Presented again within 30 seconds of its rotation,
-    as by a client whose answer was lost or by two refreshes at once, it is answered with the very
-    same pair, recomputed, naming its scopes within the connection's, so whichever answer arrives
-    last, the client holds tokens that work, and nothing but hashes is ever stored. Presented after
-    that, it revokes the connection, in a second mutation since a failed check rolls back the
-    first: whoever holds it is replaying a token somebody else already used. `POST /oauth/revoke`
-    follows RFC 7009: the request names its `client_id`, every client being public, and a token
-    issued to another client is refused rather than revoked, so no client can end somebody else's
-    connection.
+    scopes than its token holds (RFC 6749, 6): its access token holds those alone, and its refresh
+    token keeps its own, so each token carries its scopes and the verifier reads the access token's
+    (M18). Both keep within what the connection holds now, which Access may have narrowed since, so
+    a refresh never names a scope the member took away. From modules-address.md's M3, a refresh
+    naming more, as a client repeating the scope it first asked for does once the member chose less,
+    gets what is left, which its answer names (RFC 6749, 3.3), and only one naming a scope its
+    address does not serve, a write without its read, or nothing its token still reads is refused.
+    Presented again within 30 seconds of its rotation, as by a client whose answer was lost or by
+    two refreshes at once, it is answered with the very same pair, recomputed, naming its scopes
+    within the connection's, so whichever answer arrives last, the client holds tokens that work,
+    and nothing but hashes is ever stored. Presented after that, it revokes the connection, in a
+    second mutation since a failed check rolls back the first: whoever holds it is replaying a token
+    somebody else already used. `POST /oauth/revoke` follows RFC 7009: the request names its
+    `client_id`, every client being public, and a token issued to another client is refused rather
+    than revoked, so no client can end somebody else's connection.
   - The protocol's own endpoints, the metadata, registration, authorization, token and revocation,
     answer any origin, without credentials, since no cookie is involved, and in OAuth's own JSON
     (RFC 6749) rather than `ApiResponse`, with no App Check, which no client can carry. The consent

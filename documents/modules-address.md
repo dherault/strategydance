@@ -369,10 +369,13 @@ may ship alone, so the app reads such a connection from M2:
   token's scopes within its connection's, and its answer names those, so a client is never told of
   a write the member took away. `refreshAgentConnectionTokens` filters the refresh token's scopes by
   the connection's, which `GetAgentConnectionRefreshToken` read already.
-  - A refresh still naming a scope taken away, as a client repeating the scope it first asked for
-    does, gets what is left, which its answer names (RFC 6749, 5.1): a refusal would send the member
-    through a consent again. One naming only what was taken away, or a scope its token was never
-    granted, is refused `invalid_scope`.
+  - A refresh naming more than its token and its connection hold gets what is left, which its answer
+    names (RFC 6749, 3.3), at every refresh: many clients repeat the scope they first asked for, so
+    a refusal would send the member through a consent again once they chose less, on the consent
+    page or here. Only a refresh naming a scope its address does not serve, a write without its
+    read, or nothing its token still reads is refused `invalid_scope`. A first draft was lenient
+    only with the scopes the connection lost, which held for one refresh, since the rotated refresh
+    token keeps the narrowed scopes: #317's review found it.
   - A duplicate, a refresh token presented again within 30 seconds, is answered with the pair its
     rotation issued, which may predate the narrowing. `answerDuplicate` compares and names that
     pair's scopes within the connection's too, so it neither announces a removed write nor refuses a

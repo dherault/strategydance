@@ -1,9 +1,10 @@
 import {
-  MODULES,
+  type ModuleDefinition,
   MONEY_MODULE_NAMES,
   type ModuleName,
   type OAuthAuthorizationRequestSummary,
   readModuleAddress,
+  readModuleAddressModules,
 } from 'strategydance-core'
 
 // What a consent allows an agent in one module: nothing, read, or read and write
@@ -16,7 +17,7 @@ export type OAuthConsentModule = {
   initialAccess: Exclude<OAuthConsentAccessLevel, 'none'>
 }
 
-function readLevel(module: (typeof MODULES)[number], scopes: readonly string[]): OAuthConsentAccessLevel {
+function readLevel(module: ModuleDefinition, scopes: readonly string[]): OAuthConsentAccessLevel {
   if (!scopes.includes(module.scopes.read)) return 'none'
 
   return scopes.includes(module.scopes.write) ? 'write' : 'read'
@@ -36,10 +37,11 @@ function readOAuthConsentModules({
   scopes,
   heldScopes,
 }: Pick<OAuthAuthorizationRequestSummary, 'address' | 'scopes' | 'heldScopes'>): OAuthConsentModule[] {
-  const served = readModuleAddress(address)?.modules ?? []
+  const definition = readModuleAddress(address)
+  const served = definition ? readModuleAddressModules(definition) : []
   const isSeveral = served.length > 1
 
-  return MODULES.filter(({ name }) => served.includes(name)).flatMap(module => {
+  return served.flatMap(module => {
     const asked = readLevel(module, scopes)
     const held = readLevel(module, heldScopes)
 

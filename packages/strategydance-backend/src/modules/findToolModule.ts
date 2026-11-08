@@ -1,5 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/server'
-import { MODULES, type ModuleName, SERVED_MODULES } from 'strategydance-core'
+import { MODULES, type ModuleName, SERVED_MODULES, toModuleScopes } from 'strategydance-core'
 
 import type { ModuleAccess } from '~types'
 
@@ -10,7 +10,7 @@ import MODULE_REGISTRATIONS from '~modules/moduleRegistrations'
 const NAMING_ACCESS: ModuleAccess = {
   kind: 'agent',
   userId: 'naming',
-  scopes: MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
+  scopes: toModuleScopes(MODULES),
   idempotencyScope: 'naming',
   organization: { organizationId: 'naming', membershipCreatedAt: 'naming' },
 }

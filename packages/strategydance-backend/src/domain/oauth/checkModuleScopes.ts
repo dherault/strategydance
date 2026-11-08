@@ -1,4 +1,4 @@
-import type { ModuleDefinition } from 'strategydance-core'
+import { type ModuleDefinition, toModuleScopes } from 'strategydance-core'
 
 /*
   Whether scopes are access an address can grant, the rule every consent, token and refresh holds
@@ -8,7 +8,7 @@ import type { ModuleDefinition } from 'strategydance-core'
 */
 function checkModuleScopes(modules: readonly ModuleDefinition[], scopes: readonly string[]) {
   const given = new Set(scopes)
-  const known = new Set(modules.flatMap(({ scopes: { read, write } }) => [read, write]))
+  const known = new Set<string>(toModuleScopes(modules))
 
   return (
     [...given].every(scope => known.has(scope))

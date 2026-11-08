@@ -1,4 +1,4 @@
-import { type ModuleDefinition, type ModuleScope, toModuleScopesInOrder } from 'strategydance-core'
+import { type ModuleDefinition, type ModuleScope, toModuleScopes, toModuleScopesInOrder } from 'strategydance-core'
 
 import checkModuleScopes from '~domain/oauth/checkModuleScopes'
 
@@ -10,7 +10,7 @@ import checkModuleScopes from '~domain/oauth/checkModuleScopes'
   no read at all. Answered in `MODULES`' order, each module's read first
 */
 function parseModuleScopes(modules: readonly ModuleDefinition[], scope: string | undefined): ModuleScope[] | null {
-  if (!scope) return toModuleScopesInOrder(modules.flatMap(({ scopes: { read, write } }) => [read, write]))
+  if (!scope) return toModuleScopesInOrder(toModuleScopes(modules))
 
   const asked = scope.split(' ').filter(Boolean)
 

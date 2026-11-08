@@ -1,4 +1,4 @@
-import { MODULE_ADDRESSES, MODULES } from 'strategydance-core'
+import { MODULE_ADDRESSES, readModuleAddressModules } from 'strategydance-core'
 
 import { OAUTH_ISSUER } from '~constants'
 
@@ -27,7 +27,7 @@ function parseModuleResource(value: string | undefined) {
 
   if (!address) return null
 
-  return { address, modules: MODULES.filter(({ name }) => address.modules.includes(name)), resource }
+  return { address, modules: readModuleAddressModules(address), resource }
 }
 
 export default parseModuleResource

@@ -2,7 +2,13 @@ import { describe, expect, it } from 'bun:test'
 
 import { MODULE_ADDRESSES, MODULES_ADDRESS, SERVED_MODULE_NAMES, SERVED_MODULES } from '../constants'
 
-import { readModuleAddress, readModuleAddressScopes, toModuleScopesInOrder } from './moduleAddress'
+import {
+  readModuleAddress,
+  readModuleAddressModules,
+  readModuleAddressScopes,
+  toModuleScopes,
+  toModuleScopesInOrder,
+} from './moduleAddress'
 
 describe('MODULE_ADDRESSES', () => {
   it('serves every served module at the one address first, then each at its own', () => {
@@ -44,6 +50,13 @@ describe('readModuleAddressScopes', () => {
       'budget:write',
     ])
     expect(readModuleAddressScopes(readModuleAddress('budget')!)).toEqual(['budget:read', 'budget:write'])
+  })
+})
+
+describe('readModuleAddressModules and toModuleScopes', () => {
+  it("defines an address's modules in `MODULES`' order, and names each module's read then write", () => {
+    expect(readModuleAddressModules(MODULES_ADDRESS).map(({ name }) => name)).toEqual(['documents', 'tasks', 'budget'])
+    expect(toModuleScopes(readModuleAddressModules(readModuleAddress('tasks')!))).toEqual(['tasks:read', 'tasks:write'])
   })
 })
 

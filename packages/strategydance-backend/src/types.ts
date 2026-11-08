@@ -18,6 +18,7 @@ import type {
   BudgetBill,
   Currency,
   KnowledgeKind,
+  ModuleName,
   ModuleScope,
 } from 'strategydance-core'
 import type { CompanyAspect, GetConversationCallsData, TaskStatus } from 'strategydance-database/backend'
@@ -315,6 +316,21 @@ export type ModuleAccess =
       idempotencyScope: string
       organizations: ReachedModuleOrganization[]
     }
+
+/*
+  What a module tells an agent of itself in its server's instructions, which `toModuleInstructions`
+  writes the rest around: the label it goes by beside other modules, what it holds, said after "This
+  server" when it is a server's one module and after "The <label> module" beside others, what the
+  agent acts as through it where that says more than being one member of the organization, and its
+  own paragraphs, worded for the modules the server lists, or `null` when it is the server's one
+  module, so it names no module the server does not list
+*/
+export type ModuleInstructions = {
+  label: string
+  holds: string
+  actsAs?: string
+  paragraphs: (listed: readonly ModuleName[] | null) => string[]
+}
 
 /*
   What each tool of a module served to external agents runs with, in the organization its call acts

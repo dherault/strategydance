@@ -1,5 +1,6 @@
 import { OAuthError, OAuthErrorCode, type OAuthTokenVerifier } from '@modelcontextprotocol/server'
 import {
+  MODULES_ADDRESS,
   type ModuleScope,
   readAgentConnectionReach,
   toModuleScopesInOrder,
@@ -14,6 +15,7 @@ import { dataConnect } from '~firebase'
 import createAgentConnectionUseRecorder from '~domain/oauth/createAgentConnectionUseRecorder'
 import hashOAuthToken from '~domain/oauth/hashOAuthToken'
 import parseModuleResource from '~domain/oauth/parseModuleResource'
+import toExternalIdempotencyScope from '~domain/oauth/toExternalIdempotencyScope'
 
 import toModuleAuthInfo from '~modules/toModuleAuthInfo'
 
@@ -27,11 +29,18 @@ import toModuleAuthInfo from '~modules/toModuleAuthInfo'
   passes marks its connection used, at most once a minute.
 
   It answers the SDK's `AuthInfo` carrying the access the module acts with, an external agent in
-  each organization reached, with its membership, its slug and its name, the connection's scopes and
-  its own idempotency scope, and the token's expiry and resource, which the bearer check requires
+  each organization reached, with its membership, its slug and its name, the token's scopes and the
+  connection's, its idempotency scope, and the token's expiry and resource, which the bearer check
+  requires. The idempotency scope is `external:` and a hash of the member, the client and the
+  address at the one address (`toExternalIdempotencyScope`), and `connection:<id>` at a module's own
 */
 function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
-  const expectedResource = parseModuleResource(resource.href)?.resource
+  const target = parseModuleResource(resource.href)
+  const expectedResource = target?.resource
+  // The one address keys a connection's writes on what outlives a consent, and a module's own
+  // address on its connection, as before the one address, so no write in flight across the release
+  // that served it changes scope
+  const isOneAddress = target?.address.name === MODULES_ADDRESS.name
   const recordUse = createAgentConnectionUseRecorder()
 
   return {
@@ -60,7 +69,9 @@ function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
         // What the token holds, which a refresh may have narrowed, within its connection's
         scopes: stored.scopes.filter(scope => connection.scopes.includes(scope)) as ModuleScope[],
         connectionScopes: toModuleScopesInOrder(connection.scopes),
-        idempotencyScope: `connection:${connection.id}`,
+        idempotencyScope: isOneAddress
+          ? toExternalIdempotencyScope(connection.userId, connection.clientId, MODULES_ADDRESS.name)
+          : `connection:${connection.id}`,
         organizations: reached.map(({ organizationId, createdAt, organization }) => ({
           organizationId,
           membershipCreatedAt: createdAt,

@@ -1,10 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
-import { MAX_AGENT_CONNECTION_ORGANIZATIONS, type ModuleDefinition, toModuleScopesInOrder } from 'strategydance-core'
-import {
-  approveOAuthAuthorizationRequest as approveRequest,
-  getAgentConnectionForConsent,
-} from 'strategydance-database/backend'
+import { MAX_AGENT_CONNECTION_ORGANIZATIONS, toModuleScopesInOrder } from 'strategydance-core'
+import { approveOAuthAuthorizationRequest as approveRequest } from 'strategydance-database/backend'
 
 import { OAUTH_ISSUER } from '~constants'
 
@@ -19,7 +16,6 @@ import describeModuleScopes from '~domain/oauth/describeModuleScopes'
 import hashOAuthToken from '~domain/oauth/hashOAuthToken'
 import isMembershipRefusal from '~domain/oauth/isMembershipRefusal'
 import loadOAuthAuthorizationRequest from '~domain/oauth/loadOAuthAuthorizationRequest'
-import readHeldScopes from '~domain/oauth/readHeldScopes'
 
 type Approval = {
   requestId: string
@@ -50,27 +46,14 @@ type Approved =
   for or held by the connection it replaces, so a consent never grants what neither the agent asked
   for nor the member granted before: what was asked for goes as `scopes`, which the database checks
   against the request, and what only the connection held as `heldScopes`, which it checks against
-  the connection after the member's lock, so a narrowing that committed meanwhile is seen.
+  the connection after the member's lock, so a narrowing that committed meanwhile is seen, and which
+  nothing reads before, since that check is the one that counts.
 
   The organizations go canonical and once each, since the database counts the memberships it locks
   against the list. The database refuses anybody who is not a member of each of them, more of them
   than a connection reaches (`MAX_AGENT_CONNECTION_ORGANIZATIONS`), a member who connected as many
   agents as they may (`MAX_AGENT_CONNECTIONS`), and a request decided already or expired
 */
-// What the member's connection for this client at this address holds, read before Allow to refuse
-// early what the database would, which checks it again after the member's lock
-async function readConnectionScopes(
-  userId: string,
-  clientId: string,
-  addressName: string,
-  modules: readonly ModuleDefinition[],
-) {
-  const { data } = await getAgentConnectionForConsent(dataConnect, { userId, clientId, module: addressName })
-  const [connection] = data.agentConnections
-
-  return connection ? readHeldScopes(modules, connection.scopes) : []
-}
-
 async function approveOAuthAuthorizationRequest({
   requestId,
   userId,
@@ -83,21 +66,16 @@ async function approveOAuthAuthorizationRequest({
   if (loaded.outcome === 'refused') return { outcome: 'refused', reason: loaded.reason }
 
   const { request, client, address, modules } = loaded
+
+  if (!checkModuleScopes(modules, scopes)) {
+    return { outcome: 'invalid', reason: `Allow ${describeModuleScopes(modules)}` }
+  }
+
+  // What the request asked for, which the database checks against it, and what the member keeps
+  // beyond it, which it checks against the connection this consent replaces, after the lock
   const granted = toModuleScopesInOrder(scopes)
   const asked = granted.filter(scope => request.scopes.includes(scope))
   const kept = granted.filter(scope => !request.scopes.includes(scope))
-  const held = kept.length ? await readConnectionScopes(userId, request.clientId, address.name, modules) : []
-
-  if (
-    granted.length !== new Set(scopes).size
-    || !checkModuleScopes(modules, granted)
-    || kept.some(scope => !held.includes(scope))
-  ) {
-    return {
-      outcome: 'invalid',
-      reason: `Allow ${describeModuleScopes(modules)}, each asked for or held by the connection it replaces`,
-    }
-  }
 
   const chosen = [...new Set(organizationIds.map(toCanonicalUuid))]
 
@@ -132,7 +110,10 @@ async function approveOAuthAuthorizationRequest({
     if (message.includes('A member connects at most')) return { outcome: 'full' }
     if (message.includes('The authorization request was decided already or has expired')) return { outcome: 'unknown' }
     if (message.includes('The connection this consent replaces holds no such access')) {
-      return { outcome: 'invalid', reason: 'The connection this consent replaces no longer holds that access' }
+      return {
+        outcome: 'invalid',
+        reason: 'Allow only the access the request asked for, or that the connection it replaces holds',
+      }
     }
 
     throw error

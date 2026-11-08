@@ -479,7 +479,7 @@ describe('POST /oauth/requests/:requestId/approve', () => {
 
     expect(status).toBe(400)
     expect(answer.status === 'error' && answer.message).toBe(
-      'The connection this consent replaces no longer holds that access',
+      'Allow only the access the request asked for, or that the connection it replaces holds',
     )
     expect([...fake.connections.values()]).toEqual([connection])
   })

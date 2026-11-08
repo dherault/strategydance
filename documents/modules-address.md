@@ -410,7 +410,7 @@ times.
 | # | Milestone | Packages | Depends on | Implementation PR |
 | --- | --- | --- | --- | --- |
 | M1 | One server, any modules | backend | | [#315](https://github.com/dherault/strategydance/pull/315) |
-| M2 | One OAuth resource at `/mcp` | core, database, backend, web | M1 | |
+| M2 | One OAuth resource at `/mcp` | core, database, backend, web | M1 | [#316](https://github.com/dherault/strategydance/pull/316) |
 | M3 | Access and the module pages | database, backend, web, root | M2 | |
 
 ### Conventions for every milestone

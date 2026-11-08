@@ -263,6 +263,20 @@ describe('the agent connections', () => {
     )
   })
 
+  it('UpdateAgentConnectionScopes narrows after the lock, never widens, leaves grantedAt, and refreshes the list', () => {
+    const update = readOperation(webMutations, 'UpdateAgentConnectionScopes')
+
+    // The caller's own row is locked first, and the connection read in a step reading its response
+    expect(update).toContain('user_update(key: { id_expr: "auth.uid" }')
+    expect(update.indexOf('user_update(')).toBeLessThan(update.indexOf('agentConnections('))
+    expect(update).toContain('userId: { eq_expr: "response.user_update.id" }')
+    expect(update).toContain('vars.scopes.all(scope, scope in this[0].scopes)')
+    expect(update).toContain("scope.replace(':write', ':read') in vars.scopes")
+    expect(update).toContain("vars.scopes.exists(scope, scope.endsWith(':read'))")
+    expect(update).not.toContain('grantedAt')
+    expect(readOperation(webQueries, 'GetAgentConnections')).toContain('operation: "UpdateAgentConnectionScopes"')
+  })
+
   it('GetAgentConnections reads every connection a member may hold', () => {
     expect(readNumbers(readOperation(webQueries, 'GetAgentConnections'), /limit: (\d+)/g)).toEqual([
       MAX_AGENT_CONNECTIONS,

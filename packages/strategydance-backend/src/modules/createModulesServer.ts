@@ -29,7 +29,10 @@ function createModulesServer(access: ModuleAccess, modules: readonly ModuleName[
     { ...(alone ? { name: `strategydance-${alone.name}`, title: alone.title } : MODULES_SERVER), version: '1.0.0' },
     {
       capabilities: { tools: {} },
-      instructions: toModuleInstructions(alone ? alone.name : listed.map(({ name }) => name), access),
+      instructions: toModuleInstructions(
+        alone ? { alone: alone.name } : { listed: listed.map(({ name }) => name) },
+        access,
+      ),
     },
   )
 

@@ -103,7 +103,7 @@ describe('createModulesServer', () => {
 
     for (const tool of tools) expect(tool.inputSchema.required).toContain('organization')
 
-    expect(kit.client.getInstructions()).toBe(toModuleInstructions(['documents', 'tasks'], access))
+    expect(kit.client.getInstructions()).toBe(toModuleInstructions({ listed: ['documents', 'tasks'] }, access))
     expect(kit.client.getInstructions()).not.toMatch(/budget|bill/i)
   })
 
@@ -128,7 +128,7 @@ describe('createModulesServer', () => {
     const names = (await kit.client.listTools()).tools.map(({ name }) => name)
 
     expect(kit.client.getServerVersion()).toMatchObject({ name: 'strategydance-tasks', title: 'Strategy Dance Tasks' })
-    expect(kit.client.getInstructions()).toBe(toModuleInstructions('tasks', access))
+    expect(kit.client.getInstructions()).toBe(toModuleInstructions({ alone: 'tasks' }, access))
     expect(names).toEqual([
       'list_tasks',
       'read_task',

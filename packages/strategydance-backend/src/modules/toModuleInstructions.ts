@@ -21,8 +21,8 @@ const IDEMPOTENCY = `Every write tool takes an idempotency key in the call's _me
   Strategy Dance is, what each module says of itself, how to write safely, and the organizations an
   external agent's connection reaches, which every tool takes as `organization`.
 
-  A server of one module, given by its name, says it of "This server", as a module's server always
-  has. A server given a list, the modules it lists, says what Strategy Dance is once, then each
+  A server of one module, `{ alone }`, says it of "This server", as a module's server always has. A
+  server of several, `{ listed }`, the modules it lists, says what Strategy Dance is once, then each
   module in `MODULES`' order, each naming only modules listed, then the key and the organizations
   once.
 
@@ -30,12 +30,12 @@ const IDEMPOTENCY = `Every write tool takes an idempotency key in the call's _me
   Knowledge and Subagents serve Strategy Dance's agent alone, which acts in its run's organization
   and reads no instructions, so they are told nothing more
 */
-function toModuleInstructions(modules: ModuleName | readonly ModuleName[], access: ModuleAccess) {
-  const names = typeof modules === 'string' ? [modules] : modules
+function toModuleInstructions(server: { alone: ModuleName } | { listed: readonly ModuleName[] }, access: ModuleAccess) {
+  const names = 'alone' in server ? [server.alone] : server.listed
   const isServed = names.some(name => SERVED_MODULE_NAMES.includes(name))
 
   return [
-    ...(typeof modules === 'string' ? toAlone(modules) : toSeveral(modules)),
+    ...('alone' in server ? toAlone(server.alone) : toSeveral(server.listed)),
     ...(isServed ? [IDEMPOTENCY, ...toReached(access)] : []),
   ].join('\n\n')
 }

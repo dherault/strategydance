@@ -50,7 +50,7 @@ function count(text: string, part: string) {
 
 describe('toModuleInstructions', () => {
   it('says what Strategy Dance is, the key and the organizations once on a server of several, between which each module listed says what it holds', () => {
-    const instructions = toModuleInstructions(['documents', 'tasks', 'budget'], EXTERNAL)
+    const instructions = toModuleInstructions({ listed: ['documents', 'tasks', 'budget'] }, EXTERNAL)
 
     expect(instructions).toStartWith(
       "Strategy Dance accompanies a company's team as it builds, sells and runs the company. This server holds Strategy Dance's Documents, Tasks and Budget modules, and you act as one member of the organization in each.\n\nThe Documents module holds the organization's documents: ",
@@ -69,13 +69,13 @@ describe('toModuleInstructions', () => {
   })
 
   it('lists the modules in `MODULES`’ order, as the server lists their tools, whatever the order given', () => {
-    expect(toModuleInstructions(['budget', 'tasks', 'documents'], EXTERNAL)).toBe(
-      toModuleInstructions(['documents', 'tasks', 'budget'], EXTERNAL),
+    expect(toModuleInstructions({ listed: ['budget', 'tasks', 'documents'] }, EXTERNAL)).toBe(
+      toModuleInstructions({ listed: ['documents', 'tasks', 'budget'] }, EXTERNAL),
     )
   })
 
   it('names each tool a mention opens as this server’s, beside the modules listed', () => {
-    const instructions = toModuleInstructions(['documents', 'tasks'], EXTERNAL)
+    const instructions = toModuleInstructions({ listed: ['documents', 'tasks'] }, EXTERNAL)
 
     expect(count(instructions, 'which read_document or read_task opens')).toBe(2)
     expect(instructions).not.toContain("the task board's read_task")
@@ -84,9 +84,9 @@ describe('toModuleInstructions', () => {
   })
 
   it('never names a module the server does not list', () => {
-    const withoutTasks = toModuleInstructions(['documents', 'budget'], EXTERNAL)
-    const withoutDocuments = toModuleInstructions(['tasks', 'budget'], EXTERNAL)
-    const withoutBudget = toModuleInstructions(['documents', 'tasks'], EXTERNAL)
+    const withoutTasks = toModuleInstructions({ listed: ['documents', 'budget'] }, EXTERNAL)
+    const withoutDocuments = toModuleInstructions({ listed: ['tasks', 'budget'] }, EXTERNAL)
+    const withoutBudget = toModuleInstructions({ listed: ['documents', 'tasks'] }, EXTERNAL)
 
     expect(withoutTasks).toContain("which read_document opens when it is a document's")
     expect(withoutTasks).not.toContain('read_task')
@@ -98,7 +98,7 @@ describe('toModuleInstructions', () => {
   })
 
   it('says a module listed alone on a server of several is its one module, worded as beside none', () => {
-    const instructions = toModuleInstructions(['documents'], EXTERNAL)
+    const instructions = toModuleInstructions({ listed: ['documents'] }, EXTERNAL)
 
     expect(instructions).toStartWith(
       "Strategy Dance accompanies a company's team as it builds, sells and runs the company. This server holds Strategy Dance's Documents module, and you act as one member of the organization in it.\n\nThe Documents module holds ",
@@ -108,8 +108,8 @@ describe('toModuleInstructions', () => {
   })
 
   it('keeps a module’s own words on a server of that module alone, naming the others’ tools', () => {
-    const documents = toModuleInstructions('documents', EXTERNAL)
-    const tasks = toModuleInstructions('tasks', EXTERNAL)
+    const documents = toModuleInstructions({ alone: 'documents' }, EXTERNAL)
+    const tasks = toModuleInstructions({ alone: 'tasks' }, EXTERNAL)
 
     expect(documents).toStartWith(
       "Strategy Dance accompanies a company's team as it builds, sells and runs the company. This server holds the organization's documents: ",
@@ -119,10 +119,7 @@ describe('toModuleInstructions', () => {
   })
 
   it('tells Strategy Dance’s agent no organization, and what it acts as through Subagents and Knowledge', () => {
-    const instructions = toModuleInstructions(
-      MODULES.map(({ name }) => name),
-      AGENT,
-    )
+    const instructions = toModuleInstructions({ listed: MODULES.map(({ name }) => name) }, AGENT)
 
     expect(instructions).not.toContain(REACHED)
     expect(count(instructions, IDEMPOTENCY)).toBe(1)
@@ -138,8 +135,8 @@ describe('toModuleInstructions', () => {
   })
 
   it('says the key only where a served module is listed, as Knowledge’s and Subagents’ servers never did', () => {
-    expect(toModuleInstructions('knowledge', AGENT)).not.toContain(IDEMPOTENCY)
-    expect(toModuleInstructions(['subagents', 'knowledge'], AGENT)).not.toContain(IDEMPOTENCY)
-    expect(toModuleInstructions('budget', AGENT)).toContain(IDEMPOTENCY)
+    expect(toModuleInstructions({ alone: 'knowledge' }, AGENT)).not.toContain(IDEMPOTENCY)
+    expect(toModuleInstructions({ listed: ['subagents', 'knowledge'] }, AGENT)).not.toContain(IDEMPOTENCY)
+    expect(toModuleInstructions({ alone: 'budget' }, AGENT)).toContain(IDEMPOTENCY)
   })
 })

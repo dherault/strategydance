@@ -44,7 +44,8 @@ the same pull request.
 - **What a server per module was for holds within one consent.** conversations.md § Modules keeps a
   server per module so a member connects modules one by one, and so a module that touches money asks
   for its own consent. Budget is that module. One consent still sets each module apart, and Budget's
-  writes start unchosen there (Decisions), so bills are written only by a choice of the member's own.
+  writes start unchosen there unless the member chose them before for the same client (Decisions),
+  so bills are written only by a choice of the member's own.
 - **Now is when it costs least**: before the MCP Registry lists anything, one entry rather than
   three, and while few members have connected agents.
 
@@ -65,10 +66,13 @@ Proposed on 2026-11-07, for David to settle in review:
   - At least one module is allowed.
   - A client naming no scope asks for every served module, read and write, as a request naming
     none asks for both today.
-  - **Budget's writes are chosen, never defaulted.** Budget starts at read even when the client asked
-    for write, unless the connection replaced held its write. Many clients ask for every scope a
-    server lists, so otherwise one click on Allow would let an agent add, change and delete bills
-    beside writing documents. A later module that touches money starts the same way.
+  - **Budget's writes take the member's choice.** At the one address, Budget starts at read unless
+    the client asks for its write and the connection replaced held it, a choice the member made
+    before for that client. Many clients ask for every scope a server lists, so otherwise one click
+    on Allow would let an agent add, change and delete bills beside writing documents, and a held
+    write is never carried over to a request that did not ask for it. A later module that touches
+    money starts the same way. `/mcp/budget` is the consent of its own conversations.md meant, and
+    stays as it is.
 - **The tools follow the access.**
   - A connection lists the tools of each module it holds the read scope of, and none of a module it
     does not: a member who left Budget out finds no bill tool in their agent.
@@ -205,7 +209,9 @@ per-module address is the case of one module, so it behaves as today.
   - It is worded by the module from the `module` catalogue, as `OAuthConsentAccess` words one now.
   - To begin with, a module is chosen as the connection it replaces holds it, or with what was
     asked for when that is more; a module only asked for, read and write when asked, read when not.
-    Budget's write alone starts chosen only when the connection held it.
+    Budget's write alone starts chosen only when the request asks for it and the connection held
+    it. Every module the page grants is shown with its access, held ones included, so nothing is
+    granted out of the member's sight.
   - The organizations are ticked once for every module, as today.
   - Allow stays off while no module is allowed.
 - **Allow** takes the scopes chosen, checked against the rule above, each asked for or held by the
@@ -424,7 +430,7 @@ rows and Delegate that read a connection there.
   body as they are today.
 - The consent page: a module left unallowed, Allow off with none allowed, a connection replaced
   keeping its choices as defaults, a request for one module listing the others it holds, and
-  Budget starting at read when its write is asked for but was not held.
+  Budget starting at read when its write is asked for but was not held, or held but not asked for.
 - Allow: consenting again replaces the connection with its tokens, leaving an earlier code and an
   earlier refresh token opening nothing; a scope neither asked for nor held refused.
 - The idempotency scope at the one address: `external:` and the hash, the same before and after a

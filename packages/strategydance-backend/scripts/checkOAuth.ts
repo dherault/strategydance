@@ -60,7 +60,8 @@ import readModuleAccess from '~modules/readModuleAccess'
   And what the account page's Connected agents tab runs through the browser's connector: its list
   holds the member's connections alone, and Disconnect deletes one of theirs alone, with its tokens,
   so the agent's next refresh and its next call to the module are refused. Allow holds a member to
-  `MAX_AGENT_CONNECTIONS`, so the tab lists every one.
+  `MAX_AGENT_CONNECTIONS`, so the tab lists every one. Access narrows what a connection at the one
+  address may do in each module, from its next call and its next refresh, and never widens it.
 
   And the Tasks and the Budget modules' endpoints, each beside the Documents module's, for one agent
   connected to both: each module's token opens that module alone, a query draws on the member's
@@ -1011,6 +1012,132 @@ async function checkHeldScopes() {
   )
 }
 
+/*
+  Access on the Connected agents tab, through the browser's connector, for a connection at the one
+  address: it narrows what the agent may do in each module from its next call and its next refresh,
+  a duplicate of a rotation from before it naming what is left, never widens, keeps a module read
+  and no write without its read, acts on the member's own connections alone, and leaves `grantedAt`
+  as it was
+*/
+async function checkAccess() {
+  const agent = await registerAtOneAddress('access')
+  const every = ['documents:read', 'documents:write', 'tasks:read', 'tasks:write']
+  const { tokens } = await consentAtOneAddress(agent, every.join(' '), every)
+  const [connection] = await readConnections(agent.clientId)
+  const connectionId = connection?.id ?? ''
+  const readConnection = async () => {
+    const data = await read<{ agentConnection: { scopes: string[]; grantedAt: string } | null }>(
+      `query ReadAccess($id: UUID!) { agentConnection(id: $id) { scopes grantedAt } }`,
+      { id: connectionId },
+    )
+
+    return data.agentConnection
+  }
+  const narrow = (scopes: string[], { id = connectionId, claimedUserId = userId, caller = userId } = {}) =>
+    refusal(
+      webConnector.executeMutation(
+        'UpdateAgentConnectionScopes',
+        { userId: claimedUserId, id, scopes },
+        { impersonate: { authClaims: { sub: caller } } },
+      ),
+    )
+  const before = await readConnection()
+
+  // A rotation before the narrowing, whose spent token comes back after it as a duplicate
+  const rotated = (await (await refreshAtOneAddress(agent, tokens.refresh_token)).json()) as Tokens
+  const tasksRead = ['documents:read', 'documents:write', 'tasks:read']
+  const narrowed = await narrow(tasksRead)
+  const after = await readConnection()
+
+  check(
+    'Access narrows Tasks to read, leaving grantedAt as it was',
+    narrowed === null
+      && after?.scopes.join(' ') === tasksRead.join(' ')
+      && before !== null
+      && after.grantedAt === before.grantedAt,
+  )
+
+  const client = await openModule(agent.endpoint, rotated.access_token)
+  const names = (await client.listTools()).tools.map(({ name }) => name)
+
+  await client.close()
+
+  const write = await challengeAtOneAddress(agent, rotated.access_token, 'create_task', {
+    name: 'Refused',
+    status: 'TODO',
+  })
+
+  check(
+    "the next call of a token issued before still lists Tasks' tools, and challenges a task write with the connection's scopes",
+    names.includes('list_tasks')
+      && write.status === 403
+      && write.header.includes('scope="documents:read documents:write tasks:read tasks:write"'),
+  )
+
+  const duplicate = (await (await refreshAtOneAddress(agent, tokens.refresh_token)).json()) as Tokens
+
+  check(
+    'a duplicate of a rotation from before the narrowing is answered with its pair, naming what is left',
+    duplicate.access_token === rotated.access_token
+      && duplicate.refresh_token === rotated.refresh_token
+      && duplicate.scope === tasksRead.join(' '),
+  )
+
+  const refreshed = (await (await refreshAtOneAddress(agent, rotated.refresh_token)).json()) as Tokens
+  const askedAgain = await refreshAtOneAddress(agent, refreshed.refresh_token, 'tasks:read tasks:write')
+
+  check(
+    'a refresh after the narrowing issues and names the narrowed scopes, and one asking for the write again is refused',
+    refreshed.scope === tasksRead.join(' ')
+      && askedAgain.status === 400
+      && ((await askedAgain.json()) as { error?: string }).error === 'invalid_scope',
+  )
+
+  const refusals = {
+    widening: await narrow([...tasksRead, 'tasks:write']),
+    unheld: await narrow(['documents:read', 'budget:read']),
+    none: await narrow([]),
+    writeAlone: await narrow(['documents:write']),
+    writeWithoutRead: await narrow(['documents:write', 'tasks:read']),
+    twice: await narrow(['tasks:read', 'tasks:read']),
+    otherMember: await narrow(['documents:read'], { claimedUserId: otherUserId, caller: otherUserId }),
+    claimed: await narrow(['documents:read'], { claimedUserId: otherUserId }),
+  }
+
+  check(
+    'Access refuses to widen, to leave no module read or a write without its read, or to name a scope twice',
+    refusals.widening?.includes('only narrows here') === true
+      && refusals.unheld?.includes('only narrows here') === true
+      && refusals.none?.includes("at least one module's read") === true
+      && refusals.writeAlone?.includes("at least one module's read") === true
+      && refusals.writeWithoutRead?.includes('never writes in a module it cannot read') === true
+      && refusals.twice?.includes('names each scope once') === true,
+  )
+  check(
+    "Access refuses another member's connection, and a member it is not called as",
+    refusals.otherMember?.includes('The agent was disconnected') === true
+      && refusals.claimed?.includes('changed by the member it acts as alone') === true
+      && (await readConnection())?.scopes.join(' ') === tasksRead.join(' '),
+  )
+
+  const documentsOnly = await narrow(['documents:read'])
+  const narrowedClient = await openModule(agent.endpoint, refreshed.access_token)
+  const narrowedNames = (await narrowedClient.listTools()).tools.map(({ name }) => name)
+
+  await narrowedClient.close()
+
+  const task = await challengeAtOneAddress(agent, refreshed.access_token, 'list_tasks', {})
+
+  check(
+    'Access narrowing to Documents takes the Tasks tools away at the next call, and challenges a Tasks call for its read',
+    documentsOnly === null
+      && narrowedNames.includes('list_documents')
+      && !narrowedNames.includes('list_tasks')
+      && task.status === 403
+      && task.header.includes('scope="documents:read tasks:read"'),
+  )
+}
+
 async function checkConsent() {
   const clientId = `https://check-${checkId}.example.com/consent.json`
 
@@ -1939,6 +2066,7 @@ try {
   await checkOneAddress()
   await checkConsent()
   await checkHeldScopes()
+  await checkAccess()
   await checkConnectedAgents()
   await checkModuleEndpoint(TASKS_ENDPOINT)
   await checkModuleEndpoint(BUDGET_ENDPOINT)

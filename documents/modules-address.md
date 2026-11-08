@@ -170,13 +170,17 @@ Core gains `MODULE_ADDRESSES` beside `MODULES`, what the public backend serves, 
 title, modules }`:
 - the one address first, `{ name: 'strategydance', path: '/mcp', title: 'Strategy Dance', modules:
   SERVED_MODULE_NAMES }`;
-- then each served module's own, with its name, path and title, and itself alone as `modules`.
+- then each served module's own, derived from `SERVED_MODULES`, its name, path and title, and itself
+  alone as `modules`, so a module's path and title stay written in `MODULES` alone.
 
 An address's scopes are its modules' read and write scopes, and `ModuleAddressName` names one. The
-routes, the protected resource metadata, every reader of `parseModuleResource`, the consent page,
-the sweep and Connected agents read the addresses here, all in the milestone that serves the one
-address, so nothing answers at `/mcp` before its scopes, its refresh and its sweep are in place. A
-per-module address is the case of one module, so it behaves as today.
+routes, the protected resource metadata, `OAUTH_PROTOCOL_PATHS`, every reader of
+`parseModuleResource`, the consent page, the sweep and Connected agents read the addresses here.
+`OAUTH_PROTOCOL_PATHS` lists the paths that answer any origin, each served module's metadata among
+them, so a client in a browser reads `/mcp`'s metadata as it reads a module's. All of it lands in
+the milestone that serves the one address, so nothing answers at `/mcp` before its scopes, its
+refresh and its sweep are in place. A per-module address is the case of one module, so it behaves
+as today.
 
 ### The OAuth resource (M2)
 
@@ -304,6 +308,10 @@ may ship alone, so the app reads such a connection from M2:
 - **Delegate** on a task copies its prompt for a connection to the one address holding `tasks:read`
   in the task's organization, as for one to `/mcp/tasks`. `TaskDelegation` counts a connection
   whose module is `tasks` alone today.
+- **The Delegate prompt**, `task.delegatePrompt`, names the task board's tools rather than "the
+  Strategy Dance Tasks MCP server", the per-module server's title, so an agent connected at either
+  address finds them. Its description, which asks to keep that name, follows, and `bun run translate`
+  runs.
 
 ### Access and the module pages (M3)
 
@@ -332,10 +340,6 @@ may ship alone, so the app reads such a connection from M2:
 - **"Use with your agents"**, on Documents, Tasks and Budget, gives the one address, with the same
   instructions for each client, and says that one connection reaches every module the member
   allows.
-- **The Delegate prompt**, `task.delegatePrompt`, names the task board's tools rather than "the
-  Strategy Dance Tasks MCP server", the per-module server's title, so an agent connected at either
-  address finds them. Its description, which asks to keep that name, follows, and `bun run translate`
-  runs.
 - **The root's `CLAUDE.md`**: Tackling a task names the `strategydance` server and its `claude mcp
   add` line.
 - **The backend's `CLAUDE.md`**: Modules names the one address and `MODULE_ADDRESSES`.
@@ -376,7 +380,8 @@ times.
   with `claude -p` and the flow with `check:oauth`. claude.ai, ChatGPT and Cursor are checked by hand
   once the address is served.
 - **Two addresses at once.** Through the transition, a member may connect one agent at both, and see
-  two rows. Connected agents marks the older one.
+  two rows. Connected agents marks the older one from M3, when the module pages start giving the one
+  address. Before M3, no member is told of it, so two rows come only from someone who found it.
 - **A module left out stays out of sight.** A connection lists only the modules it holds, so its
   agent cannot find one the member left out, and a member who wants it consents again, where today
   they add the module's address.
@@ -441,7 +446,7 @@ answers at `/mcp`.
 Addresses, The OAuth resource and Connections at the one address above: the addresses, the
 endpoint, its metadata, resource and scope parsing, the refresh, the challenge, the consent page,
 Allow, the idempotency scope, the sweep, what the release keeps for the pages before it, and the
-rows and Delegate that read a connection there.
+rows, Delegate and its prompt that read a connection there.
 
 **Tests:**
 - `parseModuleScopes` for the one address: two modules read, one read and write, write without read
@@ -478,6 +483,7 @@ rows and Delegate that read a connection there.
 - `bun run check:oauth` against `http://localhost:3003/mcp`, as How it works lists.
 - Over HTTP, from Claude Code (`claude -p` with a scratch `--mcp-config` whose headers carry a bearer
   token from a script running the flow), two organizations and two modules on one connection.
+- Delegate's prompt, pasted into Claude Code connected at `/mcp` alone, finds the task and moves it.
 - The four checks.
 
 ### M3: Access and the module pages
@@ -495,5 +501,4 @@ Access and the module pages above, and the documents that follow.
 **To verify, once implemented:**
 - In the app against the local backend: connect Claude Code at `/mcp`, narrow Tasks to read on
   Connected agents, and see a task write challenged at the next call.
-- Delegate's prompt, pasted into Claude Code connected at `/mcp` alone, finds the task and moves it.
 - The four checks.

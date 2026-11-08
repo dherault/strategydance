@@ -5249,6 +5249,10 @@
         "hash": "eef9835ba3732ba7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.connectAtOneAddress": {
+        "hash": "18a8a3977a5afb9b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.connectedAgentsEmptyDescription": {
         "hash": "8d1ef939004b3bdf",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -5283,6 +5287,10 @@
       },
       "module.connectionModuleReadWrite": {
         "hash": "b1bab6752c8714f7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectionOlderAddress": {
+        "hash": "6b0a39eb11e60608",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.connectionReachesNone": {

@@ -398,6 +398,18 @@ const moduleMessages = defineMessages({
     description:
       'On an agent connected to several modules at once, one module it may read and change, as in "Documents: read and write. Tasks: read.". {moduleName} is the module\'s name.',
   },
+  connectionOlderAddress: {
+    id: 'module.connectionOlderAddress',
+    defaultMessage: 'An older address, for {moduleName} alone.',
+    description:
+      "On the Connected agents tab, under an agent connected at a module's own address, which Strategy Dance replaces with one address where one connection reaches every module. A link to how to connect there follows. {moduleName} is the module's name.",
+  },
+  connectAtOneAddress: {
+    id: 'module.connectAtOneAddress',
+    defaultMessage: 'How to connect at the new address',
+    description:
+      'Link after "An older address, for Documents alone." on the Connected agents tab, opening the steps to connect an agent at the one address that serves every module.',
+  },
   connectionReachesNone: {
     id: 'module.connectionReachesNone',
     defaultMessage: 'Reaches none of your organizations any more',

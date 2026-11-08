@@ -16,6 +16,7 @@ import getModuleMessages from '~utils/module/getModuleMessages'
 import AgentConnectionLastUsed from '~components/agentConnection/AgentConnectionLastUsed'
 import AgentConnectionOrganizationsDialog from '~components/agentConnection/AgentConnectionOrganizationsDialog'
 import Spinner from '~components/common/Spinner'
+import ModuleAgentsDialog from '~components/module/ModuleAgentsDialog'
 import OAuthClientVerification from '~components/oauth/OAuthClientVerification'
 import OrganizationMark from '~components/organization/OrganizationMark'
 
@@ -32,12 +33,12 @@ type Props = {
 
 /*
   One connected agent: who it is and what vouches for it, where it connected and the access it
-  holds, a module's own address by the module and the one address by Strategy Dance with each
-  module it holds there, the organizations it reaches, or that it reaches none of the reader's any
-  more, when it connected and when it last called a module, a way to change its organizations, and
-  Disconnect, which asks twice, since only a new consent from the agent undoes it. Disconnecting
-  deletes the connection with its tokens, so the agent's next call or refresh is refused, and the
-  live list drops the row
+  holds, a module's own address by the module, marked as older with a way to connect at the one
+  address, and the one address by Strategy Dance with each module it holds there, the organizations
+  it reaches, or that it reaches none of the reader's any more, when it connected and when it last
+  called a module, a way to change its organizations, and Disconnect, which asks twice, since only a
+  new consent from the agent undoes it. Disconnecting deletes the connection with its tokens, so the
+  agent's next call or refresh is refused, and the live list drops the row
 */
 function AgentConnectionRow({ connection, memberships, now }: Props) {
   const { formatMessage, formatDate, formatList } = useIntl()
@@ -95,6 +96,27 @@ function AgentConnectionRow({ connection, memberships, now }: Props) {
                 })
               : access.name}
         </span>
+        {access.kind === 'module' && (
+          <span className="text-xs text-muted-foreground">
+            {formatMessage(moduleMessages.connectionOlderAddress, {
+              moduleName: formatMessage(getModuleMessages(access.name).name),
+            })}{' '}
+            <Dialog>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="cursor-pointer underline underline-offset-2 hover:text-foreground"
+                >
+                  {formatMessage(moduleMessages.connectAtOneAddress)}
+                </button>
+              </DialogTrigger>
+              <ModuleAgentsDialog
+                module={access.name}
+                isOnConnectedAgents
+              />
+            </Dialog>
+          </span>
+        )}
         {connection.organizations.length ? (
           <ul className="m-0 flex list-none flex-wrap items-center gap-x-3 gap-y-1 p-0 text-xs text-muted-foreground">
             {connection.organizations.map(organization => (

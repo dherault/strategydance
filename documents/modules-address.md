@@ -245,22 +245,44 @@ per-module address is the case of one module, so it behaves as today.
   - a read-only module's write, challenged with the connection's scopes and the write;
   - a refresh narrowing to one module, then reuse and revocation.
 
-### Connected agents and the module pages (M3)
+### Connections at the one address (M2)
 
-- **A connection's row** names its address:
-  - for the one address, "Strategy Dance", with each module's access, as "Documents: read and
-    write. Tasks: read.";
-  - for a per-module address, the module, as now, marked as an older address, with a link to how to
-    connect at the one address.
+Once `/mcp` answers, a member may connect there before the module pages say so, and each milestone
+may ship alone, so the app reads such a connection from M2:
+- **A connection's row** on Connected agents names its address: for the one address, "Strategy
+  Dance", with each module's access, as "Documents: read and write. Tasks: read."; for a per-module
+  address, the module, as now. `AgentConnectionRow` writes a module it does not know by its raw name
+  today.
+- **Delegate** on a task copies its prompt for a connection to the one address holding `tasks:read`
+  in the task's organization, as for one to `/mcp/tasks`. `TaskDelegation` counts a connection
+  whose module is `tasks` alone today.
+
+### Access and the module pages (M3)
+
+- **A per-module row** is marked as an older address, with a link to how to connect at the one
+  address.
 - **Access** is a button beside Organizations on a row of the one address. It opens a dialog that
   narrows what the connection may do in each module, through `UpdateAgentConnectionScopes`, from its
   next call, since the verifier reads the connection's scopes.
   - It never widens them, since only a consent grants, through the agent's own request: a member who
     wants more consents again through the agent.
-  - At least one module stays read.
+  - At least one module stays read, and no write stays without its read.
+  - It locks the member's row first, as `UpdateAgentConnectionOrganizations` does, so it runs before
+    or after an Allow, never across one.
+  - Unlike that mutation, it leaves `grantedAt` as it is. Narrowing grants nothing, and a newer
+    `grantedAt` would bring back an organization the member left and rejoined since, which
+    `readAgentConnectionReach` leaves out.
+- **A refresh follows a narrowing.** The access and refresh tokens a refresh issues hold the refresh
+  token's scopes within its connection's, and its answer names those, so a client is never told of
+  a write the member took away. `refreshAgentConnectionTokens` copies the refresh token's own scopes
+  today, and reads the connection's already.
 - **"Use with your agents"**, on Documents, Tasks and Budget, gives the one address, with the same
   instructions for each client, and says that one connection reaches every module the member
   allows.
+- **The Delegate prompt**, `task.delegatePrompt`, names the task board's tools rather than "the
+  Strategy Dance Tasks MCP server", the per-module server's title, so an agent connected at either
+  address finds them. Its description, which asks to keep that name, follows, and `bun run translate`
+  runs.
 - **The root's `CLAUDE.md`**: Tackling a task names the `strategydance` server and its `claude mcp
   add` line.
 - **The backend's `CLAUDE.md`**: Modules names the one address and `MODULE_ADDRESSES`.
@@ -312,7 +334,7 @@ times.
 | --- | --- | --- | --- | --- |
 | M1 | One server, any modules | backend | | |
 | M2 | One OAuth resource at `/mcp` | core, database, backend, web | M1 | |
-| M3 | Connected agents and the module pages | database, backend, web, root | M2 | |
+| M3 | Access and the module pages | database, backend, web, root | M2 | |
 
 ### Conventions for every milestone
 
@@ -363,9 +385,10 @@ answers at `/mcp`.
 
 ### M2: One OAuth resource at `/mcp`
 
-Addresses and The OAuth resource above: the addresses, the endpoint, its metadata, resource and
-scope parsing, the refresh, the challenge, the consent page, Allow, the idempotency scope, the sweep
-and what the release keeps for the pages before it.
+Addresses, The OAuth resource and Connections at the one address above: the addresses, the
+endpoint, its metadata, resource and scope parsing, the refresh, the challenge, the consent page,
+Allow, the idempotency scope, the sweep, what the release keeps for the pages before it, and the
+rows and Delegate that read a connection there.
 
 **Tests:**
 - `parseModuleScopes` for the one address: two modules read, one read and write, write without read
@@ -387,6 +410,9 @@ and what the release keeps for the pages before it.
   key after a consent answered from its stored result.
 - The sweep keeping an idle connection to the one address, and deleting one to a module served at
   no address.
+- A row of the one address listing each module's access.
+- Delegate copying its prompt for a connection to the one address holding `tasks:read` in the
+  task's organization, and not for one without it.
 
 **To verify, once implemented:**
 - `bun run check:oauth` against `http://localhost:3003/mcp`, as How it works lists.
@@ -394,17 +420,19 @@ and what the release keeps for the pages before it.
   token from a script running the flow), two organizations and two modules on one connection.
 - The four checks.
 
-### M3: Connected agents and the module pages
+### M3: Access and the module pages
 
-Connected agents and the module pages above, and the documents that follow.
+Access and the module pages above, and the documents that follow.
 
 **Tests:**
-- `UpdateAgentConnectionScopes` narrowing a module, refusing a widening, and refusing to leave no
-  module read.
-- A row of the one address listing each module's access, and a per-module row marked as older.
+- `UpdateAgentConnectionScopes` narrowing a module, refusing a widening, refusing to leave no module
+  read or a write without its read, and leaving `grantedAt` as it was.
+- A refresh after a narrowing issuing and naming the narrowed scopes alone.
+- A per-module row marked as older.
 - The agents dialog giving `/mcp` on each module's page.
 
 **To verify, once implemented:**
 - In the app against the local backend: connect Claude Code at `/mcp`, narrow Tasks to read on
   Connected agents, and see a task write challenged at the next call.
+- Delegate's prompt, pasted into Claude Code connected at `/mcp` alone, finds the task and moves it.
 - The four checks.

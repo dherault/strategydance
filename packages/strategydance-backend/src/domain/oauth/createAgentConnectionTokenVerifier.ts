@@ -1,11 +1,5 @@
 import { OAuthError, OAuthErrorCode, type OAuthTokenVerifier } from '@modelcontextprotocol/server'
-import {
-  MODULES_ADDRESS,
-  type ModuleScope,
-  readAgentConnectionReach,
-  toModuleScopesInOrder,
-  toOrganizationPathSegment,
-} from 'strategydance-core'
+import { MODULES_ADDRESS, readAgentConnectionReach, toOrganizationPathSegment } from 'strategydance-core'
 import { getAgentConnectionAccessToken } from 'strategydance-database/backend'
 
 import type { ModuleAccess } from '~types'
@@ -15,6 +9,7 @@ import { dataConnect } from '~firebase'
 import createAgentConnectionUseRecorder from '~domain/oauth/createAgentConnectionUseRecorder'
 import hashOAuthToken from '~domain/oauth/hashOAuthToken'
 import parseModuleResource from '~domain/oauth/parseModuleResource'
+import readHeldScopes from '~domain/oauth/readHeldScopes'
 import toExternalIdempotencyScope from '~domain/oauth/toExternalIdempotencyScope'
 
 import toModuleAuthInfo from '~modules/toModuleAuthInfo'
@@ -37,6 +32,7 @@ import toModuleAuthInfo from '~modules/toModuleAuthInfo'
 function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
   const target = parseModuleResource(resource.href)
   const expectedResource = target?.resource
+  const modules = target?.modules ?? []
   // The one address keys a connection's writes on what outlives a consent, and a module's own
   // address on its connection, as before the one address, so no write in flight across the release
   // that served it changes scope
@@ -66,9 +62,13 @@ function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
       const access: ModuleAccess = {
         kind: 'external',
         userId: connection.userId,
-        // What the token holds, which a refresh may have narrowed, within its connection's
-        scopes: stored.scopes.filter(scope => connection.scopes.includes(scope)) as ModuleScope[],
-        connectionScopes: toModuleScopesInOrder(connection.scopes),
+        // What the token holds, which a refresh may have narrowed, within its connection's, and what
+        // the connection holds, which a challenge names, both of the modules the address serves
+        scopes: readHeldScopes(
+          modules,
+          stored.scopes.filter(scope => connection.scopes.includes(scope)),
+        ),
+        connectionScopes: readHeldScopes(modules, connection.scopes),
         idempotencyScope: isOneAddress
           ? toExternalIdempotencyScope(connection.userId, connection.clientId, MODULES_ADDRESS.name)
           : `connection:${connection.id}`,

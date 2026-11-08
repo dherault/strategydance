@@ -191,6 +191,14 @@ describe('createAgentConnectionTokenVerifier', () => {
     expect(await scopeOf()).not.toBe(scope)
   })
 
+  test('carries no scope of a module its address does not serve, so no challenge ever names one', async () => {
+    connect({ scopes: ['tasks:read', 'budget:read', 'budget:write'], resource: TASKS })
+
+    expect(
+      readModuleAccess(await createAgentConnectionTokenVerifier(new URL(TASKS)).verifyAccessToken('access')),
+    ).toMatchObject({ scopes: ['tasks:read'], connectionScopes: ['tasks:read'] })
+  })
+
   test("keeps a module's own address's writes under the connection's id", async () => {
     connect({ scopes: ['tasks:read'], resource: TASKS })
 

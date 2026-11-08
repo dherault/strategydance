@@ -512,6 +512,23 @@ describe('POST /oauth/token, the refresh token grant', () => {
     expect(narrowed.body.scope).toBe('tasks:read tasks:write')
   })
 
+  test('leaves out of a refresh a module its address no longer serves, rather than refuse it', async () => {
+    const { tokens } = await connect({ resource: TASKS, scopes: ['tasks:read', 'tasks:write'] })
+
+    // As though the address served Budget once, and no longer does
+    for (const token of fake.tokens.values()) token.scopes.push('budget:read')
+    for (const connection of fake.connections.values()) connection.scopes.push('budget:read')
+
+    const refreshed = await refresh(tokens.refresh_token, { resource: TASKS })
+
+    expect(refreshed.status).toBe(200)
+    expect(refreshed.body.scope).toBe('tasks:read tasks:write')
+    expectError(
+      await refresh(tokens.refresh_token, { resource: TASKS, scope: 'tasks:read budget:read' }),
+      'invalid_scope',
+    )
+  })
+
   test('refuses a refresh whose connection goes while it rotates, as revoked rather than a server error', async () => {
     const { tokens } = await connect()
 

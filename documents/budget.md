@@ -31,8 +31,10 @@ Taken with David on 2026-10-24:
     drifts away from that rate.
 - **Any member adds, edits and deletes any bill**, as with the board's tasks. Only administrators
   set, change or remove the budget. Every member sees the page.
-- **The module serves both kinds of agent**: external agents, at `/mcp/budget` with the page's
-  agents button, and Strategy Dance's own agent, in its conversations.
+- **The module serves both kinds of agent**: external agents, at the one address, `/mcp`, which the
+  page's agents button gives, its write chosen on the consent apart from the other modules'
+  ([modules-address.md](modules-address.md)), and at `/mcp/budget` through a transition, and
+  Strategy Dance's own agent, in its conversations.
 - **The calling agent reads a receipt itself.**
   - `add_bill` takes the fields the agent read, and keeps the PDF or the text as the bill's receipt.
   - The module asks Claude nothing, so a bill an agent adds costs Strategy Dance no request.

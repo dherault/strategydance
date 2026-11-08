@@ -211,7 +211,9 @@ same milestone.
 
   A per-module address has one module, so this is today's rule.
 - **A refresh** names its token's scopes or fewer, as today, under the same rule: at least one
-  module's read, and never a write without its read. `refreshAgentConnectionTokens` checks the one
+  module's read, and never a write without its read. A refresh and the verifier keep to the scopes
+  of the modules the address serves, so a module it stops serving drops out of a connection rather
+  than refuse its refreshes or appear in its challenges. `refreshAgentConnectionTokens` checks the one
   module's read today, which an address of several modules has no single one of.
 - **The scope challenge names the scopes the connection holds with those the call needs**, rather
   than the write scope alone, which the SDK's `requireScopes` names. A client that asks again for
@@ -261,7 +263,8 @@ same milestone.
     (`includesAll`). The backend now splits the scopes chosen into those the request asked for and
     those only the connection held, and the mutation checks the first against the request and the
     second against the connection, before it deletes the connection. `GetAgentConnectionForConsent`
-    answers the connection's scopes, for the page and for that split.
+    answers the connection's scopes for the page. Allow reads nothing to check what it keeps: the
+    mutation's check after the lock is the one that counts.
   - The check against the connection reads it in a step that reads the member lock's `response`, as
     the database's `CLAUDE.md` asks of a step after a lock, so it sees a narrowing that committed
     while Allow waited on the lock, never the statement's older snapshot.

@@ -80,9 +80,13 @@ Proposed on 2026-11-07, for David to settle in review:
   every scope granted, as OAuth asks when they differ from those asked for (RFC 6749, 3.3).
 - **The idempotency scope outlives a consent.** Allow still replaces a connection by deleting it and
   inserting another, so a code, a refresh token or a revocation read before a consent finds nothing
-  to act on after it. An external agent's idempotency scope comes from what a consent keeps rather
-  than the connection's id: the member's account, the client and the address. A write whose answer
-  was lost while the member consented again is then found under its key, rather than applied twice.
+  to act on after it. At the one address, an external agent's idempotency scope comes from what a
+  consent keeps rather than the connection's id: the member's account, the client and the address.
+  A write whose answer was lost while the member consented again is then found under its key, rather
+  than applied twice, while the connection keeps that module's write: a write's scope is checked
+  before its key, so a consent that took the write away answers the retry with the read-only
+  refusal. The per-module addresses keep `connection:<id>` until they retire, so no write in flight
+  across M2's release changes scope.
 - **One connection per client.** `AgentConnection.module` holds the address's name, `strategydance`
   for the one address. A connection there is a row beside the per-module ones, with no change to the
   schema and nothing for a release to stop on.
@@ -233,19 +237,22 @@ per-module address is the case of one module, so it behaves as today.
 
   A page loaded before the release draws nothing for a request at `/mcp`, but no client is told of
   that address before M3.
-- **The idempotency scope outlives a consent.** The verifier builds an external agent's scope from
-  the member's account, the client's id and the address's name, rather than `connection:<id>`, which
-  every consent changes. This holds at every address, the per-module ones included, where the same
-  gap is open today.
+- **The idempotency scope outlives a consent at the one address.** There the verifier builds an
+  external agent's scope from the member's account, the client's id and the address's name, rather
+  than `connection:<id>`, which every consent changes.
   - It is `external:` and `hashOAuthToken(JSON.stringify([userId, clientId, addressName]))`, the
     SHA-256 in base64url the tokens are kept under. The JSON array keeps two triples from writing
     the same text, since a client's id is a free-form address.
   - `external:` says what the codebase calls such a caller, `kind: 'external'`, where `agent`
     names Strategy Dance's own.
+  - The per-module addresses keep `connection:<id>`, and the gap a consent opens there today, until
+    they retire. Moving them too would change the scope of a write sent to the backend before the
+    release and retried after it, which would then be applied twice.
   - The rate limit, keyed on the scope, outlives a consent with it.
   - A document revision an external agent's edit keeps carries the new scope. The web reads it as an
     external agent's, as `readDocumentRevisionSource` reads any scope that is not a conversation's.
-  - Rows kept under a `connection:<id>` scope expire within a day, as they do now.
+  - conversations.md names `connection:<id>` as an external agent's scope in § Modules and § Rich
+    text and Markdown: both add the one address's `external:` in M2.
 - **The daily sweep keeps the one address's connections.** `pruneUnservedAgentConnections` passes
   the served modules' names today, so it would delete a connection to the one address once neither
   made nor used for a week. From M2 it takes the served addresses' names, `strategydance` and each
@@ -420,9 +427,10 @@ rows and Delegate that read a connection there.
   Budget starting at read when its write is asked for but was not held.
 - Allow: consenting again replaces the connection with its tokens, leaving an earlier code and an
   earlier refresh token opening nothing; a scope neither asked for nor held refused.
-- The idempotency scope: `external:` and the hash, the same before and after a consent of one client
-  at one address, different for another client, another address or another member, and a write
-  retried under its key after a consent answered from its stored result.
+- The idempotency scope at the one address: `external:` and the hash, the same before and after a
+  consent of one client, different for another client or another member, and a write retried under
+  its key after a consent that kept its write answered from its stored result. At a per-module
+  address, `connection:<id>` as today.
 - The sweep keeping an idle connection to the one address, and deleting one to a module served at
   no address.
 - A row of the one address listing each module's access.

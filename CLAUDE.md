@@ -273,9 +273,9 @@ The session reviews its own work with Claude Code's code-review skill, once the 
 2. Wait for CI (`gh pr checks <number> --watch`) and fix what fails
 3. Once the findings are ready, answer every one: a fix, committed granularly, or a reason it does
    not apply. A finding is a claim to check against the code, not an order
-4. Push the fixes as one batch behind the open check, then, behind it too, post one
-   `gh pr comment` naming each finding and what became of it, or that there was none, so whoever
-   merges sees the review
+4. Push the fixes as one batch behind the open check, and wait for CI again on that head. Behind
+   the check too, post one `gh pr comment` naming each finding and what became of it, or that
+   there was none, so whoever merges sees the review
 5. A second review is the session's call, when the first's fixes changed enough to need one: run
    it the same way once they are pushed, and answer it the same way. Never a third: the human's
    review comes next

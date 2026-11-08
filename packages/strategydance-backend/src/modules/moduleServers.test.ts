@@ -1,7 +1,10 @@
 import { describe, expect, it, mock } from 'bun:test'
+import { createHash } from 'node:crypto'
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
-import { MODULES } from 'strategydance-core'
+import { MODULES, SERVED_MODULES } from 'strategydance-core'
+
+import type { ModuleAccess } from '~types'
 
 import { MODULE_PROTOCOL_VERSION } from '~constants'
 
@@ -19,19 +22,44 @@ const { default: toModuleAuthInfo } = await import('./toModuleAuthInfo')
 // The names Claude takes for a tool, which a dot, though MCP allows one, is not among
 const CLAUDE_TOOL_NAME = /^[a-zA-Z0-9_-]{1,128}$/
 
-// Every tool a module lists, as a client connected to its handler reads them
-async function listToolNames(name: (typeof MODULES)[number]['name']) {
-  const handler = createModuleHandler(name)
-  const authInfo = toModuleAuthInfo({
-    kind: 'agent',
-    userId: 'member',
-    organization: {
+// Strategy Dance's agent, with every scope, in its run's organization
+const AGENT: ModuleAccess = {
+  kind: 'agent',
+  userId: 'member',
+  organization: {
+    organizationId: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
+    membershipCreatedAt: '2026-10-09T10:00:00.000000Z',
+  },
+  scopes: MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
+  idempotencyScope: 'conversation:checked',
+}
+
+// An external agent with every scope, its connection reaching Acme, by its slug, then Beta, by its id
+const EXTERNAL: Extract<ModuleAccess, { kind: 'external' }> = {
+  kind: 'external',
+  userId: 'member',
+  scopes: MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
+  idempotencyScope: 'connection:checked',
+  organizations: [
+    {
       organizationId: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
       membershipCreatedAt: '2026-10-09T10:00:00.000000Z',
+      segment: 'acme-ab12',
+      name: 'Acme',
     },
-    scopes: MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
-    idempotencyScope: 'conversation:checked',
-  })
+    {
+      organizationId: '1a2b3c4d5e6f47089a0b1c2d3e4f5a6b',
+      membershipCreatedAt: '2026-10-10T10:00:00.000000Z',
+      segment: '1a2b3c4d5e6f47089a0b1c2d3e4f5a6b',
+      name: 'Beta "Labs"',
+    },
+  ],
+}
+
+// A client connected to a module's handler, as the given access
+async function connect(name: (typeof MODULES)[number]['name'], access: ModuleAccess) {
+  const handler = createModuleHandler(name)
+  const authInfo = toModuleAuthInfo(access)
   const client = new Client(
     { name: 'strategydance-tests', version: '1.0.0' },
     { versionNegotiation: { mode: { pin: MODULE_PROTOCOL_VERSION } } },
@@ -43,11 +71,31 @@ async function listToolNames(name: (typeof MODULES)[number]['name']) {
     }),
   )
 
+  return client
+}
+
+// Every tool a module lists, as a client connected to its handler reads them
+async function listToolNames(name: (typeof MODULES)[number]['name']) {
+  const client = await connect(name, AGENT)
   const { tools } = await client.listTools()
 
   await client.close()
 
   return tools.map(tool => tool.name)
+}
+
+// What a module's server says of itself, its name, title and instructions, as a client reads them
+async function readServer(name: (typeof MODULES)[number]['name'], access: ModuleAccess) {
+  const client = await connect(name, access)
+
+  await client.listTools()
+
+  const server = client.getServerVersion()
+  const read = { name: server?.name, title: server?.title, instructions: client.getInstructions() }
+
+  await client.close()
+
+  return read
 }
 
 describe('MODULE_SERVERS', () => {
@@ -115,5 +163,41 @@ describe('MODULE_SERVERS', () => {
       'link_knowledge',
       'unlink_knowledge',
     ])
+  })
+
+  /*
+    What each module's server says of itself before any call: its name, title and instructions, to
+    Strategy Dance's agent and to an external agent whose connection reaches one organization, and
+    two for a served module, since Knowledge and Subagents act in exactly one. A server given one
+    module says what it said before a server held several, so change a hash only with a change meant
+    for those words
+  */
+  it('keeps each module server’s name, title and instructions', async () => {
+    const hashes: Record<string, string> = {}
+
+    for (const module of MODULES) {
+      const isServed = SERVED_MODULES.some(({ name }) => name === module.name)
+      const accesses = [
+        AGENT,
+        { ...EXTERNAL, organizations: EXTERNAL.organizations.slice(0, 1) },
+        ...(isServed ? [EXTERNAL] : []),
+      ]
+      const read = await Promise.all(accesses.map(access => readServer(module.name, access)))
+
+      for (const { name, title } of read) {
+        expect(name).toBe(`strategydance-${module.name}`)
+        expect(title).toBe(module.title)
+      }
+
+      hashes[module.name] = createHash('sha256').update(JSON.stringify(read)).digest('hex')
+    }
+
+    expect(hashes).toEqual({
+      documents: '3e6d268b9d77356c271e3e9c358563b736ae12ac4e1630f679abf108790ef265',
+      tasks: '42af7d60ae8bda104e93d5006c5f81540f7c6c194ed3f9d1bd2602b107894444',
+      budget: '1003a23a2c4385f0588f07509474fd8daad83b5acdc07fbbd373f5cbbcc383d4',
+      subagents: '57bbfc8a19b3603dcd0933af96ae8e0ef012fd21b04b1a1b4f454ff2bd6a6aa4',
+      knowledge: '01338cc9b7950e64ce464ba96144cde428959f5caf628c09f8b3e6b643c6c621',
+    })
   })
 })

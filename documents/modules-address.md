@@ -138,8 +138,8 @@ and a name it gives is new until then.
   - `measureConversationMessage` and `measureSubagentLaunch` connect through the same function.
 - **`moduleServers.test.ts`** lists each module's tools through the server built with that module
   alone, and every name across `CONVERSATION_MODULES` through one server.
-- **`bun run mcp <email>`** serves the one address over stdio against the emulators, with every
-  served module's scopes, as `mcp:documents` serves one module.
+- **`bun run mcp <email>`** serves every served module on one server over stdio against the
+  emulators, with their scopes, as `mcp:documents` serves one module.
 
 ### Instructions (M1)
 

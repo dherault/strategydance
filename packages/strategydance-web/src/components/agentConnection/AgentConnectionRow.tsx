@@ -51,9 +51,12 @@ function AgentConnectionRow({ connection, memberships, now }: Props) {
 
   const agentName = connection.clientName ?? formatMessage(moduleMessages.unnamedAgent)
   const access = readAgentConnectionAccess(connection)
-  // Access narrows, so a connection holding one module at read has nothing it could take away
-  const isNarrowable =
+  // The modules Access narrows at the one address, or null where it has nothing to take away, as
+  // from a connection holding one module at read
+  const narrowableModules =
     access.kind === 'address' && (access.modules.length > 1 || access.modules.some(({ isWrite }) => isWrite))
+      ? access.modules
+      : null
 
   async function disconnect() {
     if (!viewer) return
@@ -159,7 +162,7 @@ function AgentConnectionRow({ connection, memberships, now }: Props) {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 self-start sm:shrink-0 sm:self-center">
-        {isNarrowable && access.kind === 'address' && (
+        {narrowableModules && (
           <Dialog
             open={isEditingAccess}
             onOpenChange={setIsEditingAccess}
@@ -175,7 +178,7 @@ function AgentConnectionRow({ connection, memberships, now }: Props) {
             </DialogTrigger>
             <AgentConnectionAccessDialog
               connection={connection}
-              modules={access.modules}
+              modules={narrowableModules}
               onSaved={() => setIsEditingAccess(false)}
             />
           </Dialog>

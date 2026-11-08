@@ -167,7 +167,9 @@ per-module address is the case of one module, so it behaves as today.
     served module's scopes and "Strategy Dance" as its name.
   - The authorization server's metadata lists every served scope already.
 - **`parseModuleResource`** resolves any address of `MODULE_ADDRESSES`, the one address included,
-  and answers it.
+  and answers it. Each of its readers takes the address and its modules rather than one module:
+  starting an authorization, loading the consent's request, exchanging a code, refreshing, and the
+  verifier.
 - **`parseModuleScopes(address, scope)`**:
   - for each of the address's modules: its read scope, alone or with its write scope, or neither;
   - at least one module's read scope;
@@ -175,11 +177,17 @@ per-module address is the case of one module, so it behaves as today.
   - no scope at all asks for every module's read and write.
 
   A per-module address has one module, so this is today's rule.
+- **A refresh** names its token's scopes or fewer, as today, under the same rule: at least one
+  module's read, and never a write without its read. `refreshAgentConnectionTokens` checks the one
+  module's read today, which an address of several modules has no single one of.
 - **The scope challenge names the scopes the connection holds with those the call needs**, rather
   than the write scope alone, which the SDK's `requireScopes` names. A client that asks again for
   exactly the challenge's scopes then keeps every module it held, and names each write with its
   read, which `parseModuleScopes` asks for. `requireModuleWriteScope` writes it as a
   `ScopeChallengeHandler` of its own.
+  - A challenge reads only the call's `authInfo`, whose scopes are the token's, which a refresh may
+    have narrowed below its connection's. So the verifier carries the connection's scopes in the
+    access too, `connectionScopes` beside `scopes`, and the challenge names those.
 - **The consent page** lists each module the request asks for, and each the connection it replaces
   holds, with its access: not allowed, read, or read and write when write was asked for or is held.
   - It is worded by the module from the `module` catalogue, as `OAuthConsentAccess` words one now.
@@ -203,6 +211,19 @@ per-module address is the case of one module, so it behaves as today.
     those only the connection held, and the mutation checks the first against the request and the
     second against the connection, before it deletes the connection. `GetAgentConnectionForConsent`
     answers the connection's scopes, for the page and for that split.
+  - The approve route's body takes up to two scopes for each served module, where it takes two.
+- **Through the release.** A release deploys Data Connect, then the backend, then the web, so for a
+  few minutes each serves the one before it:
+  - the variables `ApproveOAuthAuthorizationRequest` gains join optional, as the database's
+    `CLAUDE.md` asks, so the backend before M2 still calls it, and `GetAgentConnectionForConsent`
+    only answers more;
+  - the request's summary keeps `module` and `scopes` for a per-module address beside what it adds,
+    and the approve body stays `{ organizationIds, scopes }`, so a consent page loaded before the
+    release still allows a per-module request. A later release drops `module`, as #306 dropped the
+    approve route's single `organizationId`.
+
+  A page loaded before the release draws nothing for a request at `/mcp`, but no client is told of
+  that address before M3.
 - **The idempotency scope outlives a consent.** The verifier builds an external agent's scope as
   `agent:` and the base64url SHA-256 of the member's account, the client's id and the address's
   name, rather than `connection:<id>`, which every consent changes. This holds at every address,
@@ -222,7 +243,7 @@ per-module address is the case of one module, so it behaves as today.
   - a consent to two modules;
   - a module left out, absent from `tools/list`;
   - a read-only module's write, challenged with the connection's scopes and the write;
-  - refresh, reuse and revocation.
+  - a refresh narrowing to one module, then reuse and revocation.
 
 ### Connected agents and the module pages (M3)
 
@@ -306,6 +327,9 @@ times.
 - **No migration.** Operations change, not columns: M2 changes `ApproveOAuthAuthorizationRequest`
   and `GetAgentConnectionForConsent`, M3 adds `UpdateAgentConnectionScopes`, and the schema's
   comments follow.
+- **Each release serves the one before it.** Data Connect deploys first, then the backend, then the
+  web: a variable joins an operation optional, an answer only grows, and what the web reads and
+  posts keeps working for a page loaded before the release (Through the release).
 - **Messages.** `bun run translate` runs whenever a message changes, in the same commit, and no
   message holds an em dash.
 - **Every milestone ends with the four checks green.** Its **To verify** list is what its session runs
@@ -340,14 +364,20 @@ answers at `/mcp`.
 ### M2: One OAuth resource at `/mcp`
 
 Addresses and The OAuth resource above: the addresses, the endpoint, its metadata, resource and
-scope parsing, the challenge, the consent page, Allow, the idempotency scope and the sweep.
+scope parsing, the refresh, the challenge, the consent page, Allow, the idempotency scope, the sweep
+and what the release keeps for the pages before it.
 
 **Tests:**
 - `parseModuleScopes` for the one address: two modules read, one read and write, write without read
   refused, a scope of no served module refused, no scope at all.
 - `parseModuleResource` resolving `/mcp` and every per-module address, and refusing a trailing slash.
+- A refresh at the one address narrowing to one module, and refused when it names no read, or a
+  write without its read.
 - The verifier refusing a token for `/mcp/tasks` at `/mcp`, and the reverse.
-- The challenge naming the connection's scopes with the write.
+- The challenge naming the connection's scopes with the write, for a token a refresh narrowed below
+  them too.
+- The approve route taking every served module's two scopes, and a per-module request's summary and
+  body as they are today.
 - The consent page: a module left unallowed, Allow off with none allowed, a connection replaced
   keeping its choices as defaults, and a request for one module listing the others it holds.
 - Allow: consenting again replaces the connection with its tokens, leaving an earlier code and an

@@ -276,16 +276,17 @@ The session reviews its own work with Claude Code's code-review skill, once the 
 4. Push the fixes as one batch behind the open check, and wait for CI again on that head. Behind
    the check too, post one `gh pr comment` naming each finding and what became of it, or that
    there was none, so whoever merges sees the review
-5. A second review is the session's call, when the first's fixes changed enough to need one: run
-   it the same way once they are pushed, and answer it the same way. Never a third: the human's
-   review comes next
+5. A second review is the session's call, when the fixes, CI's included, changed enough to need
+   one: run it the same way once they are pushed, and answer it the same way, in a comment of its
+   own, where a finding the first already answered points to that answer. Never a third: the
+   human's review comes next
 
 ### Hand the pull request to a human
 
-Never merge a pull request, nor set it to merge itself. Once CI is green and every finding of the
-review answered, say so with its link and, unless you are the primary, ask in the same message
-whether the person wants the branch checked out on the main checkout, a yes being a handover. Then
-stop. Humans merge with a merge commit, never a squash, since the granular commits are the point.
+Never merge a pull request, nor set it to merge itself. Once CI is green and every review finding
+answered, say so with its link and, unless you are the primary, ask in the same message whether the
+person wants the branch checked out on the main checkout, a yes being a handover. Then stop. Humans
+merge with a merge commit, never a squash, since the granular commits are the point.
 
 ### Ship `dev` to `main`
 

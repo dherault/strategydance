@@ -13,7 +13,7 @@ const { default: buildSubagentTools } = await import('./buildSubagentTools')
 const { default: buildConversationTools } = await import('./buildConversationTools')
 const { default: CONVERSATION_TOOLS } = await import('./conversationTools')
 
-// The modules' tools as a subagent's worker lists them, through their own handlers
+// The modules' tools as a subagent's worker lists them, through their one handler
 async function readModuleTools() {
   const organizationId = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
   const modules = await connectConversationModules({

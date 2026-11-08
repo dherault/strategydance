@@ -3,7 +3,12 @@ import { MODULES } from 'strategydance-core'
 
 import type { ConversationModules, ConversationRunFence, ConversationToolRunner, ModuleAccess } from '~types'
 
-import { CONVERSATION_TOOL_CALL_TIMEOUT_MS, MODULE_IDEMPOTENCY_KEY_META, MODULE_PROTOCOL_VERSION } from '~constants'
+import {
+  CONVERSATION_TOOL_CALL_TIMEOUT_MS,
+  MODULE_IDEMPOTENCY_KEY_META,
+  MODULE_PROTOCOL_VERSION,
+  MODULES_PATH,
+} from '~constants'
 
 import CONVERSATION_MODULES from '~domain/agent/conversationModules'
 import toConversationModuleScope from '~domain/agent/toConversationModuleScope'
@@ -25,13 +30,14 @@ type CallResult = Awaited<ReturnType<Client['callTool']>>
   the run a worker claimed being the only one that names it. A send with files connects the same way, before its run exists,
   with no launcher, for the tools its measurement counts, and so does a launch's measurement.
 
-  Each module is reached through its own handler, the one the public endpoint mounts, by the SDK's
-  client pinned to the 2026-07-28 revision, which is stateless, on a transport whose `fetch` hands
-  each request to the handler with the access as its `authInfo`. Nothing is dialled, and the server,
-  its tools and their checks are those every caller gets. Not the SDK's in-memory transport, which
-  speaks only the 2025 revisions.
+  The modules are reached through one handler of them all, the one a public endpoint mounts for its
+  module, by one client of the SDK's, pinned to the 2026-07-28 revision, which is stateless, on a
+  transport whose `fetch` hands each request to the handler with the access as its `authInfo`.
+  Nothing is dialled, and the server, its tools and their checks are those every caller gets. Not
+  the SDK's in-memory transport, which speaks only the 2025 revisions.
 
-  Each tool becomes a Claude tool, after the agent's own in `CONVERSATION_MODULES`' order, and a
+  `tools/list` answers the tools module by module in `MODULES`' order, which is
+  `CONVERSATION_MODULES`' order. Each tool becomes a Claude tool, after the agent's own, and a
   runner: a read, which the module marks so, runs beside the reads next to it, and a write is keyed
   with Claude's id for the call, so a call sent again after a crash is applied once and answered as
   the first time. A call answers its structured result, and a refusal throws its sentence, which
@@ -53,39 +59,28 @@ async function connectConversationModules(
     ...(fence.runId && { launcher: { conversationId: fence.conversationId, runId: fence.runId } }),
   }
   const authInfo = toModuleAuthInfo(access)
-  const clients: Client[] = []
+  const handler = createModuleHandler(CONVERSATION_MODULES)
+  const client = new Client(
+    { name: 'strategydance-agent', version: '1.0.0' },
+    { versionNegotiation: { mode: { pin: MODULE_PROTOCOL_VERSION } } },
+  )
 
   try {
-    const connected = []
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(`http://localhost${MODULES_PATH}`), {
+        fetch: (url, init) => handler.fetch(new Request(url, init), { authInfo }),
+      }),
+    )
 
-    for (const name of CONVERSATION_MODULES) {
-      const handler = createModuleHandler([name])
-      const path = MODULES.find(module => module.name === name)?.path ?? `/mcp/${name}`
-      const client = new Client(
-        { name: 'strategydance-agent', version: '1.0.0' },
-        { versionNegotiation: { mode: { pin: MODULE_PROTOCOL_VERSION } } },
-      )
-
-      clients.push(client)
-
-      await client.connect(
-        new StreamableHTTPClientTransport(new URL(`http://localhost${path}`), {
-          fetch: (url, init) => handler.fetch(new Request(url, init), { authInfo }),
-        }),
-      )
-
-      const { tools } = await client.listTools()
-
-      connected.push(...tools.map(tool => ({ client, tool })))
-    }
+    const { tools } = await client.listTools()
 
     return {
-      tools: connected.map(({ tool }) => toConversationModuleTool(tool)),
-      runners: connected.map(({ client, tool }) => toRunner(client, tool)),
-      close: () => closeAll(clients),
+      tools: tools.map(tool => toConversationModuleTool(tool)),
+      runners: tools.map(tool => toRunner(client, tool)),
+      close: () => release(client),
     }
   } catch (error) {
-    await closeAll(clients)
+    await release(client)
 
     throw error
   }
@@ -126,8 +121,9 @@ function readText(result: CallResult) {
   return first?.type === 'text' ? (first.text ?? '') : ''
 }
 
-async function closeAll(clients: Client[]) {
-  await Promise.allSettled(clients.map(client => client.close()))
+// Lets go of the client, whatever closing it answers, since nothing is left to do with it
+async function release(client: Client) {
+  await Promise.allSettled([client.close()])
 }
 
 export default connectConversationModules

@@ -134,6 +134,25 @@ describe('connectConversationModules', () => {
     }
   })
 
+  it('connects one client, listing every module’s tools in one request, its runners reaching every module', async () => {
+    await connect({ runId: undefined })
+
+    expect(requests.filter(({ method }) => method === 'tools/list')).toHaveLength(1)
+
+    // A read of each module, answered by that module: a result, or the Subagents module's own refusal
+    // of a call no run makes, never a tool the server does not know
+    expect(await run('list_documents', {})).toEqual({ documents: [] })
+    expect(await run('list_tasks', {})).toMatchObject({ tasks: [], total: 0 })
+    expect(await run('read_budget', {})).toMatchObject({ budget: null })
+    await expect(run('list_subagents', {})).rejects.toThrow(
+      "Subagents are launched, read and stopped only from a run of one of the member's conversations",
+    )
+    expect(await run('list_knowledge', { kind: 'STRATEGIC_FRAMEWORK' })).toMatchObject({
+      kind: 'STRATEGIC_FRAMEWORK',
+      items: expect.arrayContaining([expect.objectContaining({ id: '7-powers' })]),
+    })
+  })
+
   it('keys a write with Claude’s id for the call under the conversation’s scope, and a read with nothing', async () => {
     await connect()
 

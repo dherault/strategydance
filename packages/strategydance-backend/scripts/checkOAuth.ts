@@ -595,6 +595,113 @@ async function checkFlow() {
   )
 }
 
+// A client registered at the one address, with the member signed in to consent for it
+type OneAddressAgent = { metadata: Metadata; endpoint: string; clientId: string; headers: Record<string, string> }
+
+async function registerAtOneAddress(name: string): Promise<OneAddressAgent> {
+  const metadata = await readMetadata()
+  const registration = await fetch(metadata.registration_endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_name: `Check ${checkId} ${name}`, redirect_uris: ['http://127.0.0.1/callback'] }),
+  })
+  const { client_id: clientId } = (await registration.json()) as { client_id: string }
+
+  clientIds.add(clientId)
+  registeredClientIds.add(clientId)
+
+  return {
+    metadata,
+    endpoint: `${metadata.issuer}/mcp`,
+    clientId,
+    headers: { Authorization: `Bearer ${await signIn()}`, 'Content-Type': 'application/json' },
+  }
+}
+
+const ONE_ADDRESS_REDIRECT_URI = 'http://127.0.0.1:43210/callback'
+const FORM_HEADERS = { 'Content-Type': 'application/x-www-form-urlencoded' }
+
+// Authorizes at the one address, the member allowing what the request asks, or less, or what the
+// connection held, and exchanges the code
+async function consentAtOneAddress(
+  { metadata, endpoint, clientId, headers }: OneAddressAgent,
+  scope: string,
+  chosen: string[],
+) {
+  const verifier = createSecret()
+  const authorizeUrl = new URL(metadata.authorization_endpoint)
+
+  for (const [name, value] of Object.entries({
+    response_type: 'code',
+    client_id: clientId,
+    redirect_uri: ONE_ADDRESS_REDIRECT_URI,
+    code_challenge: createHashOf(verifier),
+    code_challenge_method: 'S256',
+    resource: endpoint,
+    scope,
+    state: 'checked',
+  })) {
+    authorizeUrl.searchParams.set(name, value)
+  }
+
+  const authorization = await fetch(authorizeUrl, { redirect: 'manual' })
+  const requestId = new URL(authorization.headers.get('location') ?? 'invalid:').searchParams.get('request') ?? ''
+  const reading = await fetch(`${apiUrl}/oauth/requests/${requestId}`, { headers })
+  const { data: summary } = (await reading.json()) as {
+    data?: { address: string; module: string | null; scopes: string[]; heldScopes: string[] }
+  }
+  const approval = await fetch(`${apiUrl}/oauth/requests/${requestId}/approve`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ organizationIds: [organizationId], scopes: chosen }),
+  })
+  const { data: decision } = (await approval.json()) as { data?: { redirectUrl: string } }
+  const code = new URL(decision?.redirectUrl ?? 'invalid:').searchParams.get('code') ?? ''
+  const exchange = await fetch(metadata.token_endpoint, {
+    method: 'POST',
+    headers: FORM_HEADERS,
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      client_id: clientId,
+      redirect_uri: ONE_ADDRESS_REDIRECT_URI,
+      code_verifier: verifier,
+      resource: endpoint,
+    }),
+  })
+
+  return { summary, approved: approval.status === 200, tokens: (await exchange.json()) as Tokens }
+}
+
+function refreshAtOneAddress({ metadata, endpoint, clientId }: OneAddressAgent, refreshToken: string, scope?: string) {
+  return fetch(metadata.token_endpoint, {
+    method: 'POST',
+    headers: FORM_HEADERS,
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: clientId,
+      resource: endpoint,
+      ...(scope ? { scope } : {}),
+    }),
+  })
+}
+
+// A call to a tool at the one address, as raw HTTP, for its status and its challenge
+async function challengeAtOneAddress(
+  { endpoint }: OneAddressAgent,
+  token: string,
+  name: string,
+  args: Record<string, unknown>,
+) {
+  const challenged = await postModule(endpoint, token, {
+    method: 'tools/call',
+    params: { name, arguments: { organization: organizationId, ...args } },
+  })
+
+  return { status: challenged.status, header: challenged.headers.get('www-authenticate') ?? '' }
+}
+
 /*
   The whole flow at the one address, as a client goes through it: an authorization for two modules,
   the member's Allow narrowing one, the exchange, the tools of the modules held alone, a challenge
@@ -602,22 +709,9 @@ async function checkFlow() {
   a refresh narrowing to one module, then its duplicate and the revocation
 */
 async function checkOneAddress() {
-  const metadata = await readMetadata()
-  const endpoint = `${metadata.issuer}/mcp`
-  const redirectUri = 'http://127.0.0.1:43210/callback'
-  const form = { 'Content-Type': 'application/x-www-form-urlencoded' }
-  const headers = { Authorization: `Bearer ${await signIn()}`, 'Content-Type': 'application/json' }
+  const agent = await registerAtOneAddress('one address')
+  const { metadata, endpoint } = agent
   const allowed = ['documents:read', 'documents:write', 'tasks:read']
-  const registration = await fetch(metadata.registration_endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ client_name: `Check ${checkId} one address`, redirect_uris: ['http://127.0.0.1/callback'] }),
-  })
-  const { client_id: clientId } = (await registration.json()) as { client_id: string }
-
-  clientIds.add(clientId)
-  registeredClientIds.add(clientId)
-
   const resourceMetadata = (await (
     await fetch(`${metadata.issuer}/.well-known/oauth-protected-resource/mcp`)
   ).json()) as { resource: string; scopes_supported: string[]; resource_name: string }
@@ -629,55 +723,7 @@ async function checkOneAddress() {
       && resourceMetadata.resource_name === 'Strategy Dance',
   )
 
-  // Authorizes at the one address, the member allowing what the request asks, or less, or what the
-  // connection held, and exchanges the code
-  async function consent(scope: string, chosen: string[]) {
-    const verifier = createSecret()
-    const authorizeUrl = new URL(metadata.authorization_endpoint)
-
-    for (const [name, value] of Object.entries({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      code_challenge: createHashOf(verifier),
-      code_challenge_method: 'S256',
-      resource: endpoint,
-      scope,
-      state: 'checked',
-    })) {
-      authorizeUrl.searchParams.set(name, value)
-    }
-
-    const authorization = await fetch(authorizeUrl, { redirect: 'manual' })
-    const requestId = new URL(authorization.headers.get('location') ?? 'invalid:').searchParams.get('request') ?? ''
-    const reading = await fetch(`${apiUrl}/oauth/requests/${requestId}`, { headers })
-    const { data: summary } = (await reading.json()) as {
-      data?: { address: string; module: string | null; scopes: string[]; heldScopes: string[] }
-    }
-    const approval = await fetch(`${apiUrl}/oauth/requests/${requestId}/approve`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ organizationIds: [organizationId], scopes: chosen }),
-    })
-    const { data: decision } = (await approval.json()) as { data?: { redirectUrl: string } }
-    const code = new URL(decision?.redirectUrl ?? 'invalid:').searchParams.get('code') ?? ''
-    const exchange = await fetch(metadata.token_endpoint, {
-      method: 'POST',
-      headers: form,
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        code_verifier: verifier,
-        resource: endpoint,
-      }),
-    })
-
-    return { summary, approved: approval.status === 200, tokens: (await exchange.json()) as Tokens }
-  }
-
-  const first = await consent('documents:read documents:write tasks:read tasks:write', allowed)
+  const first = await consentAtOneAddress(agent, 'documents:read documents:write tasks:read tasks:write', allowed)
 
   check(
     'the consent page reads a request at the one address: its name, no module, the access asked, nothing held',
@@ -711,16 +757,11 @@ async function checkOneAddress() {
 
   await client.close()
 
-  const challengeOf = async (token: string, name: string, args: Record<string, unknown>) => {
-    const challenged = await postModule(endpoint, token, {
-      method: 'tools/call',
-      params: { name, arguments: { organization: organizationId, ...args } },
-    })
-
-    return { status: challenged.status, header: challenged.headers.get('www-authenticate') ?? '' }
-  }
-  const budget = await challengeOf(first.tokens.access_token, 'read_budget', {})
-  const task = await challengeOf(first.tokens.access_token, 'create_task', { name: 'Refused', status: 'TODO' })
+  const budget = await challengeAtOneAddress(agent, first.tokens.access_token, 'read_budget', {})
+  const task = await challengeAtOneAddress(agent, first.tokens.access_token, 'create_task', {
+    name: 'Refused',
+    status: 'TODO',
+  })
 
   check(
     "a call to a module left out is challenged for its read, with the connection's scopes",
@@ -737,7 +778,7 @@ async function checkOneAddress() {
   )
 
   // The member consents again, the client asking for Tasks alone, and keeps Documents
-  const again = await consent('tasks:read', allowed)
+  const again = await consentAtOneAddress(agent, 'tasks:read', allowed)
   const retriedClient = await openModule(endpoint, again.tokens.access_token)
   const retried = await retriedClient.callTool(write)
 
@@ -755,18 +796,7 @@ async function checkOneAddress() {
   )
 
   // A refresh narrowing to one module, its duplicate, and the revocation
-  const refresh = (refreshToken: string, scope?: string) =>
-    fetch(metadata.token_endpoint, {
-      method: 'POST',
-      headers: form,
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-        client_id: clientId,
-        resource: endpoint,
-        ...(scope ? { scope } : {}),
-      }),
-    })
+  const refresh = (refreshToken: string, scope?: string) => refreshAtOneAddress(agent, refreshToken, scope)
   const narrowed = (await (await refresh(again.tokens.refresh_token, 'tasks:read')).json()) as Tokens
   const duplicate = (await (await refresh(again.tokens.refresh_token, 'tasks:read')).json()) as Tokens
   const narrowedClient = await openModule(endpoint, narrowed.access_token)
@@ -774,7 +804,7 @@ async function checkOneAddress() {
 
   await narrowedClient.close()
 
-  const document = await challengeOf(narrowed.access_token, 'list_documents', {})
+  const document = await challengeAtOneAddress(agent, narrowed.access_token, 'list_documents', {})
 
   check(
     "a refresh narrowing to Tasks lists its tools alone, and challenges a Documents call with the connection's scopes",
@@ -791,8 +821,8 @@ async function checkOneAddress() {
 
   const revocation = await fetch(metadata.revocation_endpoint, {
     method: 'POST',
-    headers: form,
-    body: new URLSearchParams({ token: narrowed.refresh_token, client_id: clientId }),
+    headers: FORM_HEADERS,
+    body: new URLSearchParams({ token: narrowed.refresh_token, client_id: agent.clientId }),
   })
 
   check(

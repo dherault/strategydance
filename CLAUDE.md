@@ -110,19 +110,20 @@ deploy:database` and re-runs the deploy, which refuses once `main` has moved pas
 ## Tackling a task
 
 "Tackle task 123", or anything like it, names a task of the team's board in Strategy Dance: read it
-through the `strategydance-tasks` MCP server, which acts as the person in production, never a
-`-local` one, then do what it asks under the [Workflow](#workflow).
+through the `strategydance` MCP server, which acts as the person in production, or
+`strategydance-tasks`, its older address, while the person keeps it, never a `-local` one, then do
+what it asks under the [Workflow](#workflow).
 
 - What follows "task" is an id, which `read_task` takes hyphenated or not, or a piece of its name,
   which `list_tasks` finds with `query`. Several matches are a question for the person, never a pick
 - Every call names its `organization`, among those the tools' descriptions list: the one the
   request names, as a task's Delegate prompt does, or else the organization named Strategy Dance.
   A task not found there is a question for the person, never a search through the others
-- The description is the brief: `read_task` opens a `task:<id>` link, and the Documents module's
-  `read_document` a `doc:<id>` one. A task it waits on that is not done blocks it: say so first
-- Without `strategydance-tasks` tools, or when they ask to sign in, say so and stop: the person
-  runs `claude mcp add --transport http strategydance-tasks https://api.strategydance.com/mcp/tasks`,
-  then `/mcp`
+- The description is the brief: `read_task` opens a `task:<id>` link, and `read_document` a
+  `doc:<id>` one. A task it waits on that is not done blocks it: say so first
+- Without the board's tools, or when they ask to sign in, say so and stop: the person runs `claude
+  mcp add --transport http strategydance https://api.strategydance.com/mcp`, then `/mcp`, allowing
+  Tasks and Documents on the consent page
 - `update_task` moves it to `ONGOING` before the first edit, and to `DONE` once its pull request
   merges (`bun run pr open` says `MERGED`, or the person does), naming the tasks that can start
   now (`canStartNow`). Nothing else on the board changes unless the person asks

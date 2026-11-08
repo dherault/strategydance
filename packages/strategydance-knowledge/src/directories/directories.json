@@ -643,10 +643,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.aitoolsaver.com/",
     "submissionUrl": "https://www.aitoolsaver.com/submit-ai-tool",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "description": "Directory of AI tools sorted by category, with deals and discount codes, where AI companies submit their own tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "PAID",
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {
@@ -719,10 +721,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.aitoolzdir.com/",
     "submissionUrl": "https://www.aitoolzdir.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, such as text, image, video and audio generation, chatbots and agents, where makers submit their own tools.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {
@@ -1191,10 +1195,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://apprater.net/",
     "submissionUrl": "https://apprater.net/add",
-    "description": "",
-    "categories": [],
+    "description": "Archive of independent software (mobile, desktop and web apps, extensions, APIs and developer tools) where makers submit their own products for human review.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null,
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {
@@ -2066,10 +2072,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.dodomrr.com/",
     "submissionUrl": "https://www.dodomrr.com/",
-    "description": "",
-    "categories": [],
+    "description": "Database of startups that take payments through Dodo Payments, listed with their verified revenue, where founders add their own startups.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {
@@ -2334,10 +2342,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://falcoscan.com/",
     "submissionUrl": "https://falcoscan.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory and market-intelligence dataset of AI tools organised into 30 markets, where makers submit their AI tools for review.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {
@@ -2640,7 +2650,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {
@@ -2673,10 +2683,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://sell.g2.com/",
     "submissionUrl": "https://sell.g2.com/create-a-profile",
-    "description": "",
-    "categories": [],
+    "description": "B2B review and comparison site for business software and services, where vendors create and claim product profiles to collect verified user reviews.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {
@@ -3036,10 +3048,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://indiehub.best/",
     "submissionUrl": "https://indiehub.best/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory for indie makers listing indie products and developer tools such as boilerplates, AI apps and SaaS, where makers submit their own products.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {
@@ -3293,6 +3307,20 @@
     "categories": [],
     "businessModel": "FREE_WITH_BADGE",
     "lastChecked": null,
+    "unreachableSince": null
+  },
+  {
+    "id": "launch-cab",
+    "name": "Launch.cab",
+    "type": "WEBSITE",
+    "rootUrl": "https://launch.cab/",
+    "submissionUrl": "https://launch.cab/",
+    "description": "Launch platform where makers submit their products; each approved launch gets its own page and is shown on an animated city map for a limited time.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
+    "businessModel": "FREE_WITH_PAID_PROMOTION",
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {
@@ -5377,11 +5405,13 @@
     "name": "StartUp Beat",
     "type": "WEBSITE",
     "rootUrl": "https://startupbeat.com/",
-    "submissionUrl": "https://startupbeat.com/startup-beat-featured-startup-pitch-guidelines/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://startupbeat.com/get-featured/",
+    "description": "Startup news site that publishes pitches, profiles and news about early-stage startups, with sponsored feature articles offered to companies.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {
@@ -6382,10 +6412,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://trustmrr.com/",
     "submissionUrl": "https://trustmrr.com/",
-    "description": "",
-    "categories": [],
+    "description": "Marketplace and database of startups with verified revenue, where founders list SaaS, apps and digital businesses to show MRR or to sell them.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-08",
     "unreachableSince": null
   },
   {

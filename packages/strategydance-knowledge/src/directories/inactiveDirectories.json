@@ -1209,19 +1209,6 @@
     "inactiveReason": "BROKEN_SUBMISSION"
   },
   {
-    "id": "launch-cab",
-    "name": "Launch.cab",
-    "type": "WEBSITE",
-    "rootUrl": "https://launch.cab/",
-    "submissionUrl": "https://launch.cab/",
-    "description": "",
-    "categories": [],
-    "businessModel": "UNKNOWN",
-    "lastChecked": null,
-    "unreachableSince": null,
-    "inactiveReason": "NO_SUBMISSION"
-  },
-  {
     "id": "launched",
     "name": "Launched",
     "type": "WEBSITE",

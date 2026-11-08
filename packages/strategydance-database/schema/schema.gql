@@ -519,8 +519,8 @@ type DocumentRevision
   # account goes, since the revision is the team's
   user: User
   # Where the agent acted from, the scope of its module call: `conversation:<id>` for Strategy
-  # Dance's agent, a subagent's included, and `connection:<id>` for an external one. Null for a
-  # member's restore
+  # Dance's agent, a subagent's included, and for an external one `external:<hash>` at the one
+  # address or `connection:<id>` at a module's own. Null for a member's restore
   scope: String
   # The call's idempotency key, which is Claude's `tool_use` id for Strategy Dance's agent, so the
   # thread finds the revision of a tool call's row. Null when the call carried none, and for a
@@ -1113,8 +1113,10 @@ type RunSpend
 # Keyed on the caller's scope and the key, the scope leading, so a scope's rows are found by the
 # key's own index. The scope is the caller's, never the client's: `conversation:<id>` for Strategy
 # Dance's agent, whose rows go when the daily sweep prunes the conversation, by its scope
-# (`DeleteConversationModuleCallResults`), and `connection:<id>` for an external agent, whose rows
-# expire after a day and which the daily sweep deletes, which the index on `expiresAt` serves
+# (`DeleteConversationModuleCallResults`), and for an external agent `external:<hash>` at the one
+# address, a hash of the member, the client and the address, which outlives a consent, or
+# `connection:<id>` at a module's own, whose rows expire after a day and which the daily sweep
+# deletes, which the index on `expiresAt` serves
 type ModuleCallResult @table(key: ["idempotencyScope", "idempotencyKey"]) @index(fields: ["expiresAt"]) {
   idempotencyScope: String!
   # At most 200 characters, as the caller sent it
@@ -1167,8 +1169,9 @@ type OAuthClient @table @index(fields: ["createdAt"]) {
   lastUsedAt: Timestamp
 }
 
-# An external agent a member allowed to act as them on one module in some of their organizations,
-# read only or read and write, until they disconnect it, consent again, or leave every one of them.
+# An external agent a member allowed to act as them at one address in some of their organizations,
+# for each module there read only, read and write, or not at all, until they disconnect it, consent
+# again, or leave every one of them.
 #
 # It references the account, so deleting the account deletes it with its tokens, and lists the
 # organizations it reaches rather than reference their memberships, since a consent writes it in one
@@ -1180,9 +1183,9 @@ type OAuthClient @table @index(fields: ["createdAt"]) {
 # again. Every write of the list locks and counts each membership it names, so it never lists one
 # the member was not in.
 #
-# Unique on its account, its client and its module, so consenting again replaces the connection
-# rather than adding one: Allow locks the member's own row, deletes the earlier connection with its
-# tokens and inserts the new one in one mutation
+# Unique on its account, its client and its address, so consenting again there replaces the
+# connection rather than adding one: Allow locks the member's own row, deletes the earlier connection
+# with its tokens and inserts the new one in one mutation, keeping the access the member keeps
 type AgentConnection @table @unique(fields: ["user", "clientId", "module"]) {
   id: UUID! @default(expr: "uuidV4()")
   # Cascade deleting. Implies a `userId: String!` column
@@ -1201,13 +1204,14 @@ type AgentConnection @table @unique(fields: ["user", "clientId", "module"]) {
   registeredClient: OAuthClient
   # The client's name when the member consented, as `OAuthClient.name` keeps it
   clientName: String
-  # The module's name, one of `MODULES` in strategydance-core
+  # The name of the address it was made at, one of `MODULE_ADDRESSES` in strategydance-core:
+  # `strategydance` for the one address, or a module's own name
   module: String!
-  # The scopes granted, in every organization it reaches: the module's read scope, alone or with its
-  # write scope
+  # The scopes granted, in every organization it reaches: for each module of its address, its read
+  # scope, alone or with its write scope, or neither, at least one module read
   scopes: [String!]!
   createdAt: Timestamp! @default(expr: "request.time")
-  # When an agent last called the module through it, written at most once a minute
+  # When an agent last called a module through it, written at most once a minute
   lastUsedAt: Timestamp
 }
 
@@ -1225,8 +1229,8 @@ type AgentConnectionToken @table @index(fields: ["expiresAt"]) {
   # SHA-256 of the token, in base64url. The token itself is 256 bits, random or derived, and never
   # stored
   hash: String! @unique
-  # The module's address the token was issued for (RFC 8707), which the verifier compares to the
-  # endpoint's, so a token for one module never opens another
+  # The address the token was issued for (RFC 8707), which the verifier compares to the endpoint's,
+  # so a token for one address never opens another
   resource: String!
   # What the token grants, within its connection's scopes. A refresh token keeps those its connection
   # was granted, and passes them on as it rotates; an access token holds those its refresh asked for,
@@ -1267,9 +1271,10 @@ type OAuthAuthorizationRequest @table @index(fields: ["createdAt"]) @index(field
   redirectUri: String!
   # The PKCE challenge, S256 alone, in base64url
   codeChallenge: String!
-  # The module's address (RFC 8707), in its canonical form
+  # The address asked for (RFC 8707), in its canonical form
   resource: String!
-  # The scopes asked for: the module's read scope, alone or with its write scope
+  # The scopes asked for: for each module of the address asked for, its read scope, alone or with its
+  # write scope
   scopes: [String!]!
   # The client's `state`, sent back with the answer as it wrote it. Null when it sent none
   state: String

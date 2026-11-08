@@ -151,6 +151,9 @@ and a name it gives is new until then.
   alone, and every name across `CONVERSATION_MODULES` through one server.
 - **`bun run mcp <email>`** serves every served module on one server over stdio against the
   emulators, with their scopes, as `mcp:documents` serves one module.
+- **The backend's `CLAUDE.md`**: § Modules builds a module with `register<Name>Module(server,
+  access)` on `createModulesServer`, where it names `create<Name>Server(access)`, and Scripts lists
+  `bun run mcp <email>`.
 
 ### Instructions (M1)
 
@@ -180,7 +183,8 @@ routes, the protected resource metadata, `OAUTH_PROTOCOL_PATHS`, every reader of
 them, so a client in a browser reads `/mcp`'s metadata as it reads a module's. All of it lands in
 the milestone that serves the one address, so nothing answers at `/mcp` before its scopes, its
 refresh and its sweep are in place. A per-module address is the case of one module, so it behaves
-as today.
+as today. The backend's `CLAUDE.md` § Modules names the one address and `MODULE_ADDRESSES` in the
+same milestone.
 
 ### The OAuth resource (M2)
 
@@ -342,7 +346,6 @@ may ship alone, so the app reads such a connection from M2:
   allows.
 - **The root's `CLAUDE.md`**: Tackling a task names the `strategydance` server and its `claude mcp
   add` line.
-- **The backend's `CLAUDE.md`**: Modules names the one address and `MODULE_ADDRESSES`.
 - **conversations.md § Modules** describes the one address in place of One server per module, and
   External agents follows it.
 
@@ -407,6 +410,9 @@ times.
 - **No migration.** Operations change, not columns: M2 changes `ApproveOAuthAuthorizationRequest`
   and `GetAgentConnectionForConsent`, M3 adds `UpdateAgentConnectionScopes`, and the schema's
   comments follow.
+- **The rules follow the code.** A milestone updates in its own pull request each `CLAUDE.md` rule
+  and document passage that describes what it changes, the ones How it works names and any it finds
+  besides, so none describes code that is gone.
 - **Each release serves the one before it.** Data Connect deploys first, then the backend, then the
   web: a variable joins an operation optional, an answer only grows, and what the web reads and
   posts keeps working for a page loaded before the release (Through the release).

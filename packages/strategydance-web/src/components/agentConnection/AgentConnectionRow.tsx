@@ -37,9 +37,10 @@ type Props = {
   holds, a module's own address by the module, marked as older with a way to connect at the one
   address, and the one address by Strategy Dance with each module it holds there, the organizations
   it reaches, or that it reaches none of the reader's any more, when it connected and when it last
-  called a module, at the one address a way to narrow its access, a way to change its organizations,
-  and Disconnect, which asks twice, since only a new consent from the agent undoes it. Disconnecting deletes the connection with its tokens, so the
-  agent's next call or refresh is refused, and the live list drops the row
+  called a module, at the one address a way to narrow its access while there is anything to narrow,
+  a way to change its organizations, and Disconnect, which asks twice, since only a new consent from
+  the agent undoes it. Disconnecting deletes the connection with its tokens, so the agent's next
+  call or refresh is refused, and the live list drops the row
 */
 function AgentConnectionRow({ connection, memberships, now }: Props) {
   const { formatMessage, formatDate, formatList } = useIntl()
@@ -50,6 +51,9 @@ function AgentConnectionRow({ connection, memberships, now }: Props) {
 
   const agentName = connection.clientName ?? formatMessage(moduleMessages.unnamedAgent)
   const access = readAgentConnectionAccess(connection)
+  // Access narrows, so a connection holding one module at read has nothing it could take away
+  const isNarrowable =
+    access.kind === 'address' && (access.modules.length > 1 || access.modules.some(({ isWrite }) => isWrite))
 
   async function disconnect() {
     if (!viewer) return
@@ -155,7 +159,7 @@ function AgentConnectionRow({ connection, memberships, now }: Props) {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 self-start sm:shrink-0 sm:self-center">
-        {access.kind === 'address' && (
+        {isNarrowable && access.kind === 'address' && (
           <Dialog
             open={isEditingAccess}
             onOpenChange={setIsEditingAccess}

@@ -120,7 +120,8 @@ what it asks under the [Workflow](#workflow).
   request names, as a task's Delegate prompt does, or else the organization named Strategy Dance.
   A task not found there is a question for the person, never a search through the others
 - The description is the brief: `read_task` opens a `task:<id>` link, and `read_document` a
-  `doc:<id>` one. A task it waits on that is not done blocks it: say so first
+  `doc:<id>` one, `strategydance-documents`' under the older addresses. A task it waits on that is
+  not done blocks it: say so first
 - Without the board's tools, or when they ask to sign in, say so and stop: the person runs `claude
   mcp add --transport http strategydance https://api.strategydance.com/mcp`, then `/mcp`, allowing
   Tasks and Documents on the consent page

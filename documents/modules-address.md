@@ -213,8 +213,8 @@ same milestone.
 - **A refresh** names its token's scopes or fewer, as today, under the same rule: at least one
   module's read, and never a write without its read. A refresh and the verifier keep to the scopes
   of the modules the address serves, so a module it stops serving drops out of a connection rather
-  than refuse its refreshes or appear in its challenges. `refreshAgentConnectionTokens` checks the one
-  module's read today, which an address of several modules has no single one of.
+  than refuse its refreshes or appear in its challenges. `checkModuleScopes` holds a refresh to the
+  rule, as it does an authorization and Allow.
 - **The scope challenge names the scopes the connection holds with those the call needs**, rather
   than the write scope alone, which the SDK's `requireScopes` names. A client that asks again for
   exactly the challenge's scopes then keeps every module it held, and names each write with its
@@ -338,14 +338,22 @@ may ship alone, so the app reads such a connection from M2:
 
 ### Access and the module pages (M3)
 
-- **A per-module row** is marked as an older address, with a link to how to connect at the one
-  address.
+- **A per-module row** is marked as an older address, for its module alone, with a link that opens
+  the steps to connect at the one address: the agents dialog, without its closing link back to
+  Connected agents.
 - **Access** is a button beside Organizations on a row of the one address. It opens a dialog that
   narrows what the connection may do in each module, through `UpdateAgentConnectionScopes`, from its
   next call, since the verifier reads the connection's scopes.
   - It never widens them, since only a consent grants, through the agent's own request: a member who
-    wants more consents again through the agent.
-  - At least one module stays read, and no write stays without its read.
+    wants more consents again through the agent. So the dialog lists only the modules the
+    connection holds, each through the consent page's chooser, `OAuthConsentAccess`, offering read
+    and write only where it is held, and not allowed beside another module.
+  - At least one module stays read, and no write stays without its read. Save stays off until
+    something changes, and while no module is allowed, as Allow does on the consent page.
+  - The mutation checks the rule on its variables before anything else: a read among them
+    (`endsWith(':read')`), each write's read (`replace(':write', ':read')`, from cel-go's strings
+    extension, which the emulator evaluates and no other operation uses yet), and each scope once.
+    Then every scope named is one the connection holds, read after the lock.
   - It locks the member's row first, as `UpdateAgentConnectionOrganizations` does, and reads the
     connection in a step that reads the lock's `response`, so it runs before or after an Allow,
     never across one.
@@ -354,15 +362,20 @@ may ship alone, so the app reads such a connection from M2:
     `readAgentConnectionReach` leaves out.
 - **A refresh follows a narrowing.** The access and refresh tokens a refresh issues hold the refresh
   token's scopes within its connection's, and its answer names those, so a client is never told of
-  a write the member took away. `refreshAgentConnectionTokens` copies the refresh token's own scopes
-  today, and reads the connection's already.
+  a write the member took away. `refreshAgentConnectionTokens` filters the refresh token's scopes by
+  the connection's, which `GetAgentConnectionRefreshToken` read already, so a refresh asking for a
+  scope taken away is refused `invalid_scope`, as for any scope never granted (RFC 6749, 6).
   - A duplicate, a refresh token presented again within 30 seconds, is answered with the pair its
     rotation issued, which may predate the narrowing. `answerDuplicate` compares and names that
     pair's scopes within the connection's too, so it neither announces a removed write nor refuses a
-    client for one: the verifier narrows the pair's access token at every call already.
+    client for one: the verifier narrows the pair's access token at every call already. A pair the
+    narrowing left reading no module, which would open nothing, is refused `invalid_grant`.
+  - A narrowing committing between a refresh's read and its rotation shows from the next call, the
+    verifier narrowing the access token then, and from the next refresh.
 - **"Use with your agents"**, on Documents, Tasks and Budget, gives the one address, with the same
   instructions for each client, and says that one connection reaches every module the member
-  allows.
+  allows. `readAgentsSetup` writes the address, the Claude Code line and Cursor's configuration,
+  under the server name `strategydance`, in place of `getModuleAddress`.
 - **The root's `CLAUDE.md`**: Tackling a task names the `strategydance` server and its `claude mcp
   add` line.
 - **conversations.md § Modules** describes the one address in place of One server per module, and
@@ -520,8 +533,9 @@ Access and the module pages above, and the documents that follow.
   read or a write without its read, and leaving `grantedAt` as it was.
 - A refresh after a narrowing issuing and naming the narrowed scopes alone, and a duplicate of a
   rotation from before the narrowing answered with the narrowed scopes named.
-- A per-module row marked as older.
-- The agents dialog giving `/mcp` on each module's page.
+- A per-module row marked as older: the web has no component tests, so the row follows
+  `readAgentConnectionAccess`'s `kind: 'module'`, which its tests pin, and the app shows it.
+- The agents dialog giving `/mcp` on each module's page, through `readAgentsSetup`'s test.
 
 **To verify, once implemented:**
 - In the app against the local backend: connect Claude Code at `/mcp`, narrow Tasks to read on

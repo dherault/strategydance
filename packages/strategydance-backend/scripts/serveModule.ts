@@ -69,18 +69,19 @@ const { values, positionals } = parseArgs({
 })
 
 // The module the package's script names, if it names one, then the account
-const named = MODULES.find(({ name }) => name === positionals[0])
-const [address, ...others] = named ? positionals.slice(1) : positionals
+const namedModule = MODULES.find(({ name }) => name === positionals[0])
+const [address, ...others] = namedModule ? positionals.slice(1) : positionals
 // Firebase lowercases the addresses it stores
 const email = address?.trim().toLowerCase()
 // What is served: the module named, or every module served to external agents, on one server
-const modules = named ? [named] : SERVED_MODULES
-const title = named ? named.title : `Strategy Dance (${SERVED_MODULE_NAMES.join(', ')})`
+const modules = namedModule ? [namedModule] : SERVED_MODULES
+const title = namedModule ? namedModule.title : `Strategy Dance (${SERVED_MODULE_NAMES.join(', ')})`
 
-if (!email || others.length) {
+// An account named without an at sign is more likely a module's name mistyped
+if (!email?.includes('@') || others.length) {
   console.error(
-    named
-      ? `Usage: bun run mcp:${named.name} <email> [--organization <id or slug>]…`
+    namedModule
+      ? `Usage: bun run mcp:${namedModule.name} <email> [--organization <id or slug>]…`
       : `Usage: bun run mcp <email> [--organization <id or slug>]…, or bun scripts/serveModule.ts <${MODULES.map(({ name }) => name).join(' | ')}> <email> for one module`,
   )
   process.exit(1)

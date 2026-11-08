@@ -77,6 +77,9 @@ Proposed on 2026-11-07, for David to settle in review:
   - A connection lists the tools of each module it holds the read scope of, and none of a module it
     does not: a member who left Budget out finds no bill tool in their agent.
   - The write tools of a module held read only stay listed and challenged, as today.
+  - A call to a tool of a module the connection does not hold, from a client that listed it before
+    a consent or Access took the module away, is challenged for that module's read, as a write is
+    for its write, rather than answered that no such tool exists.
   - Adding a module is consenting again.
 - **Consenting again keeps what the connection held.** The consent page lists each module the
   connection it replaces holds beside those the client asks for, held as they were, so a client
@@ -206,6 +209,14 @@ per-module address is the case of one module, so it behaves as today.
     access too, `connectionScopes` beside `scopes`, and the challenge names those. `ModuleAccess`'s
     external kind and `readModuleAccess`'s schema gain the field: that schema is strict, refusing a
     field it does not know, so the verifier writing it alone would fail every external call.
+- **A tool of a module not held is challenged.** The server lists only the modules held, and the
+  SDK answers a call to a tool it does not list with a protocol error, `Tool … not found`, and
+  challenges only the tools it lists, which the backend's rule of refusing through
+  `toToolRefusal` forbids. So the endpoint reads a `tools/call`'s tool name before the server is
+  built, and for a tool of a served module whose read the access lacks, answers 403
+  `insufficient_scope` naming the connection's scopes with that module's read, as the write's
+  challenge does. A stateless server sends no `list_changed`, so this is how a client learns a
+  module is gone, or asks for one.
 - **The consent page** lists each module the request asks for, and each the connection it replaces
   holds, with its access: not allowed, read, or read and write when write was asked for or is held.
   - It is worded by the module from the `module` catalogue, as `OAuthConsentAccess` words one now.
@@ -277,7 +288,8 @@ per-module address is the case of one module, so it behaves as today.
   verifier narrows a token's scopes to its connection's, as it does now.
 - **`check:oauth`** walks the whole flow against `http://localhost:3003/mcp` too:
   - a consent to two modules;
-  - a module left out, absent from `tools/list`;
+  - a module left out, absent from `tools/list`, and a call to one of its tools challenged for its
+    read;
   - a read-only module's write, challenged with the connection's scopes and the write;
   - a refresh narrowing to one module, then reuse and revocation.
 
@@ -440,6 +452,8 @@ rows and Delegate that read a connection there.
 - The verifier refusing a token for `/mcp/tasks` at `/mcp`, and the reverse.
 - The challenge naming the connection's scopes with the write, for a token a refresh narrowed below
   them too.
+- A call to a tool of a served module the connection does not hold, challenged for that module's
+  read, and one to a name no module has, answered as the SDK does.
 - The approve route taking every served module's two scopes, and a per-module request's summary and
   body as they are today.
 - The consent page: a module left unallowed, Allow off with none allowed, a connection replaced

@@ -6,9 +6,10 @@ import {
   MAX_DAILY_SPEND_MICRODOLLARS_PER_ACCOUNT,
   MAX_DAILY_SPEND_MICRODOLLARS_PER_MEMBER,
   MAX_DAILY_SPEND_MICRODOLLARS_PER_ORGANIZATION,
+  MODULE_ADDRESSES,
+  MODULES_ADDRESS,
   PRODUCTION_API_URL,
   PRODUCTION_APP_URL,
-  SERVED_MODULES,
 } from 'strategydance-core'
 import type { TaskStatus } from 'strategydance-database/backend'
 
@@ -290,9 +291,9 @@ export const MODULE_PROTOCOL_VERSION = '2026-07-28'
 export const MODULE_IDEMPOTENCY_KEY_META = 'com.strategydance/idempotencyKey'
 export const MAX_MODULE_IDEMPOTENCY_KEY_LENGTH = 200
 
-// Where the public backend serves the modules strategydance-core's `SERVED_MODULES` lists, each at
-// its `MODULES` path
-export const MODULES_PATH = '/mcp'
+// Where the public backend serves the modules, at strategydance-core's `MODULE_ADDRESSES`: the one
+// address's path, under which each module's own address is
+export const MODULES_PATH = MODULES_ADDRESS.path
 
 /*
   The most a call to a module's endpoint carries, 1 MiB, past a document's 200000 characters
@@ -418,7 +419,8 @@ export const OAUTH_CONSENT_URL = `${APP_URL}/oauth/consent`
 /*
   The protocol's own endpoints, which answer any origin without credentials, since no cookie is
   involved and no client could otherwise call them from a page: the metadata, the authorization
-  server's and each served module's protected resource metadata (RFC 9728), registration,
+  server's and each address's protected resource metadata (RFC 9728), the one address's included,
+  so a client in a browser reads `/mcp`'s as it reads a module's, registration,
   authorization, the token endpoint and revocation, and the client ID metadata document Strategy
   Dance presents to an organization's MCP servers. Every other route answers the app's origins
   alone, the consent page's and the modules' endpoints included. Matched exactly, as Express routes
@@ -426,7 +428,7 @@ export const OAUTH_CONSENT_URL = `${APP_URL}/oauth/consent`
 */
 export const OAUTH_PROTOCOL_PATHS = [
   '/.well-known/oauth-authorization-server',
-  ...SERVED_MODULES.map(module => `/.well-known/oauth-protected-resource${module.path}`),
+  ...MODULE_ADDRESSES.map(address => `/.well-known/oauth-protected-resource${address.path}`),
   '/oauth/register',
   '/oauth/authorize',
   '/oauth/token',

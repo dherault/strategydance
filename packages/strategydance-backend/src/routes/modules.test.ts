@@ -69,6 +69,8 @@ const { default: createOAuthRequestsRouter } = await import('./oauthRequests')
 const { default: createWellKnownRouter } = await import('./wellKnown')
 
 const ISSUER = 'http://localhost:3003'
+const ONE_ADDRESS = `${ISSUER}/mcp`
+const ONE_ADDRESS_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp`
 const DOCUMENTS = `${ISSUER}/mcp/documents`
 const TASKS = `${ISSUER}/mcp/tasks`
 const RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/documents`
@@ -940,6 +942,146 @@ describe('the Budget module for external agents', () => {
     expect(
       (await send(callTool('list_bills', { ...IN_ORGANIZATION }), { token, path: BUDGET_PATH })).body.result.isError,
     ).toBeFalsy()
+  })
+})
+
+describe('the one address, every served module at /mcp', () => {
+  const ONE_PATH = '/mcp'
+  const list = { jsonrpc: '2.0', id: 1, method: 'tools/list' }
+  const DOCUMENTS_AND_TASKS_READ = ['documents:read', 'documents:write', 'tasks:read']
+  const createDocument = (title: string) =>
+    callTool('create_document', { ...IN_ORGANIZATION, title, aspects: [], content: 'Text' })
+
+  test("answers a request without a token 401, naming the one address's protected resource metadata", async () => {
+    const { status, headers } = await send(list, { path: ONE_PATH })
+
+    expect(status).toBe(401)
+    expect(headers.get('www-authenticate')).toContain(`resource_metadata="${ONE_ADDRESS_RESOURCE_METADATA}"`)
+  })
+
+  test("serves its protected resource metadata with every served module's scopes, beside each module's own", async () => {
+    const response = await fetch(ONE_ADDRESS_RESOURCE_METADATA.replace(ISSUER, origin))
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      resource: ONE_ADDRESS,
+      authorization_servers: [ISSUER],
+      scopes_supported: [
+        'documents:read',
+        'documents:write',
+        'tasks:read',
+        'tasks:write',
+        'budget:read',
+        'budget:write',
+      ],
+      resource_name: 'Strategy Dance',
+    })
+
+    for (const name of SERVED_MODULE_NAMES) {
+      const own = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/${name}`)
+
+      expect(((await own.json()) as { resource: string }).resource).toBe(`${ISSUER}/mcp/${name}`)
+    }
+  })
+
+  test('lists the tools of the modules its connection holds alone, as one server, and serves their calls', async () => {
+    const tokens = await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+    const client = await open(tokens.access_token, ONE_PATH)
+    const names = (await client.listTools()).tools.map(({ name }) => name)
+
+    expect(tokens.scope).toBe(DOCUMENTS_AND_TASKS_READ.join(' '))
+    expect(client.getServerVersion()).toMatchObject({ name: 'strategydance', title: 'Strategy Dance' })
+    expect(names).toHaveLength(16)
+    expect(names).toContain('create_document')
+    expect(names).toContain('list_tasks')
+    expect(names).not.toContain('read_budget')
+
+    const created = await client.callTool({
+      name: 'create_document',
+      arguments: { ...IN_ORGANIZATION, title: 'Launch plan', aspects: [], content: 'We launch in spring.' },
+    })
+    const listed = await client.callTool({ name: 'list_tasks', arguments: { ...IN_ORGANIZATION } })
+
+    expect(created.isError).toBeFalsy()
+    expect(listed.isError).toBeFalsy()
+    expect(documentsOfOrganization()).toHaveLength(1)
+
+    await client.close()
+  })
+
+  test("refuses a module's own address's token, and opens no module's address with its own", async () => {
+    const tasks = await connect({ scopes: ['tasks:read'], resource: TASKS })
+    const oneAddress = await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+
+    expect((await send(list, { token: tasks.access_token, path: ONE_PATH })).status).toBe(401)
+    expect((await send(list, { token: oneAddress.access_token, path: '/mcp/tasks' })).status).toBe(401)
+    expect((await send(list, { token: oneAddress.access_token, path: '/mcp/documents' })).status).toBe(401)
+    expect((await send(list, { token: oneAddress.access_token, path: ONE_PATH })).status).toBe(200)
+  })
+
+  test("challenges a read-only module's write with every scope the connection holds, a refresh's narrowed token's too", async () => {
+    const tokens = await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+    const narrowed = await refresh(tokens, { resource: ONE_ADDRESS, scope: 'tasks:read' })
+    const write = callTool('create_task', { ...IN_ORGANIZATION, name: 'Refused', status: 'TODO' })
+
+    expect(narrowed.scope).toBe('tasks:read')
+
+    for (const token of [tokens.access_token, narrowed.access_token]) {
+      const challenged = await send(write, { token, path: ONE_PATH })
+
+      expect(challenged.status).toBe(403)
+      expect(challenged.headers.get('www-authenticate')).toContain(
+        'scope="documents:read documents:write tasks:read tasks:write"',
+      )
+      expect(challenged.headers.get('www-authenticate')).toContain(
+        `resource_metadata="${ONE_ADDRESS_RESOURCE_METADATA}"`,
+      )
+    }
+
+    expect(tasksOfOrganization()).toEqual([])
+  })
+
+  test('applies a write retried after a consent again once, its scope outliving the connection it replaced', async () => {
+    const write = {
+      ...createDocument('Once'),
+      params: { ...createDocument('Once').params, _meta: { [MODULE_IDEMPOTENCY_KEY_META]: 'retried' } },
+    }
+    const first = await send(write, {
+      token: (await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })).access_token,
+      path: ONE_PATH,
+    })
+    const [before] = fake.connectionsOf(MEMBER)
+
+    // The member consents again for the same client, asked for Tasks alone, keeping Documents
+    const again = await connect({ scopes: ['tasks:read'], allowed: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+    const [after] = fake.connectionsOf(MEMBER)
+    const second = await send(write, { token: again.access_token, path: ONE_PATH })
+
+    expect(after?.id).not.toBe(before?.id)
+    expect(second.body.result.structuredContent).toEqual(first.body.result.structuredContent)
+    expect(documentsOfOrganization()).toHaveLength(1)
+    expect([...fake.results.values()].map(({ idempotencyScope }) => idempotencyScope)).toEqual([
+      `external:${createHash('sha256')
+        .update(JSON.stringify([MEMBER, CLIENT_ID, 'strategydance']))
+        .digest('base64url')}`,
+    ])
+  })
+
+  test('answers a write retried after a consent that took its write away with the challenge, never its stored result', async () => {
+    const write = {
+      ...createDocument('Once'),
+      params: { ...createDocument('Once').params, _meta: { [MODULE_IDEMPOTENCY_KEY_META]: 'retried' } },
+    }
+
+    await send(write, {
+      token: (await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })).access_token,
+      path: ONE_PATH,
+    })
+
+    const narrowed = await connect({ scopes: ['documents:read'], resource: ONE_ADDRESS })
+
+    expect((await send(write, { token: narrowed.access_token, path: ONE_PATH })).status).toBe(403)
+    expect(documentsOfOrganization()).toHaveLength(1)
   })
 })
 

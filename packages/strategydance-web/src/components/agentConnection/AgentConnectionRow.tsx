@@ -40,7 +40,7 @@ type Props = {
   live list drops the row
 */
 function AgentConnectionRow({ connection, memberships, now }: Props) {
-  const { formatMessage, formatDate } = useIntl()
+  const { formatMessage, formatDate, formatList } = useIntl()
   const { data: viewer } = useAuthentication()
   const { mutateAsync: deleteConnection, isPending } = useDeleteAgentConnection(dataConnect)
   const [isEditing, setIsEditing] = useState(false)
@@ -76,14 +76,17 @@ function AgentConnectionRow({ connection, memberships, now }: Props) {
           {access.kind === 'address'
             ? formatMessage(moduleMessages.connectionModule, {
                 moduleName: formatMessage(moduleMessages.oneAddressName),
-                access: access.modules
-                  .map(({ name, isWrite }) =>
+                // Sentences one after the other, as the locale sets them: a space between them in
+                // English, none after a full-width full stop
+                access: formatList(
+                  access.modules.map(({ name, isWrite }) =>
                     formatMessage(
                       isWrite ? moduleMessages.connectionModuleReadWrite : moduleMessages.connectionModuleRead,
                       { moduleName: formatMessage(getModuleMessages(name).name) },
                     ),
-                  )
-                  .join(' '),
+                  ),
+                  { type: 'unit', style: 'narrow' },
+                ),
               })
             : access.kind === 'module'
               ? formatMessage(moduleMessages.connectionModule, {

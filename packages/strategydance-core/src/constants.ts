@@ -1,5 +1,12 @@
 import { type Currency, Locale } from './enums'
-import type { BillRecurrence, BudgetPeriod, ModuleDefinition, ModuleName, OrganizationImageKind } from './types'
+import type {
+  BillRecurrence,
+  BudgetPeriod,
+  ModuleAddress,
+  ModuleDefinition,
+  ModuleName,
+  OrganizationImageKind,
+} from './types'
 
 /*
   Bound through a local rather than exported straight off the call.
@@ -676,9 +683,9 @@ export const MAX_SUBAGENT_RUNS = 4
 --- */
 
 /*
-  Strategy Dance's capabilities served as MCP servers, one per module, which its own agent uses and
-  which a member can add to an agent of their own. Each is a server of its own at its own address
-  on the backend, and an OAuth resource of its own, so a member connects modules one by one.
+  Strategy Dance's capabilities served as MCP modules, which its own agent uses and which a member
+  can add to an agent of their own: those served to external agents at the one address, where one
+  connection holds a scope per module, and each at an address of its own (`MODULE_ADDRESSES`).
 
   A module's name is what the backend's `src/modules/` and the app's `module` catalogue key on. Its
   title is the server's own, in English, for what MCP clients show; the app words a module from the
@@ -723,23 +730,58 @@ export const MODULES = [
 ] as const satisfies readonly ModuleDefinition[]
 
 /*
-  The modules the public backend serves to external agents, each at its own address under its
-  `/mcp` path, behind the bearer check, with its protected resource metadata at the app's root:
-  Documents, Tasks and Budget, in `MODULES`' order. The authorization server reads them alone, its
-  resources and `scopes_supported`, and so does the consent page, so a client asking for a module
-  served to nobody is refused as for an address no module has, and no consent makes a connection
-  that no endpoint serves. A module added to `MODULES` later joins them by its name here, once its
-  write tools are challenged and its searches counted
+  The modules the public backend serves to external agents, at the one address and each at its own
+  (`MODULE_ADDRESSES`): Documents, Tasks and Budget, in `MODULES`' order. The authorization server
+  reads them alone, its resources and `scopes_supported`, and so does the consent page, so a client
+  asking for a module served to nobody is refused as for an address no module has, and no consent
+  makes a connection that no endpoint serves. A module added to `MODULES` later joins them by its
+  name here, once its write tools are challenged and its searches counted
 */
 export const SERVED_MODULE_NAMES: readonly ModuleName[] = ['documents', 'tasks', 'budget']
 
 export const SERVED_MODULES = MODULES.filter(module => SERVED_MODULE_NAMES.includes(module.name))
 
 /*
-  How many external agents a member connects, a connection being one per client and module, reaching
-  some of their organizations. Allow refuses another past it, so the account page's Connected agents
-  tab, which reads every one, lists each agent acting as them, and Disconnect reaches it. Consenting
-  again with an agent already connected replaces its connection, and counts once
+  The one address every served module is served at, `/mcp`, one OAuth resource whose scopes stay the
+  modules' own, so a member connects an agent once and chooses there what it may do in each module.
+  A server of several modules goes by its name and title
+*/
+export const MODULES_ADDRESS: ModuleAddress = {
+  name: 'strategydance',
+  path: '/mcp',
+  title: 'Strategy Dance',
+  modules: SERVED_MODULE_NAMES,
+}
+
+/*
+  The addresses the public backend serves the modules at, behind the bearer check, each an OAuth
+  resource of its own with its protected resource metadata at the app's root: the one address
+  first, then each served module's own, which serves it alone through a transition, its name, path
+  and title its module's, so they stay written in `MODULES` alone. An address's scopes are its
+  modules' read and write scopes, a token is bound to one address, and a connection's `module` holds
+  its address's name. The endpoints, the metadata, every reader of a resource, the consent page, the
+  sweep and Connected agents read them here
+*/
+export const MODULE_ADDRESSES: readonly ModuleAddress[] = [
+  MODULES_ADDRESS,
+  ...SERVED_MODULES.map(({ name, path, title }) => ({ name, path, title, modules: [name] })),
+]
+
+/*
+  The modules that touch money, Budget alone today. At an address of several modules, a consent
+  starts such a module at read unless the client asks for its write and the connection it replaces
+  held it, a choice the member made before for that client: many clients ask for every scope a
+  server lists, so one click on Allow would otherwise let an agent write bills beside documents. A
+  module's own address is a consent of its own, and starts it as any other
+*/
+export const MONEY_MODULE_NAMES: readonly ModuleName[] = ['budget']
+
+/*
+  How many external agents a member connects, a connection being one per client and address,
+  reaching some of their organizations. Allow refuses another past it, so the account page's
+  Connected agents tab, which reads every one, lists each agent acting as them, and Disconnect
+  reaches it. Consenting again with an agent already connected at that address replaces its
+  connection, and counts once
 */
 export const MAX_AGENT_CONNECTIONS = 100
 

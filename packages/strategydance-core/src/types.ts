@@ -302,6 +302,18 @@ export type ModuleName = (typeof MODULES)[number]['name']
 // A scope one of `MODULES` grants
 export type ModuleScope = (typeof MODULES)[number]['scopes'][keyof ModuleDefinition['scopes']]
 
+// The name of one of `MODULE_ADDRESSES`: the one address's, or a module's own
+export type ModuleAddressName = 'strategydance' | ModuleName
+
+// One of `MODULE_ADDRESSES`: what an address is called, its path, what MCP clients show for it, and
+// the modules it serves, in `MODULES`' order
+export type ModuleAddress = {
+  readonly name: ModuleAddressName
+  readonly path: string
+  readonly title: string
+  readonly modules: readonly ModuleName[]
+}
+
 /*
   What the consent page reads of an authorization request an external agent made: who is asking,
   where the member will be sent back, the module, the access asked for, and what the member's

@@ -1,13 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/server'
-import { MODULES, type ModuleName } from 'strategydance-core'
+import { MODULES, MODULES_ADDRESS, type ModuleName } from 'strategydance-core'
 
 import type { ModuleAccess } from '~types'
 
 import MODULE_REGISTRATIONS from '~modules/moduleRegistrations'
 import toModuleInstructions from '~modules/toModuleInstructions'
-
-// What a server of several modules goes by, where a server of one goes by its module's
-const MODULES_SERVER = { name: 'strategydance', title: 'Strategy Dance' }
 
 /*
   The MCP server of the modules its caller names, built for one access, whose caller every tool acts
@@ -16,7 +13,7 @@ const MODULES_SERVER = { name: 'strategydance', title: 'Strategy Dance' }
   read lists nothing. A tool's name is unique across the modules, so they share one server.
 
   Given one module, the server goes by its module's name and title and says what its module's own
-  server always said. Given several, it is `strategydance`, "Strategy Dance", and its instructions
+  server always said. Given several, it goes by the one address's, `strategydance`, "Strategy Dance", and its instructions
   say what Strategy Dance is once, then what each module it lists holds. The caller names the
   modules, never the access's kind: Strategy Dance's worker every module its agent uses, a module's
   endpoint its module
@@ -26,7 +23,12 @@ function createModulesServer(access: ModuleAccess, modules: readonly ModuleName[
   const listed = given.filter(({ scopes }) => access.scopes.includes(scopes.read))
   const alone = given.length === 1 ? given[0] : undefined
   const server = new McpServer(
-    { ...(alone ? { name: `strategydance-${alone.name}`, title: alone.title } : MODULES_SERVER), version: '1.0.0' },
+    {
+      ...(alone
+        ? { name: `strategydance-${alone.name}`, title: alone.title }
+        : { name: MODULES_ADDRESS.name, title: MODULES_ADDRESS.title }),
+      version: '1.0.0',
+    },
     {
       capabilities: { tools: {} },
       instructions: toModuleInstructions(

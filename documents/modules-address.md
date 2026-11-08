@@ -233,10 +233,15 @@ per-module address is the case of one module, so it behaves as today.
 
   A page loaded before the release draws nothing for a request at `/mcp`, but no client is told of
   that address before M3.
-- **The idempotency scope outlives a consent.** The verifier builds an external agent's scope as
-  `agent:` and the base64url SHA-256 of the member's account, the client's id and the address's
-  name, rather than `connection:<id>`, which every consent changes. This holds at every address,
-  the per-module ones included, where the same gap is open today.
+- **The idempotency scope outlives a consent.** The verifier builds an external agent's scope from
+  the member's account, the client's id and the address's name, rather than `connection:<id>`, which
+  every consent changes. This holds at every address, the per-module ones included, where the same
+  gap is open today.
+  - It is `external:` and `hashOAuthToken(JSON.stringify([userId, clientId, addressName]))`, the
+    SHA-256 in base64url the tokens are kept under. The JSON array keeps two triples from writing
+    the same text, since a client's id is a free-form address.
+  - `external:` says what the codebase calls such a caller, `kind: 'external'`, where `agent`
+    names Strategy Dance's own.
   - The rate limit, keyed on the scope, outlives a consent with it.
   - A document revision an external agent's edit keeps carries the new scope. The web reads it as an
     external agent's, as `readDocumentRevisionSource` reads any scope that is not a conversation's.
@@ -415,9 +420,9 @@ rows and Delegate that read a connection there.
   Budget starting at read when its write is asked for but was not held.
 - Allow: consenting again replaces the connection with its tokens, leaving an earlier code and an
   earlier refresh token opening nothing; a scope neither asked for nor held refused.
-- The idempotency scope: the same before and after a consent of one client at one address,
-  different for another client, another address or another member, and a write retried under its
-  key after a consent answered from its stored result.
+- The idempotency scope: `external:` and the hash, the same before and after a consent of one client
+  at one address, different for another client, another address or another member, and a write
+  retried under its key after a consent answered from its stored result.
 - The sweep keeping an idle connection to the one address, and deleting one to a module served at
   no address.
 - A row of the one address listing each module's access.

@@ -33,6 +33,7 @@
     "launch:subagent": "cd packages/strategydance-backend && bun run launch:subagent",
     "sync:exchange-rates": "cd packages/strategydance-backend && bun run sync:exchange-rates",
     "seed:budget": "cd packages/strategydance-backend && bun run seed:budget",
+    "mcp": "cd packages/strategydance-backend && bun run --silent mcp",
     "mcp:documents": "cd packages/strategydance-backend && bun run --silent mcp:documents",
     "mcp:tasks": "cd packages/strategydance-backend && bun run --silent mcp:tasks",
     "mcp:budget": "cd packages/strategydance-backend && bun run --silent mcp:budget",

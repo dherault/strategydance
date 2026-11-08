@@ -39,19 +39,29 @@ type Props = {
   allowed, never up, since only a consent grants, through the agent's own request. At least one
   module stays allowed, as on the consent page, and the agent's next call and next refresh keep to
   what is saved. The content of the `Dialog` its row's button opens, which mounts it only while
-  open, so each opening starts from the connection as it is. Saving keeps the dialog open until it
-  goes through, and says so either way
+  open, so each opening starts from the connection as it is. What the member chose is kept apart
+  from what the connection holds, and never above it, so a narrowing saved meanwhile in another tab,
+  which the live list brings in, lowers the choice rather than leave one Save would be refused.
+  Saving keeps the dialog open until it goes through, and says so either way
 */
 function AgentConnectionAccessDialog({ connection, modules, onSaved }: Props) {
   const { formatMessage } = useIntl()
   const { data: viewer } = useAuthentication()
   const { mutateAsync: updateScopes, isPending } = useUpdateAgentConnectionScopes(dataConnect)
+  const [chosen, setChosen] = useState<Partial<Record<ModuleName, OAuthConsentAccessLevel>>>({})
+
+  const agentName = connection.clientName ?? formatMessage(moduleMessages.unnamedAgent)
   const held: Partial<Record<ModuleName, OAuthConsentAccessLevel>> = Object.fromEntries(
     modules.map(({ name, isWrite }) => [name, isWrite ? 'write' : 'read']),
   )
-  const [accesses, setAccesses] = useState(held)
+  // Each module as chosen, or as held, and read at most once its write is held no more
+  const accesses: Partial<Record<ModuleName, OAuthConsentAccessLevel>> = Object.fromEntries(
+    modules.map(({ name, isWrite }) => {
+      const access = chosen[name] ?? held[name]
 
-  const agentName = connection.clientName ?? formatMessage(moduleMessages.unnamedAgent)
+      return [name, access === 'write' && !isWrite ? 'read' : access]
+    }),
+  )
   const scopes = toOAuthConsentScopes(accesses)
   const isChanged = scopes.join(' ') !== toOAuthConsentScopes(held).join(' ')
 
@@ -102,7 +112,7 @@ function AgentConnectionAccessDialog({ connection, modules, onSaved }: Props) {
               isWriteOffered={isWrite}
               isNoneOffered={modules.length > 1}
               isNamed
-              onChange={access => setAccesses(chosen => ({ ...chosen, [name]: access }))}
+              onChange={access => setChosen(previous => ({ ...previous, [name]: access }))}
               disabled={isPending}
             />
           ))}

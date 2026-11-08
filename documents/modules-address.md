@@ -96,18 +96,6 @@ Left for later:
 Before M1, each module builds a server of its own. Each section names the milestone that builds it,
 and a name it gives is new until then.
 
-### Addresses (M1)
-
-Core gains `MODULE_ADDRESSES` beside `MODULES`, what the public backend serves, each `{ name, path,
-title, modules }`:
-- the one address first, `{ name: 'strategydance', path: '/mcp', title: 'Strategy Dance', modules:
-  SERVED_MODULE_NAMES }`;
-- then each served module's own, with its name, path and title, and itself alone as `modules`.
-
-An address's scopes are its modules' read and write scopes, and `ModuleAddressName` names one. The
-routes, the protected resource metadata, `parseModuleResource`, the consent page and Connected agents
-read the addresses here. A per-module address is the case of one module, so it behaves as today.
-
 ### One server, any modules (M1)
 
 - **Each module registers on a server it is given.** `create<Name>Server(access)` becomes
@@ -117,15 +105,24 @@ read the addresses here. A per-module address is the case of one module, so it b
   - through `server.registerTool`: Subagents and Knowledge, as today.
 
   Its instructions split into what is its own and what every module shares (see Instructions).
-- **`createModulesServer(access, modules)`** builds one `McpServer` and registers each module given,
-  in `MODULES`' order. `MODULE_SERVERS` gives way to it.
-- **Which modules**: those whose read scope the access holds, among those its kind reaches:
-  - for Strategy Dance's agent, `CONVERSATION_MODULES`, every scope of which it holds, so all five;
-  - for an external agent, its address's `modules`, so a connection to the one address gets the
-    modules it was granted, and one to a per-module address that module alone, with the server's
-    name and title it has today.
-- **`createModuleHandler(address)`** builds that server for each request from the access, as today.
-- **Strategy Dance's agent connects one client**, to `http://localhost/mcp`, rather than five.
+- **`createModulesServer(access, modules)`** builds one `McpServer` and registers, in `MODULES`'
+  order, each module given whose read scope the access holds. Given one module, the server keeps
+  that module's name and title; given several, it is `strategydance`, titled "Strategy Dance".
+  `MODULE_SERVERS` gives way to it.
+- **Its caller names the modules**, never the access's kind:
+  - Strategy Dance's worker, `CONVERSATION_MODULES`, every scope of which its access holds, so all
+    five;
+  - each per-module endpoint, its module, so an external agent there gets what it gets today;
+  - from M2, the one address, its address's `modules`, so a connection there gets the modules it was
+    granted;
+  - `serveModule.ts`, the module it names, Knowledge included, and `bun run mcp <email>` the served
+    modules.
+- **`createModuleHandler(modules)`** builds that server for each request from the access, as today.
+  Building every module given rather than the one a call names costs nothing worth saving: on
+  2026-11-08, the five modules' servers took 0.03 ms for Strategy Dance's agent, and the three served
+  modules' 0.08 ms for an external agent reaching two organizations.
+- **Strategy Dance's agent connects one client**, through one handler given `CONVERSATION_MODULES`,
+  rather than five.
   - `tools/list` answers the tools module by module in `MODULES`' order, which is
     `CONVERSATION_MODULES`' order, so the converted list is the same bytes.
     `buildConversationTools.test.ts` pins its names and hash, and the milestone changes neither.
@@ -138,15 +135,29 @@ read the addresses here. A per-module address is the case of one module, so it b
 
 ### Instructions (M1)
 
-Strategy Dance's agent reads no server instructions: only an external agent's client does. The one
-address's are, in order:
+Strategy Dance's agent reads no server instructions: only an external agent's client does. A server
+given several modules says, in order:
 1. what Strategy Dance is, once;
 2. each listed module's own paragraphs, in `MODULES`' order, worded as one server's: "the Documents
    module's read_document" becomes `read_document`, and a module that is not listed is never named;
 3. the idempotency key, once;
 4. the organizations the connection reaches, once, as `toModuleInstructions` writes them.
 
-A per-module address says what it says today.
+A server given one module says what it says today.
+
+### Addresses (M2)
+
+Core gains `MODULE_ADDRESSES` beside `MODULES`, what the public backend serves, each `{ name, path,
+title, modules }`:
+- the one address first, `{ name: 'strategydance', path: '/mcp', title: 'Strategy Dance', modules:
+  SERVED_MODULE_NAMES }`;
+- then each served module's own, with its name, path and title, and itself alone as `modules`.
+
+An address's scopes are its modules' read and write scopes, and `ModuleAddressName` names one. The
+routes, the protected resource metadata, every reader of `parseModuleResource`, the consent page,
+the sweep and Connected agents read the addresses here, all in the milestone that serves the one
+address, so nothing answers at `/mcp` before its scopes, its refresh and its sweep are in place. A
+per-module address is the case of one module, so it behaves as today.
 
 ### The OAuth resource (M2)
 
@@ -278,8 +289,8 @@ times.
 
 | # | Milestone | Packages | Depends on | Implementation PR |
 | --- | --- | --- | --- | --- |
-| M1 | One server, any modules | core, backend | | |
-| M2 | One OAuth resource at `/mcp` | database, backend, web | M1 | |
+| M1 | One server, any modules | backend | | |
+| M2 | One OAuth resource at `/mcp` | core, database, backend, web | M1 | |
 | M3 | Connected agents and the module pages | database, backend, web, root | M2 | |
 
 ### Conventions for every milestone
@@ -302,17 +313,20 @@ times.
 
 ### M1: One server, any modules
 
-Addresses, One server, any modules, and Instructions above. Nothing an external agent reaches
-changes: each per-module address serves its module through the server built with that module alone.
+One server, any modules, and Instructions above. Nothing an external agent reaches changes: each
+per-module endpoint serves its module through the server given that module alone, and nothing
+answers at `/mcp`.
 
 **Tests:**
 - `createModulesServer`:
-  - Strategy Dance's agent's access lists every module's tools, in `MODULES`' order;
-  - an external access to the one address lists the modules it holds the read scope of, and none
+  - Strategy Dance's agent's access, given `CONVERSATION_MODULES`, lists every module's tools, in
+    `MODULES`' order;
+  - an external access given the served modules lists those it holds the read scope of, and none
     other;
-  - an external access to a per-module address lists that module alone, with the instructions it
-    has today.
-- The one address's instructions name each module listed and none other, and the organizations once.
+  - given one module, it lists that module alone, with the name, title and instructions it has
+    today.
+- A server given several modules names in its instructions each module listed and none other, and
+  the organizations once.
 - `connectConversationModules` connects one client, its runners reaching every module.
 
 **To verify, once implemented:**
@@ -320,12 +334,13 @@ changes: each per-module address serves its module through the server built with
 - `bun run probe:claude`.
 - Over stdio, from Claude Code (`claude -p` with a scratch `--mcp-config` running `bun run mcp
   <email>` against the emulators), one session that reads a document and moves a task.
+- `bun scripts/serveModule.ts knowledge <email>` still lists Knowledge's tools.
 - The four checks.
 
 ### M2: One OAuth resource at `/mcp`
 
-The OAuth resource above: the endpoint, its metadata, resource and scope parsing, the challenge, the
-consent page, Allow, the idempotency scope and the sweep.
+Addresses and The OAuth resource above: the addresses, the endpoint, its metadata, resource and
+scope parsing, the challenge, the consent page, Allow, the idempotency scope and the sweep.
 
 **Tests:**
 - `parseModuleScopes` for the one address: two modules read, one read and write, write without read

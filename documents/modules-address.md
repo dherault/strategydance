@@ -203,7 +203,9 @@ per-module address is the case of one module, so it behaves as today.
   `ScopeChallengeHandler` of its own.
   - A challenge reads only the call's `authInfo`, whose scopes are the token's, which a refresh may
     have narrowed below its connection's. So the verifier carries the connection's scopes in the
-    access too, `connectionScopes` beside `scopes`, and the challenge names those.
+    access too, `connectionScopes` beside `scopes`, and the challenge names those. `ModuleAccess`'s
+    external kind and `readModuleAccess`'s schema gain the field: that schema is strict, refusing a
+    field it does not know, so the verifier writing it alone would fail every external call.
 - **The consent page** lists each module the request asks for, and each the connection it replaces
   holds, with its access: not allowed, read, or read and write when write was asked for or is held.
   - It is worded by the module from the `module` catalogue, as `OAuthConsentAccess` words one now.
@@ -230,6 +232,13 @@ per-module address is the case of one module, so it behaves as today.
     those only the connection held, and the mutation checks the first against the request and the
     second against the connection, before it deletes the connection. `GetAgentConnectionForConsent`
     answers the connection's scopes, for the page and for that split.
+  - The check against the connection reads it in a step that reads the member lock's `response`, as
+    the database's `CLAUDE.md` asks of a step after a lock, so it sees a narrowing that committed
+    while Allow waited on the lock, never the statement's older snapshot.
+  - The request's check stays on `$scopes`, required as it is, so the backend before M2, which sends
+    nothing else, is refused a scope its request did not ask for as today. The held scopes join as
+    an optional variable, and leaving it out grants nothing beyond `$scopes`: never an optional list
+    in a filter, which the database's `CLAUDE.md` says is dropped when left out, matching every row.
   - The approve route's body takes up to two scopes for each served module, where it takes two.
 - **Through the release.** A release deploys Data Connect, then the backend, then the web, so for a
   few minutes each serves the one before it:
@@ -294,8 +303,9 @@ may ship alone, so the app reads such a connection from M2:
   - It never widens them, since only a consent grants, through the agent's own request: a member who
     wants more consents again through the agent.
   - At least one module stays read, and no write stays without its read.
-  - It locks the member's row first, as `UpdateAgentConnectionOrganizations` does, so it runs before
-    or after an Allow, never across one.
+  - It locks the member's row first, as `UpdateAgentConnectionOrganizations` does, and reads the
+    connection in a step that reads the lock's `response`, so it runs before or after an Allow,
+    never across one.
   - Unlike that mutation, it leaves `grantedAt` as it is. Narrowing grants nothing, and a newer
     `grantedAt` would bring back an organization the member left and rejoined since, which
     `readAgentConnectionReach` leaves out.
@@ -303,6 +313,10 @@ may ship alone, so the app reads such a connection from M2:
   token's scopes within its connection's, and its answer names those, so a client is never told of
   a write the member took away. `refreshAgentConnectionTokens` copies the refresh token's own scopes
   today, and reads the connection's already.
+  - A duplicate, a refresh token presented again within 30 seconds, is answered with the pair its
+    rotation issued, which may predate the narrowing. `answerDuplicate` compares and names that
+    pair's scopes within the connection's too, so it neither announces a removed write nor refuses a
+    client for one: the verifier narrows the pair's access token at every call already.
 - **"Use with your agents"**, on Documents, Tasks and Budget, gives the one address, with the same
   instructions for each client, and says that one connection reaches every module the member
   allows.
@@ -432,7 +446,10 @@ rows and Delegate that read a connection there.
   keeping its choices as defaults, a request for one module listing the others it holds, and
   Budget starting at read when its write is asked for but was not held, or held but not asked for.
 - Allow: consenting again replaces the connection with its tokens, leaving an earlier code and an
-  earlier refresh token opening nothing; a scope neither asked for nor held refused.
+  earlier refresh token opening nothing; a scope neither asked for nor held refused; and a call
+  without the new variables, as the backend before M2 sends it, refused a scope its request did not
+  ask for.
+- An external access carrying `connectionScopes` read back by `readModuleAccess`.
 - The idempotency scope at the one address: `external:` and the hash, the same before and after a
   consent of one client, different for another client or another member, and a write retried under
   its key after a consent that kept its write answered from its stored result. At a per-module
@@ -456,7 +473,8 @@ Access and the module pages above, and the documents that follow.
 **Tests:**
 - `UpdateAgentConnectionScopes` narrowing a module, refusing a widening, refusing to leave no module
   read or a write without its read, and leaving `grantedAt` as it was.
-- A refresh after a narrowing issuing and naming the narrowed scopes alone.
+- A refresh after a narrowing issuing and naming the narrowed scopes alone, and a duplicate of a
+  rotation from before the narrowing answered with the narrowed scopes named.
 - A per-module row marked as older.
 - The agents dialog giving `/mcp` on each module's page.
 

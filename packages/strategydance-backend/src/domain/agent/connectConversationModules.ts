@@ -59,7 +59,7 @@ async function connectConversationModules(
     const connected = []
 
     for (const name of CONVERSATION_MODULES) {
-      const handler = createModuleHandler(name)
+      const handler = createModuleHandler([name])
       const path = MODULES.find(module => module.name === name)?.path ?? `/mcp/${name}`
       const client = new Client(
         { name: 'strategydance-agent', version: '1.0.0' },

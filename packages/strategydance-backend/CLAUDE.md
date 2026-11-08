@@ -176,8 +176,11 @@ before a release that changes them.
 A module is a capability served as an MCP server, to Strategy Dance's agent in process and to
 members' own agents at `/mcp/<name>` (conversations.md § Modules).
 
-- Its server lives in `src/modules/<name>/`, built by `create<Name>Server(access)`, one file per
-  tool calling `domain/<name>/`. `MODULES` in core lists it, and the web's `module` catalogue words it
+- It lives in `src/modules/<name>/`, one file per tool calling `domain/<name>/`.
+  `register<Name>Module(server, access)` registers its tools on the server `createModulesServer(access,
+  modules)` builds of the modules its caller names, and `<name>Instructions.ts` holds what it says of
+  itself, naming only the modules listed beside it. `MODULES` in core lists it, and the web's `module`
+  catalogue words it
 - A tool's name is snake_case, unique across the modules and the agent's own tools, and a module's
   registration order is frozen. A tool takes a zod input and an `outputSchema`, answers through
   `toToolResult`, refuses through `toToolRefusal`, never a protocol error, and carries

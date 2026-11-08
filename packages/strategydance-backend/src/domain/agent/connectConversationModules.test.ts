@@ -17,8 +17,8 @@ const requests: { method: string; meta: Record<string, unknown> | undefined }[] 
 const { default: createModuleHandler } = await import('~modules/createModuleHandler')
 
 mock.module('~modules/createModuleHandler', () => ({
-  default: (name: Parameters<typeof createModuleHandler>[0]) => {
-    const handler = createModuleHandler(name)
+  default: (modules: Parameters<typeof createModuleHandler>[0]) => {
+    const handler = createModuleHandler(modules)
 
     return {
       fetch: async (request: Request, options: Parameters<typeof handler.fetch>[1]) => {

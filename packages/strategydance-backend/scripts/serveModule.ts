@@ -13,7 +13,7 @@ import type { ModuleAccess } from '~types'
 
 import { authentication, dataConnect } from '~firebase'
 
-import MODULE_SERVERS from '~modules/moduleServers'
+import createModulesServer from '~modules/createModulesServer'
 
 /*
   Serves a module over stdio, as one account of the emulators, so an MCP client on this machine,
@@ -147,7 +147,7 @@ const access: ModuleAccess = {
   })),
 }
 
-serveStdio(() => MODULE_SERVERS[served.name](access), {
+serveStdio(() => createModulesServer(access, [served.name]), {
   onerror: error => console.error(`${served.title} failed`, error),
 })
 

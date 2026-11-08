@@ -50,7 +50,7 @@ function createModulesRouter() {
   for (const module of SERVED_MODULES) {
     const path = module.path.slice(MODULES_PATH.length)
     const resource = new URL(module.path, OAUTH_ISSUER)
-    const nodeHandler = toNodeHandler(createModuleHandler(module.name), {
+    const nodeHandler = toNodeHandler(createModuleHandler([module.name]), {
       maxRequestBodySize: MAX_MODULE_REQUEST_BYTES,
       onerror: error => logger.error(`POST ${module.path} failed`, error),
     })

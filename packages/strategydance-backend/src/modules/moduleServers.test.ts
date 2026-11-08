@@ -2,12 +2,13 @@ import { describe, expect, it, mock } from 'bun:test'
 import { createHash } from 'node:crypto'
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
-import { MODULES, SERVED_MODULES } from 'strategydance-core'
+import { MODULES, SERVED_MODULES, type ModuleName } from 'strategydance-core'
 
 import type { ModuleAccess } from '~types'
 
 import { MODULE_PROTOCOL_VERSION } from '~constants'
 
+import CONVERSATION_MODULES from '~domain/agent/conversationModules'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
 const fake = createModuleDatabaseFake()
@@ -15,7 +16,7 @@ const fake = createModuleDatabaseFake()
 mock.module('~firebase', () => ({ dataConnect: {} }))
 mock.module('strategydance-database/backend', () => fake.sdk)
 
-const { default: MODULE_SERVERS } = await import('./moduleServers')
+const { default: MODULE_REGISTRATIONS } = await import('./moduleRegistrations')
 const { default: createModuleHandler } = await import('./createModuleHandler')
 const { default: toModuleAuthInfo } = await import('./toModuleAuthInfo')
 
@@ -56,9 +57,9 @@ const EXTERNAL: Extract<ModuleAccess, { kind: 'external' }> = {
   ],
 }
 
-// A client connected to a module's handler, as the given access
-async function connect(name: (typeof MODULES)[number]['name'], access: ModuleAccess) {
-  const handler = createModuleHandler(name)
+// A client connected to the handler of the modules given, as the given access
+async function connect(modules: readonly ModuleName[], access: ModuleAccess) {
+  const handler = createModuleHandler(modules)
   const authInfo = toModuleAuthInfo(access)
   const client = new Client(
     { name: 'strategydance-tests', version: '1.0.0' },
@@ -74,9 +75,9 @@ async function connect(name: (typeof MODULES)[number]['name'], access: ModuleAcc
   return client
 }
 
-// Every tool a module lists, as a client connected to its handler reads them
-async function listToolNames(name: (typeof MODULES)[number]['name']) {
-  const client = await connect(name, AGENT)
+// Every tool a server of the modules given lists to Strategy Dance's agent, as a client reads them
+async function listToolNames(modules: readonly ModuleName[]) {
+  const client = await connect(modules, AGENT)
   const { tools } = await client.listTools()
 
   await client.close()
@@ -85,8 +86,8 @@ async function listToolNames(name: (typeof MODULES)[number]['name']) {
 }
 
 // What a module's server says of itself, its name, title and instructions, as a client reads them
-async function readServer(name: (typeof MODULES)[number]['name'], access: ModuleAccess) {
-  const client = await connect(name, access)
+async function readServer(name: ModuleName, access: ModuleAccess) {
+  const client = await connect([name], access)
 
   await client.listTools()
 
@@ -98,10 +99,10 @@ async function readServer(name: (typeof MODULES)[number]['name'], access: Module
   return read
 }
 
-describe('MODULE_SERVERS', () => {
+describe('the modules’ servers', () => {
   it('serves every module `MODULES` lists, at the path and with the scopes its name gives', () => {
     for (const module of MODULES) {
-      expect(MODULE_SERVERS[module.name]).toBeFunction()
+      expect(MODULE_REGISTRATIONS[module.name]).toBeFunction()
       expect(module.path).toBe(`/mcp/${module.name}`)
       expect(module.scopes.read).toBe(`${module.name}:read`)
       expect(module.scopes.write).toBe(`${module.name}:write`)
@@ -109,7 +110,7 @@ describe('MODULE_SERVERS', () => {
   })
 
   it('names every tool as Claude takes a tool name, and no two alike across the modules', async () => {
-    const names = (await Promise.all(MODULES.map(module => listToolNames(module.name)))).flat()
+    const names = (await Promise.all(MODULES.map(module => listToolNames([module.name])))).flat()
 
     expect(names.length).toBeGreaterThan(0)
     expect(new Set(names).size).toBe(names.length)
@@ -117,8 +118,14 @@ describe('MODULE_SERVERS', () => {
     for (const name of names) expect(name).toMatch(CLAUDE_TOOL_NAME)
   })
 
+  it('lists every tool of the modules Strategy Dance’s agent uses on one server, module by module, as each module’s own server lists them', async () => {
+    const own = await Promise.all(CONVERSATION_MODULES.map(name => listToolNames([name])))
+
+    expect(await listToolNames(CONVERSATION_MODULES)).toEqual(own.flat())
+  })
+
   it('lists the eight tools of the Documents module, reads first', async () => {
-    expect(await listToolNames('documents')).toEqual([
+    expect(await listToolNames(['documents'])).toEqual([
       'search_documents',
       'list_documents',
       'read_document',
@@ -131,7 +138,7 @@ describe('MODULE_SERVERS', () => {
   })
 
   it('lists the eight tools of the Tasks module, reads first', async () => {
-    expect(await listToolNames('tasks')).toEqual([
+    expect(await listToolNames(['tasks'])).toEqual([
       'list_tasks',
       'read_task',
       'create_task',
@@ -144,7 +151,7 @@ describe('MODULE_SERVERS', () => {
   })
 
   it('lists the seven tools of the Budget module, reads first', async () => {
-    expect(await listToolNames('budget')).toEqual([
+    expect(await listToolNames(['budget'])).toEqual([
       'read_budget',
       'list_bills',
       'read_bill',
@@ -156,7 +163,7 @@ describe('MODULE_SERVERS', () => {
   })
 
   it('lists the five tools of the Knowledge module, reads first', async () => {
-    expect(await listToolNames('knowledge')).toEqual([
+    expect(await listToolNames(['knowledge'])).toEqual([
       'list_knowledge',
       'read_knowledge',
       'set_knowledge_in_use',

@@ -1,4 +1,4 @@
-import { SERVED_MODULE_NAMES, type ModuleName } from 'strategydance-core'
+import { MODULES, SERVED_MODULE_NAMES, type ModuleName } from 'strategydance-core'
 
 import type { ModuleAccess } from '~types'
 
@@ -23,7 +23,8 @@ const IDEMPOTENCY = `Every write tool takes an idempotency key in the call's _me
 
   A server of one module, given by its name, says it of "This server", as a module's server always
   has. A server given a list, the modules it lists, says what Strategy Dance is once, then each
-  module in that order, each naming only modules listed, then the key and the organizations once.
+  module in `MODULES`' order, each naming only modules listed, then the key and the organizations
+  once.
 
   The key and the organizations are said where a served module is listed, whose tools take both.
   Knowledge and Subagents serve Strategy Dance's agent alone, which acts in its run's organization
@@ -46,8 +47,10 @@ function toAlone(name: ModuleName) {
   return [`${INTRODUCTION} This server ${holds} ${actsAs}`, ...paragraphs(null)]
 }
 
-// What a server of several modules says of the ones it lists
-function toSeveral(listed: readonly ModuleName[]) {
+// What a server of several modules says of the ones it lists, in `MODULES`' order, as it lists their
+// tools, whatever the order given
+function toSeveral(given: readonly ModuleName[]) {
+  const listed = MODULES.filter(({ name }) => given.includes(name)).map(({ name }) => name)
   const labels = listed.map(name => MODULE_INSTRUCTIONS[name].label)
   const last = labels.pop()
 

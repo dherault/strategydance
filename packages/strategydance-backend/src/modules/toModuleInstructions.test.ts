@@ -68,6 +68,12 @@ describe('toModuleInstructions', () => {
     expect(instructions).toEndWith('ask them rather than choose.')
   })
 
+  it('lists the modules in `MODULES`’ order, as the server lists their tools, whatever the order given', () => {
+    expect(toModuleInstructions(['budget', 'tasks', 'documents'], EXTERNAL)).toBe(
+      toModuleInstructions(['documents', 'tasks', 'budget'], EXTERNAL),
+    )
+  })
+
   it('names each tool a mention opens as this server’s, beside the modules listed', () => {
     const instructions = toModuleInstructions(['documents', 'tasks'], EXTERNAL)
 

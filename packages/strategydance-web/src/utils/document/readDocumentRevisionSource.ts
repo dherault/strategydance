@@ -1,7 +1,8 @@
 /*
   Where a revision of a document came from, read off the scope its write was kept under: an edit
   Strategy Dance's agent made in a conversation, a subagent's included, whose id the scope names,
-  one an external agent a member connected made, or a member's own restore, which keeps none
+  one an external agent a member connected made, under `external:` at the one address or
+  `connection:` at the Documents module's own, or a member's own restore, which keeps none
 */
 export type DocumentRevisionSource =
   | { kind: 'conversation'; conversationId: string }

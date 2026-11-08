@@ -2061,7 +2061,9 @@ mutation UpdateAgentConnectionOrganizations($userId: String!, $id: UUID!, $organ
 # connection's scopes, and from its next refresh, which issues none beyond them. It never widens,
 # every scope named being one the connection holds, since only a consent grants, through the agent's
 # own request. At least one module stays read, no write stays without its read, and each scope is
-# named once, so what is left keeps the rule a consent holds to.
+# named once, so what is left keeps the rule a consent holds to. Each module's write is checked
+# against its read by name, `MODULES`' names in strategydance-core, which `schema.test.ts` holds this
+# list to, since CEL as Data Connect documents it has no way to take a scope's module from it.
 #
 # It locks the caller's own row first, as an edit of the organizations does, and reads the
 # connection in a step reading the lock's response, so it runs before or after an Allow, never across
@@ -2083,7 +2085,7 @@ mutation UpdateAgentConnectionScopes($userId: String!, $id: UUID!, $scopes: [Str
       message: "An agent keeps at least one module's read"
     )
     @check(
-      expr: "vars.scopes.all(scope, !scope.endsWith(':write') || scope.replace(':write', ':read') in vars.scopes)"
+      expr: "['documents', 'tasks', 'budget', 'subagents', 'knowledge'].all(module, !((module + ':write') in vars.scopes) || (module + ':read') in vars.scopes)"
       message: "An agent never writes in a module it cannot read"
     )
     @check(

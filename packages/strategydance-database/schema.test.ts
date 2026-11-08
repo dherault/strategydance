@@ -20,6 +20,7 @@ import {
   MAX_DAILY_RECEIPT_READS_PER_MEMBER,
   MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION,
   MAX_MONEY_MINOR,
+  MODULES,
   ORGANIZATION_SLUG_BASE_MAX_LENGTH,
   ORGANIZATION_SLUG_PATTERN,
   ORGANIZATION_SLUG_SUFFIX_LENGTH,
@@ -271,7 +272,10 @@ describe('the agent connections', () => {
     expect(update.indexOf('user_update(')).toBeLessThan(update.indexOf('agentConnections('))
     expect(update).toContain('userId: { eq_expr: "response.user_update.id" }')
     expect(update).toContain('vars.scopes.all(scope, scope in this[0].scopes)')
-    expect(update).toContain("scope.replace(':write', ':read') in vars.scopes")
+    // Each module's write checked against its read, for every module strategydance-core lists
+    const checked = /\[([^\]]*)\]\.all\(module, !\(\(module \+ ':write'\) in vars\.scopes\)/.exec(update)?.[1]
+
+    expect(checked?.split(', ').map(name => name.slice(1, -1))).toEqual(MODULES.map(({ name }) => name))
     expect(update).toContain("vars.scopes.exists(scope, scope.endsWith(':read'))")
     expect(update).not.toContain('grantedAt')
     expect(readOperation(webQueries, 'GetAgentConnections')).toContain('operation: "UpdateAgentConnectionScopes"')

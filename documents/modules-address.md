@@ -341,19 +341,24 @@ may ship alone, so the app reads such a connection from M2:
 - **A per-module row** is marked as an older address, for its module alone, with a link that opens
   the steps to connect at the one address: the agents dialog, without its closing link back to
   Connected agents.
-- **Access** is a button beside Organizations on a row of the one address. It opens a dialog that
-  narrows what the connection may do in each module, through `UpdateAgentConnectionScopes`, from its
-  next call, since the verifier reads the connection's scopes.
+- **Access** is a button beside Organizations on a row of the one address, while the connection
+  holds something to narrow, more than one module or a write. It opens a dialog that narrows what
+  the connection may do in each module, through `UpdateAgentConnectionScopes`, from its next call,
+  since the verifier reads the connection's scopes.
   - It never widens them, since only a consent grants, through the agent's own request: a member who
     wants more consents again through the agent. So the dialog lists only the modules the
     connection holds, each through the consent page's chooser, `OAuthConsentAccess`, offering read
     and write only where it is held, and not allowed beside another module.
   - At least one module stays read, and no write stays without its read. Save stays off until
-    something changes, and while no module is allowed, as Allow does on the consent page.
+    something changes, and while no module is allowed, as Allow does on the consent page. The
+    member's choices are kept apart from what the connection holds, each capped at it, so a
+    narrowing saved meanwhile in another tab, which the live list brings in, lowers a choice rather
+    than leave one the mutation would refuse.
   - The mutation checks the rule on its variables before anything else: a read among them
-    (`endsWith(':read')`), each write's read (`replace(':write', ':read')`, from cel-go's strings
-    extension, which the emulator evaluates and no other operation uses yet), and each scope once.
-    Then every scope named is one the connection holds, read after the lock.
+    (`endsWith(':read')`), each write's read, module by module over `MODULES`' names, which
+    `schema.test.ts` holds the list to, since CEL as Data Connect documents it cannot take a
+    scope's module from it, and each scope once. Then every scope named is one the connection
+    holds, read after the lock.
   - It locks the member's row first, as `UpdateAgentConnectionOrganizations` does, and reads the
     connection in a step that reads the lock's `response`, so it runs before or after an Allow,
     never across one.
@@ -363,8 +368,11 @@ may ship alone, so the app reads such a connection from M2:
 - **A refresh follows a narrowing.** The access and refresh tokens a refresh issues hold the refresh
   token's scopes within its connection's, and its answer names those, so a client is never told of
   a write the member took away. `refreshAgentConnectionTokens` filters the refresh token's scopes by
-  the connection's, which `GetAgentConnectionRefreshToken` read already, so a refresh asking for a
-  scope taken away is refused `invalid_scope`, as for any scope never granted (RFC 6749, 6).
+  the connection's, which `GetAgentConnectionRefreshToken` read already.
+  - A refresh still naming a scope taken away, as a client repeating the scope it first asked for
+    does, gets what is left, which its answer names (RFC 6749, 5.1): a refusal would send the member
+    through a consent again. One naming only what was taken away, or a scope its token was never
+    granted, is refused `invalid_scope`.
   - A duplicate, a refresh token presented again within 30 seconds, is answered with the pair its
     rotation issued, which may predate the narrowing. `answerDuplicate` compares and names that
     pair's scopes within the connection's too, so it neither announces a removed write nor refuses a
@@ -372,6 +380,10 @@ may ship alone, so the app reads such a connection from M2:
     narrowing left reading no module, which would open nothing, is refused `invalid_grant`.
   - A narrowing committing between a refresh's read and its rotation shows from the next call, the
     verifier narrowing the access token then, and from the next refresh.
+  - An access token a narrowing left reading no module its connection holds, as one a refresh
+    narrowed to Tasks is once the member keeps Documents alone, is refused by the verifier as
+    `invalid_token`, so its client refreshes into what is left rather than consent again, as a
+    challenge would have it.
 - **"Use with your agents"**, on Documents, Tasks and Budget, gives the one address, with the same
   instructions for each client, and says that one connection reaches every module the member
   allows. `readAgentsSetup` writes the address, the Claude Code line and Cursor's configuration,

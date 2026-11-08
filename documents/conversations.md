@@ -1985,8 +1985,8 @@ address from modules-address.md's M2:
     scopes than its token holds, never others (RFC 6749, 6): its access token holds those alone, and
     its refresh token keeps its own, so each token carries its scopes and the verifier reads the
     access token's (M18). Both keep within what the connection holds now, which Access may have
-    narrowed since, so a refresh never names a scope the member took away, and one asking for it
-    again is refused (modules-address.md's M3). Presented again within 30 seconds of its rotation,
+    narrowed since, so a refresh never names a scope the member took away, and one still naming it
+    gets what is left (modules-address.md's M3). Presented again within 30 seconds of its rotation,
     as by a client whose answer was lost or by two refreshes at once, it is answered with the very
     same pair, recomputed, naming its scopes within the connection's, so whichever answer arrives
     last, the client holds tokens that work, and nothing but hashes is ever stored. Presented after
@@ -2024,10 +2024,11 @@ address from modules-address.md's M2:
   acting as them there only once they tick it again. Every write of the list, Allow and the tab's
   edit, locks and counts each membership it names. Access narrows the scopes under the same lock on
   the member's row, and leaves `grantedAt`, which would otherwise bring back an organization the
-  member left and rejoined. A connection reaching none is refused as an
-  `invalid_token` and its refresh as an `invalid_grant`, and stays listed for the member to change or
-  disconnect. The verifier reads the connection with the member's memberships on every request, and
-  checked the staff gate until M38 removed it.
+  member left and rejoined. A connection reaching none is refused as an `invalid_token` and its
+  refresh as an `invalid_grant`, and stays listed for the member to change or disconnect. An access
+  token Access left reading no module its connection holds is refused as an `invalid_token` too, so
+  its client refreshes into what is left. The verifier reads the connection with the member's
+  memberships on every request, and checked the staff gate until M38 removed it.
 - **Connected agents**, a tab of the account page, lists the member's connections, live, refreshed
   by connecting, disconnecting, changing a connection's organizations or access and
   `RemoveOrganizationMember` for the member they concern, and by `DeleteOrganization` for every
@@ -2036,15 +2037,16 @@ address from modules-address.md's M2:
   or that it reaches none any more, its address and access, the one address as Strategy Dance with
   each module's access and a module's own address by the module, marked as older with a link to
   the steps for the one address (modules-address.md's M3), when it connected and when it was last
-  used, at the one address Access, whose dialog narrows what it may do in each module, never
-  widening, at least one module allowed (`UpdateAgentConnectionScopes`, from its next call and its
-  next refresh), Organizations, whose dialog ticks what it reaches and saves another list without
-  the agent (`UpdateAgentConnectionOrganizations`, from its next call), and Disconnect, which
-  deletes it with its tokens. A connection at an address no endpoint serves any more, renamed or
-  retired, goes with its tokens in the daily sweep (`pruneUnservedAgentConnections`, given the
-  served addresses' names, the one address's `strategydance` among them) once neither made nor used
-  for a week, so a worker left on an older release, which the deploy updates after the backend,
-  never takes a newer address's; its agent connects again where it is served now.
+  used, at the one address, while it holds more than one module or a write, Access, whose dialog
+  narrows what it may do in each module, never widening, at least one module allowed
+  (`UpdateAgentConnectionScopes`, from its next call and its next refresh), Organizations, whose
+  dialog ticks what it reaches and saves another list without the agent
+  (`UpdateAgentConnectionOrganizations`, from its next call), and Disconnect, which deletes it with
+  its tokens. A connection at an address no endpoint serves any more, renamed or retired, goes with
+  its tokens in the daily sweep (`pruneUnservedAgentConnections`, given the served addresses' names,
+  the one address's `strategydance` among them) once neither made nor used for a week, so a worker
+  left on an older release, which the deploy updates after the backend, never takes a newer
+  address's; its agent connects again where it is served now.
 - **Use with your agents**, an icon button after the Documents, Tasks and Budget pages' own action,
   its tooltip saying what an agent may do there, opens a dialog with the one address,
   `https://api.strategydance.com/mcp`, a copy button, and how to add it to claude.ai (Settings,

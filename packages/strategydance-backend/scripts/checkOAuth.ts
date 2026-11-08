@@ -797,9 +797,10 @@ async function checkOneAddress() {
   )
 
   // A refresh narrowing to one module, its duplicate, and the revocation
-  const refresh = (refreshToken: string, scope?: string) => refreshAtOneAddress(agent, refreshToken, scope)
-  const narrowed = (await (await refresh(again.tokens.refresh_token, 'tasks:read')).json()) as Tokens
-  const duplicate = (await (await refresh(again.tokens.refresh_token, 'tasks:read')).json()) as Tokens
+  const narrowed = (await (await refreshAtOneAddress(agent, again.tokens.refresh_token, 'tasks:read')).json()) as Tokens
+  const duplicate = (await (
+    await refreshAtOneAddress(agent, again.tokens.refresh_token, 'tasks:read')
+  ).json()) as Tokens
   const narrowedClient = await openModule(endpoint, narrowed.access_token)
   const narrowedNames = (await narrowedClient.listTools()).tools.map(({ name }) => name)
 
@@ -829,7 +830,7 @@ async function checkOneAddress() {
   check(
     "revoking the one address's refresh token ends the connection",
     revocation.status === 200
-      && (await refresh(narrowed.refresh_token)).status === 400
+      && (await refreshAtOneAddress(agent, narrowed.refresh_token)).status === 400
       && (await postModule(endpoint, narrowed.access_token, { method: 'tools/list' })).status === 401,
   )
 }

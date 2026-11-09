@@ -838,10 +838,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.aigc.cn/",
     "submissionUrl": "https://www.aigc.cn/submit",
-    "description": "",
-    "categories": [],
+    "description": "Chinese directory of generative AI tools sorted by category, such as writing, image, video and office; developers submit their tools by email for review.",
+    "categories": [
+      "AI_TOOLS",
+      "REGIONAL"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null
   },
   {
@@ -961,10 +964,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aitools.fyi/",
     "submissionUrl": "https://aitools.fyi/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, task and pricing, where makers submit their own AI products for listing.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null
   },
   {
@@ -1223,10 +1228,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://apps400.com/",
     "submissionUrl": "https://apps400.com/submit-your-application-for-review",
-    "description": "",
-    "categories": [],
+    "description": "App review blog covering iOS, Android and web apps and SaaS tools, where developers order reviews of their own apps.",
+    "categories": [
+      "SAAS",
+      "MOBILE_APPS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null
   },
   {
@@ -2086,10 +2094,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://dofollow.tools/",
     "submissionUrl": "https://dofollow.tools/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools, SaaS products and apps sorted by category, where makers submit their own tools for a listing with a backlink.",
+    "categories": [
+      "AI_TOOLS",
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null
   },
   {
@@ -2471,10 +2482,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://firstlook.tools/",
     "submissionUrl": "https://firstlook.tools/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools and SaaS products, sorted by category, where makers submit their own tools.",
+    "categories": [
+      "AI_TOOLS",
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null
   },
   {
@@ -3127,10 +3141,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.insidr.ai/",
     "submissionUrl": "https://www.insidr.ai/submit-tools/",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category, such as image, video, text and productivity tools, where makers can suggest their tools for editorial review.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null
   },
   {
@@ -3253,10 +3269,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.landingfolio.com/",
     "submissionUrl": "https://www.landingfolio.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Gallery of landing page designs and UI components from real websites, organized by industry and color, where members can submit landing pages for curator review.",
+    "categories": [
+      "DESIGN"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null
   },
   {
@@ -3614,10 +3632,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://magicbox.tools/",
     "submissionUrl": "https://magicbox.tools/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools sorted by category and tag, where makers submit their own AI products for a listing page.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null
   },
   {
@@ -6516,10 +6536,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://unloc.tools/",
     "submissionUrl": "https://unloc.tools/submit",
-    "description": "",
-    "categories": [],
+    "description": "Directory of software tools for builders, organized into categories such as AI, dev tools, marketing, productivity and finance, where makers submit their own tools.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null
   },
   {
@@ -6888,10 +6910,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://yourstory.com/",
     "submissionUrl": "https://yourstory.com/companies",
-    "description": "",
-    "categories": [],
+    "description": "Directory of Indian startups and companies, where founders list their company profile by sector on the YourStory startup media site.",
+    "categories": [
+      "ANY_STARTUP",
+      "REGIONAL"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null
   },
   {

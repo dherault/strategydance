@@ -157,27 +157,22 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 # backend's, which sweeps them before running this, so a failed sweep leaves the organization to
 # delete again, and once more after, for an upload that raced it (`deleteOrganization`).
 #
-# The lock is the caller's own membership rather than the organization's row, as elsewhere an
-# administrator acts: Data Connect runs one write per row in a mutation, so a delete after an
-# `organization_update` would find nothing. Demoting or removing the caller writes their
-# membership too: one that has written it commits before the check below reads the member it
-# left, since the check reads the lock's response and so runs as a statement of its own once the
-# lock is held (CLAUDE.md § The database), and one that comes after this delete finds nothing. Those take the organization's row
-# first, though, the opposite order, so the two landing in the same instant deadlock, and
-# Postgres fails one of the two requests, leaving the other's outcome whole. A consistent order
-# would take a second write to one row, which Data Connect skips. The membership goes with the
-# organization anyway, so touching it costs nothing.
+# The lock is the organization's row, which every change to who administers it takes first, so a
+# demotion or a removal of the caller in the same instant runs wholly before this or after it: one
+# before is read by the check, which reads the lock's response and so runs as a statement of its own
+# once the lock is held, and one after finds no organization. Each step being a statement of its
+# own, the delete writes the row the lock wrote, which one statement would skip (CLAUDE.md § The
+# database).
 #
 # `$organizationId` is also what every live query scoped to an organization refreshes on, the
 # team, the log, the documents and conversations among them, so a member watching any of them sees
 # it go
 mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) @transaction {
-  userOrganization_update(
-    key: { userId: $userId, organizationId: $organizationId }
-    data: { updatedAt_expr: "request.time" }
-  ) @redact @check(expr: "this != null", message: "Only a member of an organization can delete it")
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can delete it")
   query @redact {
-    userOrganization(key: { userId_expr: "response.userOrganization_update.userId", organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can delete it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can delete an organization")
     }

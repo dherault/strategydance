@@ -12,7 +12,8 @@ import OrganizationDocumentsWait from '~components/document/OrganizationDocument
 import IntlMessagesRegistration from '~components/intl/IntlMessagesRegistration'
 
 // At module scope so the reference is stable across renders
-const ASPECT_MESSAGE_TYPES: MessageType[] = ['aspect', 'document']
+// The directories' for the Marketing aspect's section, which every aspect registers, as its documents'
+const ASPECT_MESSAGE_TYPES: MessageType[] = ['aspect', 'document', 'directory']
 
 /*
   One page per aspect of the company, explored or not, at its lowercase name under `aspects/`.

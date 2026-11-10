@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { BillRecurrence, BudgetBill, BudgetLimit, Currency, Locale } from 'strategydance-core'
+import type { BillRecurrence, BudgetBill, BudgetLimit, Currency, DirectoryStatus, Locale } from 'strategydance-core'
 import type {
   CompanyAspect,
   GetAgentConnectionsData,
@@ -237,6 +237,21 @@ declare module '@tanstack/history' {
 // Whose tasks the board shows: everybody's, the reader's, Strategy Dance's, or a member's by uid
 // behind a prefix, as `toTaskAssigneeValue` writes it, so no uid reads as one of the others
 export type TaskAssigneeFilter = 'all' | 'me' | 'agent' | `member:${string}`
+
+// Where the organization stands with a directory as the page names it: one of its statuses, or none
+// yet, to do
+export type DirectoryStatusChoice = DirectoryStatus | 'TO_DO'
+
+// What the organization keeps of one directory: its status and since when, null for one to do, and
+// the plain text of its notes, null for one never noted
+export type DirectoryState = {
+  status: DirectoryStatus | null
+  changedAt: string | null
+  notesText: string | null
+}
+
+// The Directories page's tabs, each a status or every directory, kept in the address as `view`
+export type DirectoriesView = 'todo' | 'submitted' | 'listed' | 'dismissed' | 'all'
 
 // Somebody's checklist as the Today page opens it: who they are, their columns with the last week
 // of ticks, and how far back their ticks go

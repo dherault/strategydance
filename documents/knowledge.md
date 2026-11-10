@@ -210,9 +210,13 @@ Its tools, in their frozen order:
     status }`, a member `{ member: "member:<id>", name }`.
 
   A directory also has `notes`, Markdown, an empty string when there are none, with `notesVersion`,
-  a hash of what is stored, which replacing them names. The directories read share 30,000
-  characters (`KNOWLEDGE_READ_NOTES_LENGTH`), so one read alone has its notes whole: past its share,
-  a directory's notes come as their plain text cut to fit, `isNotesComplete` false and no version.
+  a hash of what is stored, which replacing them names. Notes take what the items and their links
+  leave of 45,000 characters (`KNOWLEDGE_READ_LENGTH`, as a task's read), the shortest first, each
+  taking what it needs of an even share of what is left, so a directory read alone has some 43,000
+  for its notes. Past what the read leaves them, notes come as their plain text cut to fit,
+  `isNotesComplete` false and no version: the agent reads them but cannot replace them, as a task's
+  description too long to answer whole. Markdown escapes, so notes full of `*`, `_` or `\` can
+  pass that room even alone, and only the page edits them.
 
   `GetKnowledgeItemsForAgent` reads every link of the ids read at once, newest first, at most 1000 of
   each kind of target, 10 ids of 100 links, and the module keeps each item's 20 newest, since a

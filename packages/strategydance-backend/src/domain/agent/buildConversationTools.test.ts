@@ -136,7 +136,7 @@ describe('buildConversationTools', () => {
       'unlink_knowledge',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '99260c865e566e0be212d07afc8c9e1425c8e4bc88fd01f5733bcd23255ccc53',
+      '9ef1b05ba83f8b40464082d63448305cb7275b9edd0407c915320b3457c808e9',
     )
   })
 

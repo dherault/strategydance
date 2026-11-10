@@ -115,22 +115,34 @@ describe("a directory's notes, as a read gives them", () => {
     await kit.close()
   })
 
-  it('cuts notes past their share of a read to their plain text, without a version, and gives them whole alone', async () => {
+  it('gives short notes whole beside long ones, cutting the long to what the read leaves, and gives them whole alone', async () => {
     const kit = await organization.connect()
-    const text = 'Sent the tagline and three screenshots. '.repeat(100).trim()
+    const long = 'Sent the tagline and three screenshots. '.repeat(470).trim()
     const ids = DIRECTORIES.slice(0, 10).map(({ id }) => id)
 
-    note(ids[0]!, text)
+    for (const id of ids.slice(0, 3)) note(id, long)
 
-    const many = await kit.answer<{ items: Item[] }>('read_knowledge', { kind: 'DIRECTORY', ids })
+    note(ids[3]!, 'Listed within a day.')
+
+    const result = await kit.call('read_knowledge', { kind: 'DIRECTORY', ids })
+    const many = result.structuredContent as { items: Item[] }
+    const [content] = result.content as { text: string }[]
+
+    expect(many.items[3]).toMatchObject({ notes: 'Listed within a day.', isNotesComplete: true })
+    expect(many.items[3]!.notesVersion).toBeString()
+
+    for (const item of many.items.slice(0, 3)) {
+      expect(item.isNotesComplete).toBe(false)
+      expect(item.notesVersion).toBeUndefined()
+      expect(item.notes.length).toBeGreaterThan(3000)
+      expect(long.startsWith(item.notes)).toBe(true)
+    }
+
+    expect(content!.text.length).toBeLessThanOrEqual(45000)
+
     const alone = await kit.answer<{ items: Item[] }>('read_knowledge', { kind: 'DIRECTORY', ids: [ids[0]!] })
 
-    expect(many.items[0]!.isNotesComplete).toBe(false)
-    expect(many.items[0]!.notesVersion).toBeUndefined()
-    expect(many.items[0]!.notes.length).toBe(3000)
-    expect(text.startsWith(many.items[0]!.notes)).toBe(true)
-    expect(many.items[1]!.isNotesComplete).toBe(true)
-    expect(alone.items[0]).toMatchObject({ notes: text, isNotesComplete: true })
+    expect(alone.items[0]).toMatchObject({ notes: long, isNotesComplete: true })
     expect(alone.items[0]!.notesVersion).toBeString()
 
     await kit.close()

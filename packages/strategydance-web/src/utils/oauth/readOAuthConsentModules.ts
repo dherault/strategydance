@@ -25,6 +25,42 @@ function readLevel(module: ModuleDefinition, scopes: readonly string[]): OAuthCo
 }
 
 /*
+  Where a module of the request's address starts, from what the agent asked for and what the
+  connection replaced held there, as `readOAuthConsentModules` says
+*/
+function readInitialAccess(
+  name: ModuleName,
+  {
+    asked,
+    held,
+    isSeveral,
+    isConsentingAgain,
+  }: {
+    asked: OAuthConsentAccessLevel
+    held: OAuthConsentAccessLevel
+    isSeveral: boolean
+    isConsentingAgain: boolean
+  },
+): OAuthConsentAccessLevel {
+  const isWriteOffered = asked === 'write' || held === 'write'
+
+  // A module's own address, a consent of its own
+  if (!isSeveral) return isWriteOffered ? 'write' : 'read'
+
+  // A module that touches money writes only by a choice the member made before for that client
+  if (MONEY_MODULE_NAMES.includes(name)) {
+    if (isConsentingAgain && held === 'none') return 'none'
+
+    return asked === 'write' && held === 'write' ? 'write' : 'read'
+  }
+
+  // Consenting again starts as the connection holds
+  if (isConsentingAgain) return held
+
+  return asked
+}
+
+/*
   The modules a consent page lists, in `MODULES`' order: each module of the request's address the
   agent asked for, and each the connection it replaces holds, so nothing is granted out of the
   member's sight, a write offered when it was asked for or held.
@@ -60,18 +96,13 @@ function readOAuthConsentModules({
 
     if (asked === 'none' && held === 'none') return []
 
-    const isWriteOffered = asked === 'write' || held === 'write'
-
-    if (!isSeveral) return [{ name: module.name, isWriteOffered, initialAccess: isWriteOffered ? 'write' : 'read' }]
-    if (isConsentingAgain && held === 'none') return [{ name: module.name, isWriteOffered, initialAccess: 'none' }]
-
-    const isWriteChosen = MONEY_MODULE_NAMES.includes(module.name)
-      ? asked === 'write' && held === 'write'
-      : isConsentingAgain
-        ? held === 'write'
-        : asked === 'write'
-
-    return [{ name: module.name, isWriteOffered, initialAccess: isWriteChosen ? 'write' : 'read' }]
+    return [
+      {
+        name: module.name,
+        isWriteOffered: asked === 'write' || held === 'write',
+        initialAccess: readInitialAccess(module.name, { asked, held, isSeveral, isConsentingAgain }),
+      },
+    ]
   })
 }
 

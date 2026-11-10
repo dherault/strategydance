@@ -2044,11 +2044,14 @@ async function checkCascades() {
     'a prune claims a subagent only once no run holds it',
     claimed.includes(idleSubagent.conversationId) && !claimed.includes(busySubagent.conversationId),
   )
+  // As the sweep reads them, skipping none at first, then what it kept
+  const skippingNone = (await getClaimedSubagents(dataConnect, { skippedIds: [] })).data.conversations
+  const skipping = (await getClaimedSubagents(dataConnect, { skippedIds: claimed })).data.conversations
+
   check(
-    'the claimed subagents read leave out those the sweep kept',
-    !(await getClaimedSubagents(dataConnect, { skippedIds: [idleSubagent.conversationId] })).data.conversations.some(
-      ({ id }) => id === idleSubagent.conversationId,
-    ),
+    'the claimed subagents read leave out those the sweep kept, and none when it kept none',
+    skippingNone.some(({ id }) => id === idleSubagent.conversationId)
+      && !skipping.some(({ id }) => claimed.includes(id)),
   )
   check(
     'the claimed conversations a prune deletes leave the subagents out',

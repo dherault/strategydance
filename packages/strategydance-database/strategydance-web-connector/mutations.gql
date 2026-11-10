@@ -430,7 +430,9 @@ mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth
 #
 # The first step writes the caller's own membership, which refuses anybody outside the
 # organization and is the lock the rest runs under: a second tab asking at the same time waits,
-# then finds the four the first made and is refused. Any column at all, a deleted one included,
+# then finds the four the first made and is refused, since the check reads the lock's response and
+# so runs as a statement of its own once the lock is held, where one statement would read the
+# snapshot from before (CLAUDE.md § The database). Any column at all, a deleted one included,
 # refuses it too, so a member who removed the defaults does not get them back, and a member invited
 # again keeps the checklist they had. Each name is held to what `CreateChecklistItem` holds one to
 mutation CreateDefaultChecklistItems(
@@ -451,8 +453,10 @@ mutation CreateDefaultChecklistItems(
       message: "A checklist column's name is 1 to 40 characters on one line, with no space at either end"
     )
   query @redact {
-    checklistItems(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } }, limit: 1)
-      @check(expr: "size(this) == 0", message: "The checklist was started already") {
+    checklistItems(
+      where: { userId: { eq_expr: "response.userOrganization_update.userId" }, organizationId: { eq: $organizationId } }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "The checklist was started already") {
       id
     }
   }

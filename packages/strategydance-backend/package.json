@@ -29,6 +29,7 @@
     "launch:subagent": "NODE_ENV=development FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/launchSubagent.ts",
     "measure:subagents": "NODE_ENV=development FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/measureSubagents.ts",
     "load:conversation-attachments": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 bun scripts/loadTestConversationAttachments.ts",
+    "mcp": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199 bun scripts/serveModule.ts",
     "mcp:documents": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199 bun scripts/serveModule.ts documents",
     "mcp:tasks": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199 bun scripts/serveModule.ts tasks",
     "mcp:budget": "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 DATA_CONNECT_EMULATOR_HOST=localhost:9399 FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199 bun scripts/serveModule.ts budget",

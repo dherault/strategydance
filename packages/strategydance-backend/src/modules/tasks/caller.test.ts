@@ -54,7 +54,7 @@ describe('the caller', () => {
     for (const [name, args] of writes(task!.id, other!.id)) {
       await expect(kit.call(name, args)).rejects.toMatchObject({
         name: 'InsufficientScopeError',
-        requiredScope: 'tasks:write',
+        requiredScope: 'tasks:read tasks:write',
       })
     }
 

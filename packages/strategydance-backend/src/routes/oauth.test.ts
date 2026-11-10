@@ -230,6 +230,31 @@ describe('GET /oauth/authorize', () => {
     expect([...fake.requests.values()][0]?.scopes).toEqual(['documents:read', 'documents:write'])
   })
 
+  test("stores a request at the one address for the modules it names, and every module's access when it names none", async () => {
+    expect(
+      (await authorize({ resource: `${ISSUER}/mcp`, scope: 'tasks:write tasks:read documents:read' })).status,
+    ).toBe(302)
+    expect((await authorize({ resource: `${ISSUER}/mcp` })).status).toBe(302)
+    expect([...fake.requests.values()].map(({ resource, scopes }) => ({ resource, scopes }))).toEqual([
+      { resource: `${ISSUER}/mcp`, scopes: ['documents:read', 'tasks:read', 'tasks:write'] },
+      {
+        resource: `${ISSUER}/mcp`,
+        scopes: ['documents:read', 'documents:write', 'tasks:read', 'tasks:write', 'budget:read', 'budget:write'],
+      },
+    ])
+  })
+
+  test('renders a request at the one address naming a write without its read, or a module it does not serve', async () => {
+    for (const scope of ['documents:read tasks:write', 'documents:read knowledge:read']) {
+      const response = await authorize({ resource: `${ISSUER}/mcp`, scope })
+
+      expect(response.status).toBe(400)
+      expect(await response.text()).toContain('at least one of documents:read, tasks:read, budget:read')
+    }
+
+    expect(fake.requests.size).toBe(0)
+  })
+
   test('stores a registered client’s request on any loopback port, and marks the client used', async () => {
     const clientId = await registerLoopbackClient()
     const response = await authorize({ client_id: clientId, redirect_uri: 'http://127.0.0.1:43210/callback' })

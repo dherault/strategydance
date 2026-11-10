@@ -134,6 +134,36 @@ const moduleMessages = defineMessages({
     defaultMessage: 'Read and write',
     description: 'The access that lets an agent read a module and change what is in it, as a short label.',
   },
+  askedAccess: {
+    id: 'module.askedAccess',
+    defaultMessage: 'Asked for',
+    description:
+      "A short mark beside one access option of a module on the page where a member allows an AI agent: the agent asked for this access, but the page starts below it, since the agent's connection did not hold it before. The member chooses it to grant it.",
+  },
+  noAccess: {
+    id: 'module.noAccess',
+    defaultMessage: 'Not allowed',
+    description:
+      'The access that keeps an agent out of a module altogether, as a short label, offered beside "Read" and "Read and write" when a member connects an agent to several modules at once.',
+  },
+  noAccessHint: {
+    id: 'module.noAccessHint',
+    defaultMessage: 'It can neither read nor change anything here.',
+    description:
+      'Under the "Not allowed" access of one module, on the page where a member connects an agent to several modules at once. "It" is the agent, "here" the module.',
+  },
+  oneAddressName: {
+    id: 'module.oneAddressName',
+    defaultMessage: 'Strategy Dance',
+    description:
+      'The name of the one address that serves every module to an external agent, where its title would be, as in "Connect Claude to Strategy Dance". It is the product\'s name: keep it as it is.',
+  },
+  modulesRequired: {
+    id: 'module.modulesRequired',
+    defaultMessage: 'Allow at least one module.',
+    description:
+      "Under the modules a member chooses an external agent's access to, on the page where they connect it, when they left every one not allowed.",
+  },
   unnamedAgent: {
     id: 'module.unnamedAgent',
     defaultMessage: 'Unnamed agent',
@@ -362,11 +392,76 @@ const moduleMessages = defineMessages({
     description:
       'On a connected agent, the module it may use and its access, such as "Documents · Read and write". {moduleName} is the module\'s name and {access} the access\'s short label.',
   },
+  connectionModuleRead: {
+    id: 'module.connectionModuleRead',
+    defaultMessage: '{moduleName}: read.',
+    description:
+      'On an agent connected to several modules at once, one module it may read but not change, as in "Documents: read and write. Tasks: read.". {moduleName} is the module\'s name.',
+  },
+  connectionModuleReadWrite: {
+    id: 'module.connectionModuleReadWrite',
+    defaultMessage: '{moduleName}: read and write.',
+    description:
+      'On an agent connected to several modules at once, one module it may read and change, as in "Documents: read and write. Tasks: read.". {moduleName} is the module\'s name.',
+  },
+  connectionOlderAddress: {
+    id: 'module.connectionOlderAddress',
+    defaultMessage: 'An older address, for {moduleName} alone.',
+    description:
+      "On the Connected agents tab, under an agent connected at a module's own address, which Strategy Dance replaces with one address where one connection reaches every module. A link to how to connect there follows. {moduleName} is the module's name.",
+  },
+  connectAtOneAddress: {
+    id: 'module.connectAtOneAddress',
+    defaultMessage: 'How to connect at the new address',
+    description:
+      'Link after "An older address, for Documents alone." on the Connected agents tab, opening the steps to connect an agent at the one address that serves every module.',
+  },
   connectionReachesNone: {
     id: 'module.connectionReachesNone',
     defaultMessage: 'Reaches none of your organizations any more',
     description:
       'On a connected agent, in place of the organizations it acts in, when the member has left every one it was allowed in.',
+  },
+  editAccess: {
+    id: 'module.editAccess',
+    defaultMessage: 'Access',
+    description:
+      "Button on an agent connected at Strategy Dance's one address, on the account page's Connected agents tab, that opens a dialog to narrow what it may do in each module.",
+  },
+  editAccessTitle: {
+    id: 'module.editAccessTitle',
+    defaultMessage: 'What {agentName} may do',
+    description:
+      "Title of the dialog where a member narrows what a connected agent may do in each module. {agentName} is the agent's name, such as Claude.",
+  },
+  editAccessDescription: {
+    id: 'module.editAccessDescription',
+    defaultMessage:
+      'Your change applies from its next call. To allow it more, connect it again from the agent and choose on the consent page.',
+    description:
+      'Explanation in the dialog where a member narrows what a connected agent may do in each module: here access only goes down, and only the agent connecting again can ask for more. "Its" and "it" are the agent.',
+  },
+  editAccessCancel: {
+    id: 'module.editAccessCancel',
+    defaultMessage: 'Cancel',
+    description: "Button that closes the dialog narrowing a connected agent's access, changing nothing.",
+  },
+  editAccessSave: {
+    id: 'module.editAccessSave',
+    defaultMessage: 'Save',
+    description: "Button that saves the access chosen in the dialog narrowing a connected agent's access.",
+  },
+  accessSaved: {
+    id: 'module.accessSaved',
+    defaultMessage: '{agentName} now has the access you chose.',
+    description:
+      "Confirmation once a member narrowed what a connected agent may do in each module. {agentName} is the agent's name.",
+  },
+  accessSaveError: {
+    id: 'module.accessSaveError',
+    defaultMessage: "{agentName}'s access could not be changed. Try again.",
+    description:
+      "Shown when narrowing what a connected agent may do in each module failed. {agentName} is the agent's name.",
   },
   editOrganizations: {
     id: 'module.editOrganizations',
@@ -465,19 +560,21 @@ const moduleMessages = defineMessages({
   agentsDescription: {
     id: 'module.agentsDescription',
     defaultMessage:
-      'Add this address to an AI agent of your own, such as Claude, ChatGPT or Cursor. It asks you to sign in and allow it, then acts as you in the organizations you choose, within what each lets agents do.',
+      'Add this address to an AI agent of your own, such as Claude, ChatGPT or Cursor. One connection reaches every module you allow: it asks you to sign in and choose what it may do in each, then acts as you in the organizations you choose, within what each lets agents do.',
     description:
-      "Lead of the dialog explaining how to connect an AI agent of the member's own to a module. Claude, ChatGPT and Cursor are product names, kept as they are.",
+      "Lead of the dialog explaining how to connect an AI agent of the member's own to Strategy Dance, from a module's page. The address serves every module, Documents, Tasks and Budget, and the member chooses on one consent what the agent may do in each. Claude, ChatGPT and Cursor are product names, kept as they are.",
   },
   agentsAddress: {
     id: 'module.agentsAddress',
     defaultMessage: 'Address',
-    description: "Label of the module's web address, which the member adds to their agent, in the agents dialog.",
+    description:
+      "Label of Strategy Dance's web address for agents, which serves every module and which the member adds to their agent, in the agents dialog.",
   },
   agentsCopyAddress: {
     id: 'module.agentsCopyAddress',
     defaultMessage: 'Copy the address',
-    description: "Accessible name and tooltip of the button that copies the module's address in the agents dialog.",
+    description:
+      "Accessible name and tooltip of the button that copies Strategy Dance's address for agents in the agents dialog.",
   },
   agentsCopySetup: {
     id: 'module.agentsCopySetup',

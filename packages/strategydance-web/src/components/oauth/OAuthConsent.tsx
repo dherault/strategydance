@@ -5,10 +5,12 @@ import {
   ERROR_CODE_TOO_MANY_AGENT_CONNECTIONS,
   MAX_AGENT_CONNECTION_ORGANIZATIONS,
   MAX_AGENT_CONNECTIONS,
-  SERVED_MODULES,
+  type ModuleName,
+  readModuleAddress,
 } from 'strategydance-core'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button, buttonVariants } from 'strategydance-design-system/components/ui/Button'
+import { fieldLabelClassName } from 'strategydance-design-system/components/ui/Field'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
 import useOAuthAuthorizationRequest from '~hooks/oauth/useOAuthAuthorizationRequest'
@@ -19,6 +21,8 @@ import getModuleMessages from '~utils/module/getModuleMessages'
 import approveOAuthAuthorizationRequest from '~utils/oauth/approveOAuthAuthorizationRequest'
 import denyOAuthAuthorizationRequest from '~utils/oauth/denyOAuthAuthorizationRequest'
 import getOAuthConsentFailure from '~utils/oauth/getOAuthConsentFailure'
+import readOAuthConsentModules, { type OAuthConsentAccessLevel } from '~utils/oauth/readOAuthConsentModules'
+import toOAuthConsentScopes from '~utils/oauth/toOAuthConsentScopes'
 
 import Spinner from '~components/common/Spinner'
 import OAuthClientVerification from '~components/oauth/OAuthClientVerification'
@@ -47,8 +51,10 @@ function isSameId(a: string, b: string) {
   for it, never its logo, which would load an address of its choosing; where the member goes back
   to, with a warning when that is only their own computer; the organizations the agent will act in,
   ticked to begin with as the connection it replaces reaches them, or the one they have open, among
-  which they choose at least one; and the access, read and write when the agent asked for both
-  unless they reduce it.
+  which they choose at least one; and the access, for each module asked for or held by the connection
+  it replaces, as `readOAuthConsentModules` starts it, which they may change within what was asked
+  for or held. A module's own address shows its one module as it always has; the one address names
+  each module, any of which the member may leave not allowed, so long as one is allowed.
 
   Either answer sends the browser back to the agent, replacing this page, so going back never lands
   on a request already decided. While it leaves, the page says where it is going, and both buttons
@@ -65,17 +71,22 @@ function OAuthConsent({ requestId }: Props) {
 
   // What the reader ticked, or null while they keep what the page ticked to begin with
   const [chosenOrganizationIds, setChosenOrganizationIds] = useState<string[] | null>(null)
-  const [isWriteChosen, setIsWriteChosen] = useState(true)
+  // The access the reader chose in each module, where they changed what the page started it at
+  const [chosenAccesses, setChosenAccesses] = useState<Partial<Record<ModuleName, OAuthConsentAccessLevel>>>({})
   const [decision, setDecision] = useState<'allow' | 'deny' | null>(null)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
   const [isFull, setIsFull] = useState(false)
 
-  const definition = SERVED_MODULES.find(({ name }) => name === request?.module)
+  const address = readModuleAddress(request?.address ?? '')
+  const consentModules = request ? readOAuthConsentModules(request) : []
 
-  if (!request || !definition) return null
+  if (!request || !address || !consentModules.length) return null
 
   const agentName = request.client.name ?? formatMessage(moduleMessages.unnamedAgent)
-  const moduleName = formatMessage(getModuleMessages(definition.name).name)
+  const isSeveral = address.modules.length > 1
+  const moduleName = formatMessage(
+    isSeveral ? moduleMessages.oneAddressName : getModuleMessages(consentModules[0]!.name).name,
+  )
   const organizationIds = memberships.map(({ organization }) => organization.id)
   const reachedIds = organizationIds.filter(id => request.reachedOrganizationIds.some(reached => isSameId(reached, id)))
   const initialIds = reachedIds.length
@@ -84,9 +95,10 @@ function OAuthConsent({ requestId }: Props) {
   const chosenIds = (chosenOrganizationIds ?? initialIds)
     .filter(id => organizationIds.includes(id))
     .slice(0, MAX_AGENT_CONNECTION_ORGANIZATIONS)
-  const isWriteAsked = request.scopes.includes(definition.scopes.write)
-  const scopes =
-    isWriteAsked && isWriteChosen ? [definition.scopes.read, definition.scopes.write] : [definition.scopes.read]
+  const accesses = Object.fromEntries(
+    consentModules.map(({ name, initialAccess }) => [name, chosenAccesses[name] ?? initialAccess]),
+  ) as Partial<Record<ModuleName, OAuthConsentAccessLevel>>
+  const scopes = toOAuthConsentScopes(accesses)
   const isDeciding = decision !== null
 
   function leave(redirectUrl: string) {
@@ -117,7 +129,7 @@ function OAuthConsent({ requestId }: Props) {
   }
 
   async function allow() {
-    if (!chosenIds.length) return
+    if (!chosenIds.length || !scopes.length) return
 
     setDecision('allow')
     setIsFull(false)
@@ -205,13 +217,53 @@ function OAuthConsent({ requestId }: Props) {
           onChange={setChosenOrganizationIds}
           disabled={isDeciding}
         />
-        <OAuthConsentAccess
-          module={definition.name}
-          isWriteAsked={isWriteAsked}
-          isWriteChosen={isWriteChosen}
-          onChange={setIsWriteChosen}
-          disabled={isDeciding}
-        />
+        {isSeveral ? (
+          <div
+            role="group"
+            aria-labelledby={`${requestId}-access`}
+            className="flex flex-col gap-5"
+          >
+            <div className="flex flex-col gap-1.5">
+              <span
+                id={`${requestId}-access`}
+                className={fieldLabelClassName}
+              >
+                {formatMessage(moduleMessages.accessLabel)}
+              </span>
+              {scopes.length ? null : (
+                <p
+                  aria-live="polite"
+                  className="m-0 text-xs text-danger"
+                >
+                  {formatMessage(moduleMessages.modulesRequired)}
+                </p>
+              )}
+            </div>
+            {consentModules.map(module => (
+              <OAuthConsentAccess
+                key={module.name}
+                module={module.name}
+                access={accesses[module.name] ?? 'none'}
+                isWriteOffered={module.isWriteOffered}
+                isNoneOffered={consentModules.length > 1}
+                askedAccess={module.askedAccess}
+                isNamed
+                onChange={access => setChosenAccesses(chosen => ({ ...chosen, [module.name]: access }))}
+                disabled={isDeciding}
+              />
+            ))}
+          </div>
+        ) : (
+          <OAuthConsentAccess
+            module={consentModules[0]!.name}
+            access={accesses[consentModules[0]!.name] ?? 'read'}
+            isWriteOffered={consentModules[0]!.isWriteOffered}
+            isNoneOffered={false}
+            isNamed={false}
+            onChange={access => setChosenAccesses({ [consentModules[0]!.name]: access })}
+            disabled={isDeciding}
+          />
+        )}
       </div>
       {isFull ? (
         <Alert
@@ -233,7 +285,7 @@ function OAuthConsent({ requestId }: Props) {
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <Button
-          disabled={isDeciding || !chosenIds.length}
+          disabled={isDeciding || !chosenIds.length || !scopes.length}
           icon={decision === 'allow' ? <Spinner tone="current" /> : undefined}
           onClick={allow}
         >

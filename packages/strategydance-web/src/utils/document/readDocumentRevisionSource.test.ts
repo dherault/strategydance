@@ -9,6 +9,9 @@ describe('readDocumentRevisionSource', () => {
       conversationId: '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f',
     })
     expect(readDocumentRevisionSource('connection:5a4b3c2d1e0f4a9b8c7d6e5f4a3b2c1d')).toEqual({ kind: 'connection' })
+    expect(readDocumentRevisionSource('external:3q2-7wE1bRkVZpLq0aJ8sTn4uYcXoG6hD5fM9iK2lPw')).toEqual({
+      kind: 'connection',
+    })
     expect(readDocumentRevisionSource(null)).toEqual({ kind: 'restore' })
   })
 

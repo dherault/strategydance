@@ -5157,12 +5157,20 @@
         "hash": "eed7784f542e3a9c",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.accessSaveError": {
+        "hash": "c1454bee91a42cf1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.accessSaved": {
+        "hash": "1f70402d06a29931",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.agentDomain": {
         "hash": "204d5ac88da1feaa",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsAddress": {
-        "hash": "c52dbb98674d4f25",
+        "hash": "7bb02f4a185877f0",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsChatGpt": {
@@ -5198,7 +5206,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsCopyAddress": {
-        "hash": "9bcf5514a52635bc",
+        "hash": "964c1097aa17dfb2",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsCopySetup": {
@@ -5214,7 +5222,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsDescription": {
-        "hash": "5e638c44391a8fc1",
+        "hash": "2ea13a1cb835e388",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.agentsManage": {
@@ -5233,6 +5241,10 @@
         "hash": "61e08abb9909c947",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.askedAccess": {
+        "hash": "b7f4b3f53ef568e5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.budgetAgentsButton": {
         "hash": "e5efb6bd3148bcbb",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -5247,6 +5259,10 @@
       },
       "module.budgetWriteAccess": {
         "hash": "eef9835ba3732ba7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectAtOneAddress": {
+        "hash": "18a8a3977a5afb9b",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.connectedAgentsEmptyDescription": {
@@ -5275,6 +5291,18 @@
       },
       "module.connectionModule": {
         "hash": "0165f7f9695277e9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectionModuleRead": {
+        "hash": "b25463602d016995",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectionModuleReadWrite": {
+        "hash": "b1bab6752c8714f7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectionOlderAddress": {
+        "hash": "6b0a39eb11e60608",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.connectionReachesNone": {
@@ -5343,6 +5371,26 @@
       },
       "module.documentsWriteAccess": {
         "hash": "8387381ade568074",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editAccess": {
+        "hash": "1580fd15ea6fd7cb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editAccessCancel": {
+        "hash": "dffd2b19f0d0dc46",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editAccessDescription": {
+        "hash": "f2611b8e2c4d4ca7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editAccessSave": {
+        "hash": "051038f382d2a828",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.editAccessTitle": {
+        "hash": "5701809b4614f370",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.editOrganizations": {
@@ -5417,8 +5465,20 @@
         "hash": "fc17a6afccf7ce05",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.modulesRequired": {
+        "hash": "e722fab3082c5fe1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.neverUsed": {
         "hash": "f3b3f482da53545b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.noAccess": {
+        "hash": "37d3f5f6b4f68e8d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.noAccessHint": {
+        "hash": "2d9947c94ac8c7da",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.noOrganizationDescription": {
@@ -5427,6 +5487,10 @@
       },
       "module.noOrganizationTitle": {
         "hash": "12bc2fb1d984653e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.oneAddressName": {
+        "hash": "d01ef06c01cce40d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.openConnectedAgents": {
@@ -6232,7 +6296,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.delegatePrompt": {
-        "hash": "92cc65bc23cdcaeb",
+        "hash": "82210821a92a2ab8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.delegatePromptCopied": {

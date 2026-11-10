@@ -7,8 +7,8 @@ import {
   DEVELOPMENT_API_URL,
   MAX_AGENT_CONNECTION_ORGANIZATIONS,
   MAX_AGENT_CONNECTIONS,
+  MODULE_ADDRESSES,
   readAgentConnectionReach,
-  SERVED_MODULE_NAMES,
 } from 'strategydance-core'
 import {
   approveOAuthAuthorizationRequest,
@@ -28,7 +28,7 @@ import {
   rotateAgentConnectionRefreshToken,
 } from 'strategydance-database/backend'
 
-import { FIREBASE_PROJECT_ID, MODULE_PROTOCOL_VERSION } from '~constants'
+import { FIREBASE_PROJECT_ID, MODULE_IDEMPOTENCY_KEY_META, MODULE_PROTOCOL_VERSION } from '~constants'
 
 import { authentication, dataConnect } from '~firebase'
 
@@ -60,7 +60,8 @@ import readModuleAccess from '~modules/readModuleAccess'
   And what the account page's Connected agents tab runs through the browser's connector: its list
   holds the member's connections alone, and Disconnect deletes one of theirs alone, with its tokens,
   so the agent's next refresh and its next call to the module are refused. Allow holds a member to
-  `MAX_AGENT_CONNECTIONS`, so the tab lists every one.
+  `MAX_AGENT_CONNECTIONS`, so the tab lists every one. Access narrows what a connection at the one
+  address may do in each module, from its next call and its next refresh, and never widens it.
 
   And the Tasks and the Budget modules' endpoints, each beside the Documents module's, for one agent
   connected to both: each module's token opens that module alone, a query draws on the member's
@@ -120,8 +121,10 @@ const READ_WRITE = ['documents:read', 'documents:write']
 const DOCUMENTS = { name: 'documents', resource } as const
 const TASKS = { name: 'tasks', resource: `${apiUrl}/mcp/tasks` } as const
 const BUDGET = { name: 'budget', resource: `${apiUrl}/mcp/budget` } as const
+// The one address, every served module at `/mcp`, its connections named `strategydance`
+const ONE_ADDRESS = { name: 'strategydance', resource: `${apiUrl}/mcp` } as const
 
-type CheckedModule = typeof DOCUMENTS | typeof TASKS | typeof BUDGET
+type CheckedModule = typeof DOCUMENTS | typeof TASKS | typeof BUDGET | typeof ONE_ADDRESS
 
 // What the check made that its organization does not take with it, for the tear down
 const clientIds = new Set<string>()
@@ -568,10 +571,10 @@ async function checkFlow() {
   const challenge = challenged.headers.get('www-authenticate') ?? ''
 
   check(
-    "the endpoint challenges a read-only token's write, naming the write scope",
+    "the endpoint challenges a narrowed token's write, naming the connection's scopes with the write",
     challenged.status === 403
       && challenge.includes('error="insufficient_scope"')
-      && challenge.includes('scope="documents:write"'),
+      && challenge.includes('scope="documents:read documents:write"'),
   )
 
   // The client revokes
@@ -591,6 +594,256 @@ async function checkFlow() {
     "the module's endpoint refuses the revoked connection's access token",
     (await postModule(resource, narrowed.access_token, { method: 'tools/list' })).status === 401,
   )
+}
+
+// A client registered at the one address, with the member signed in to consent for it
+type OneAddressAgent = { metadata: Metadata; endpoint: string; clientId: string; headers: Record<string, string> }
+
+async function registerAtOneAddress(name: string): Promise<OneAddressAgent> {
+  const metadata = await readMetadata()
+  const registration = await fetch(metadata.registration_endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_name: `Check ${checkId} ${name}`, redirect_uris: ['http://127.0.0.1/callback'] }),
+  })
+  const { client_id: clientId } = (await registration.json()) as { client_id: string }
+
+  clientIds.add(clientId)
+  registeredClientIds.add(clientId)
+
+  return {
+    metadata,
+    endpoint: `${metadata.issuer}/mcp`,
+    clientId,
+    headers: { Authorization: `Bearer ${await signIn()}`, 'Content-Type': 'application/json' },
+  }
+}
+
+const ONE_ADDRESS_REDIRECT_URI = 'http://127.0.0.1:43210/callback'
+const FORM_HEADERS = { 'Content-Type': 'application/x-www-form-urlencoded' }
+
+// Authorizes at the one address, the member allowing what the request asks, or less, or what the
+// connection held, and exchanges the code
+async function consentAtOneAddress(
+  { metadata, endpoint, clientId, headers }: OneAddressAgent,
+  scope: string,
+  chosen: string[],
+) {
+  const verifier = createSecret()
+  const authorizeUrl = new URL(metadata.authorization_endpoint)
+
+  for (const [name, value] of Object.entries({
+    response_type: 'code',
+    client_id: clientId,
+    redirect_uri: ONE_ADDRESS_REDIRECT_URI,
+    code_challenge: createHashOf(verifier),
+    code_challenge_method: 'S256',
+    resource: endpoint,
+    scope,
+    state: 'checked',
+  })) {
+    authorizeUrl.searchParams.set(name, value)
+  }
+
+  const authorization = await fetch(authorizeUrl, { redirect: 'manual' })
+  const requestId = new URL(authorization.headers.get('location') ?? 'invalid:').searchParams.get('request') ?? ''
+  const reading = await fetch(`${apiUrl}/oauth/requests/${requestId}`, { headers })
+  const { data: summary } = (await reading.json()) as {
+    data?: { address: string; module: string | null; scopes: string[]; heldScopes: string[] }
+  }
+  const approval = await fetch(`${apiUrl}/oauth/requests/${requestId}/approve`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ organizationIds: [organizationId], scopes: chosen }),
+  })
+  const { data: decision } = (await approval.json()) as { data?: { redirectUrl: string } }
+  const code = new URL(decision?.redirectUrl ?? 'invalid:').searchParams.get('code') ?? ''
+  const exchange = await fetch(metadata.token_endpoint, {
+    method: 'POST',
+    headers: FORM_HEADERS,
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      client_id: clientId,
+      redirect_uri: ONE_ADDRESS_REDIRECT_URI,
+      code_verifier: verifier,
+      resource: endpoint,
+    }),
+  })
+
+  return { summary, approved: approval.status === 200, tokens: (await exchange.json()) as Tokens }
+}
+
+function refreshAtOneAddress({ metadata, endpoint, clientId }: OneAddressAgent, refreshToken: string, scope?: string) {
+  return fetch(metadata.token_endpoint, {
+    method: 'POST',
+    headers: FORM_HEADERS,
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: clientId,
+      resource: endpoint,
+      ...(scope ? { scope } : {}),
+    }),
+  })
+}
+
+// A call to a tool at the one address, as raw HTTP, for its status and its challenge
+async function challengeAtOneAddress(
+  { endpoint }: OneAddressAgent,
+  token: string,
+  name: string,
+  args: Record<string, unknown>,
+) {
+  const challenged = await postModule(endpoint, token, {
+    method: 'tools/call',
+    params: { name, arguments: { organization: organizationId, ...args } },
+  })
+
+  return { status: challenged.status, header: challenged.headers.get('www-authenticate') ?? '' }
+}
+
+/*
+  The whole flow at the one address, as a client goes through it: an authorization for two modules,
+  the member's Allow narrowing one, the exchange, the tools of the modules held alone, a challenge
+  for a module left out and for a read-only module's write, a write retried across a consent again,
+  a refresh narrowing to one module, then its duplicate and the revocation
+*/
+async function checkOneAddress() {
+  const agent = await registerAtOneAddress('one address')
+  const { metadata, endpoint } = agent
+  const allowed = ['documents:read', 'documents:write', 'tasks:read']
+  const resourceMetadata = (await (
+    await fetch(`${metadata.issuer}/.well-known/oauth-protected-resource/mcp`)
+  ).json()) as { resource: string; scopes_supported: string[]; resource_name: string }
+
+  check(
+    "the one address's protected resource metadata names it, every served scope and Strategy Dance",
+    resourceMetadata.resource === endpoint
+      && resourceMetadata.scopes_supported.join(' ') === metadata.scopes_supported.join(' ')
+      && resourceMetadata.resource_name === 'Strategy Dance',
+  )
+
+  const first = await consentAtOneAddress(agent, 'documents:read documents:write tasks:read tasks:write', allowed)
+
+  check(
+    'the consent page reads a request at the one address: its name, no module, the access asked, nothing held',
+    first.summary?.address === 'strategydance'
+      && first.summary.module === null
+      && first.summary.scopes.join(' ') === 'documents:read documents:write tasks:read tasks:write'
+      && first.summary.heldScopes.length === 0,
+  )
+  check(
+    'a consent at the one address to two modules, Tasks narrowed to read, issues a pair of those scopes',
+    first.approved && first.tokens.scope === allowed.join(' '),
+  )
+
+  const client = await openModule(endpoint, first.tokens.access_token)
+  const names = (await client.listTools()).tools.map(({ name }) => name)
+
+  check(
+    'the one address lists the tools of the modules held alone, as one server named strategydance',
+    client.getServerVersion()?.name === 'strategydance'
+      && names.includes('create_document')
+      && names.includes('list_tasks')
+      && !names.includes('read_budget'),
+  )
+
+  const write = {
+    name: 'create_document',
+    arguments: { organization: organizationId, title: `One address ${checkId}`, aspects: [], content: 'Once.' },
+    _meta: { [MODULE_IDEMPOTENCY_KEY_META]: `one-address-${checkId}` },
+  }
+  const written = await client.callTool(write)
+
+  await client.close()
+
+  const budget = await challengeAtOneAddress(agent, first.tokens.access_token, 'read_budget', {})
+  const task = await challengeAtOneAddress(agent, first.tokens.access_token, 'create_task', {
+    name: 'Refused',
+    status: 'TODO',
+  })
+
+  check(
+    "a call to a module left out is challenged for its read, with the connection's scopes",
+    budget.status === 403 && budget.header.includes('scope="documents:read documents:write tasks:read budget:read"'),
+  )
+  check(
+    "a read-only module's write is challenged with the connection's scopes and the write",
+    task.status === 403 && task.header.includes('scope="documents:read documents:write tasks:read tasks:write"'),
+  )
+  check(
+    "the one address's token opens no module's own address",
+    (await postModule(`${metadata.issuer}/mcp/documents`, first.tokens.access_token, { method: 'tools/list' })).status
+      === 401,
+  )
+
+  // The member consents again, the client asking for Tasks alone, and keeps Documents
+  const again = await consentAtOneAddress(agent, 'tasks:read', allowed)
+  const retriedClient = await openModule(endpoint, again.tokens.access_token)
+  const retried = await retriedClient.callTool(write)
+
+  await retriedClient.close()
+
+  check(
+    'a consent again names what the connection held, and keeps it',
+    again.summary?.heldScopes.join(' ') === allowed.join(' ') && again.tokens.scope === allowed.join(' '),
+  )
+  check(
+    'a write retried after a consent again is answered from its stored result, written once',
+    !written.isError
+      && JSON.stringify(retried.structuredContent) === JSON.stringify(written.structuredContent)
+      && (await countDocumentsNamed(`One address ${checkId}`)) === 1,
+  )
+
+  // A refresh narrowing to one module, its duplicate, and the revocation
+  const narrowed = (await (await refreshAtOneAddress(agent, again.tokens.refresh_token, 'tasks:read')).json()) as Tokens
+  const duplicate = (await (
+    await refreshAtOneAddress(agent, again.tokens.refresh_token, 'tasks:read')
+  ).json()) as Tokens
+  const narrowedClient = await openModule(endpoint, narrowed.access_token)
+  const narrowedNames = (await narrowedClient.listTools()).tools.map(({ name }) => name)
+
+  await narrowedClient.close()
+
+  const document = await challengeAtOneAddress(agent, narrowed.access_token, 'list_documents', {})
+
+  check(
+    "a refresh narrowing to Tasks lists its tools alone, and challenges a Documents call with the connection's scopes",
+    narrowed.scope === 'tasks:read'
+      && narrowedNames.includes('list_tasks')
+      && !narrowedNames.includes('list_documents')
+      && document.status === 403
+      && document.header.includes('scope="documents:read documents:write tasks:read"'),
+  )
+  check(
+    'the spent refresh token presented again is answered with the same pair',
+    duplicate.access_token === narrowed.access_token && duplicate.refresh_token === narrowed.refresh_token,
+  )
+
+  const revocation = await fetch(metadata.revocation_endpoint, {
+    method: 'POST',
+    headers: FORM_HEADERS,
+    body: new URLSearchParams({ token: narrowed.refresh_token, client_id: agent.clientId }),
+  })
+
+  check(
+    "revoking the one address's refresh token ends the connection",
+    revocation.status === 200
+      && (await refreshAtOneAddress(agent, narrowed.refresh_token)).status === 400
+      && (await postModule(endpoint, narrowed.access_token, { method: 'tools/list' })).status === 401,
+  )
+}
+
+async function countDocumentsNamed(title: string) {
+  const data = await read<{ documents: { id: string }[] }>(
+    `query CountDocuments($organizationId: UUID!, $title: String!) {
+      documents(where: { organizationId: { eq: $organizationId }, title: { eq: $title } }) { id }
+    }`,
+    { organizationId, title },
+  )
+
+  return data.documents.length
 }
 
 // A pending request a client made, asking for read and write unless told otherwise
@@ -619,7 +872,15 @@ function approve(
     organizations = [organizationId],
     user = userId,
     module = DOCUMENTS,
-  }: { scopes?: string[]; organizations?: string[]; user?: string; module?: CheckedModule } = {},
+    heldScopes,
+  }: {
+    scopes?: string[]
+    organizations?: string[]
+    user?: string
+    module?: CheckedModule
+    // Left out, as the backend before the one address sends it
+    heldScopes?: string[]
+  } = {},
 ) {
   const connectionId = createId()
   const code = createSecret()
@@ -638,6 +899,7 @@ function approve(
       module: module.name,
       resource: module.resource,
       scopes,
+      ...(heldScopes && { heldScopes }),
       codeHash: createHashOf(code),
     }),
   }
@@ -687,6 +949,246 @@ function exchange(
       refreshTokenHash: createHashOf(refreshToken),
     }),
   }
+}
+
+/*
+  Allow's held scopes on the database: kept beside what the request asked for when the connection
+  it replaces holds them, refused when it does not, and nothing beyond what was asked when the
+  backend before the one address leaves them out
+*/
+async function checkHeldScopes() {
+  const clientId = `https://check-${checkId}.example.com/held.json`
+  const both = ['documents:read', 'documents:write']
+  const held = approve(await createRequest(clientId, both, ONE_ADDRESS), clientId, {
+    scopes: both,
+    module: ONE_ADDRESS,
+  })
+
+  check('an Allow at the one address goes through', (await refusal(held.approval)) === null)
+
+  const notHeld = approve(await createRequest(clientId, ['tasks:read'], ONE_ADDRESS), clientId, {
+    scopes: ['tasks:read'],
+    heldScopes: ['budget:read'],
+    module: ONE_ADDRESS,
+  })
+
+  check(
+    'an Allow keeping a scope the connection it replaces does not hold is refused, leaving it as it was',
+    (await refusal(notHeld.approval))?.includes('The connection this consent replaces holds no such access') === true
+      && (await readConnections(clientId))[0]?.id === held.connectionId,
+  )
+
+  const asOlder = approve(await createRequest(clientId, ['tasks:read'], ONE_ADDRESS), clientId, {
+    scopes: ['tasks:read', 'documents:read'],
+    module: ONE_ADDRESS,
+  })
+
+  check(
+    'an Allow without held scopes, as the backend before the one address sends it, is refused a scope not asked for',
+    (await refusal(asOlder.approval))?.includes('The authorization request was decided already or has expired')
+      === true,
+  )
+
+  const kept = approve(await createRequest(clientId, ['tasks:read'], ONE_ADDRESS), clientId, {
+    scopes: ['tasks:read'],
+    heldScopes: both,
+    module: ONE_ADDRESS,
+  })
+
+  check('an Allow keeping what the connection it replaces held goes through', (await refusal(kept.approval)) === null)
+
+  const [connection] = await readConnections(clientId)
+
+  check(
+    'the connection holds what was asked for and what it kept, replacing the earlier one',
+    connection?.id === kept.connectionId
+      && [...connection.scopes].sort().join(' ') === 'documents:read documents:write tasks:read',
+  )
+
+  const { data } = await getAgentConnectionForConsent(dataConnect, { userId, clientId, module: 'strategydance' })
+
+  check(
+    "the consent read answers the connection's scopes",
+    [...(data.agentConnections[0]?.scopes ?? [])].sort().join(' ') === 'documents:read documents:write tasks:read',
+  )
+
+  // The member leaves out the one module asked for and keeps one held: nothing asked is granted
+  const heldOnlyRequestId = await createRequest(clientId, ['tasks:read', 'tasks:write'], ONE_ADDRESS)
+  const heldOnly = approve(heldOnlyRequestId, clientId, {
+    scopes: [],
+    heldScopes: ['documents:read'],
+    module: ONE_ADDRESS,
+  })
+
+  check(
+    'an Allow granting nothing asked for, only what was held, goes through',
+    (await refusal(heldOnly.approval)) === null,
+  )
+
+  const [heldOnlyConnection] = await readConnections(clientId)
+
+  check(
+    'the connection then holds only what it kept',
+    heldOnlyConnection?.id === heldOnly.connectionId
+      && [...heldOnlyConnection.scopes].sort().join(' ') === 'documents:read',
+  )
+
+  // A code issues the connection's scopes alone, never one its request asked for that was not
+  // granted. The exchange's one message also covers a code used or expired, so the same code then
+  // exchanging for what the connection holds is what shows the refusal came from the scopes
+  const askedExchange = exchange(heldOnlyRequestId, heldOnly.code, heldOnly.connectionId, {
+    scopes: ['documents:read', 'tasks:read'],
+    module: ONE_ADDRESS,
+  })
+  const askedRefusal = await refusal(askedExchange.exchange)
+  const heldOnlyExchange = exchange(heldOnlyRequestId, heldOnly.code, heldOnly.connectionId, {
+    scopes: ['documents:read'],
+    module: ONE_ADDRESS,
+  })
+  const heldOnlyRefusal = await refusal(heldOnlyExchange.exchange)
+
+  check(
+    'its code, refused a scope its request asked for that was not granted, then issues what the connection holds',
+    askedRefusal?.includes('The code was used already or has expired') === true && heldOnlyRefusal === null,
+  )
+}
+
+/*
+  Access on the Connected agents tab, through the browser's connector, for a connection at the one
+  address: it narrows what the agent may do in each module from its next call and its next refresh,
+  a duplicate of a rotation from before it naming what is left, never widens, keeps a module read
+  and no write without its read, acts on the member's own connections alone, and leaves `grantedAt`
+  as it was
+*/
+async function checkAccess() {
+  const agent = await registerAtOneAddress('access')
+  const every = ['documents:read', 'documents:write', 'tasks:read', 'tasks:write']
+  const { tokens } = await consentAtOneAddress(agent, every.join(' '), every)
+  const [connection] = await readConnections(agent.clientId)
+  const connectionId = connection?.id ?? ''
+  const readConnection = async () => {
+    const data = await read<{ agentConnection: { scopes: string[]; grantedAt: string } | null }>(
+      `query ReadAccess($id: UUID!) { agentConnection(id: $id) { scopes grantedAt } }`,
+      { id: connectionId },
+    )
+
+    return data.agentConnection
+  }
+  const narrow = (scopes: string[], { id = connectionId, claimedUserId = userId, caller = userId } = {}) =>
+    refusal(
+      webConnector.executeMutation(
+        'UpdateAgentConnectionScopes',
+        { userId: claimedUserId, id, scopes },
+        { impersonate: { authClaims: { sub: caller } } },
+      ),
+    )
+  const before = await readConnection()
+
+  // A rotation before the narrowing, whose spent token comes back after it as a duplicate
+  const rotated = (await (await refreshAtOneAddress(agent, tokens.refresh_token)).json()) as Tokens
+  const tasksRead = ['documents:read', 'documents:write', 'tasks:read']
+  const narrowed = await narrow(tasksRead)
+  const after = await readConnection()
+
+  check(
+    'Access narrows Tasks to read, leaving grantedAt as it was',
+    narrowed === null
+      && after?.scopes.join(' ') === tasksRead.join(' ')
+      && before !== null
+      && after.grantedAt === before.grantedAt,
+  )
+
+  const client = await openModule(agent.endpoint, rotated.access_token)
+  const names = (await client.listTools()).tools.map(({ name }) => name)
+
+  await client.close()
+
+  const write = await challengeAtOneAddress(agent, rotated.access_token, 'create_task', {
+    name: 'Refused',
+    status: 'TODO',
+  })
+
+  check(
+    "the next call of a token issued before still lists Tasks' tools, and challenges a task write with the connection's scopes",
+    names.includes('list_tasks')
+      && write.status === 403
+      && write.header.includes('scope="documents:read documents:write tasks:read tasks:write"'),
+  )
+
+  const duplicate = (await (await refreshAtOneAddress(agent, tokens.refresh_token)).json()) as Tokens
+
+  check(
+    'a duplicate of a rotation from before the narrowing is answered with its pair, naming what is left',
+    duplicate.access_token === rotated.access_token
+      && duplicate.refresh_token === rotated.refresh_token
+      && duplicate.scope === tasksRead.join(' '),
+  )
+
+  // A client repeating the scope it first asked for at every refresh, as many do
+  const repeated = (await (await refreshAtOneAddress(agent, rotated.refresh_token, every.join(' '))).json()) as Tokens
+  const refreshed = (await (await refreshAtOneAddress(agent, repeated.refresh_token, every.join(' '))).json()) as Tokens
+
+  check(
+    'refreshes after the narrowing, still naming the write taken away, each issue and name what is left',
+    repeated.scope === tasksRead.join(' ') && refreshed.scope === tasksRead.join(' '),
+  )
+
+  const refusals = {
+    widening: await narrow([...tasksRead, 'tasks:write']),
+    unheld: await narrow(['documents:read', 'budget:read']),
+    none: await narrow([]),
+    writeAlone: await narrow(['documents:write']),
+    writeWithoutRead: await narrow(['documents:write', 'tasks:read']),
+    twice: await narrow(['tasks:read', 'tasks:read']),
+    otherMember: await narrow(['documents:read'], { claimedUserId: otherUserId, caller: otherUserId }),
+    claimed: await narrow(['documents:read'], { claimedUserId: otherUserId }),
+  }
+
+  check(
+    'Access refuses to widen, to leave no module read or a write without its read, or to name a scope twice',
+    refusals.widening?.includes('only narrows here') === true
+      && refusals.unheld?.includes('only narrows here') === true
+      && refusals.none?.includes("at least one module's read") === true
+      && refusals.writeAlone?.includes("at least one module's read") === true
+      && refusals.writeWithoutRead?.includes('never writes in a module it cannot read') === true
+      && refusals.twice?.includes('names each scope once') === true,
+  )
+  check(
+    "Access refuses another member's connection, and a member it is not called as",
+    refusals.otherMember?.includes('The agent was disconnected') === true
+      && refusals.claimed?.includes('changed by the member it acts as alone') === true
+      && (await readConnection())?.scopes.join(' ') === tasksRead.join(' '),
+  )
+
+  // A pair a refresh narrowed to Tasks, before the member narrows the connection to Documents
+  const tasksOnly = (await (await refreshAtOneAddress(agent, refreshed.refresh_token, 'tasks:read')).json()) as Tokens
+  const documentsOnly = await narrow(['documents:read'])
+  const narrowedClient = await openModule(agent.endpoint, refreshed.access_token)
+  const narrowedNames = (await narrowedClient.listTools()).tools.map(({ name }) => name)
+
+  await narrowedClient.close()
+
+  const task = await challengeAtOneAddress(agent, refreshed.access_token, 'list_tasks', {})
+
+  check(
+    'Access narrowing to Documents takes the Tasks tools away at the next call, and challenges a Tasks call for its read',
+    documentsOnly === null
+      && narrowedNames.includes('list_documents')
+      && !narrowedNames.includes('list_tasks')
+      && task.status === 403
+      && task.header.includes('scope="documents:read tasks:read"'),
+  )
+
+  const unopened = await postModule(agent.endpoint, tasksOnly.access_token, { method: 'tools/list' })
+  const recovered = (await (await refreshAtOneAddress(agent, tasksOnly.refresh_token)).json()) as Tokens
+
+  check(
+    'a token the narrowing left reading nothing is refused as invalid, and its refresh issues what the connection holds',
+    tasksOnly.scope === 'tasks:read'
+      && unopened.status === 401
+      && (unopened.headers.get('www-authenticate') ?? '').includes('error="invalid_token"')
+      && recovered.scope === 'documents:read',
+  )
 }
 
 async function checkConsent() {
@@ -1105,10 +1607,10 @@ async function checkModuleEndpoint({
   const challenge = challenged.headers.get('www-authenticate') ?? ''
 
   check(
-    `the endpoint challenges a read-only ${title} token's write, naming ${scopes.write}, and writes nothing`,
+    `the endpoint challenges a read-only ${title} token's write, naming ${scopes.read} with ${scopes.write}, and writes nothing`,
     challenged.status === 403
       && challenge.includes('error="insufficient_scope"')
-      && challenge.includes(`scope="${scopes.write}"`)
+      && challenge.includes(`scope="${scopes.read} ${scopes.write}"`)
       && (await countNamed(`Refused ${checkId}`)) === 0,
   )
 
@@ -1568,12 +2070,14 @@ async function checkPrunes() {
   const clientId = `https://check-${checkId}-unserved.example.com/agent.json`
 
   // The other member's, since the member was removed, all made over a week ago but one: to a module
-  // no endpoint serves, to one a newer release may serve, made a moment ago, and to a module served
+  // no endpoint serves, to one a newer release may serve, made a moment ago, to a module served, and
+  // at the one address
   await write(
     `mutation Unserved($userId: String!, $organizationId: UUID!, $clientId: String!, $weekAgo: Timestamp!) {
       unserved: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt: $weekAgo, clientId: $clientId, module: "retired", scopes: ["retired:read"], createdAt: $weekAgo })
       recent: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt_expr: "request.time", clientId: $clientId, module: "newer", scopes: ["newer:read"] })
       served: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt: $weekAgo, clientId: $clientId, module: "documents", scopes: ["documents:read"], createdAt: $weekAgo })
+      oneAddress: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt: $weekAgo, clientId: $clientId, module: "strategydance", scopes: ["tasks:read"], createdAt: $weekAgo })
     }`,
     {
       userId: otherUserId,
@@ -1585,7 +2089,7 @@ async function checkPrunes() {
 
   const prune = async () => {
     await pruneOAuthAuthorizationRequests(dataConnect)
-    await pruneUnservedAgentConnections(dataConnect, { modules: [...SERVED_MODULE_NAMES] })
+    await pruneUnservedAgentConnections(dataConnect, { modules: MODULE_ADDRESSES.map(({ name }) => name) })
     await pruneAgentConnectionTokens(dataConnect)
     await pruneOAuthClients(dataConnect)
   }
@@ -1601,18 +2105,21 @@ async function checkPrunes() {
   )
 
   check(
-    "the sweep deletes a connection to a module no endpoint serves idle for a week, and keeps a recent one and a served module's",
+    "the sweep deletes a connection to a module no endpoint serves idle for a week, and keeps a recent one, a served module's and the one address's",
     agentConnections
       .map(({ module }) => module)
       .sort()
-      .join() === 'documents,newer',
+      .join() === 'documents,newer,strategydance',
   )
 }
 
 try {
   await setUp()
   await checkFlow()
+  await checkOneAddress()
   await checkConsent()
+  await checkHeldScopes()
+  await checkAccess()
   await checkConnectedAgents()
   await checkModuleEndpoint(TASKS_ENDPOINT)
   await checkModuleEndpoint(BUDGET_ENDPOINT)

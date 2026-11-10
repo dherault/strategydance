@@ -18,6 +18,7 @@ import type {
   BudgetBill,
   Currency,
   KnowledgeKind,
+  ModuleName,
   ModuleScope,
 } from 'strategydance-core'
 import type { CompanyAspect, GetConversationCallsData, TaskStatus } from 'strategydance-database/backend'
@@ -254,8 +255,9 @@ export type DocumentEdit =
   (`ModuleAccess`), never from a tool's arguments alone. `membershipCreatedAt` is the membership's
   as it was verified, so a member removed, or removed and invited back, stops every agent acting as
   them at its next call. `idempotencyScope` is what their keys are kept under, `conversation:<id>`
-  for the agent and `connection:<id>` for an external one, so two clients choosing the same key
-  never meet. `launcher` is the run calling, for the Subagents module, which only a worker that has
+  for the agent, and for an external one `external:<hash>` of the member, the client and the
+  address at the one address, which outlives a consent, or `connection:<id>` at a module's own, so
+  two clients choosing the same key never meet. `launcher` is the run calling, for the Subagents module, which only a worker that has
   claimed a run fills, from the run it claimed
 */
 export type ModuleCaller = {
@@ -311,10 +313,29 @@ export type ModuleAccess =
   | {
       kind: 'external'
       userId: string
+      // What the token holds, which a refresh may have narrowed, within its connection's
       scopes: ModuleScope[]
+      // What the connection holds, which a scope challenge names beside what a call needs, so a
+      // client asking again for exactly the challenge's scopes keeps every module it held
+      connectionScopes: ModuleScope[]
       idempotencyScope: string
       organizations: ReachedModuleOrganization[]
     }
+
+/*
+  What a module tells an agent of itself in its server's instructions, which `toModuleInstructions`
+  writes the rest around: the label it goes by beside other modules, what it holds, said after "This
+  server" when it is a server's one module and after "The <label> module" beside others, what the
+  agent acts as through it where that says more than being one member of the organization, and its
+  own paragraphs, worded for the modules the server lists, or `null` when it is the server's one
+  module, so it names no module the server does not list
+*/
+export type ModuleInstructions = {
+  label: string
+  holds: string
+  actsAs?: string
+  paragraphs: (listed: readonly ModuleName[] | null) => string[]
+}
 
 /*
   What each tool of a module served to external agents runs with, in the organization its call acts

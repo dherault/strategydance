@@ -13,13 +13,16 @@ import {
 } from 'strategydance-design-system/components/ui/Dialog'
 import { cn } from 'strategydance-design-system/lib/utils'
 
-import getModuleAddress from '~utils/module/getModuleAddress'
 import getModuleMessages from '~utils/module/getModuleMessages'
+import readAgentsSetup from '~utils/module/readAgentsSetup'
 
 import moduleMessages from '~data/intl/messages/module'
 
 type Props = {
+  // The module whose page opened it, which its title names: the address is every module's
   module: ModuleName
+  // Opened from Connected agents, where its closing link would lead back to the page the member is on
+  isOnConnectedAgents?: boolean
 }
 
 type SnippetProps = {
@@ -61,17 +64,17 @@ function ModuleAgentsSteps({ title, children }: StepsProps) {
 }
 
 /*
-  How a member connects an agent of their own to a module: its address, and where it goes in the
+  How a member connects an agent of their own to Strategy Dance from a module's page: the one
+  address, where one connection reaches every module the member allows, and where it goes in the
   agents members use most, Claude, ChatGPT, Claude Code and Cursor. Each asks the member to sign in
-  and allow it on the consent page, so nothing here grants anything. The address is the backend's
-  this page talks to, the local one against the emulators. The content of the `Dialog` its button
-  opens, which mounts it only while open
+  and choose what it may do in each module on the consent page, so nothing here grants anything. The
+  address is the backend's this page talks to, the local one against the emulators. The content of
+  the `Dialog` its button opens, which mounts it only while open
 */
-function ModuleAgentsDialog({ module }: Props) {
+function ModuleAgentsDialog({ module, isOnConnectedAgents = false }: Props) {
   const { formatMessage } = useIntl()
   const name = formatMessage(getModuleMessages(module).name)
-  const address = getModuleAddress(module)
-  const serverName = `strategydance-${module}`
+  const { address, claudeCode, cursor } = readAgentsSetup()
   const copy = {
     copyLabel: formatMessage(moduleMessages.agentsCopySetup),
     copiedLabel: formatMessage(moduleMessages.agentsCopied),
@@ -103,27 +106,29 @@ function ModuleAgentsDialog({ module }: Props) {
         <ModuleAgentsSteps title={formatMessage(moduleMessages.agentsClaudeCode)}>
           <p className="m-0 text-sm text-muted-foreground">{formatMessage(moduleMessages.agentsClaudeCodeSteps)}</p>
           <ModuleAgentsSnippet
-            value={`claude mcp add --transport http ${serverName} ${address}`}
+            value={claudeCode}
             {...copy}
           />
         </ModuleAgentsSteps>
         <ModuleAgentsSteps title={formatMessage(moduleMessages.agentsCursor)}>
           <p className="m-0 text-sm text-muted-foreground">{formatMessage(moduleMessages.agentsCursorSteps)}</p>
           <ModuleAgentsSnippet
-            value={JSON.stringify({ mcpServers: { [serverName]: { url: address } } }, null, 2)}
+            value={cursor}
             {...copy}
           />
         </ModuleAgentsSteps>
       </div>
-      <DialogFooter className="-mx-6 -mb-6 flex-col items-stretch gap-3 border-t border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="m-0 text-sm text-muted-foreground">{formatMessage(moduleMessages.agentsManage)}</p>
-        <Link
-          to="/account/connected-agents"
-          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-        >
-          {formatMessage(moduleMessages.agentsOpenConnectedAgents)}
-        </Link>
-      </DialogFooter>
+      {!isOnConnectedAgents && (
+        <DialogFooter className="-mx-6 -mb-6 flex-col items-stretch gap-3 border-t border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="m-0 text-sm text-muted-foreground">{formatMessage(moduleMessages.agentsManage)}</p>
+          <Link
+            to="/account/connected-agents"
+            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+          >
+            {formatMessage(moduleMessages.agentsOpenConnectedAgents)}
+          </Link>
+        </DialogFooter>
+      )}
     </DialogContent>
   )
 }

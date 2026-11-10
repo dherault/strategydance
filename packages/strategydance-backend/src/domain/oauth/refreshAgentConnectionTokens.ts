@@ -1,4 +1,4 @@
-import { readAgentConnectionReach } from 'strategydance-core'
+import { type ModuleDefinition, readAgentConnectionReach } from 'strategydance-core'
 import {
   getAgentConnectionRefreshToken,
   getAgentConnectionTokens,
@@ -10,10 +10,13 @@ import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
 
+import checkModuleScopes from '~domain/oauth/checkModuleScopes'
 import deriveSuccessorTokens from '~domain/oauth/deriveSuccessorTokens'
+import describeModuleScopes from '~domain/oauth/describeModuleScopes'
 import hashOAuthToken from '~domain/oauth/hashOAuthToken'
 import isConnectionGoneRefusal from '~domain/oauth/isConnectionGoneRefusal'
 import parseModuleResource from '~domain/oauth/parseModuleResource'
+import readHeldScopes from '~domain/oauth/readHeldScopes'
 import readOAuthTokenSecret from '~domain/oauth/readOAuthTokenSecret'
 import toTokenAnswer, { type TokenResult } from '~domain/oauth/toTokenAnswer'
 
@@ -46,9 +49,15 @@ function refuse(error: string, description: string): TokenResult {
   only from the client it was issued to, for the resource it was issued for, and only while its
   connection reaches one of the member's organizations.
 
-  A refresh may name fewer scopes than its token was granted, never others (RFC 6749, 6): the access
-  token it issues holds those alone, and the refresh token keeps the ones it had, so a later refresh
-  naming none gets them all back
+  A refresh may name fewer scopes than its token was granted: the access token it issues holds those
+  alone, and the refresh token keeps the ones it had, so a later refresh naming none gets them all
+  back. Both keep within what the connection holds now, which the member may have narrowed since on
+  Connected agents, so a client is never told of access taken away. A refresh naming more, as a
+  client repeating the scope it first asked for does once the member chose less, on the consent page
+  or on Connected agents, gets what is left, which its answer names (RFC 6749, 3.3), at every
+  refresh, rather than a refusal that would send the member through a consent again. One naming a
+  scope its address does not serve, a write without its read, or nothing its token still reads is
+  refused
 */
 async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promise<TokenResult> {
   const { refresh_token: refreshToken, client_id: clientId, resource, scope } = values
@@ -76,17 +85,27 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
     return refuse('invalid_grant', "The connection reaches none of the member's organizations any more")
   }
 
-  // What the access token holds: the scopes the refresh names, read always among them, within the
-  // refresh token's, in its order
-  const refreshScopes = token.scopes
-  const asked = scope ? new Set(scope.split(' ').filter(Boolean)) : new Set(refreshScopes)
-  const accessScopes = refreshScopes.filter(granted => asked.has(granted))
+  // What the refresh asks for, every scope its token holds when it names none: scopes of its
+  // address's modules, under the rule a consent holds to, at least one module's read and never a
+  // write without its read. The refresh token's are those of a module its address still serves, so
+  // a module the address stops serving drops out rather than refuse every refresh
+  const tokenScopes = readHeldScopes(target.modules, token.scopes)
+  const asked: readonly string[] = scope ? [...new Set(scope.split(' ').filter(Boolean))] : tokenScopes
 
-  if (accessScopes.length !== asked.size || !asked.has(target.module.scopes.read)) {
-    return refuse(
-      'invalid_scope',
-      `A refresh asks for ${target.module.scopes.read}, alone or with the scopes its token was granted`,
-    )
+  if (!checkModuleScopes(target.modules, asked)) {
+    return refuse('invalid_scope', `A refresh asks for ${describeModuleScopes(target.modules)}`)
+  }
+
+  // What the pair holds: what was asked for within the refresh token's scopes and what the connection
+  // still holds, so a narrowing on Connected agents carries on into it, in `MODULES`' order. A
+  // narrowing that commits between this read and the rotation shows from the next call, since the
+  // verifier narrows an access token to its connection's at every call
+  const connectionScopes = readHeldScopes(target.modules, token.connection.scopes)
+  const refreshScopes = tokenScopes.filter(held => connectionScopes.includes(held))
+  const accessScopes = refreshScopes.filter(held => asked.includes(held))
+
+  if (!checkModuleScopes(target.modules, accessScopes)) {
+    return refuse('invalid_scope', 'A refresh asks for none of the modules its token still reads')
   }
 
   if (!token.usedAt) {
@@ -132,7 +151,22 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
     return refuse('invalid_grant', 'The refresh token was used already, and what it issued is revoked')
   }
 
-  return answerDuplicate(refreshToken, token.successorKeyVersion, token.connection.id, accessScopes)
+  return answerDuplicate(refreshToken, token.successorKeyVersion, {
+    connectionId: token.connection.id,
+    modules: target.modules,
+    connectionScopes,
+    accessScopes,
+  })
+}
+
+type Duplicate = {
+  connectionId: string
+  // The address's modules, under whose rule what the pair still grants is read
+  modules: readonly ModuleDefinition[]
+  // What the connection holds now, which the pair's access token grants no more than
+  connectionScopes: readonly string[]
+  // What this refresh asks for, within the refresh token's and the connection's
+  accessScopes: readonly string[]
 }
 
 /*
@@ -140,15 +174,18 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
   its rotation recorded, while both are still stored on its connection, or nothing, so it never
   hands out a token revoked since. When the client has rotated that refresh token in turn, as one
   that refreshed again before a delayed duplicate arrived has, the chain is followed to the pair it
-  holds now, a few links at most, since each was rotated within the 30 seconds before. A pair whose
-  access token grants more than this refresh asks for is refused, since the duplicate would then
-  hand out access it did not ask for
+  holds now, a few links at most, since each was rotated within the 30 seconds before.
+
+  What the pair grants is its access token's scopes within the connection's, since the verifier
+  narrows it so at every call: a rotation from before a narrowing on Connected agents is answered
+  naming what is left, rather than a write taken away since, or refused for it. A pair granting
+  more than this refresh asks for is refused, since the duplicate would then hand out access it did
+  not ask for, and so is one a narrowing left reading no module, which would open nothing
 */
 async function answerDuplicate(
   spentToken: string,
   version: number,
-  connectionId: string,
-  accessScopes: string[],
+  { connectionId, modules, connectionScopes, accessScopes }: Duplicate,
 ): Promise<TokenResult> {
   let spent = spentToken
   let successorKeyVersion = version
@@ -166,14 +203,21 @@ async function answerDuplicate(
     if (!access || !refresh || access.connectionId !== connectionId || refresh.connectionId !== connectionId) break
 
     if (!refresh.usedAt) {
-      if (access.scopes.some(scope => !accessScopes.includes(scope))) {
+      const granted = access.scopes.filter(scope => connectionScopes.includes(scope))
+
+      if (granted.some(scope => !accessScopes.includes(scope))) {
         return refuse('invalid_grant', 'The refresh token was used already, for more access than this refresh asks for')
+      }
+
+      if (!checkModuleScopes(modules, granted)) {
+        return refuse('invalid_grant', 'The refresh token was used already, for access its connection no longer holds')
       }
 
       const expiresInSeconds = Math.max(0, Math.floor((Date.parse(access.expiresAt) - Date.now()) / 1000))
 
-      // The scopes its rotation issued, which this refresh asked for, or fewer
-      return { outcome: 'tokens', tokens: toTokenAnswer({ ...successors, scopes: access.scopes, expiresInSeconds }) }
+      // The scopes its rotation issued that the connection still holds, which this refresh asked
+      // for, or fewer
+      return { outcome: 'tokens', tokens: toTokenAnswer({ ...successors, scopes: granted, expiresInSeconds }) }
     }
 
     if (refresh.successorKeyVersion === null || refresh.successorKeyVersion === undefined) break

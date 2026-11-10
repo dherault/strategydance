@@ -27,7 +27,7 @@
   "task.createTask": "Crear tarea",
   "task.created": "Tarea creada",
   "task.delegate": "Delegar",
-  "task.delegatePrompt": "Aborda la tarea {id} de Strategy Dance en la organización {organization}, usando el Strategy Dance Tasks MCP server.\nEl nombre de la tarea es \"{name}\".\nMárcala como en curso tan pronto como empieces a trabajar en ella.",
+  "task.delegatePrompt": "Aborda la tarea {id} de Strategy Dance en la organización {organization}, usando las herramientas del tablero de tareas de Strategy Dance, read_task y update_task.\nEl nombre de la tarea es \"{name}\".\nMárcala como en curso tan pronto como empieces a trabajar en ella.",
   "task.delegatePromptCopied": "Prompt copiado",
   "task.delegateToAgents": "A tus agentes",
   "task.deleteTask": "Eliminar tarea",

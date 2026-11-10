@@ -27,6 +27,7 @@ const accessSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('external'),
     ...commonShape,
+    connectionScopes: z.array(z.enum(MODULE_SCOPES)),
     organizations: z
       .array(z.strictObject({ ...organizationShape, segment: z.string().min(1), name: z.string() }))
       .min(1)

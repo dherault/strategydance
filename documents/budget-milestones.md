@@ -24,7 +24,7 @@ Documents on 2026-10-29, after these milestones, which keep the name they were b
 - **Follow `CLAUDE.md`:**
   - a branch from `origin/dev`;
   - granular commits, each green on lint, typecheck, test and build;
-  - a pull request into `dev` and the review loop;
+  - a pull request into `dev` and its code review;
   - then a human merges.
 - **Read budget.md's How it works first.** Load the `claude-api` skill before writing Claude SDK
   code (M7), and never guess an SDK name.

@@ -2056,6 +2056,56 @@ mutation UpdateAgentConnectionOrganizations($userId: String!, $id: UUID!, $organ
   ) @check(expr: "this == 1", message: "The agent was disconnected")
 }
 
+# Narrows what one of the caller's external agents may do in each module, from the account page's
+# Connected agents tab, without the agent: from its next call, since the verifier reads the
+# connection's scopes, and from its next refresh, which issues none beyond them. It never widens,
+# every scope named being one the connection holds, since only a consent grants, through the agent's
+# own request. At least one module stays read, no write stays without its read, and each scope is
+# named once, so what is left keeps the rule a consent holds to. Each module's write is checked
+# against its read by name, `MODULES`' names in strategydance-core, which `schema.test.ts` holds this
+# list to, since CEL as Data Connect documents it has no way to take a scope's module from it.
+#
+# It locks the caller's own row first, as an edit of the organizations does, and reads the
+# connection in a step reading the lock's response, so it runs before or after an Allow, never across
+# one: a connection Allow replaced meanwhile is gone, and refused, so the page says so rather than
+# claim a change. It leaves `grantedAt` as it is: narrowing grants nothing, and a newer `grantedAt`
+# would bring back an organization the caller left and rejoined since.
+#
+# `$userId` is the caller's own, checked against the token: the Connected agents list's refresh
+# condition reads it, since a mutation's variables are all a condition can match
+mutation UpdateAgentConnectionScopes($userId: String!, $id: UUID!, $scopes: [String!]!)
+@auth(level: USER)
+@transaction {
+  user_update(key: { id_expr: "auth.uid" }, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only somebody signed in can change an agent's access")
+    @check(expr: "vars.userId == auth.uid", message: "An agent's access is changed by the member it acts as alone")
+    @check(
+      expr: "vars.scopes.exists(scope, scope.endsWith(':read'))"
+      message: "An agent keeps at least one module's read"
+    )
+    @check(
+      expr: "['documents', 'tasks', 'budget', 'subagents', 'knowledge'].all(module, !((module + ':write') in vars.scopes) || (module + ':read') in vars.scopes)"
+      message: "An agent never writes in a module it cannot read"
+    )
+    @check(
+      expr: "vars.scopes.all(scope, vars.scopes.exists_one(other, other == scope))"
+      message: "An agent's access names each scope once"
+    )
+  query @redact {
+    agentConnections(where: { id: { eq: $id }, userId: { eq_expr: "response.user_update.id" } }, limit: 1)
+      @check(expr: "size(this) == 1", message: "The agent was disconnected")
+      @check(
+        expr: "size(this) == 1 && vars.scopes.all(scope, scope in this[0].scopes)"
+        message: "An agent's access only narrows here: the agent asks for more by connecting again"
+      ) {
+      scopes
+    }
+  }
+  agentConnection_updateMany(where: { id: { eq: $id }, userId: { eq_expr: "auth.uid" } }, data: { scopes: $scopes })
+    @check(expr: "this == 1", message: "The agent was disconnected")
+}
+
 # Sets an organization's budget, or removes it, which only an administrator may: its currency, and
 # its amount in minor units with the period it lasts, or both null to remove it, keeping the
 # currency the page goes on counting in. Always sent with every variable, written whole over the row,

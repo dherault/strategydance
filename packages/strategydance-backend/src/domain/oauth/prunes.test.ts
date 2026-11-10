@@ -107,7 +107,7 @@ describe('pruneOAuthAuthorizationRequests', () => {
 })
 
 describe('pruneUnservedAgentConnections', () => {
-  test('deletes the connections to a module no endpoint serves, idle for a week, with their tokens', async () => {
+  test('deletes the connections at an address no endpoint serves, idle for a week, with their tokens', async () => {
     insertConnection('connection', null, { module: 'retired', createdAt: ago(8 * DAY_MS) })
     insertToken('retired-token', new Date(Date.now() + HOUR_MS).toISOString())
 
@@ -117,6 +117,15 @@ describe('pruneUnservedAgentConnections', () => {
     expect([...fake.connections.keys()].sort()).toEqual([...SERVED_MODULE_NAMES].sort())
     expect(fake.tokens.size).toBe(0)
     expect(await pruneUnservedAgentConnections()).toEqual({ deleted: 0 })
+  })
+
+  test('keeps an idle connection at the one address, named for it, and deletes one to a module served at no address', async () => {
+    insertConnection('one address', null, { module: 'strategydance', createdAt: ago(30 * DAY_MS) })
+    // Knowledge is Strategy Dance's own agents' alone, served at no address
+    insertConnection('knowledge', null, { module: 'knowledge', createdAt: ago(30 * DAY_MS) })
+
+    expect(await pruneUnservedAgentConnections()).toEqual({ deleted: 1 })
+    expect([...fake.connections.keys()]).toEqual(['one address'])
   })
 
   test('keeps a connection to a module no endpoint serves made or used within the week, as a newer release may serve it', async () => {

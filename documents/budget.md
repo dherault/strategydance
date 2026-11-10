@@ -31,8 +31,10 @@ Taken with David on 2026-10-24:
     drifts away from that rate.
 - **Any member adds, edits and deletes any bill**, as with the board's tasks. Only administrators
   set, change or remove the budget. Every member sees the page.
-- **The module serves both kinds of agent**: external agents, at `/mcp/budget` with the page's
-  agents button, and Strategy Dance's own agent, in its conversations.
+- **The module serves both kinds of agent**: external agents, at the one address, `/mcp`, which the
+  page's agents button gives, its write chosen on the consent apart from the other modules'
+  ([modules-address.md](modules-address.md)), and at `/mcp/budget` through a transition, and
+  Strategy Dance's own agent, in its conversations.
 - **The calling agent reads a receipt itself.**
   - `add_bill` takes the fields the agent read, and keeps the PDF or the text as the bill's receipt.
   - The module asks Claude nothing, so a bill an agent adds costs Strategy Dance no request.
@@ -419,10 +421,10 @@ which fills the bill dialog with the answer for the member to check. The module 
 - its title is "Strategy Dance Budget";
 - its scopes are `budget:read` and `budget:write`.
 
-Its server is `createBudgetServer(caller)`, in `src/modules/budget/`, with one file per tool, on
-`domain/budget/`. Like the Tasks module, it carries no AI permission: an agent acting as a member reads
-and writes the bills as that member could, and never the budget itself, which stays an
-administrator's, on the page.
+It registers its tools with `registerBudgetModule(server, access)`, in `src/modules/budget/`, with
+one file per tool, on `domain/budget/`, on the server of the modules its caller names. Like the
+Tasks module, it carries no AI permission: an agent acting as a member reads and writes the bills as
+that member could, and never the budget itself, which stays an administrator's, on the page.
 
 Its tools, in their frozen order:
 

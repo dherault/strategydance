@@ -3,6 +3,7 @@ import { Select as SelectPrimitive } from 'radix-ui'
 import { type ReactNode, useId } from 'react'
 import { Field } from 'strategydance-design-system/components/ui/Field'
 import { inputClassName } from 'strategydance-design-system/components/ui/Input'
+import { swallowTapClick } from 'strategydance-design-system/lib/swallowTapClick'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 type SelectOption = {
@@ -121,6 +122,12 @@ function Select({
           position="popper"
           side={side}
           sideOffset={4}
+          // The tap that closes the list only closes it, as a click does, rather than reaching the
+          // trigger, which opens it again, or whatever else lies under the finger
+          onPointerDownOutside={event => {
+            const { pointerType, pointerId } = event.detail.originalEvent
+            if (pointerType !== 'mouse') swallowTapClick(pointerId)
+          }}
           className="z-50 max-h-[min(280px,var(--radix-select-content-available-height))] w-(--radix-select-trigger-width) overflow-hidden rounded-xs border border-border bg-popover font-sans shadow-md duration-150 ease-out data-[side=bottom]:slide-in-from-top-[2px] data-[side=top]:slide-in-from-bottom-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0"
         >
           <SelectPrimitive.Viewport className="p-1">

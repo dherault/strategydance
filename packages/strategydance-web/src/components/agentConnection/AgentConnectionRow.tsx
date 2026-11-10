@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MODULES } from 'strategydance-core'
 import { useDeleteAgentConnection } from 'strategydance-database/web/react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Dialog, DialogTrigger } from 'strategydance-design-system/components/ui/Dialog'
@@ -11,11 +10,14 @@ import type { AgentConnection, AgentConnectionMembership } from '~types'
 import useAuthentication from '~hooks/authentication/useAuthentication'
 
 import getAgentConnectionDomain from '~utils/agentConnection/getAgentConnectionDomain'
+import readAgentConnectionAccess from '~utils/agentConnection/readAgentConnectionAccess'
 import getModuleMessages from '~utils/module/getModuleMessages'
 
+import AgentConnectionAccessDialog from '~components/agentConnection/AgentConnectionAccessDialog'
 import AgentConnectionLastUsed from '~components/agentConnection/AgentConnectionLastUsed'
 import AgentConnectionOrganizationsDialog from '~components/agentConnection/AgentConnectionOrganizationsDialog'
 import Spinner from '~components/common/Spinner'
+import ModuleAgentsDialog from '~components/module/ModuleAgentsDialog'
 import OAuthClientVerification from '~components/oauth/OAuthClientVerification'
 import OrganizationMark from '~components/organization/OrganizationMark'
 
@@ -31,21 +33,30 @@ type Props = {
 }
 
 /*
-  One connected agent: who it is and what vouches for it, the module and the access it holds, the
-  organizations it reaches, or that it reaches none of the reader's any more, when it connected and
-  when it last called the module, a way to change its organizations, and Disconnect, which asks
-  twice, since only a new consent from the agent undoes it. Disconnecting deletes the
-  connection with its tokens, so the agent's next call or refresh is refused, and the live list
-  drops the row
+  One connected agent: who it is and what vouches for it, where it connected and the access it
+  holds, a module's own address by the module, marked as older with a way to connect at the one
+  address, and the one address by Strategy Dance with each module it holds there, the organizations
+  it reaches, or that it reaches none of the reader's any more, when it connected and when it last
+  called a module, at the one address a way to narrow its access while there is anything to narrow,
+  a way to change its organizations, and Disconnect, which asks twice, since only a new consent from
+  the agent undoes it. Disconnecting deletes the connection with its tokens, so the agent's next
+  call or refresh is refused, and the live list drops the row
 */
 function AgentConnectionRow({ connection, memberships, now }: Props) {
-  const { formatMessage, formatDate } = useIntl()
+  const { formatMessage, formatDate, formatList } = useIntl()
   const { data: viewer } = useAuthentication()
   const { mutateAsync: deleteConnection, isPending } = useDeleteAgentConnection(dataConnect)
   const [isEditing, setIsEditing] = useState(false)
+  const [isEditingAccess, setIsEditingAccess] = useState(false)
 
   const agentName = connection.clientName ?? formatMessage(moduleMessages.unnamedAgent)
-  const definition = MODULES.find(({ name }) => name === connection.module)
+  const access = readAgentConnectionAccess(connection)
+  // The modules Access narrows at the one address, or null where it has nothing to take away, as
+  // from a connection holding one module at read
+  const narrowableModules =
+    access.kind === 'address' && (access.modules.length > 1 || access.modules.some(({ isWrite }) => isWrite))
+      ? access.modules
+      : null
 
   async function disconnect() {
     if (!viewer) return
@@ -72,17 +83,49 @@ function AgentConnectionRow({ connection, memberships, now }: Props) {
           />
         </div>
         <span className="text-sm text-foreground">
-          {definition
+          {access.kind === 'address'
             ? formatMessage(moduleMessages.connectionModule, {
-                moduleName: formatMessage(getModuleMessages(definition.name).name),
-                access: formatMessage(
-                  connection.scopes.includes(definition.scopes.write)
-                    ? moduleMessages.readWriteAccess
-                    : moduleMessages.readAccess,
+                moduleName: formatMessage(moduleMessages.oneAddressName),
+                // Sentences one after the other, as the locale sets them: a space between them in
+                // English, none after a full-width full stop
+                access: formatList(
+                  access.modules.map(({ name, isWrite }) =>
+                    formatMessage(
+                      isWrite ? moduleMessages.connectionModuleReadWrite : moduleMessages.connectionModuleRead,
+                      { moduleName: formatMessage(getModuleMessages(name).name) },
+                    ),
+                  ),
+                  { type: 'unit', style: 'narrow' },
                 ),
               })
-            : connection.module}
+            : access.kind === 'module'
+              ? formatMessage(moduleMessages.connectionModule, {
+                  moduleName: formatMessage(getModuleMessages(access.name).name),
+                  access: formatMessage(access.isWrite ? moduleMessages.readWriteAccess : moduleMessages.readAccess),
+                })
+              : access.name}
         </span>
+        {access.kind === 'module' && (
+          <span className="text-xs text-muted-foreground">
+            {formatMessage(moduleMessages.connectionOlderAddress, {
+              moduleName: formatMessage(getModuleMessages(access.name).name),
+            })}{' '}
+            <Dialog>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  className="cursor-pointer underline underline-offset-2 hover:text-foreground"
+                >
+                  {formatMessage(moduleMessages.connectAtOneAddress)}
+                </button>
+              </DialogTrigger>
+              <ModuleAgentsDialog
+                module={access.name}
+                isOnConnectedAgents
+              />
+            </Dialog>
+          </span>
+        )}
         {connection.organizations.length ? (
           <ul className="m-0 flex list-none flex-wrap items-center gap-x-3 gap-y-1 p-0 text-xs text-muted-foreground">
             {connection.organizations.map(organization => (
@@ -119,6 +162,27 @@ function AgentConnectionRow({ connection, memberships, now }: Props) {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 self-start sm:shrink-0 sm:self-center">
+        {narrowableModules && (
+          <Dialog
+            open={isEditingAccess}
+            onOpenChange={setIsEditingAccess}
+          >
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isPending}
+              >
+                {formatMessage(moduleMessages.editAccess)}
+              </Button>
+            </DialogTrigger>
+            <AgentConnectionAccessDialog
+              connection={connection}
+              modules={narrowableModules}
+              onSaved={() => setIsEditingAccess(false)}
+            />
+          </Dialog>
+        )}
         <Dialog
           open={isEditing}
           onOpenChange={setIsEditing}

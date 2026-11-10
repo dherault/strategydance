@@ -1,4 +1,4 @@
-import type { ModuleDefinition } from 'strategydance-core'
+import type { ModuleAddress, ModuleDefinition } from 'strategydance-core'
 import { getPendingOAuthAuthorizationRequest } from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
@@ -20,7 +20,14 @@ export type PendingOAuthAuthorizationRequest = {
 }
 
 type LoadedRequest =
-  | { outcome: 'found'; request: PendingOAuthAuthorizationRequest; client: OAuthClient; module: ModuleDefinition }
+  | {
+      outcome: 'found'
+      request: PendingOAuthAuthorizationRequest
+      client: OAuthClient
+      // The address the request names, and the modules it serves
+      address: ModuleAddress
+      modules: ModuleDefinition[]
+    }
   | { outcome: 'unknown' }
   | { outcome: 'refused'; request: PendingOAuthAuthorizationRequest; reason: string }
 
@@ -51,7 +58,13 @@ async function loadOAuthAuthorizationRequest(requestId: string): Promise<LoadedR
     }
   }
 
-  return { outcome: 'found', request: pending, client: resolution.client, module: target.module }
+  return {
+    outcome: 'found',
+    request: pending,
+    client: resolution.client,
+    address: target.address,
+    modules: target.modules,
+  }
 }
 
 export default loadOAuthAuthorizationRequest

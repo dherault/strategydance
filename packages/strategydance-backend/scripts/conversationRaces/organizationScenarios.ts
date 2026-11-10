@@ -1,3 +1,7 @@
+import { deleteOrganization } from 'strategydance-database/backend'
+
+import { dataConnect } from '~firebase'
+
 import { type Member, asMember, createTeam, read } from './raceFixtures'
 import { JITTERS, type RaceScenario, describe, race } from './raceHarness'
 
@@ -72,6 +76,52 @@ const administratorsOnEachOther: RaceScenario = {
   },
 }
 
-const organizationScenarios = [administratorsOnEachOther]
+/*
+  An administrator deleting the organization as the other demotes or removes them, from the team
+  page: the two run one after the other, each taking the organization's row first, so the delete
+  either goes through, and the other finds no organization, or reads the caller demoted and
+  refuses, never a deadlock failing one of them. The backend sweeps the organization's files before
+  its delete, which no organization of a race keeps, so the race sends the delete alone
+*/
+const deleteBesideDemotion: RaceScenario = {
+  name: 'delete-beside-demotion',
+  description: 'an administrator deleting the organization as another demotes or removes them runs one first',
+  async run({ round, jitter, expect }) {
+    const {
+      organizationId,
+      members: [deleter, other],
+    } = await createTeam('delete-beside-demotion', round, ['ADMINISTRATOR', 'ADMINISTRATOR'])
+    // Each act goes through every jitter in turn
+    const how: Act = Math.floor((round - 1) / JITTERS.length) % 2 ? 'remove' : 'demote'
+    const results = await race<unknown>(
+      {
+        'first deletes': () => deleteOrganization(dataConnect, { organizationId, userId: deleter!.userId }),
+        [`second ${how}s them`]: () => act(other!, deleter!, how),
+      },
+      jitter,
+    )
+    const passed = Object.values(results).filter(({ status }) => status === 'fulfilled').length
+    const data = await read<{ organization: { id: string } | null }>(
+      'query ReadOrganization($id: UUID!) { organization(id: $id) { id } }',
+      { id: organizationId },
+    )
+    const isDeleted = results['first deletes']?.status === 'fulfilled'
+
+    expect(
+      'one of the two goes through',
+      passed === 1,
+      Object.entries(results)
+        .map(([writer, result]) => `${writer} ${describe(result)}`)
+        .join(', '),
+    )
+    expect(
+      'the organization is gone exactly when the delete went through',
+      (data.organization === null) === isDeleted,
+      data.organization ? 'still there' : 'gone',
+    )
+  },
+}
+
+const organizationScenarios = [administratorsOnEachOther, deleteBesideDemotion]
 
 export default organizationScenarios

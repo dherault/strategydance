@@ -148,8 +148,9 @@ export type ConversationTurnOutcome =
   - any other error of Claude's API, those past the retries, `max_tokens`, a sixth pause and any
     other stop: the run fails with its note, the request sent once, and charged what the stream
     reported it used when it failed partway, the cost limit and the daily spend ceilings counting it
-    at the most it may have written in the time it streamed (`priceCutRequestBound`). An error of the
-    worker's own before the request reached the API settles it at nothing before the step fails
+    at the most it may have written in the time it streamed (`priceCutRequestBound`). An error that
+    is not the API's, the worker's own before the request reached the API or one cutting its stream,
+    settles it before the step fails, at nothing or at what its stream reported
   - a run at one of its limits: 25 requests sent, or 10 minutes gone since it was first claimed,
     sends no further request, and a stream still going 14 minutes after the claim is cut, charged as
     one that failed partway. The run fails with its note. A subagent's request for its report, which
@@ -418,10 +419,11 @@ async function requestConversationTurn({
 
       if (signal.aborted) throw error
 
-      // Never reached the API, so it is settled at nothing before the step fails and is read again,
-      // rather than charged at its worst case by the next step's ledger
+      // An error that is not the API's, the worker's own before the request was sent or one cutting
+      // its stream: settled before the step fails and is read again, at nothing or at what its stream
+      // reported, rather than charged at its worst case by the next step's ledger
       if (!(error instanceof Anthropic.APIError)) {
-        if (!streamed.message) await writeSettled(fence, lease, settled)
+        await writeSettled(fence, lease, settled)
 
         throw error
       }
@@ -636,15 +638,15 @@ async function isStopRequested(fence: ConversationRunFence) {
   return Boolean(data.conversationRuns[0]?.stopRequestedAt)
 }
 
-// Writes the ledger with a request settled at nothing, best effort: the step fails either way, and
-// the worker that reads the run next charges the request at its estimate when this did not land
+// Writes the ledger with a failed request settled, best effort: the step fails or waits either way,
+// and the worker that reads the run next charges the request at its estimate when this did not land
 async function writeSettled(fence: ConversationRunFence, lease: ConversationRunLease, usage: ConversationRunUsage) {
   try {
     await lease.write(() =>
       recordConversationRunUsage(dataConnect, { ...fence, ...toConversationUsageVariables(usage) }),
     )
   } catch (error) {
-    logger.warn(`Conversation run ${fence.runId}: a request that never reached the API could not be settled`, error)
+    logger.warn(`Conversation run ${fence.runId}: a failed request could not be settled`, error)
   }
 }
 

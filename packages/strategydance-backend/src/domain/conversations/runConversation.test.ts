@@ -724,6 +724,21 @@ describe('runConversation', () => {
     ])
   })
 
+  test('charges a stream that failed partway on an error of no API what it reported using, rather than its worst case', async () => {
+    const reference = await start()
+    const scripted = createClient([
+      { started: answer([], { inputTokens: 5000, outputTokens: 1 }), error: new TypeError('terminated') },
+      answer(),
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client, retryDelayMs: 1 })).toBe('finished')
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+    expect(readUsage(reference).requests).toMatchObject([
+      { inputTokens: 5000, outputTokens: 1, stopReason: 'error', isEstimated: true, isSettled: true },
+      { inputTokens: 1000, outputTokens: 50, isSettled: true, isEstimated: false },
+    ])
+  })
+
   test('sends again a request whose stream sent an overload before its message started, never one past it', async () => {
     // As the SDK throws an `error` event of the stream: a bare APIError, its type the API's
     const overloaded = () =>

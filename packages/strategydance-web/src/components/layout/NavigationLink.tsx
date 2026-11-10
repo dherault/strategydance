@@ -8,6 +8,9 @@ type Props = {
   path: string
   // Active on the pages under the path too, as the documents' row is on each document's
   isNested?: boolean
+  // Other paths the row is active on, with the pages under them, as Marketing's is on the
+  // Directories page, which belongs to it without sitting under its address
+  activePaths?: string[]
   label: string
   icon: ReactNode
   link: LinkProps
@@ -20,10 +23,13 @@ type Props = {
 }
 
 // A row of the sidebar's navigation
-function NavigationLink({ path, isNested = false, label, icon, link, badge }: Props) {
+function NavigationLink({ path, isNested = false, activePaths = [], label, icon, link, badge }: Props) {
   const { isMobile, setOpenMobile } = useSidebar()
   const pathname = useRouterState({ select: state => state.location.pathname })
-  const isActive = pathname === path || (isNested && pathname.startsWith(`${path}/`))
+  const isActive =
+    pathname === path
+    || (isNested && pathname.startsWith(`${path}/`))
+    || activePaths.some(activePath => pathname === activePath || pathname.startsWith(`${activePath}/`))
 
   return (
     <SidebarMenuItem>

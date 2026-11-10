@@ -129,6 +129,13 @@ describe('getCalendarDayInTimeZone', () => {
     expect(getCalendarDayInTimeZone(Date.UTC(2026, 0, 5, 12), 'UTC')).toBe('2026-01-05')
   })
 
+  it("reads the runtime's own zone when given none", () => {
+    const instant = new Date('2026-10-31T23:30:00Z')
+    const { timeZone } = Intl.DateTimeFormat().resolvedOptions()
+
+    expect(getCalendarDayInTimeZone(instant, undefined)).toBe(getCalendarDayInTimeZone(instant, timeZone))
+  })
+
   it('follows a clock change, as an offset would not', () => {
     expect(getCalendarDayInTimeZone(new Date('2026-03-28T23:30:00Z'), 'Europe/Paris')).toBe('2026-03-29')
     expect(getCalendarDayInTimeZone(new Date('2026-10-24T22:30:00Z'), 'Europe/Paris')).toBe('2026-10-25')

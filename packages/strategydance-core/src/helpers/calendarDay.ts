@@ -120,15 +120,15 @@ export function startOfQuarter(day: string) {
   return formatCalendarDay(year, month - ((month - 1) % 3), 1)
 }
 
-// One formatter per zone, since building one is the slow part
-const zoneFormatters = new Map<string, Intl.DateTimeFormat>()
+// One formatter per zone, the runtime's own under `undefined`, since building one is the slow part
+const zoneFormatters = new Map<string | undefined, Intl.DateTimeFormat>()
 
 /*
-  The day an instant falls on in a time zone, an IANA identifier the caller has checked: what
-  somebody in that zone calls today. Read through `Intl` rather than an offset, which a clock change
-  moves
+  The day an instant falls on in a time zone, an IANA identifier the caller has checked, or the
+  runtime's own when it is undefined: what somebody in that zone calls today. Read through `Intl`
+  rather than an offset, which a clock change moves
 */
-export function getCalendarDayInTimeZone(instant: Date | number, timeZone: string) {
+export function getCalendarDayInTimeZone(instant: Date | number, timeZone: string | undefined) {
   let formatter = zoneFormatters.get(timeZone)
 
   if (!formatter) {

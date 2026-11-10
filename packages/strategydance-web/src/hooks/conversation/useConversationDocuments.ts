@@ -1,3 +1,5 @@
+import { toCanonicalUuid } from 'strategydance-core'
+
 import type { DocumentSummary } from '~types'
 
 import useOrganizationDocuments from '~hooks/document/useOrganizationDocuments'
@@ -14,7 +16,7 @@ function useConversationDocuments(needs: boolean): ReadonlyMap<string, DocumentS
 
   if (!needs || initialLoading || hasFailed) return null
 
-  return new Map(data.map(document => [document.id.replaceAll('-', '').toLowerCase(), document]))
+  return new Map(data.map(document => [toCanonicalUuid(document.id), document]))
 }
 
 export default useConversationDocuments

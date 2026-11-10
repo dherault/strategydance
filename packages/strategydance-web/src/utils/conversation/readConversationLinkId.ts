@@ -1,3 +1,5 @@
+import { toCanonicalUuid } from 'strategydance-core'
+
 /*
   The id a link of Strategy Dance's reply, or a member's mention, names, `doc:<id>` for a document
   or `task:<id>` for a task, as Data Connect writes one: 32 lowercase hex digits, whether the link
@@ -5,7 +7,7 @@
 */
 function readConversationLinkId(href: string, scheme: 'doc' | 'task') {
   const match = new RegExp(`^${scheme}:([0-9a-f-]{32,36})$`, 'i').exec(href.trim())
-  const id = match?.[1]?.replaceAll('-', '').toLowerCase()
+  const id = match?.[1] ? toCanonicalUuid(match[1]) : null
 
   return id && /^[0-9a-f]{32}$/.test(id) ? id : null
 }

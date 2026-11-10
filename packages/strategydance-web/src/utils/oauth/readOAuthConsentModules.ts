@@ -14,7 +14,8 @@ export type OAuthConsentModule = {
   name: ModuleName
   // Read and write is offered when the agent asked for it or the connection replaced held it
   isWriteOffered: boolean
-  initialAccess: Exclude<OAuthConsentAccessLevel, 'none'>
+  // Not allowed only for a module asked for beside the modules of a connection consented to again
+  initialAccess: OAuthConsentAccessLevel
 }
 
 function readLevel(module: ModuleDefinition, scopes: readonly string[]): OAuthConsentAccessLevel {
@@ -26,16 +27,21 @@ function readLevel(module: ModuleDefinition, scopes: readonly string[]): OAuthCo
 /*
   The modules a consent page lists, in `MODULES`' order: each module of the request's address the
   agent asked for, and each the connection it replaces holds, so nothing is granted out of the
-  member's sight. A module only asked for starts with what was asked, and one the connection held
-  starts as held, its write offered whenever it was asked for too.
+  member's sight, a write offered when it was asked for or held.
 
-  At an address of several modules, a write the connection held at read starts at read even when
-  the agent asks for it: the member chose read, on an earlier consent or on Connected agents, and
-  the agent asking again, as a write's challenge has it do, is not the member choosing otherwise.
-  A module that touches money (`MONEY_MODULE_NAMES`) starts at read unless its write was both asked
-  for and held, a choice the member made before for that client, since many clients ask for every
-  scope a server lists. A module's own address is a consent of its own, and starts a module as held,
-  or as asked when that is more
+  At an address of several modules, a first consent starts each module with what was asked.
+  Consenting again starts each as the connection holds it, what the agent asks beyond it offered,
+  never chosen: a module not held starts not allowed, and a write held at read at read. What a
+  connection holds cannot tell what the member left out from what the agent never asked for, and a
+  member who narrowed it, on an earlier consent or on Connected agents, must not see one click on
+  Allow undo that when the agent asks again, as a write's challenge has it do, and as a client does
+  once its refresh token expires, most asking for every scope a server lists. Widening is the
+  member's own choice on the page. A module that touches money (`MONEY_MODULE_NAMES`) also starts at
+  read unless its write was both asked for and held, a choice the member made before for that
+  client.
+
+  A module's own address is a consent of its own, and starts its module as held, or as asked when
+  that is more
 */
 function readOAuthConsentModules({
   address,
@@ -45,19 +51,25 @@ function readOAuthConsentModules({
   const definition = readModuleAddress(address)
   const served = definition ? readModuleAddressModules(definition) : []
   const isSeveral = served.length > 1
+  // A connection is replaced, which holds at least one module's read
+  const isConsentingAgain = served.some(module => readLevel(module, heldScopes) !== 'none')
 
-  return served.flatMap(module => {
+  return served.flatMap((module): OAuthConsentModule[] => {
     const asked = readLevel(module, scopes)
     const held = readLevel(module, heldScopes)
 
     if (asked === 'none' && held === 'none') return []
 
     const isWriteOffered = asked === 'write' || held === 'write'
-    const isWriteChosen = !isSeveral
-      ? isWriteOffered
-      : MONEY_MODULE_NAMES.includes(module.name)
-        ? asked === 'write' && held === 'write'
-        : held === 'write' || (held === 'none' && asked === 'write')
+
+    if (!isSeveral) return [{ name: module.name, isWriteOffered, initialAccess: isWriteOffered ? 'write' : 'read' }]
+    if (isConsentingAgain && held === 'none') return [{ name: module.name, isWriteOffered, initialAccess: 'none' }]
+
+    const isWriteChosen = MONEY_MODULE_NAMES.includes(module.name)
+      ? asked === 'write' && held === 'write'
+      : isConsentingAgain
+        ? held === 'write'
+        : asked === 'write'
 
     return [{ name: module.name, isWriteOffered, initialAccess: isWriteChosen ? 'write' : 'read' }]
   })

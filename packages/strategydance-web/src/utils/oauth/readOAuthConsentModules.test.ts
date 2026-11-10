@@ -29,7 +29,7 @@ describe('readOAuthConsentModules', () => {
   it('lists the modules the connection replaced holds beside those asked for, kept as they were', () => {
     expect(atOneAddress(['tasks:read'], ['documents:read', 'documents:write'])).toEqual([
       { name: 'documents', isWriteOffered: true, initialAccess: 'write' },
-      { name: 'tasks', isWriteOffered: false, initialAccess: 'read' },
+      { name: 'tasks', isWriteOffered: false, initialAccess: 'none' },
     ])
   })
 
@@ -42,15 +42,27 @@ describe('readOAuthConsentModules', () => {
     ])
   })
 
-  it('starts a write held at read at read when a challenge asks for it, and a module only asked for as asked', () => {
+  it('starts a write held at read at read when a challenge asks for it', () => {
     // The challenge for a Tasks write names the connection's scopes with tasks:write
     expect(atOneAddress(['documents:read', 'tasks:read', 'tasks:write'], ['documents:read', 'tasks:read'])).toEqual([
       { name: 'documents', isWriteOffered: false, initialAccess: 'read' },
       { name: 'tasks', isWriteOffered: true, initialAccess: 'read' },
     ])
-    expect(atOneAddress(['documents:read', 'tasks:read', 'tasks:write'], ['documents:read'])).toEqual([
-      { name: 'documents', isWriteOffered: false, initialAccess: 'read' },
+  })
+
+  it('starts a module the connection does not hold not allowed on consenting again, offered as asked', () => {
+    // A client asking every scope again, as one whose refresh token expired does, after the member
+    // left Tasks and Budget out
+    expect(atOneAddress(ALL, ['documents:read', 'documents:write'])).toEqual([
+      { name: 'documents', isWriteOffered: true, initialAccess: 'write' },
+      { name: 'tasks', isWriteOffered: true, initialAccess: 'none' },
+      { name: 'budget', isWriteOffered: true, initialAccess: 'none' },
+    ])
+    // A first consent starts each module with what was asked, Budget at read
+    expect(atOneAddress(ALL)).toEqual([
+      { name: 'documents', isWriteOffered: true, initialAccess: 'write' },
       { name: 'tasks', isWriteOffered: true, initialAccess: 'write' },
+      { name: 'budget', isWriteOffered: true, initialAccess: 'read' },
     ])
   })
 
@@ -60,6 +72,7 @@ describe('readOAuthConsentModules', () => {
 
     expect(budget(ALL)).toEqual({ name: 'budget', isWriteOffered: true, initialAccess: 'read' })
     expect(budget(ALL, ['budget:read'])).toEqual({ name: 'budget', isWriteOffered: true, initialAccess: 'read' })
+    expect(budget(ALL, ['documents:read'])).toEqual({ name: 'budget', isWriteOffered: true, initialAccess: 'none' })
     expect(budget(['tasks:read'], ['budget:read', 'budget:write'])).toEqual({
       name: 'budget',
       isWriteOffered: true,

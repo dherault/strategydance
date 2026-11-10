@@ -1011,6 +1011,33 @@ async function checkHeldScopes() {
     "the consent read answers the connection's scopes",
     [...(data.agentConnections[0]?.scopes ?? [])].sort().join(' ') === 'documents:read documents:write tasks:read',
   )
+
+  // The member leaves out the one module asked for and keeps one held: nothing asked is granted
+  const heldOnlyRequestId = await createRequest(clientId, ['tasks:read', 'tasks:write'], ONE_ADDRESS)
+  const heldOnly = approve(heldOnlyRequestId, clientId, {
+    scopes: [],
+    heldScopes: ['documents:read'],
+    module: ONE_ADDRESS,
+  })
+
+  check(
+    'an Allow granting nothing asked for, only what was held, goes through',
+    (await refusal(heldOnly.approval)) === null,
+  )
+
+  const [heldOnlyConnection] = await readConnections(clientId)
+
+  check(
+    'the connection then holds only what it kept',
+    heldOnlyConnection?.id === heldOnly.connectionId && heldOnlyConnection.scopes.join(' ') === 'documents:read',
+  )
+
+  const heldOnlyExchange = exchange(heldOnlyRequestId, heldOnly.code, heldOnly.connectionId, {
+    scopes: ['documents:read'],
+    module: ONE_ADDRESS,
+  })
+
+  check('its code issues what the connection holds', (await refusal(heldOnlyExchange.exchange)) === null)
 }
 
 /*

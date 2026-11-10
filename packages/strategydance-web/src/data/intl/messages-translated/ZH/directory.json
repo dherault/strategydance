@@ -47,6 +47,7 @@
   "directory.noMatchTitle": "没有符合这些筛选条件的收录平台",
   "directory.notes": "备注",
   "directory.notesLabel": "{name} 的备注",
+  "directory.notesLoadError": "无法加载笔记。",
   "directory.notesPlaceholder": "登录信息、发送内容、回复及跟进情况",
   "directory.notesSaveError": "备注未能保存。请重试。",
   "directory.notesTooLong": "备注内容过长，无法保存。请精简内容以保存输入。",

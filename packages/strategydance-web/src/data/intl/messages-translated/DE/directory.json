@@ -47,6 +47,7 @@
   "directory.noMatchTitle": "Keine Verzeichnisse entsprechen diesen Filtern",
   "directory.notes": "Notizen",
   "directory.notesLabel": "Notizen für {name}",
+  "directory.notesLoadError": "Die Notizen konnten nicht geladen werden.",
   "directory.notesPlaceholder": "Logins, Gesendetes, Antworten und Follow-ups",
   "directory.notesSaveError": "Die Notizen konnten nicht gespeichert werden. Versuche es erneut.",
   "directory.notesTooLong": "Die Notizen sind zu lang zum Speichern. Kürze sie, um deine Eingaben zu behalten.",

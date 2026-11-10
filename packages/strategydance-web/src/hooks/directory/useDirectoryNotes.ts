@@ -17,7 +17,7 @@ function useDirectoryNotes(directoryId: string) {
 
   const organizationId = organization?.id ?? null
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isFetching, isError, refetch } = useQuery({
     queryKey: ['GetDirectoryNotes', organizationId, directoryId],
     queryFn: async () => {
       const { data: result } = await executeQuery(
@@ -40,6 +40,7 @@ function useDirectoryNotes(directoryId: string) {
     content: data ? (data.knowledgeNotes[0]?.content ?? '') : null,
     hasFailed: isError && data === undefined,
     isPending: Boolean(organizationId) && isPending && !isError,
+    loading: Boolean(organizationId) && isFetching,
     refetch: async () => {
       await refetch()
     },

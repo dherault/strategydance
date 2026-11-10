@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { useIntl } from 'react-intl'
+import { Button } from 'strategydance-design-system/components/ui/Button'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 import { RICH_TEXT_NOTE_BLOCKS } from 'strategydance-design-system/lib/richText'
 import type { Directory } from 'strategydance-knowledge/src/directories/types'
@@ -32,7 +33,7 @@ function DirectoryNotesField({ directory }: Props) {
   const { formatMessage, locale } = useIntl()
   const headingId = useId()
   const { RichTextEditor, hasFailed: hasEditorFailed } = useRichTextEditor()
-  const { content } = useDirectoryNotes(directory.id)
+  const { content, hasFailed, loading, refetch } = useDirectoryNotes(directory.id)
   const { setNotes } = useDirectoryChanges()
   const [isTooLong, setIsTooLong] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
@@ -69,6 +70,23 @@ function DirectoryNotesField({ directory }: Props) {
   }, [opened, saver])
 
   function renderEditor() {
+    if (hasFailed && opened === null) {
+      return (
+        <div className="flex min-h-34 flex-col items-start justify-center gap-3 rounded-xs border border-border bg-white p-3 text-sm text-muted-foreground">
+          {formatMessage(directoryMessages.notesLoadError)}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            icon={loading ? <Spinner tone="current" /> : undefined}
+            onClick={refetch}
+          >
+            {formatMessage(directoryMessages.retry)}
+          </Button>
+        </div>
+      )
+    }
+
     if (RichTextEditor && opened) {
       return (
         <RichTextEditor

@@ -47,6 +47,7 @@
   "directory.noMatchTitle": "条件に一致するディレクトリがありません",
   "directory.notes": "メモ",
   "directory.notesLabel": "{name}のメモ",
+  "directory.notesLoadError": "ノートを読み込めませんでした。",
   "directory.notesPlaceholder": "ログイン情報、送信内容、返信、フォローアップなど",
   "directory.notesSaveError": "メモを保存できませんでした。もう一度お試しください。",
   "directory.notesTooLong": "メモが長すぎるため保存できません。入力内容を保持するには短くしてください。",

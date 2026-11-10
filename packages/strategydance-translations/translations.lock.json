@@ -3761,6 +3761,10 @@
         "hash": "86e097cf6b515da7",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "directory.notesLoadError": {
+        "hash": "e7370ec7be408ea2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "directory.notesPlaceholder": {
         "hash": "64e6d93bf2b59337",
         "locales": "DE,ES,FR,JA,PT,ZH"

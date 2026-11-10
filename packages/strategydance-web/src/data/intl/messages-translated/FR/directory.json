@@ -47,6 +47,7 @@
   "directory.noMatchTitle": "Aucun annuaire ne correspond à ces filtres",
   "directory.notes": "Notes",
   "directory.notesLabel": "Notes pour {name}",
+  "directory.notesLoadError": "Impossible de charger les notes.",
   "directory.notesPlaceholder": "Identifiants, contenus envoyés, réponses et suivis",
   "directory.notesSaveError": "Impossible d'enregistrer les notes. Réessayez.",
   "directory.notesTooLong": "Les notes sont trop longues pour être enregistrées. Raccourcissez-les pour conserver vos saisies.",

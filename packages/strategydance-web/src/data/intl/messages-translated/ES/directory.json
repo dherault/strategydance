@@ -47,6 +47,7 @@
   "directory.noMatchTitle": "Ningún directorio coincide con estos filtros",
   "directory.notes": "Notas",
   "directory.notesLabel": "Notas para {name}",
+  "directory.notesLoadError": "No se pudieron cargar las notas.",
   "directory.notesPlaceholder": "Credenciales, lo que enviaste, respuestas y seguimiento",
   "directory.notesSaveError": "No se pudieron guardar las notas. Inténtalo de nuevo.",
   "directory.notesTooLong": "Las notas son demasiado largas para guardarse. Acórtalas para conservar lo que escribas.",

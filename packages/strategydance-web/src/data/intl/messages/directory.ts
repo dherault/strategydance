@@ -322,6 +322,12 @@ const directoryMessages = defineMessages({
     defaultMessage: 'Logins, what you sent, replies and follow-ups',
     description: 'Placeholder of the editor of the team’s notes on a directory, saying what they are for.',
   },
+  notesLoadError: {
+    id: 'directory.notesLoadError',
+    defaultMessage: 'The notes could not be loaded.',
+    description:
+      'Shown in place of the team’s notes on a directory when they could not be read, with a button to try again.',
+  },
   notesSaveError: {
     id: 'directory.notesSaveError',
     defaultMessage: 'The notes could not be saved. Try again.',

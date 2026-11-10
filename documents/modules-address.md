@@ -76,11 +76,18 @@ below) changed two, as each says:
     write is never carried over to a request that did not ask for it. A later module that touches
     money starts the same way. `/mcp/budget` is the consent of its own conversations.md meant, and
     stays as it is.
-  - **A write held at read starts at read.** At the one address, a write the connection held at
-    read starts at read even when the client asks for it, offered still: the member chose read, on
-    an earlier consent or through Access, and an agent asking again, as a write's challenge has it
-    do, is not the member choosing otherwise. Before the review of 2026-11-10 it started chosen, so
-    one click on Allow undid a narrowing.
+  - **Consenting again starts as the connection holds.** At the one address, a consent replacing
+    a connection starts each module as the connection holds it: a module not held starts not
+    allowed, a write held at read at read, and what the agent asks beyond it is offered, never
+    chosen. What a connection holds cannot tell what the member left out from what the agent never
+    asked for, and an agent asks again whenever a write is challenged, as does every client once
+    its refresh token expires, most asking for every scope. Before the review of 2026-11-10 a module
+    started as asked when that was more, so one click on Allow undid a narrowing, on an earlier
+    consent or through Access. A first consent starts each module as asked.
+  - So widening is the member's own choice on the page. A write's challenge, or a client asking
+    for a module the connection lacks, finds it offered and unchosen, as Budget's write always has
+    been: an Allow left as the page starts it grants nothing new, and the agent's next call asks
+    again.
 - **The tools follow the access.**
   - A connection lists the tools of each module it holds the read scope of, and none of a module it
     does not: a member who left Budget out finds no bill tool in their agent.
@@ -174,10 +181,12 @@ given several modules says, in order:
    in them;
 3. the idempotency key, once;
 4. the organizations the connection reaches, once, as `toModuleInstructions` writes them;
-5. for an external agent, the modules it was given but does not list, those the member did not
-   allow this connection, by name and never by their tools, so the agent can tell the member they
-   could allow one by connecting it again. Added in the review of 2026-11-10: before, an agent asked
-   to add a bill with Budget left out could not know Budget was there to allow.
+5. for an external agent, the modules it was given but does not list, which its connection is not
+   allowed in, by name and never by their tools, without saying why, since the member may have left
+   one out or it may be served since the connection was made. The agent can then tell the member,
+   who chooses what a connection may do in each module when they connect it again. Added in the
+   review of 2026-11-10: before, an agent asked to add a bill with Budget left out could not know
+   Budget was there at all.
 
 The key and the organizations are said where a served module is listed, whose tools take both:
 Knowledge's and Subagents' servers never said them. A module listed alone on a server given several
@@ -252,12 +261,12 @@ same milestone.
 - **The consent page** lists each module the request asks for, and each the connection it replaces
   holds, with its access: not allowed, read, or read and write when write was asked for or is held.
   - It is worded by the module from the `module` catalogue, as `OAuthConsentAccess` words one now.
-  - To begin with, a module is chosen as the connection it replaces holds it, its write kept when
-    held even if not asked for; a module only asked for, read and write when asked, read when not.
-    A write held at read starts at read even when asked for, since the review of 2026-11-10, and
-    Budget's write starts chosen only when the request asks for it and the connection held it.
-    Every module the page grants is shown with its access, held ones included, so nothing is
-    granted out of the member's sight.
+  - To begin with, a first consent chooses each module as asked, read and write when asked, read
+    when not. Consenting again chooses each module as the connection it replaces holds it, its write
+    kept when held even if not asked for, and a module not held not allowed, what was asked beyond
+    it offered (Decisions, since the review of 2026-11-10). Budget's write starts chosen only when
+    the request asks for it and the connection held it. Every module the page grants is shown with
+    its access, held ones included, so nothing is granted out of the member's sight.
   - The organizations are ticked once for every module, as today.
   - Allow stays off while no module is allowed. "Not allowed" is offered only beside another module,
     and a module's own address shows its one module as it always has.
@@ -619,13 +628,19 @@ one scope rule at an authorization, Allow, a refresh and the verifier, Allow's h
 after the member's lock, Access only narrowing under the same lock, the verifier narrowing a token
 to its connection at every call, and no operation or column removed, so the release does not stop
 at Data Connect. It changed:
-- the consent's defaults, so a write held at read starts at read (Decisions);
-- the instructions, which name the modules a connection was not allowed in (Instructions);
-- `check:oauth`, which walks an Allow granting nothing asked for, only what was held;
+- the consent's defaults, so consenting again starts as the connection holds and grants nothing
+  more unless the member chooses it (Decisions). A first version kept a write held at read at read
+  alone, and its review found a module left out still starting chosen;
+- the instructions, which name the modules a connection is not allowed in (Instructions);
+- `check:oauth`, which walks an Allow granting nothing asked for, only what was held, its code
+  issuing nothing asked for that was not granted;
 - this document, which says what one set of organizations costs, writes M4 and lists what the
   release owes.
 
 It kept, having weighed them again:
+- what a connection holds as the record of the member's choices, rather than a column of the scopes
+  they declined: starting as held protects every narrowing, at the cost of a click on each widening,
+  and a record of intent waits until that click proves costly;
 - a refresh naming more than its token holds getting what is left, rather than `invalid_scope`
   (RFC 6749, 6), which never widens and spares the member a consent;
 - one rate limit across the modules;

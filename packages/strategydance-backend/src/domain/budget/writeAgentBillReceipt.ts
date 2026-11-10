@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
 
+import { toCanonicalUuid } from 'strategydance-core'
 import { completeBillReceiptUpload, reserveBillReceiptForAgent } from 'strategydance-database/backend'
 
 import type { ModuleCaller } from '~types'
@@ -8,7 +9,6 @@ import type { ModuleCaller } from '~types'
 import { dataConnect } from '~firebase'
 
 import buildBillReceiptObjectName from '~utils/buildBillReceiptObjectName'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import billReceiptStorage from '~domain/budget/billReceiptStorage'
 import type { AgentBillReceiptFile } from '~domain/budget/readAgentBillReceipt'

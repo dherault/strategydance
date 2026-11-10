@@ -1,5 +1,6 @@
 import { setTimeout as wait } from 'node:timers/promises'
 
+import { toCanonicalUuid } from 'strategydance-core'
 import {
   ConversationRunStatus,
   getSubagentForAgent,
@@ -11,7 +12,6 @@ import type { ModuleCall, ModuleCaller, SubagentStatus, SubagentsWriteResult } f
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isOperationRefusal from '~domain/modules/isOperationRefusal'

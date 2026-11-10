@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto'
 
 import {
-  MAX_ACTIVE_RUNS_PER_MEMBER,
-  MAX_CONVERSATIONS,
-  MAX_CONVERSATION_MESSAGES,
-  MAX_CONVERSATION_SEND_INPUT_TOKENS,
   buildConversationPreview,
   buildConversationTitle,
+  MAX_ACTIVE_RUNS_PER_MEMBER,
+  MAX_CONVERSATION_MESSAGES,
+  MAX_CONVERSATION_SEND_INPUT_TOKENS,
+  MAX_CONVERSATIONS,
+  toCanonicalUuid,
 } from 'strategydance-core'
 import {
   type CompanyAspect,
@@ -24,8 +25,6 @@ import type { ConversationContentBlock, ReachedUsageCap } from '~types'
 import { IS_USAGE_CAPPED } from '~constants'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
 import buildConversationFileNames from '~domain/agent/buildConversationFileNames'

@@ -1,4 +1,4 @@
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { toCanonicalUuid } from 'strategydance-core'
 
 /*
   What an integration's secret is bound to, as additional authenticated data: what it is, the

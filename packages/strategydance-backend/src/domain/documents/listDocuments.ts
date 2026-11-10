@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { type CompanyAspect, listDocumentsForAgent } from 'strategydance-database/backend'
 import { z } from 'zod'
 
@@ -9,7 +10,6 @@ import { dataConnect } from '~firebase'
 
 import decodeCursor from '~utils/decodeCursor'
 import encodeCursor from '~utils/encodeCursor'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 // An instant past every document, which the first page reads before
 const END_OF_TIME = '9999-12-31T23:59:59.999999Z'

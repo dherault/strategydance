@@ -1,8 +1,6 @@
-import type { BillRecurrence, Currency } from 'strategydance-core'
+import { type BillRecurrence, type Currency, toCanonicalUuid } from 'strategydance-core'
 
 import type { AgentBill } from '~types'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 // A bill as the operations read it, whichever read
 type AgentBillRow = {

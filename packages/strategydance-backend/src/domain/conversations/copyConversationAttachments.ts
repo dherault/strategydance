@@ -1,6 +1,7 @@
+import { toCanonicalUuid } from 'strategydance-core'
+
 import buildConversationStoragePrefix from '~utils/buildConversationStoragePrefix'
 import buildPendingAttachmentObjectName from '~utils/buildPendingAttachmentObjectName'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import conversationAttachmentStorage from '~domain/conversations/conversationAttachmentStorage'
 import type { ConversationSendAttachment } from '~domain/conversations/readConversationSendAttachments'

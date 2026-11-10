@@ -1,10 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { deleteBillForAgent } from 'strategydance-database/backend'
 
 import type { BudgetWriteResult, ModuleCall, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import { NOT_FOUND_REFUSAL } from '~domain/budget/budgetRefusalMessages'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'

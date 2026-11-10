@@ -1,10 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { type CompanyAspect, setDocumentAspectsForAgent } from 'strategydance-database/backend'
 
 import type { DocumentsWriteResult, ModuleCall, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import explainDocumentRefusal from '~domain/documents/explainDocumentRefusal'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'

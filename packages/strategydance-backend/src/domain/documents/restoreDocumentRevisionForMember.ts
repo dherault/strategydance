@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { getDocumentRevisionForMember, restoreDocumentRevision } from 'strategydance-database/backend'
 import { updateRichTextYDoc } from 'strategydance-design-system/lib/updateRichTextYDoc'
 import * as Y from 'yjs'
@@ -5,8 +6,6 @@ import * as Y from 'yjs'
 import { DOCUMENT_FOLD_ATTEMPTS } from '~constants'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import compressDocumentRevisionState from '~domain/documents/compressDocumentRevisionState'
 import { EDITED_REFUSAL, EMPTY_REFUSAL, RESTORE_FOLDED_REFUSAL } from '~domain/documents/documentsRefusalMessages'

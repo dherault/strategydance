@@ -1,4 +1,4 @@
-import { getPositionBetween, getTasksUnblockedBy } from 'strategydance-core'
+import { getPositionBetween, getTasksUnblockedBy, toCanonicalUuid } from 'strategydance-core'
 import { type CompanyAspect, getTaskForAgent, TaskStatus, updateTaskForAgent } from 'strategydance-database/backend'
 
 import type { BoardTask, ModuleCall, ModuleCaller, TaskReference, TasksRefusal, TasksWriteResult } from '~types'
@@ -6,8 +6,6 @@ import type { BoardTask, ModuleCall, ModuleCaller, TaskReference, TasksRefusal, 
 import { MAX_FREED_TASKS_NAMED, TASK_UPDATE_ATTEMPTS } from '~constants'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'

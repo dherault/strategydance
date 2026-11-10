@@ -1,4 +1,4 @@
-import type { KnowledgeKind } from 'strategydance-core'
+import { type KnowledgeKind, toCanonicalUuid } from 'strategydance-core'
 import {
   KnowledgeKind as DatabaseKnowledgeKind,
   getKnowledgeDocumentLinkForAgent,
@@ -10,8 +10,6 @@ import {
 import type { ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import type { KnowledgeLinkTargetInput } from '~domain/knowledge/toKnowledgeLinkTarget'
 

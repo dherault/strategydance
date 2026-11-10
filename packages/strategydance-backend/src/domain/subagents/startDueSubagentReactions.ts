@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { getDueSubagentReactions } from 'strategydance-database/backend'
 
 import type { ConversationRunReference } from '~types'
@@ -5,7 +6,6 @@ import type { ConversationRunReference } from '~types'
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import reactToSubagentReports from '~domain/subagents/reactToSubagentReports'
 

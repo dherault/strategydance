@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import {
   foldDocumentWithRevisionForAgent,
   getDocumentForAgent,
@@ -9,8 +10,6 @@ import type { DocumentEdit, DocumentsWriteResult, ModuleCall, ModuleCaller } fro
 import { DOCUMENT_FOLD_ATTEMPTS } from '~constants'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import { EDITED_REFUSAL, EMPTY_REFUSAL, FOLDED_REFUSAL } from '~domain/documents/documentsRefusalMessages'
 import explainDocumentRefusal from '~domain/documents/explainDocumentRefusal'

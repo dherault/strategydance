@@ -1,10 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { type ConversationRunStatus, getSubagentWritesForAgent } from 'strategydance-database/backend'
 
 import type { ConversationTextBlock } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import toConversationModuleScope from '~domain/agent/toConversationModuleScope'
 import buildSubagentReportBlock from '~domain/subagents/buildSubagentReportBlock'

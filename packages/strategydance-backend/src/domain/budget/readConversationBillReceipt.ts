@@ -1,4 +1,9 @@
-import { BILL_RECEIPT_CONTENT_TYPES, MAX_BILL_RECEIPT_PDF_PAGES, MAX_BILL_RECEIPT_SIZE } from 'strategydance-core'
+import {
+  BILL_RECEIPT_CONTENT_TYPES,
+  MAX_BILL_RECEIPT_PDF_PAGES,
+  MAX_BILL_RECEIPT_SIZE,
+  toCanonicalUuid,
+} from 'strategydance-core'
 import { getConversationAttachmentForAgent } from 'strategydance-database/backend'
 
 import type { ModuleCaller } from '~types'
@@ -6,7 +11,6 @@ import type { ModuleCaller } from '~types'
 import { dataConnect } from '~firebase'
 
 import buildConversationStoragePrefix from '~utils/buildConversationStoragePrefix'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 // A conversation's file a receipt is copied from, as its row gives it, every id canonical
 export type ConversationBillReceiptFile = {

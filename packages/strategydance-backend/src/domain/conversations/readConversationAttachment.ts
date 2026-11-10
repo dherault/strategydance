@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import {
   ConversationAttachmentStatus,
   getConversationAttachment,
@@ -8,7 +9,6 @@ import { dataConnect } from '~firebase'
 
 import buildConversationStoragePrefix from '~utils/buildConversationStoragePrefix'
 import buildPendingAttachmentObjectName from '~utils/buildPendingAttachmentObjectName'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 type ConversationAttachmentLocation = {
   // Canonical, as `toCanonicalUuid` writes them, and the caller's uid as the backend verified it

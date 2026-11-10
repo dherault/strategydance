@@ -1,13 +1,11 @@
 import { randomUUID } from 'node:crypto'
 
-import { MAX_AGENT_CONNECTION_ORGANIZATIONS, toModuleScopesInOrder } from 'strategydance-core'
+import { MAX_AGENT_CONNECTION_ORGANIZATIONS, toCanonicalUuid, toModuleScopesInOrder } from 'strategydance-core'
 import { approveOAuthAuthorizationRequest as approveRequest } from 'strategydance-database/backend'
 
 import { OAUTH_ISSUER } from '~constants'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import buildAuthorizationResponseUrl from '~domain/oauth/buildAuthorizationResponseUrl'
 import checkModuleScopes from '~domain/oauth/checkModuleScopes'

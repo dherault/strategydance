@@ -1,5 +1,6 @@
+import { toCanonicalUuid } from 'strategydance-core'
+
 import buildPendingAttachmentPrefix from '~utils/buildPendingAttachmentPrefix'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 type PendingAttachment = {
   organizationId: string

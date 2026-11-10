@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { type BillRecurrence, type Currency, MAX_BILLS } from 'strategydance-core'
+import { type BillRecurrence, type Currency, MAX_BILLS, toCanonicalUuid } from 'strategydance-core'
 import {
   BillRecurrence as DatabaseBillRecurrence,
   createBillForAgent,
@@ -10,8 +10,6 @@ import {
 import type { AgentBill, AgentBillReceipt, BudgetWriteResult, ModuleCall, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import {
   FULL_REFUSAL,

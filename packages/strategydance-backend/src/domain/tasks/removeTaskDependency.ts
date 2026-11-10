@@ -1,11 +1,9 @@
-import { isTaskBlocked } from 'strategydance-core'
+import { isTaskBlocked, toCanonicalUuid } from 'strategydance-core'
 import { removeTaskDependencyForAgent } from 'strategydance-database/backend'
 
 import type { ModuleCall, ModuleCaller, TasksWriteResult } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'

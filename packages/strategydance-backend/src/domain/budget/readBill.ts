@@ -4,14 +4,13 @@ import {
   formatMoneyAmount,
   listBillPayments,
   listExchangeRateYears,
+  toCanonicalUuid,
 } from 'strategydance-core'
 import { getBillForAgent } from 'strategydance-database/backend'
 
 import type { BudgetRefusal, ModuleBill, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import readBudgetRates from '~domain/budget/readBudgetRates'
 import toAgentBill from '~domain/budget/toAgentBill'

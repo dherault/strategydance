@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { MAX_ACTIVE_RUNS_PER_MEMBER } from 'strategydance-core'
+import { MAX_ACTIVE_RUNS_PER_MEMBER, toCanonicalUuid } from 'strategydance-core'
 import {
   ConversationRunStatus,
   ConversationRunTrigger,
@@ -14,8 +14,6 @@ import type { ConversationRunReference } from '~types'
 import { IS_USAGE_CAPPED } from '~constants'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import { STOPPED_CALL_RESULT, toFailedOutput } from '~domain/conversations/conversationToolResults'
 import enqueueRun from '~domain/conversations/enqueueRun'

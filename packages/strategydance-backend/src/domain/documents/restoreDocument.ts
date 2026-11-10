@@ -1,10 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { restoreDocumentForAgent } from 'strategydance-database/backend'
 
 import type { DocumentsWriteResult, ModuleCall, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import { FULL_REFUSAL } from '~domain/documents/documentsRefusalMessages'
 import readDocumentAccess from '~domain/documents/readDocumentAccess'

@@ -1,9 +1,8 @@
-import { MAX_AGENT_BILL_RECEIPT_SIZE } from 'strategydance-core'
+import { MAX_AGENT_BILL_RECEIPT_SIZE, toCanonicalUuid } from 'strategydance-core'
 
 import type { AgentBillReceipt, ModuleCaller } from '~types'
 
 import sniffConversationAttachment from '~utils/sniffConversationAttachment'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import checkBillReceiptBytes from '~domain/budget/checkBillReceiptBytes'
 

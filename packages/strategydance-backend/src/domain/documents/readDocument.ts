@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import type { CompanyAspect } from 'strategydance-database/backend'
 import { z } from 'zod'
 
@@ -5,7 +6,6 @@ import type { DocumentsRefusal, ModuleCaller } from '~types'
 
 import decodeCursor from '~utils/decodeCursor'
 import encodeCursor from '~utils/encodeCursor'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import hashDocumentText from '~domain/documents/hashDocumentText'
 import loadDocument from '~domain/documents/loadDocument'

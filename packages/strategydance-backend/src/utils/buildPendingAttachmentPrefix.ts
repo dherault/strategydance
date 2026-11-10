@@ -1,4 +1,4 @@
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { toCanonicalUuid } from 'strategydance-core'
 
 /*
   Where an organization's files wait in the bucket between their upload and their send, outside

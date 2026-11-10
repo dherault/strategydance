@@ -1,11 +1,9 @@
-import { type Currency, listExchangeRateYears, MAX_BILLS } from 'strategydance-core'
+import { type Currency, listExchangeRateYears, MAX_BILLS, toCanonicalUuid } from 'strategydance-core'
 import { getBillForAgent, restoreBillForAgent } from 'strategydance-database/backend'
 
 import type { BudgetWriteResult, ModuleBill, ModuleCall, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import { FULL_REFUSAL, GONE_REFUSAL } from '~domain/budget/budgetRefusalMessages'
 import readBudgetRates from '~domain/budget/readBudgetRates'

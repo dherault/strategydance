@@ -1,4 +1,4 @@
-import { isTaskBlocked } from 'strategydance-core'
+import { isTaskBlocked, toCanonicalUuid } from 'strategydance-core'
 import { type CompanyAspect, searchTasksForAgent, type TaskStatus } from 'strategydance-database/backend'
 import { z } from 'zod'
 
@@ -10,7 +10,6 @@ import { dataConnect } from '~firebase'
 
 import decodeCursor from '~utils/decodeCursor'
 import encodeCursor from '~utils/encodeCursor'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import recordModuleSearch from '~domain/modules/recordModuleSearch'
 import compareTaskPlaces from '~domain/tasks/compareTaskPlaces'

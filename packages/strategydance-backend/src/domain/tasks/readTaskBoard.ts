@@ -1,10 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { getTaskBoardForAgent } from 'strategydance-database/backend'
 
 import type { ModuleCaller, TaskBoard } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 type ReadTaskBoardResult = { outcome: 'notMember' } | { outcome: 'read'; board: TaskBoard }
 

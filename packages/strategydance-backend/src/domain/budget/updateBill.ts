@@ -1,4 +1,4 @@
-import { type BillRecurrence, type Currency, formatMoneyAmount } from 'strategydance-core'
+import { type BillRecurrence, type Currency, formatMoneyAmount, toCanonicalUuid } from 'strategydance-core'
 import {
   BillRecurrence as DatabaseBillRecurrence,
   Currency as DatabaseCurrency,
@@ -10,8 +10,6 @@ import type { AgentBill, AgentBillUpdateReceipt, BudgetWriteResult, ModuleCall, 
 import { BILL_UPDATE_ATTEMPTS } from '~constants'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import {
   CHANGED_REFUSAL,

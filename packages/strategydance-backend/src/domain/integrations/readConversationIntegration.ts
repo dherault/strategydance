@@ -1,8 +1,7 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { getConversationIntegration } from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import parseStoredIntegrationTools from '~domain/integrations/parseStoredIntegrationTools'
 import type { ConversationIntegrationCaller } from '~domain/integrations/readConversationIntegrations'

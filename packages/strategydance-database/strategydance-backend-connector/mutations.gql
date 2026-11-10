@@ -7928,8 +7928,10 @@ mutation PruneOAuthClients @auth(level: NO_ACCESS) {
 # Adds a server, with what reaching it found: its tools for one that took no OAuth, or the issuer of
 # its authorization server for one that does, whose tools wait for a member's connection (M28).
 #
-# The first step takes the organization's row lock, so two administrators adding at once count each
-# other: at most 50 live servers (`MAX_INTEGRATIONS` in strategydance-core), and no two of one name
+# The first step takes the organization's row lock, and the checks read its response, so they run
+# as a statement of their own once it is held (CLAUDE.md § The database) and two administrators
+# adding at once count each other: at most 50 live servers (`MAX_INTEGRATIONS` in
+# strategydance-core), and no two of one name
 mutation CreateOrganizationIntegration(
   $organizationId: UUID!
   $userId: String!
@@ -7948,21 +7950,23 @@ mutation CreateOrganizationIntegration(
   $toolCount: Int
   $toolDefinitionHashes: [String!]!
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can add a server to it")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can add a server to it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can add a server")
     }
     organizationIntegrations(
-      where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
       limit: 50
     ) @check(expr: "size(this) < 50", message: "An organization adds at most 50 servers") {
       id
     }
     taken: organizationIntegrations(
       where: {
-        organizationId: { eq: $organizationId }
+        organizationId: { eq_expr: "response.organization_update.id" }
         normalizedName: { eq: $normalizedName }
         deletedAt: { isNull: true }
       }
@@ -8002,16 +8006,18 @@ mutation RenameOrganizationIntegration(
   $normalizedName: String!
   $readName: String!
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its servers")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
     }
     taken: organizationIntegrations(
       where: {
         _and: [
-          { organizationId: { eq: $organizationId }, normalizedName: { eq: $normalizedName } }
+          { organizationId: { eq_expr: "response.organization_update.id" }, normalizedName: { eq: $normalizedName } }
           { deletedAt: { isNull: true } }
           { _not: { id: { eq: $integrationId } } }
         ]
@@ -8043,7 +8049,9 @@ mutation RenameOrganizationIntegration(
 #
 # The server's own write comes first, the deletes after it: under read committed, a member's Connect
 # that locked the row first commits before this write takes it, and the deletes then see its
-# connection; one that comes after waits for this write and finds the revision moved, refused. The
+# connection, since the checks read the organization's lock's response, which runs every step as a
+# statement of its own (CLAUDE.md § The database); one that comes after waits for this write and
+# finds the revision moved, refused. The
 # other order would let a connection made between the deletes and the write outlive them. The
 # emulator runs one transaction at a time, so the order is reasoned here rather than tested.
 #
@@ -8070,16 +8078,18 @@ mutation ReconfigureOrganizationIntegration(
   $toolCount: Int
   $toolDefinitionHashes: [String!]!
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its servers")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
     }
     taken: organizationIntegrations(
       where: {
         _and: [
-          { organizationId: { eq: $organizationId }, normalizedName: { eq: $normalizedName } }
+          { organizationId: { eq_expr: "response.organization_update.id" }, normalizedName: { eq: $normalizedName } }
           { deletedAt: { isNull: true } }
           { _not: { id: { eq: $integrationId } } }
         ]
@@ -8153,16 +8163,18 @@ mutation UpdateOrganizationIntegrationKey(
   $toolDefinitionHashes: [String!]!
   $removedToolDefinitionHashes: [String!]!
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its servers")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
     }
     taken: organizationIntegrations(
       where: {
         _and: [
-          { organizationId: { eq: $organizationId }, normalizedName: { eq: $normalizedName } }
+          { organizationId: { eq_expr: "response.organization_update.id" }, normalizedName: { eq: $normalizedName } }
           { deletedAt: { isNull: true } }
           { _not: { id: { eq: $integrationId } } }
         ]
@@ -8441,21 +8453,23 @@ mutation RestoreOrganizationIntegration(
   $integrationId: UUID!
   $normalizedName: String!
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can restore its servers")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can restore its servers") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can restore a server")
     }
     organizationIntegrations(
-      where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
       limit: 50
     ) @check(expr: "size(this) < 50", message: "An organization adds at most 50 servers") {
       id
     }
     taken: organizationIntegrations(
       where: {
-        organizationId: { eq: $organizationId }
+        organizationId: { eq_expr: "response.organization_update.id" }
         normalizedName: { eq: $normalizedName }
         deletedAt: { isNull: true }
       }
@@ -8601,13 +8615,17 @@ mutation StartIntegrationAuthorization(
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can connect an account to its servers") {
-      role
+      userId
     }
   }
+  # Reads the membership read after the lock, which runs every step as a statement of its own, so
+  # the member's Connect another request committed while the lock was waited for is replaced
+  # rather than refused by the unique pair, which one statement would miss (CLAUDE.md § The
+  # database)
   integrationAuthorization_deleteMany(
     where: {
       integrationId: { eq: $integrationId }
-      membershipUserId: { eq: $userId }
+      membershipUserId: { eq_expr: "response.query.userOrganization.userId" }
       membershipOrganizationId: { eq: $organizationId }
     }
   ) @redact
@@ -8702,8 +8720,8 @@ mutation CancelIntegrationAuthorization(
 # Stores a member's connection once its code was exchanged: locks the server's row at the
 # configuration and issuer the Connect started under, replaces the member's earlier connection to it,
 # and stores the new one, under a fresh generation. A member removed meanwhile is refused by the
-# connection's reference to the membership, which Data Connect reports before the step's check. Every
-# variable is passed, null included
+# membership's check after the lock, or, removed once it has run, by the connection's reference to
+# the membership. Every variable is passed, null included
 mutation ConnectIntegration(
   $organizationId: UUID!
   $userId: String!
@@ -8737,13 +8755,17 @@ mutation ConnectIntegration(
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can connect an account to its servers") {
-      role
+      userId
     }
   }
+  # Reads the membership read after the lock, which runs every step as a statement of its own, so
+  # the member's Connect another request committed while the lock was waited for is replaced
+  # rather than refused by the unique pair, which one statement would miss (CLAUDE.md § The
+  # database)
   integrationConnection_deleteMany(
     where: {
       integrationId: { eq: $integrationId }
-      membershipUserId: { eq: $userId }
+      membershipUserId: { eq_expr: "response.query.userOrganization.userId" }
       membershipOrganizationId: { eq: $organizationId }
     }
   ) @redact

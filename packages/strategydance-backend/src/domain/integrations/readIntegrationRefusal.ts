@@ -1,7 +1,7 @@
 import isAdministratorRefusal from '~domain/organizations/isAdministratorRefusal'
 
-// The constraints a member's connection and Connect reference the membership by, which Data Connect
-// reports before a step's own check when the member was removed meanwhile
+// The constraints a member's connection and Connect reference the membership by, which refuse them
+// when the member was removed after the step checking the membership ran
 const MEMBERSHIP_CONSTRAINTS = ['integration_connection_membership_fkey', 'integration_authorization_membership_fkey']
 
 /*

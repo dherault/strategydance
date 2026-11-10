@@ -40,6 +40,7 @@ import toConversationProfile from '~domain/agent/toConversationProfile'
 import {
   type ConversationRequestUsage,
   type ConversationRunUsage,
+  countSentRequests,
   parseConversationRunUsage,
   reserveConversationRequest,
   settleConversationRequest,
@@ -151,10 +152,11 @@ export type ConversationTurnOutcome =
     at the most it may have written in the time it streamed (`priceCutRequestBound`). An error that
     is not the API's, the worker's own before the request reached the API or one cutting its stream,
     settles it before the step fails, at nothing or at what its stream reported
-  - a run at one of its limits: 25 requests sent, or 10 minutes gone since it was first claimed,
-    sends no further request, and a stream still going 14 minutes after the claim is cut, charged as
-    one that failed partway. The run fails with its note. A subagent's request for its report, which
-    the entry it answers asked for, goes past both, but not within two minutes of that cut
+  - a run at one of its limits: 25 requests that reached Claude, the attempts its API refused aside
+    (`countSentRequests`), or 10 minutes gone since it was first claimed, sends no further request,
+    and a stream still going 14 minutes after the claim is cut, charged as one that failed partway.
+    The run fails with its note. A subagent's request for its report, which the entry it answers
+    asked for, goes past both, but not within two minutes of that cut
   - a request whose worst case, with what the run's ledger may have cost, would pass the run's $10
     (`priceRequestWorstCase`), or a daily spend ceiling with what the member's other runs may have
     cost, the member's in the organization, the account's or the organization's
@@ -245,7 +247,7 @@ async function requestConversationTurn({
 
   for (;;) {
     // A run at a limit sends no further request, which drops the parts of a turn held in memory
-    if (!isReportRequest && usage.requests.length >= limits.maxRequests) {
+    if (!isReportRequest && countSentRequests(usage) >= limits.maxRequests) {
       return { kind: 'ending', ending: fail(`The run sent its ${limits.maxRequests} requests`, usage, true) }
     }
 

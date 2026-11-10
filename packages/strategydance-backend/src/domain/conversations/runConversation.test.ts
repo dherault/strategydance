@@ -926,6 +926,44 @@ describe('runConversation', () => {
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
   })
 
+  test('counts toward its requests only those that reached Claude, so attempts refused before them leave it its last', async () => {
+    const reference = await start()
+    const paused = () =>
+      answer([{ type: 'text', text: 'Still looking.', citations: null }], { stopReason: 'pause_turn' })
+    const scripted = createClient([
+      new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+      new Anthropic.RateLimitError(429, { type: 'rate_limit_error' }, 'Rate limited', new Headers()),
+      paused(),
+      paused(),
+      answer(),
+    ])
+
+    expect(
+      await runConversation(reference, { client: scripted.client, apiRetryDelayMs: 1, limits: { maxRequests: 3 } }),
+    ).toBe('finished')
+    expect(scripted.requests).toHaveLength(5)
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'AGENT_TEXT', text: REPLY })
+  })
+
+  test('sends none past its requests that reached Claude, the attempts refused before them aside', async () => {
+    const reference = await start()
+    const paused = () =>
+      answer([{ type: 'text', text: 'Still looking.', citations: null }], { stopReason: 'pause_turn' })
+    const scripted = createClient([
+      new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+      paused(),
+      paused(),
+      paused(),
+    ])
+
+    expect(
+      await runConversation(reference, { client: scripted.client, apiRetryDelayMs: 1, limits: { maxRequests: 2 } }),
+    ).toBe('finished')
+    expect(scripted.requests).toHaveLength(3)
+    expect(readRun(reference)).toMatchObject({ status: 'FAILED', failure: 'The run sent its 2 requests' })
+  })
+
   test('sends no request once its minutes since it was first claimed have gone, a worker taking it over included', async () => {
     const reference = await start()
 

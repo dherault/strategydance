@@ -4,7 +4,7 @@ import { SUBAGENT_REPORT_ENTRY_MARGIN, SUBAGENT_REPORT_TIME_MS } from '~constant
 
 import { CONVERSATION_MAX_TOKENS } from '~domain/agent/conversationRequestSettings'
 import { WEB_SEARCH_MAX_USES } from '~domain/agent/conversationTools'
-import type { ConversationRunUsage } from '~domain/conversations/conversationRunUsage'
+import { type ConversationRunUsage, countSentRequests } from '~domain/conversations/conversationRunUsage'
 import { priceConversationUsageBound, priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
 import type { ConversationRunLimits } from '~domain/conversations/requestConversationTurn'
 
@@ -31,14 +31,15 @@ type Input = {
 /*
   Whether a subagent's fourth run asks for its report in the results entry it is about to store, as
   M42 settles it: once any of its budgets nears its end, so its next request is its last and its
-  report is that request's reply, whichever limit comes first. Its 24th request sent; under two
-  minutes left of its ten; within five of its 100 entries; or a ledger whose next request, reserved
-  at its worst case as `requestConversationTurn` reserves it, would leave no room for one more
-  attempt as dear, past the run's $10 or what the daily spend ceilings leave it. The next request is
-  reckoned from the last one's input and output, and the results it adds, before it is measured
+  report is that request's reply, whichever limit comes first. Its 24th request that reached Claude
+  (`countSentRequests`); under two minutes left of its ten; within five of its 100 entries; or a
+  ledger whose next request, reserved at its worst case as `requestConversationTurn` reserves it,
+  would leave no room for one more attempt as dear, past the run's $10 or what the daily spend
+  ceilings leave it. The next request is reckoned from the last one's input and output, and the
+  results it adds, before it is measured
 */
 function isSubagentReportDue({ usage, limits, startedAt, entryCount, resultsLength, model, spendRoom }: Input) {
-  if (usage.requests.length >= limits.maxRequests - 1) return true
+  if (countSentRequests(usage) >= limits.maxRequests - 1) return true
   if (Date.now() >= Date.parse(startedAt) + limits.maxDurationMs - SUBAGENT_REPORT_TIME_MS) return true
   if (entryCount >= MAX_CONVERSATION_RUN_ENTRIES - SUBAGENT_REPORT_ENTRY_MARGIN) return true
 

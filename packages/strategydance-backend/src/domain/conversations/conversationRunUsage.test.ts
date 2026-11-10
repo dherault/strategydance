@@ -4,9 +4,12 @@ import createClaudeMessage from '~domain/agent/createClaudeMessage'
 
 import {
   chargeUnsettledRequests,
+  countSentRequests,
   parseConversationRunUsage,
   reserveConversationRequest,
   settleConversationRequest,
+  settleFailedConversationRequest,
+  skipConversationRequest,
 } from './conversationRunUsage'
 
 const RESERVATION = { estimatedInputTokens: 1200, configTokens: 300, inputEndPosition: 0 }
@@ -176,6 +179,30 @@ describe('the run’s usage ledger', () => {
       isSettled: true,
     })
     expect(charged.byModel['claude-opus-5-5']?.outputTokens).toBe(64000)
+  })
+
+  test('counts the requests that reached Claude, and one reserved, never one refused or skipped', () => {
+    const sent = reserveConversationRequest(parseConversationRunUsage(null), RESERVATION)
+    const answered = settleConversationRequest(
+      sent.usage,
+      sent.index,
+      answer('claude-opus-5-5', { inputTokens: 10, outputTokens: 5 }),
+      { turnPosition: 1 },
+    )
+    const refused = reserveConversationRequest(answered, RESERVATION)
+    const skipped = skipConversationRequest(settleFailedConversationRequest(refused.usage, refused.index), {
+      estimatedInputTokens: 300,
+      inputEndPosition: 0,
+      purpose: 'tagging',
+    })
+
+    expect(countSentRequests(skipped)).toBe(1)
+
+    // One on its way, which a worker taking over charges by the model it named
+    const reserved = reserveConversationRequest(skipped, { ...RESERVATION, requestedModel: 'claude-opus-5-5' })
+
+    expect(countSentRequests(reserved.usage)).toBe(2)
+    expect(countSentRequests(chargeUnsettledRequests(reserved.usage))).toBe(2)
   })
 
   test('reads a ledger back whatever order its keys come in, and an empty one from nothing', () => {

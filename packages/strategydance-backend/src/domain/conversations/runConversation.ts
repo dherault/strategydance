@@ -73,6 +73,7 @@ import buildConversationToolResults from '~domain/conversations/buildConversatio
 import {
   type ConversationRunUsage,
   chargeUnsettledRequests,
+  countSentRequests,
   parseConversationRunUsage,
 } from '~domain/conversations/conversationRunUsage'
 import {
@@ -856,7 +857,7 @@ function shouldTag({
     && !conversation.aspectsSetBy
     && conversation.messageCount < MAX_CONVERSATION_MESSAGES
     && !usage.requests.some(({ purpose }) => purpose === 'tagging')
-    && usage.requests.length < limits.maxRequests
+    && countSentRequests(usage) < limits.maxRequests
     && Date.now() - Date.parse(startedAt) < limits.maxDurationMs
   )
 }

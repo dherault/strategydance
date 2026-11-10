@@ -46,6 +46,7 @@
   "directory.noMatchText": "検索対象は名前、説明、アドレス、メモです。",
   "directory.noMatchTitle": "条件に一致するディレクトリがありません",
   "directory.notes": "メモ",
+  "directory.notesDropped": "直前のメモは長すぎて保存できなかったため、保持されませんでした。",
   "directory.notesLabel": "{name}のメモ",
   "directory.notesLoadError": "ノートを読み込めませんでした。",
   "directory.notesPlaceholder": "ログイン情報、送信内容、返信、フォローアップなど",

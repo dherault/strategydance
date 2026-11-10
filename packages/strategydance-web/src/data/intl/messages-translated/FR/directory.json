@@ -46,6 +46,7 @@
   "directory.noMatchText": "La recherche porte sur les noms, descriptions, adresses et vos notes.",
   "directory.noMatchTitle": "Aucun annuaire ne correspond à ces filtres",
   "directory.notes": "Notes",
+  "directory.notesDropped": "Vos dernières notes étaient trop longues pour être enregistrées, elles n'ont donc pas été conservées.",
   "directory.notesLabel": "Notes pour {name}",
   "directory.notesLoadError": "Impossible de charger les notes.",
   "directory.notesPlaceholder": "Identifiants, contenus envoyés, réponses et suivis",

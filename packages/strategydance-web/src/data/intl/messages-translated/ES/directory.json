@@ -46,6 +46,7 @@
   "directory.noMatchText": "La búsqueda incluye nombres, descripciones, direcciones y tus notas.",
   "directory.noMatchTitle": "Ningún directorio coincide con estos filtros",
   "directory.notes": "Notas",
+  "directory.notesDropped": "Tus últimas notas eran demasiado largas para guardarlas, por lo que no se conservaron.",
   "directory.notesLabel": "Notas para {name}",
   "directory.notesLoadError": "No se pudieron cargar las notas.",
   "directory.notesPlaceholder": "Credenciales, lo que enviaste, respuestas y seguimiento",

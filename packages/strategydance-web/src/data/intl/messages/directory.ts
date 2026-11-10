@@ -328,6 +328,12 @@ const directoryMessages = defineMessages({
     description:
       'Shown in place of the team’s notes on a directory when they could not be read, with a button to try again.',
   },
+  notesDropped: {
+    id: 'directory.notesDropped',
+    defaultMessage: 'Your last notes were too long to save, so they were not kept.',
+    description:
+      'Notification as a directory’s dialog closes with notes past the longest that can be saved, which are lost.',
+  },
   notesSaveError: {
     id: 'directory.notesSaveError',
     defaultMessage: 'The notes could not be saved. Try again.',

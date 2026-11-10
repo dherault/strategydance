@@ -46,6 +46,7 @@
   "directory.noMatchText": "Die Suche berücksichtigt Namen, Beschreibungen, Adressen und deine Notizen.",
   "directory.noMatchTitle": "Keine Verzeichnisse entsprechen diesen Filtern",
   "directory.notes": "Notizen",
+  "directory.notesDropped": "Deine letzten Notizen waren zu lang zum Speichern und wurden daher nicht übernommen.",
   "directory.notesLabel": "Notizen für {name}",
   "directory.notesLoadError": "Die Notizen konnten nicht geladen werden.",
   "directory.notesPlaceholder": "Logins, Gesendetes, Antworten und Follow-ups",

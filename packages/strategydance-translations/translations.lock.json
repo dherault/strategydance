@@ -3757,6 +3757,10 @@
         "hash": "180ec2a8f5bcd65a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "directory.notesDropped": {
+        "hash": "7b0b6a5ea9fcea91",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "directory.notesLabel": {
         "hash": "86e097cf6b515da7",
         "locales": "DE,ES,FR,JA,PT,ZH"

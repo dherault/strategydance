@@ -46,6 +46,7 @@
   "directory.noMatchText": "搜索范围包括名称、描述、地址和您的备注。",
   "directory.noMatchTitle": "没有符合这些筛选条件的收录平台",
   "directory.notes": "备注",
+  "directory.notesDropped": "您上次输入的备注过长，无法保存，因此未予保留。",
   "directory.notesLabel": "{name} 的备注",
   "directory.notesLoadError": "无法加载笔记。",
   "directory.notesPlaceholder": "登录信息、发送内容、回复及跟进情况",

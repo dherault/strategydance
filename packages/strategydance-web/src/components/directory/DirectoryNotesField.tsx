@@ -49,17 +49,29 @@ function DirectoryNotesField({ directory }: Props) {
 
   useClaimEscape(isFocused)
 
-  // What waits to be sent goes as the dialog closes
-  useEffect(() => () => saver.flush(), [saver])
+  /*
+    What waits to be sent goes as the dialog closes, and notes too long to send are said dropped, in
+    the words of the dialog as it opened: a closing that ran each time they changed would send
+    what waits early
+  */
+  useEffect(
+    () => () => {
+      if (saver.flush() === 'tooLong') toast.error(formatMessage(directoryMessages.notesDropped))
+    },
+    // oxlint-disable-next-line react/exhaustive-deps
+    [saver],
+  )
 
   /*
     Opens the editor on the notes once read, and again on notes saved elsewhere while nothing typed
-    here waits, set during render, as React takes a state read from what it rendered. The notes
-    this page sent come back as it sent them, which reopen nothing
+    here waits or is on its way, and the reader is not in the editor, whose caret a new editor would
+    lose: they show once it loses the focus. Set during render, as React takes a state read from
+    what it rendered. The notes this page sent come back as it sent them, which reopen nothing
   */
   if (
     content !== null
-    && (opened === null || (content !== opened.content && !saver.hasPending() && content !== saver.saved()))
+    && (opened === null
+      || (content !== opened.content && !isFocused && !saver.hasPending() && content !== saver.saved()))
   ) {
     setOpened({ content, key: (opened?.key ?? -1) + 1 })
   }

@@ -49,7 +49,9 @@ describe('createDirectoryNotesSaver', () => {
     const { saver, sent } = createSaver()
 
     saver.open('')
-    saver.flush()
+
+    expect(saver.flush()).toBe('nothing')
+
     saver.change('Sent the form')
 
     expect(saver.hasPending()).toBe(true)
@@ -60,13 +62,30 @@ describe('createDirectoryNotesSaver', () => {
     expect(sent).toEqual(['Sent the form'])
   })
 
+  it('counts a send on its way as waiting, until the server has it', async () => {
+    let resolve = () => {}
+    const { saver } = createSaver(() => new Promise<void>(done => (resolve = done)))
+
+    saver.open('')
+    saver.change('Sent the form')
+
+    expect(saver.flush()).toBe('sent')
+    expect(saver.hasPending()).toBe(true)
+
+    resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(saver.hasPending()).toBe(false)
+  })
+
   it('holds notes past the longest the server takes until they are shorter', () => {
     const { saver, sent, events } = createSaver()
 
     saver.open('')
     saver.change('x'.repeat(20001))
-    saver.flush()
 
+    expect(saver.flush()).toBe('tooLong')
     expect(sent).toEqual([])
     expect(saver.hasPending()).toBe(true)
 

@@ -17,13 +17,16 @@ type Options = {
 /*
   Sends a directory's notes as the reader writes them, once they pause, and at once when the dialog
   goes (`flush`). It knows what the editor last opened on or sent (`saved`), so a change back to it
-  sends nothing, and whether anything waits to be sent (`hasPending`), which keeps the notes as
-  typed rather than as somebody else stored them meanwhile. A send that failed waits again, so the
-  words are kept to send with the next change
+  sends nothing, and whether anything waits to be sent or is on its way (`hasPending`), which keeps
+  the notes as typed rather than as somebody else stored them meanwhile, until the server has the
+  page's own. A send that failed waits again, so the words are kept to send with the next change. A
+  flush says when it held notes too long to send, which a dialog closing then says it dropped
 */
 function createDirectoryNotesSaver({ save, onError, onTooLongChange, delay = SAVE_DELAY }: Options) {
   let saved: string | null = null
   let pending: string | null = null
+  // How many sends are on their way, whose notes the server does not have yet
+  let sending = 0
   let timer: ReturnType<typeof setTimeout> | null = null
 
   function clearTimer() {
@@ -32,26 +35,34 @@ function createDirectoryNotesSaver({ save, onError, onTooLongChange, delay = SAV
     timer = null
   }
 
-  function flush() {
+  function flush(): 'nothing' | 'sent' | 'tooLong' {
     clearTimer()
 
-    if (pending === null) return
+    if (pending === null) return 'nothing'
 
     const content = pending
 
     if (content.length > MAX_KNOWLEDGE_NOTE_LENGTH) {
       onTooLongChange(true)
 
-      return
+      return 'tooLong'
     }
 
-    onTooLongChange(false)
     pending = null
     saved = content
-    save(content).catch(() => {
-      pending ??= content
-      onError()
-    })
+    sending++
+    // Counted before it settles, so the re-render it starts never reads nothing as waiting
+    onTooLongChange(false)
+    save(content)
+      .catch(() => {
+        pending ??= content
+        onError()
+      })
+      .finally(() => {
+        sending--
+      })
+
+    return 'sent'
   }
 
   return {
@@ -72,7 +83,7 @@ function createDirectoryNotesSaver({ save, onError, onTooLongChange, delay = SAV
     },
     flush,
     saved: () => saved,
-    hasPending: () => pending !== null,
+    hasPending: () => pending !== null || sending > 0,
   }
 }
 

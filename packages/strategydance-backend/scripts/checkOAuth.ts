@@ -1029,7 +1029,19 @@ async function checkHeldScopes() {
 
   check(
     'the connection then holds only what it kept',
-    heldOnlyConnection?.id === heldOnly.connectionId && heldOnlyConnection.scopes.join(' ') === 'documents:read',
+    heldOnlyConnection?.id === heldOnly.connectionId
+      && [...heldOnlyConnection.scopes].sort().join(' ') === 'documents:read',
+  )
+
+  // A code issues the connection's scopes alone, never one its request asked for that was not granted
+  const askedExchange = exchange(heldOnlyRequestId, heldOnly.code, heldOnly.connectionId, {
+    scopes: ['documents:read', 'tasks:read'],
+    module: ONE_ADDRESS,
+  })
+
+  check(
+    'its code issues nothing its request asked for that was not granted',
+    (await refusal(askedExchange.exchange))?.includes('The code was used already or has expired') === true,
   )
 
   const heldOnlyExchange = exchange(heldOnlyRequestId, heldOnly.code, heldOnly.connectionId, {

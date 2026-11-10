@@ -3568,6 +3568,424 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       }
     },
+    "directory": {
+      "directory.allDoneText": {
+        "hash": "a52323372a33358a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.allDoneTitle": {
+        "hash": "2bf9a350a2f9dcdb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.allEmptyTitle": {
+        "hash": "c01ba0791124afa8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.allTab": {
+        "hash": "020715ede120c2d2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.allTypes": {
+        "hash": "6f2ab942484a65ee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categories": {
+        "hash": "c3ba15e7ce990218",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryAiAgents": {
+        "hash": "0ff974d208767bce",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryAiTools": {
+        "hash": "4ab9a0c6522bbc06",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryAnyStartup": {
+        "hash": "20216157a750aebb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryDesign": {
+        "hash": "c2d6a3296417ad43",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryDeveloperTools": {
+        "hash": "99d00023d23d97c7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryFilterLabel": {
+        "hash": "bf4b9df511cb2c3f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryMarketing": {
+        "hash": "e2048682cd58b0bb",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryMcpServers": {
+        "hash": "e446747407f6a86a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryMobileApps": {
+        "hash": "60418ff9607acc84",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryNoCode": {
+        "hash": "f30f9b4309ab0116",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryOpenSource": {
+        "hash": "d664bfb9b424a070",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryPlaceholder": {
+        "hash": "570fd9bd0f9b29b6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categoryRegional": {
+        "hash": "d60e2230bca10695",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.categorySaas": {
+        "hash": "9cdc48bf4aa66857",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.clearFilters": {
+        "hash": "b88425fbfbb50990",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.close": {
+        "hash": "a6bacbbb2cee7d9d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.columnCategories": {
+        "hash": "3b9095b0035bf947",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.columnDirectory": {
+        "hash": "e76db3cfe61814c0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.columnPricing": {
+        "hash": "dae38275669a5fa4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.columnStatus": {
+        "hash": "9ac3589e9d85cef6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.columnSubmission": {
+        "hash": "deb4c921e6dea534",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.count": {
+        "hash": "f92eb0831303d238",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.dismissedEmptyTitle": {
+        "hash": "782cec9b27233809",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.done": {
+        "hash": "9a07f7813ba002d0",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.editorError": {
+        "hash": "e2dd0b7d1819b4c9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.emptyText": {
+        "hash": "bef7313c488ec225",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.filterClear": {
+        "hash": "0b395e65351d9c7d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.filterClose": {
+        "hash": "11b49cd9f259fb77",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.filterMore": {
+        "hash": "0b35a8f0e712a46e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.filterNoMatch": {
+        "hash": "84934ecb7d3c4b93",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.filterSearch": {
+        "hash": "395150ac2f42c6c4",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.hasNotes": {
+        "hash": "c383676a6fffab94",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.lead": {
+        "hash": "b644b24474a6961d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.listedEmptyTitle": {
+        "hash": "fc60d7543b6ebbb2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.loadError": {
+        "hash": "99312a13bcc818ff",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.loadingEditor": {
+        "hash": "0104fc12e074d22f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.markedStatus": {
+        "hash": "cfd266579dd29de1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.movedToDo": {
+        "hash": "6613064e5eb219b6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.noDescription": {
+        "hash": "fb9074dd5170b04c",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.noMatchText": {
+        "hash": "6aceea1870931015",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.noMatchTitle": {
+        "hash": "077af8b19ada29e1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.notes": {
+        "hash": "180ec2a8f5bcd65a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.notesDropped": {
+        "hash": "7b0b6a5ea9fcea91",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.notesLabel": {
+        "hash": "86e097cf6b515da7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.notesLoadError": {
+        "hash": "e7370ec7be408ea2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.notesPlaceholder": {
+        "hash": "64e6d93bf2b59337",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.notesSaveError": {
+        "hash": "9f79523700c0f3a2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.notesTooLong": {
+        "hash": "25dee776323d8f8a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.openSubmissionPage": {
+        "hash": "0b706a09f0de1a3a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.openSubmissionPageOf": {
+        "hash": "ad7344d154ec5e80",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricing": {
+        "hash": "dafb6284bff3db7e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingFilterLabel": {
+        "hash": "59505700ab91ec72",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingFree": {
+        "hash": "9de675e45f1e7b13",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingFreeForLimitedTime": {
+        "hash": "bcd15e1d9919f1a7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingFreeWithBadge": {
+        "hash": "844d12b4fec9351e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingFreeWithCuration": {
+        "hash": "453c6c7a0ca7d8c2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingFreeWithEngagement": {
+        "hash": "6942a984c2649dc9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingFreeWithGate": {
+        "hash": "75f07a88066384d8",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingFreeWithLongQueue": {
+        "hash": "accc5b61100923b9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingFreeWithPaidPromotion": {
+        "hash": "c4144ba2533786d6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingFreeWithPaidSkip": {
+        "hash": "77a4c94be4851f62",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingPaid": {
+        "hash": "5fef019a054657a7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingPlaceholder": {
+        "hash": "8cc521bc2c271cf9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.pricingUnknown": {
+        "hash": "446582a3073ab4bf",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.progressListed": {
+        "hash": "16e0beb791085d7d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.progressSubmitted": {
+        "hash": "681989e102f1ad3d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.progressToDo": {
+        "hash": "d4e2237895664307",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.reddit": {
+        "hash": "0cbde8af46cfb7c1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.redditCommunities": {
+        "hash": "edb171b3b3bd2dee",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.redditCommunity": {
+        "hash": "65b1daeab43b142b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.retry": {
+        "hash": "936d571a35482804",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.search": {
+        "hash": "ecf83b409ede7f51",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.searchLabel": {
+        "hash": "6c4c7e91df8ceb1f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.sectionDescription": {
+        "hash": "f71ea14e76bcb4ad",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.status": {
+        "hash": "6ac50f07990ead9f",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.statusChangedAgo": {
+        "hash": "5734cab523a893e2",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.statusChangedJustNow": {
+        "hash": "48232d9e7d7ef6e3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.statusChangedOn": {
+        "hash": "920341f3716b6d83",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.statusDismissed": {
+        "hash": "53debfe0c409405a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.statusHint": {
+        "hash": "af5d20d38ad0ef0e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.statusListed": {
+        "hash": "3c3811a8d60c1dd5",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.statusSaveError": {
+        "hash": "f8b435dc0a7b098e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.statusSubmitted": {
+        "hash": "c1cfcab52c98fdba",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.statusToDo": {
+        "hash": "2f1e0b2672700906",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.submittedEmptyTitle": {
+        "hash": "edb36b5490d28bb6",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.tabsLabel": {
+        "hash": "6046e0816aa88c76",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.title": {
+        "hash": "9c2b8af0bed13f21",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.toDoEmptyTitle": {
+        "hash": "1eddb02b00e0ef34",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.turnInto": {
+        "hash": "178fdb0c5ed646fa",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.type": {
+        "hash": "098fa203da28c021",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.typeFilterLabel": {
+        "hash": "6930ef589d25c543",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.unreachable": {
+        "hash": "f331a8ffa5d98365",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.unreachableSince": {
+        "hash": "3d536d3bc04fdf84",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.viewAll": {
+        "hash": "25ef36c87569939d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.visitCommunity": {
+        "hash": "89f7b73f8fa5b0ac",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.visitSite": {
+        "hash": "f4c5e82cdb6c3c54",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.website": {
+        "hash": "5bf071dd5bc8336a",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "directory.websites": {
+        "hash": "6a032fc5cf670190",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      }
+    },
     "document": {
       "document.add": {
         "hash": "58dd949addddbf7b",

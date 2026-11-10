@@ -32,7 +32,7 @@ Taken with David on 2026-10-31:
   - It is in `MODULES` but not in `SERVED_MODULE_NAMES`, as Subagents is, so `/mcp/knowledge` is
     reserved and answers nothing.
   - The directories alone have a page, from a Claude Design design (decided 2026-11-10, § The
-    directories' page). Nothing else in the app shows what the company uses: the agent says it in a
+    directories' page), which shows those taking a submission today alone. Nothing else in the app shows what the company uses: the agent says it in a
     conversation.
 - **The catalogue stays in the package**, shipped with each release, and the module never writes it.
   The database holds only the company's state, keyed by an item's kind and id, which never changes,
@@ -310,6 +310,43 @@ other modules.
   Retry's dialog still names documents, tasks and bills alone: what a discarded subagent marked or
   linked stays too, which nothing in the app shows but a directory's status and notes, on the
   directories' page.
+
+### The directories' page
+
+Ported from the Claude Design prototype's `Directories.jsx` and `Aspect.jsx` (2026-11-10). It
+shows the directories taking a submission today alone: the inactive list never loads in the app, so
+a status kept for an inactive directory counts nowhere, and its address is a page that does not
+exist. The agent still reads and sets those, since the company may have submitted to one before.
+
+- **The catalogue in the browser.** The web loads `strategydance-knowledge/src/directories/
+  directories.json` lazily (`loadDirectories`), so its 200 KB stay out of every other page's
+  bundle, and imports the package's enums, types and id pattern by their own paths, never its
+  root, which bundles every list. A directory's description stays in English, as the daily check
+  writes it; the statuses, business models, categories and types are messages.
+- **`/<organization>/directories`**, under the Marketing aspect, whose sidebar row stays active
+  there (`NavigationLink`'s `activePaths`):
+  - tabs To do, Submitted, Listed, Dismissed and All, with their counts, the tab in the address
+    (`?view=`), To do when it names none;
+  - a search over names, descriptions, addresses and the notes' text, and filters by pricing,
+    category, a directory taking any startup kept under every category but `REGIONAL`, as
+    `list_knowledge` keeps it, and type;
+  - a table, a row opening the directory.
+- **`/<organization>/directories/<id>`**, a dialog over the page: the description, links to the
+  submission page and the site, the notes, the status with since when, and what the directory
+  charges, lists and is. Closing steps back when the page opened it (`isFromDirectoriesPage`).
+- **The Marketing aspect's section**: how many directories are listed, submitted and to do, the
+  next six to do as cards, ranked as the prototype does (`rankNextDirectories`), each opening its
+  dialog over the Marketing page, and the way to the page.
+- **Its reads**: `GetDirectoryUses`, every status and notes' text of the organization, and
+  `GetDirectoryNotes`, one directory's notes, both live, refreshed by the module's writes too, so
+  a status or notes the agent sets show on every open page.
+- **Its writes**, any member's, as with the board: `SetDirectoryStatus`, with a toast, and
+  `SetDirectoryNotes`, sent a second after the reader pauses and at once as the dialog closes
+  (`createDirectoryNotesSaver`). The database cannot hold an id to the catalogue, so both hold it to
+  `KNOWLEDGE_ID_PATTERN` and count the organization's rows under the lock on its row, at most
+  2,000; a junk id is read past. The page's notes save is the member's word and takes no version:
+  notes saved elsewhere replace what the editor shows while nothing typed waits to be sent, and
+  are written over once something does. Neither records a day of activity.
 
 ### For the orchestrator
 

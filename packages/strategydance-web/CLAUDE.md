@@ -60,6 +60,9 @@ The app's conventions, beside the root `CLAUDE.md`. Imports go through the `~` a
   through `utils/budget/`, a currency's digits from `CURRENCIES`, never `Intl`, and computes through
   `useBudgetSummary`. Whatever opens a bill passes `state: { isFromBudgetPage: true }`, so closing
   steps back
+- The directories come from `strategydance-knowledge` by their own paths, its JSON through
+  `loadDirectories`, never the package's root, which bundles every list. Whatever opens a directory
+  at its address passes `state: { isFromDirectoriesPage: true }`, so closing steps back
 
 ## Routing
 

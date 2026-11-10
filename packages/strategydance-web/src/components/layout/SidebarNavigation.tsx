@@ -12,7 +12,7 @@ import {
   WalletIcon,
 } from 'lucide-react'
 import { useIntl } from 'react-intl'
-import { OrganizationRole } from 'strategydance-database/web'
+import { CompanyAspect, OrganizationRole } from 'strategydance-database/web'
 import { CompanyAspectIcon } from 'strategydance-design-system/components/company/CompanyAspectIcon'
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu } from 'strategydance-design-system/components/ui/Sidebar'
 
@@ -99,6 +99,7 @@ function SidebarNavigation() {
             <NavigationLink
               key={aspect}
               path={`/${organizationSlug}/aspects/${toAspectSlug(aspect)}`}
+              activePaths={aspect === CompanyAspect.MARKETING ? [`/${organizationSlug}/directories`] : undefined}
               label={formatMessage(aspectMessages[aspect])}
               icon={<CompanyAspectIcon aspect={toAspectSlug(aspect)} />}
               link={{ to: '/$organizationSlug/aspects/$aspect', params: { organizationSlug, aspect } }}

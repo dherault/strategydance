@@ -1,4 +1,5 @@
 import { CompanyAspect, TaskStatus } from 'strategydance-database/web'
+import { DirectoryBusinessModel, DirectoryCategory } from 'strategydance-knowledge/src/directories/enums'
 
 import type { CardTone } from '~types'
 
@@ -24,6 +25,7 @@ export const MESSAGE_TYPES = [
   'buildInPublic',
   'checklist',
   'conversation',
+  'directory',
   'document',
   'explore',
   'externalMcpServer',
@@ -111,6 +113,47 @@ export const COMPANY_ASPECTS: readonly CompanyAspect[] = [
   CompanyAspect.FINANCES,
   CompanyAspect.LEGAL,
 ]
+
+/* ---
+  DIRECTORIES
+--- */
+
+/*
+  How the Directories page's filters order what a directory charges and the kinds of product it
+  lists, as the design has them: free first and the catches after, and any startup first.
+  `constants.test.ts` fails when either stops listing each of the package's values exactly once
+*/
+export const DIRECTORY_BUSINESS_MODELS: readonly DirectoryBusinessModel[] = [
+  DirectoryBusinessModel.FREE,
+  DirectoryBusinessModel.FREE_WITH_BADGE,
+  DirectoryBusinessModel.FREE_WITH_GATE,
+  DirectoryBusinessModel.FREE_WITH_LONG_QUEUE,
+  DirectoryBusinessModel.FREE_WITH_CURATION,
+  DirectoryBusinessModel.FREE_WITH_PAID_PROMOTION,
+  DirectoryBusinessModel.FREE_WITH_PAID_SKIP,
+  DirectoryBusinessModel.FREE_WITH_ENGAGEMENT,
+  DirectoryBusinessModel.FREE_FOR_LIMITED_TIME,
+  DirectoryBusinessModel.PAID,
+  DirectoryBusinessModel.UNKNOWN,
+]
+
+export const DIRECTORY_CATEGORIES: readonly DirectoryCategory[] = [
+  DirectoryCategory.ANY_STARTUP,
+  DirectoryCategory.AI_TOOLS,
+  DirectoryCategory.SAAS,
+  DirectoryCategory.AI_AGENTS,
+  DirectoryCategory.MCP_SERVERS,
+  DirectoryCategory.DEVELOPER_TOOLS,
+  DirectoryCategory.MOBILE_APPS,
+  DirectoryCategory.MARKETING,
+  DirectoryCategory.DESIGN,
+  DirectoryCategory.OPEN_SOURCE,
+  DirectoryCategory.NO_CODE,
+  DirectoryCategory.REGIONAL,
+]
+
+// How many directories the Marketing aspect's section suggests next
+export const NEXT_DIRECTORIES_SHOWN = 6
 
 /* ---
   TASKS

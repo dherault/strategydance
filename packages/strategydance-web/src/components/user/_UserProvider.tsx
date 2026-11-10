@@ -20,6 +20,7 @@ import useSystemTimezone from '~hooks/user/useSystemTimezone'
 import deleteProfilePicture from '~utils/user/deleteProfilePicture'
 import getAuthenticationProviders from '~utils/user/getAuthenticationProviders'
 import toDatabaseLocale from '~utils/user/toDatabaseLocale'
+import toMirroredUserName from '~utils/user/toMirroredUserName'
 import uploadProfilePicture from '~utils/user/uploadProfilePicture'
 
 import { requestApi } from '~data/api'
@@ -167,7 +168,7 @@ function UserProvider({ children }: PropsWithChildren) {
     // refuses a null. Firebase reads either back as null
     await updateFirebaseProfile(viewer, { photoURL: imageUrl ?? '' })
     await updateCurrentUser({
-      displayName: viewer.displayName,
+      displayName: toMirroredUserName(viewer.displayName),
       imageUrl,
       imageThumbnailUrl,
       timezone: timezone ?? user.timezone,
@@ -197,7 +198,7 @@ function UserProvider({ children }: PropsWithChildren) {
     insertingForViewerIdRef.current = viewer.uid
 
     createCurrentUser({
-      displayName: viewer.displayName,
+      displayName: toMirroredUserName(viewer.displayName),
       imageUrl: viewer.photoURL,
       locale: toDatabaseLocale(locale),
       timezone,
@@ -228,7 +229,7 @@ function UserProvider({ children }: PropsWithChildren) {
     */
     const hasDrifted =
       user.email !== viewer.email
-      || user.displayName !== viewer.displayName
+      || user.displayName !== toMirroredUserName(viewer.displayName)
       || user.imageUrl !== viewer.photoURL
       || user.authenticationProviders.join() !== authenticationProviders.join()
       /*
@@ -249,7 +250,7 @@ function UserProvider({ children }: PropsWithChildren) {
     }
 
     const variables = {
-      displayName: viewer.displayName,
+      displayName: toMirroredUserName(viewer.displayName),
       imageUrl: viewer.photoURL,
       /*
         The thumbnail is of the picture the row had. A picture that drifted, as one changed where

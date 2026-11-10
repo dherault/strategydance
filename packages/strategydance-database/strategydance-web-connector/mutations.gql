@@ -7,9 +7,10 @@
 # chose its own could squat the address a real person is about to sign up with
 #
 # Both bound what they mirror, since the page is not the only possible caller and every teammate's
-# team, list and presence reads carry the name: a name to 256 characters, past the 80 the account
-# page allows (`MAX_USER_NAME_LENGTH`), since one mirrored from Google can be longer, and a time zone
-# to 64, past the longest IANA name. An operation takes no `@check` of its own, and the first visit
+# team, list and presence reads carry the name: a name to 256 characters
+# (`MAX_MIRRORED_USER_NAME_LENGTH` in strategydance-core, to which the page cuts a longer one), past
+# the 80 the account page allows (`MAX_USER_NAME_LENGTH`), since one mirrored from Google can be
+# longer, and a time zone to 64, past the longest IANA name. An operation takes no `@check` of its own, and the first visit
 # has no row of its own yet, so the checks sit on the list of the caller's rows, read first and
 # redacted, whose own checks run even when it comes back empty
 

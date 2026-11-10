@@ -22,6 +22,7 @@ import {
   MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION,
   MAX_KNOWLEDGE_NOTE_LENGTH,
   MAX_KNOWLEDGE_ROWS,
+  MAX_MIRRORED_USER_NAME_LENGTH,
   MAX_MONEY_MINOR,
   MODULES,
   ORGANIZATION_SLUG_BASE_MAX_LENGTH,
@@ -354,4 +355,18 @@ describe('the directories', () => {
       expect(query).toContain(`operation: "${name}"`)
     }
   })
+})
+
+/*
+  A name the user mirror writes is cut by the page to core's length, which the mutations write out
+  again: this fails when the two stop agreeing, which would refuse a long name's whole row
+*/
+describe('the user mirror', () => {
+  for (const name of ['CreateCurrentUser', 'UpdateCurrentUser']) {
+    it(`${name} holds a name to the length the page cuts it to`, () => {
+      expect(readNumbers(readOperation(webMutations, name), /size\(vars\.displayName\) <= (\d+)/g)).toEqual([
+        MAX_MIRRORED_USER_NAME_LENGTH,
+      ])
+    })
+  }
 })

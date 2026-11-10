@@ -154,6 +154,13 @@ export const RICH_TEXT_TASK_BLOCKS: readonly RichTextEditorBlock[] = [
 ]
 
 /**
+ * The blocks a note is written in, a directory's: a post's, and code and tables, for the logins,
+ * the copy sent and the replies a team keeps, with no mention and no media, since an agent reads
+ * and writes it as Markdown
+ */
+export const RICH_TEXT_NOTE_BLOCKS: readonly RichTextEditorBlock[] = [...RICH_TEXT_POST_BLOCKS, 'code', 'table']
+
+/**
  * Every block an editor can write besides paragraphs, which it writes unless told fewer: a
  * document's. The Yjs helpers default to it too, and a shared text has to be read with the
  * schema its editor writes, since a read deletes whatever block the schema lacks

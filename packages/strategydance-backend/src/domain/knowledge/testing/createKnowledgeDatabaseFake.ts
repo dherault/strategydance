@@ -474,6 +474,64 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
     },
   })
 
+  // What both of the agent's note writes check before they write: the membership, the key and the
+  // note's length, then the key's result taken
+  function checkNoteWrite(variables: AnyVariables) {
+    if (!isMember(variables)) refuse('The caller is no longer a member of the organization')
+
+    checkKey(variables)
+
+    if (String(variables.content).length > 20000 || String(variables.contentText).length > 20000) {
+      refuse('A note is at most 20000 characters')
+    }
+
+    insertResult(variables)
+  }
+
+  base.addOperations({
+    CreateKnowledgeNoteForAgent: variables => {
+      checkNoteWrite(variables)
+
+      if (findNote(variables, variables.itemId)) refuse('violates SQL unique constraint: knowledge_note_pkey (aborted)')
+
+      storeResult(variables)
+      insertNote({
+        organizationId: String(variables.organizationId),
+        kind: String(variables.kind),
+        itemId: String(variables.itemId),
+        content: String(variables.content),
+        contentText: String(variables.contentText),
+        updatedById: String(variables.userId),
+      })
+
+      return {
+        knowledgeNote_insert: {
+          organizationId: id(variables.organizationId),
+          kind: variables.kind,
+          itemId: variables.itemId,
+        },
+      }
+    },
+
+    UpdateKnowledgeNoteForAgent: variables => {
+      checkNoteWrite(variables)
+
+      const note = findNote(variables, variables.itemId)
+
+      if (!note || note.updatedAt !== variables.updatedAt) refuse('The note changed since it was read')
+
+      storeResult(variables)
+      Object.assign(note, {
+        content: String(variables.content),
+        contentText: String(variables.contentText),
+        updatedAt: stamp(),
+        updatedById: String(variables.userId),
+      })
+
+      return { knowledgeNote_updateMany: 1 }
+    },
+  })
+
   base.onRemoveMember((userId, organizationId) => {
     links.splice(
       0,

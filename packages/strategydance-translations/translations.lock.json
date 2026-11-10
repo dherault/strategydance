@@ -3419,6 +3419,14 @@
         "hash": "1196e7b07ce0cc1a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.setDirectoryNotes.done": {
+        "hash": "590d13aa6035d4b3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.setDirectoryNotes.running": {
+        "hash": "f7788b9e87daae42",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.setDirectoryStatus.done": {
         "hash": "08fc2f9cc6953e0e",
         "locales": "DE,ES,FR,JA,PT,ZH"

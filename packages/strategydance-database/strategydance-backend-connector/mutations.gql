@@ -9786,6 +9786,137 @@ mutation SetDirectoryStatusForAgent(
   )
 }
 
+# Writes the first note on an item, for the member the agent acts as, the module having read none:
+# one written meanwhile, by the page or another call, is refused on its key, and the module answers
+# that the note changed since it read it. At most 20000 characters (`MAX_KNOWLEDGE_NOTE_LENGTH`)
+mutation CreateKnowledgeNoteForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $content: String!
+  $contentText: String!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+        @check(
+          expr: "size(vars.content) <= 20000 && size(vars.contentText) <= 20000"
+          message: "A note is at most 20000 characters"
+          optional: true
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  knowledgeNote_insert(
+    data: {
+      organizationId: $organizationId
+      kind: $kind
+      itemId: $itemId
+      content: $content
+      contentText: $contentText
+      updatedAt_expr: "request.time"
+      updatedById: $userId
+    }
+  )
+}
+
+# Replaces a note on an item, for the member the agent acts as, only as the module read it, at
+# `$updatedAt`: one written since, by the page or another call, is refused, as a task's description
+# is, so nobody's words are written over unread
+mutation UpdateKnowledgeNoteForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $kind: KnowledgeKind!
+  $itemId: String!
+  $updatedAt: Timestamp!
+  $content: String!
+  $contentText: String!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+        @check(
+          expr: "size(vars.content) <= 20000 && size(vars.contentText) <= 20000"
+          message: "A note is at most 20000 characters"
+          optional: true
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  knowledgeNote_updateMany(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { eq: $itemId }
+      updatedAt: { eq: $updatedAt }
+    }
+    data: { content: $content, contentText: $contentText, updatedAt_expr: "request.time", updatedById: $userId }
+  ) @check(expr: "this == 1", message: "The note changed since it was read")
+}
+
 # Links a document of the organization the agent may read to an item, under the 100 documents an item
 # links (`MAX_KNOWLEDGE_LINKS`), counted under the lock on the organization's row: the count and the
 # membership read the lock's response, so they run as a statement of their own and see every link

@@ -885,6 +885,18 @@ const conversationMessages = defineMessages({
     description:
       'What the AI did once it recorded where the company stands with a directory a startup can be listed in: submitted to it, listed there, dismissed, or back to do. Past tense.',
   },
+  toolSetDirectoryNotesRunning: {
+    id: 'conversation.tool.setDirectoryNotes.running',
+    defaultMessage: 'Writing a directory’s notes',
+    description:
+      'What the AI is doing while it writes the team’s notes on a directory a startup can be listed in: what was sent, the replies and what to follow up.',
+  },
+  toolSetDirectoryNotesDone: {
+    id: 'conversation.tool.setDirectoryNotes.done',
+    defaultMessage: 'Wrote a directory’s notes',
+    description:
+      'What the AI did once it wrote the team’s notes on a directory a startup can be listed in: what was sent, the replies and what to follow up. Past tense.',
+  },
   toolLinkKnowledgeRunning: {
     id: 'conversation.tool.linkKnowledge.running',
     defaultMessage: 'Linking knowledge',

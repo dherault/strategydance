@@ -316,6 +316,8 @@
   "conversation.tool.restoreTask.running": "Restauration d'une tâche",
   "conversation.tool.searchDocuments.done": "Documents recherchés",
   "conversation.tool.searchDocuments.running": "Recherche de documents",
+  "conversation.tool.setDirectoryNotes.done": "Notes d'un annuaire rédigées",
+  "conversation.tool.setDirectoryNotes.running": "Rédaction des notes d'un annuaire",
   "conversation.tool.setDirectoryStatus.done": "Mis à jour le statut d'un annuaire",
   "conversation.tool.setDirectoryStatus.running": "Mise à jour du statut d'un annuaire",
   "conversation.tool.setKnowledgeInUse.done": "Indiqué ce que l'entreprise utilise",

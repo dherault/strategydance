@@ -1,6 +1,7 @@
 import registerLinkKnowledge from '~modules/knowledge/tools/registerLinkKnowledge'
 import registerListKnowledge from '~modules/knowledge/tools/registerListKnowledge'
 import registerReadKnowledge from '~modules/knowledge/tools/registerReadKnowledge'
+import registerSetDirectoryNotes from '~modules/knowledge/tools/registerSetDirectoryNotes'
 import registerSetDirectoryStatus from '~modules/knowledge/tools/registerSetDirectoryStatus'
 import registerSetKnowledgeInUse from '~modules/knowledge/tools/registerSetKnowledgeInUse'
 import registerUnlinkKnowledge from '~modules/knowledge/tools/registerUnlinkKnowledge'
@@ -15,6 +16,7 @@ const KNOWLEDGE_TOOLS = [
   registerReadKnowledge,
   registerSetKnowledgeInUse,
   registerSetDirectoryStatus,
+  registerSetDirectoryNotes,
   registerLinkKnowledge,
   registerUnlinkKnowledge,
 ]

@@ -4,6 +4,7 @@ import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
 import {
   connectorConfig,
+  createKnowledgeNoteForAgent,
   DirectoryStatus,
   getKnowledgeDocumentLinkForAgent,
   getKnowledgeItemsForAgent,
@@ -21,6 +22,7 @@ import {
   unlinkKnowledgeDocumentForAgent,
   unlinkKnowledgeMemberForAgent,
   unlinkKnowledgeTaskForAgent,
+  updateKnowledgeNoteForAgent,
 } from 'strategydance-database/backend'
 
 import { FIREBASE_PROJECT_ID } from '~constants'
@@ -362,21 +364,55 @@ async function checkDirectoryStatuses() {
       && toDo.knowledgeUses[0]!.directoryStatus === null
       && !toDo.knowledgeUses[0]!.isInUse,
   )
+}
 
-  await write(
-    `mutation InsertNote($organizationId: UUID!, $itemId: String!) {
-      knowledgeNote_insert(data: { organizationId: $organizationId, kind: DIRECTORY, itemId: $itemId, content: "[]", contentText: "", updatedAt_expr: "request.time" })
-    }`,
-    { organizationId, itemId: DIRECTORY },
-  )
+async function checkNotes() {
+  const note = (content: string, who = caller()) => ({
+    ...who,
+    kind: KnowledgeKind.DIRECTORY,
+    itemId: DIRECTORY,
+    content,
+    contentText: content,
+    ...UNKEYED,
+  })
+  const create = (content: string, who = caller()) => createKnowledgeNoteForAgent(dataConnect, note(content, who))
+  const update = (content: string, updatedAt: string, who = caller()) =>
+    updateKnowledgeNoteForAgent(dataConnect, { ...note(content, who), updatedAt })
+  const readNote = () =>
+    getKnowledgeItemsForAgent(dataConnect, { ...caller(), kind: KnowledgeKind.DIRECTORY, itemIds: [DIRECTORY] }).then(
+      ({ data }) => data.knowledgeNotes,
+    )
 
-  const noted = await readItem()
+  check('a stale membership is refused writing a note', await isRefused(create('Sent', stale()), 'no longer a member'))
+  check('a note past 20000 characters is refused', await isRefused(create('x'.repeat(20001)), 'at most 20000'))
+  check('writing the first note goes through', await isAccepted(create('Sent the form')))
+  check('a second first note is refused on its key', await isRefused(create('Mine'), 'knowledge_note_pkey'))
+
+  const [first] = await readNote()
 
   check(
-    "the items read answers a directory's note",
-    noted.knowledgeNotes.length === 1
-      && noted.knowledgeNotes[0]!.itemId === DIRECTORY
-      && noted.knowledgeNotes[0]!.content === '[]',
+    "the items read answers a directory's note, with when it was written",
+    first?.itemId === DIRECTORY && first.content === 'Sent the form' && Boolean(first.updatedAt),
+  )
+  check('replacing it as it was read goes through', await isAccepted(update('Listed', first!.updatedAt)))
+  check(
+    'replacing it as it was before is refused',
+    await isRefused(update('Mine', first!.updatedAt), 'changed since it was read'),
+  )
+
+  const notes = await read<{ knowledgeNotes: { content: string; contentText: string; updatedById: string }[] }>(
+    `query ReadNotes($organizationId: UUID!) {
+      knowledgeNotes(where: { organizationId: { eq: $organizationId } }) { content contentText updatedById }
+    }`,
+    { organizationId },
+  )
+
+  check(
+    'the note holds the replacement alone, its updatedBy the member',
+    notes.knowledgeNotes.length === 1
+      && notes.knowledgeNotes[0]!.content === 'Listed'
+      && notes.knowledgeNotes[0]!.contentText === 'Listed'
+      && notes.knowledgeNotes[0]!.updatedById === userId,
   )
 }
 
@@ -635,6 +671,7 @@ try {
   await setUp()
   await checkUses()
   await checkDirectoryStatuses()
+  await checkNotes()
   await checkDocumentLinks()
   await checkTaskLinks()
   await checkMemberLinks()

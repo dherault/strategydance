@@ -795,6 +795,10 @@ export type KnowledgeRefusal =
   | { outcome: 'unknownItem'; kind: KnowledgeKind; id: string }
   /** A directory marked in use, which takes a status instead */
   | { outcome: 'directoryTakesStatus' }
+  /** Notes past `MAX_KNOWLEDGE_NOTE_LENGTH` once stored */
+  | { outcome: 'notesTooLong' }
+  /** Notes replaced under a version they no longer have, written since they were read */
+  | { outcome: 'notesChanged' }
   /** A link or an unlink naming no target, or more than one */
   | { outcome: 'noTarget' }
   /** A document the organization does not hold, or deleted */

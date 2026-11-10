@@ -111,6 +111,7 @@ describe('connectConversationModules', () => {
       'read_knowledge',
       'set_knowledge_in_use',
       'set_directory_status',
+      'set_directory_notes',
       'link_knowledge',
       'unlink_knowledge',
     ])

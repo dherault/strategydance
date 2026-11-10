@@ -141,6 +141,13 @@ const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageD
     },
   ],
   [
+    'set_directory_notes',
+    {
+      running: conversationMessages.toolSetDirectoryNotesRunning,
+      done: conversationMessages.toolSetDirectoryNotesDone,
+    },
+  ],
+  [
     'link_knowledge',
     { running: conversationMessages.toolLinkKnowledgeRunning, done: conversationMessages.toolLinkKnowledgeDone },
   ],

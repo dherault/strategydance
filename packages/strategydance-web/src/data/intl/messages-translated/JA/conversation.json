@@ -316,6 +316,8 @@
   "conversation.tool.restoreTask.running": "タスクを復元しています",
   "conversation.tool.searchDocuments.done": "ドキュメントを検索しました",
   "conversation.tool.searchDocuments.running": "ドキュメントを検索中",
+  "conversation.tool.setDirectoryNotes.done": "ディレクトリのメモを作成しました",
+  "conversation.tool.setDirectoryNotes.running": "ディレクトリのメモを作成中",
   "conversation.tool.setDirectoryStatus.done": "ディレクトリのステータスを更新しました",
   "conversation.tool.setDirectoryStatus.running": "ディレクトリのステータスを更新中",
   "conversation.tool.setKnowledgeInUse.done": "会社が利用している項目をマークしました",

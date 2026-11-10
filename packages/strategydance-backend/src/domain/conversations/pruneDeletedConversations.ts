@@ -46,8 +46,10 @@ const MAX_DURATION_MS = 5 * 60 * 1000
   it, and a parent still holding a subagent, claimed or not, is kept for the next sweep. A conversation whose files could not all be
   deleted is kept, still claimed, and every claimed conversation is deleted, whichever sweep claimed
   it, so a sweep that failed after claiming is finished by the next. What it keeps, a subagent or a
-  conversation, it reads past, so a batch of them never hides those behind it. Answers how many it
-  claimed and deleted, and how many files and module call results went with them
+  conversation, it reads past, so a batch of them never hides those behind it, but a batch whose
+  files all failed, which says Storage is failing: the sweep stops there rather than fail the rest.
+  Answers how many it claimed and deleted, and how many files and module call results went with
+  them
 */
 async function pruneDeletedConversations() {
   const { data: claim } = await claimDeletedConversations(dataConnect)
@@ -99,6 +101,7 @@ async function pruneDeletedConversations() {
   while (Date.now() < deadline) {
     const { data } = await getClaimedConversations(dataConnect, { skippedIds: [...kept] })
     const ids: string[] = []
+    let failures = 0
     const { data: holding } = await getConversationsWithSubagents(dataConnect, {
       ids: data.conversations.map(({ id }) => id),
     })
@@ -118,10 +121,14 @@ async function pruneDeletedConversations() {
           error,
         )
         kept.add(conversation.id)
+        failures++
       }
     }
 
-    // A batch it kept whole is read past, as the next batch leaves it out
+    // Storage failing every file of the batch would fail the rest as well, which waits for the next
+    // sweep. A batch of parents kept for their subagents alone is read past, as the next leaves it out
+    if (failures && !ids.length) break
+
     if (ids.length) {
       const { data: results } = await deleteConversationModuleCallResults(dataConnect, {
         scopes: ids.map(toConversationModuleScope),

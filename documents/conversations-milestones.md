@@ -3260,8 +3260,9 @@ transaction at a time (see Risks). As the review of M1 to M38 proposed on 2026-1
     calls it for members who may have left. A statement of its own also sees its own mutation's
     earlier writes, which no edited step reads, and applies a second write to a row, which none makes.
     The fake refuses a stop of subagents by somebody who is no member, as the mutations now do.
-  - **Left for a pull request of its own**, the mutations outside conversations that count or check
-    after a lock in one statement: in the backend connector `CreateOrganizationInvitation`,
+  - **Left for a pull request of its own**, and done in #324 after the review of 2026-11-10, the
+    mutations outside conversations that count or check after a lock in one statement: in the
+    backend connector `CreateOrganizationInvitation`,
     `DeleteOrganization`, `CreateDocumentForAgent`, `FoldDocumentForAgent`,
     `FoldDocumentWithRevisionForAgent` and `RestoreDocumentRevision`, which M40 added,
     `RenameDocumentForAgent`, `RestoreDocumentForAgent`, `CreateTaskForAgent`,
@@ -3273,9 +3274,20 @@ transaction at a time (see Risks). As the review of M1 to M38 proposed on 2026-1
     `UpdateOrganizationMemberJobTitle`, `RemoveOrganizationMember`, `DeleteOrganizationInvitation`,
     `CreateDefaultChecklistItems`, `CreateChecklistItem`, `RestoreChecklistItem`,
     `CreateTaskWithText`, `CreateTask`, `RestoreTask`, `AddTaskDependency`,
-    `CreateDocumentWithText`, `CreateDocument` and `RestoreDocument`. Each takes the same reference
-    and a race of its own, and production's engine is taken to compile as its emulator does, which
-    Cloud SQL's Query Insights could confirm.
+    `CreateDocumentWithText`, `CreateDocument` and `RestoreDocument`. Each now reads its lock's
+    response. An organization's `updateMany` matching the member became its `update` by its id, as
+    `CreateBill`'s is, with the membership read after it. A document's folds and its agent's rename
+    read the row back after their write, as `MarkSubagentReportsDelivered` reads the parent. A
+    Connect deletes the one under way through the membership it read, and `DeleteOrganization`'s
+    lock refuses a membership it finds none of. The same went for what the list had missed:
+    `ReserveAttachmentBillReceiptForAgent`, added since, and `UpdateOrganizationLogo` and
+    `UpdateOrganizationBanner`. `SetBudget` locked only the budget's row, which no demotion takes,
+    so it now takes the organization's first. `ApproveOAuthAuthorizationRequest` had read its lock's
+    response since a connection reached several organizations. `check:conversation-races` races
+    five of them: two administrators removing or demoting each other, two tasks linked both ways,
+    two first visits to the Today page, and the caps of a board and a checklist. On `dev`'s
+    connectors they failed 14, 4, 12, 7 and 13 rounds of 20, and they pass on #324's. Production's
+    engine is taken to compile as its emulator does, which Cloud SQL's Query Insights could confirm.
   - **The race check** (`checkConversationRaces.ts`, its scenarios in `conversationRaces/`) runs the
     backend's own domain functions as the writers, `enqueueRun` swapped by a Bun plugin for one that
     queues nothing, since `mock.module` is `bun test`'s, and drives a worker's steps itself where a

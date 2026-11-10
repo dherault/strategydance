@@ -1150,33 +1150,41 @@ mutation RestoreTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tra
 # deleted tasks count, since bringing those back brings the links back with them, which would
 # otherwise take it past 50: the board reads each task's count of every link, so its pickers offer
 # no more than this takes.
-# Counted and checked under a lock: the first step writes the organization's row, and finds nothing
-# unless the caller belongs to it, so links added at once, as a pick of several tasks sends them,
-# count one after the other, and two members linking two tasks both ways cannot both succeed. A
-# longer loop is left out by the page, which offers no task that would close one; two members
+# Counted and checked under a lock: the first step writes the organization's row, and the checks
+# after it, the caller's membership among them, read its response, so they run as a statement of
+# their own once it is held and see the links committed while it was waited for, which one statement
+# would miss (CLAUDE.md § The database). So links added at once, as a pick of several tasks sends
+# them, count one after the other, and two members linking two tasks both ways cannot both succeed.
+# A longer loop is left out by the page, which offers no task that would close one; two members
 # closing one at once only leave its tasks blocked, which either of them can undo
 mutation AddTaskDependency($organizationId: UUID!, $taskId: UUID!, $dependencyId: UUID!)
 @auth(level: USER)
 @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can change its tasks")
+    @check(expr: "this != null", message: "Only a member of an organization can change its tasks")
     @check(expr: "vars.taskId != vars.dependencyId", message: "A task cannot wait on itself")
   query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+    }
     waiting: tasks(
-      where: { id: { eq: $taskId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        id: { eq: $taskId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        deletedAt: { isNull: true }
+      }
       limit: 1
     ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
       id
     }
     awaited: tasks(
-      where: { id: { eq: $dependencyId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        id: { eq: $dependencyId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        deletedAt: { isNull: true }
+      }
       limit: 1
     ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
       id

@@ -6698,10 +6698,11 @@ mutation UpdateTaskForAgent(
 }
 
 # Makes a task wait on another for an agent, as `AddTaskDependency` does and under the same lock and
-# checks: both live and the organization's, never itself or a task that waits on it, at most 50 links
-# counting those to deleted tasks. A longer loop is refused by the module, which reads the board's
-# links first; two writers closing one at the same instant only leave its tasks blocked, as two
-# members can. A link that exists already changes nothing
+# checks, which read its response, the membership the module read among them: both live and the
+# organization's, never itself or a task that waits on it, at most 50 links counting those to deleted
+# tasks. A longer loop is refused by the module, which reads the board's links first; two writers
+# closing one at the same instant only leave its tasks blocked, as two members can. A link that
+# exists already changes nothing
 mutation AddTaskDependencyForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -6716,15 +6717,9 @@ mutation AddTaskDependencyForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
       message: "An idempotency key is 1 to 200 characters"
@@ -6743,14 +6738,32 @@ mutation AddTaskDependencyForAgent(
     }
   ) @include(if: $isKeyed)
   query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
     waiting: tasks(
-      where: { id: { eq: $taskId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        id: { eq: $taskId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        deletedAt: { isNull: true }
+      }
       limit: 1
     ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
       id
     }
     awaited: tasks(
-      where: { id: { eq: $dependencyId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        id: { eq: $dependencyId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        deletedAt: { isNull: true }
+      }
       limit: 1
     ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
       id

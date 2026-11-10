@@ -39,13 +39,14 @@ function agent(): ModuleAccess {
   }
 }
 
-// An external agent holding the scopes given, its connection reaching Acme and Beta
-function external(scopes: ModuleAccess['scopes']): ModuleAccess {
+// An external agent holding the scopes given, its connection reaching Acme and Beta and holding the
+// scopes given, or more than its token when a refresh narrowed it
+function external(scopes: ModuleAccess['scopes'], connectionScopes = scopes): ModuleAccess {
   return {
     kind: 'external',
     userId: 'member',
     scopes,
-    connectionScopes: scopes,
+    connectionScopes,
     idempotencyScope: 'connection:checked',
     organizations: [
       {
@@ -104,8 +105,21 @@ describe('createModulesServer', () => {
 
     for (const tool of tools) expect(tool.inputSchema.required).toContain('organization')
 
-    expect(kit.client.getInstructions()).toBe(toModuleInstructions({ listed: ['documents', 'tasks'] }, access))
-    expect(kit.client.getInstructions()).not.toMatch(/budget|bill/i)
+    expect(kit.client.getInstructions()).toBe(
+      toModuleInstructions({ listed: ['documents', 'tasks'], unheld: ['budget'] }, access),
+    )
+    expect(kit.client.getInstructions()).toContain('This connection is not allowed in the Budget module')
+    expect(kit.client.getInstructions()).not.toMatch(/bill|read_budget/i)
+  })
+
+  it('names a module its connection does not hold, never one a refresh narrowed the token below', async () => {
+    const access = external(['documents:read'], ['documents:read', 'tasks:read'])
+    const kit = await connect(SERVED_MODULE_NAMES, access)
+    const instructions = kit.client.getInstructions() ?? ''
+
+    expect((await kit.client.listTools()).tools.map(({ name }) => name)).not.toContain('read_task')
+    expect(instructions).toContain('This connection is not allowed in the Budget module, which')
+    expect(instructions).not.toMatch(/not allowed in the [^.]*Tasks/)
   })
 
   it('answers a call to a module listed beside others, in the organization it names', async () => {

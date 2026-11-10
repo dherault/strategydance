@@ -1541,7 +1541,10 @@ member.
   written in, a link to `doc:<id>` or `task:<id>` being a mention of the document or the task that
   `read_document` or `read_task` opens, one to `conversation:<id>` a mention of one of the team's
   conversations, which no tool opens, and that the team shares each document, which members may
-  be editing while the agent does.
+  be editing while the agent does. At the one address they say what Strategy Dance is once, then
+  each module listed, and last the served modules the connection is not allowed in, by name alone,
+  so the agent can tell the member, who chooses what it may do in each module when they connect it
+  again ([modules-address.md](modules-address.md) § Instructions).
 
 **The Documents module's tools**, built in M14, reaching Strategy Dance's agent in M16 and external
 agents in M20:
@@ -1936,11 +1939,13 @@ address from modules-address.md's M2:
     as many as the agent's connection for that client and address reaches already ticked to begin
     with, or the organization the member has open; and the access in each module, not allowed
     beside another module, read, or read and write when the client asked for it or the connection
-    held it, starting as held, or as asked when that is more, Budget's write starting unchosen at
-    the one address unless asked for and held, for every organization ticked, Allow staying off
-    while no module is allowed. Never the client's logo, which would load an address of its
-    choosing. Allow and Deny call `POST /oauth/requests/:requestId/approve` and `…/deny`, with the
-    member's ID token and App Check, as every route the app calls.
+    held it, starting as asked on a first consent, and on consenting again as the connection holds
+    it, raised to what was asked at a module's own address but only offered at the one address,
+    where a module not held starts not allowed and Budget's write unchosen unless asked for and
+    held, the option asked for marked wherever a module starts below it; for every organization
+    ticked, Allow staying off while no module is allowed. Never the client's logo, which would load
+    an address of its choosing. Allow and Deny call `POST /oauth/requests/:requestId/approve` and
+    `…/deny`, with the member's ID token and App Check, as every route the app calls.
   - Allow and Deny each decide the request under `@check(this == 1)` on a request still undecided
     and unexpired, so a double submit, or an Allow racing a Deny, decides it once: the loser is
     refused, and a denied request is never approved after. Deny decides it alone; Allow decides it

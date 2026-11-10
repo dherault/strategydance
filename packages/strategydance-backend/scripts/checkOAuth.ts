@@ -1011,6 +1011,46 @@ async function checkHeldScopes() {
     "the consent read answers the connection's scopes",
     [...(data.agentConnections[0]?.scopes ?? [])].sort().join(' ') === 'documents:read documents:write tasks:read',
   )
+
+  // The member leaves out the one module asked for and keeps one held: nothing asked is granted
+  const heldOnlyRequestId = await createRequest(clientId, ['tasks:read', 'tasks:write'], ONE_ADDRESS)
+  const heldOnly = approve(heldOnlyRequestId, clientId, {
+    scopes: [],
+    heldScopes: ['documents:read'],
+    module: ONE_ADDRESS,
+  })
+
+  check(
+    'an Allow granting nothing asked for, only what was held, goes through',
+    (await refusal(heldOnly.approval)) === null,
+  )
+
+  const [heldOnlyConnection] = await readConnections(clientId)
+
+  check(
+    'the connection then holds only what it kept',
+    heldOnlyConnection?.id === heldOnly.connectionId
+      && [...heldOnlyConnection.scopes].sort().join(' ') === 'documents:read',
+  )
+
+  // A code issues the connection's scopes alone, never one its request asked for that was not
+  // granted. The exchange's one message also covers a code used or expired, so the same code then
+  // exchanging for what the connection holds is what shows the refusal came from the scopes
+  const askedExchange = exchange(heldOnlyRequestId, heldOnly.code, heldOnly.connectionId, {
+    scopes: ['documents:read', 'tasks:read'],
+    module: ONE_ADDRESS,
+  })
+  const askedRefusal = await refusal(askedExchange.exchange)
+  const heldOnlyExchange = exchange(heldOnlyRequestId, heldOnly.code, heldOnly.connectionId, {
+    scopes: ['documents:read'],
+    module: ONE_ADDRESS,
+  })
+  const heldOnlyRefusal = await refusal(heldOnlyExchange.exchange)
+
+  check(
+    'its code, refused a scope its request asked for that was not granted, then issues what the connection holds',
+    askedRefusal?.includes('The code was used already or has expired') === true && heldOnlyRefusal === null,
+  )
 }
 
 /*

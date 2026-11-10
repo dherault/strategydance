@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test'
 
-import type { ModuleScope } from 'strategydance-core'
+import type { ModuleName, ModuleScope } from 'strategydance-core'
 
-import readOAuthConsentModules from './readOAuthConsentModules'
+import readOAuthConsentModules, { type OAuthConsentAccessLevel } from './readOAuthConsentModules'
 import toOAuthConsentScopes from './toOAuthConsentScopes'
 
 const ALL: ModuleScope[] = [
@@ -18,27 +18,58 @@ function atOneAddress(scopes: ModuleScope[], heldScopes: ModuleScope[] = []) {
   return readOAuthConsentModules({ address: 'strategydance', scopes, heldScopes })
 }
 
+// A module as the page lists it: whether write is offered, where it starts, and what the agent asked
+// for beyond that, which the page marks
+function listed(
+  name: ModuleName,
+  isWriteOffered: boolean,
+  initialAccess: OAuthConsentAccessLevel,
+  askedAccess: 'read' | 'write' | null = null,
+) {
+  return { name, isWriteOffered, initialAccess, askedAccess }
+}
+
 describe('readOAuthConsentModules', () => {
-  it('lists each module asked for, read and write when asked, in `MODULES` order', () => {
+  it('starts each module asked for on a first consent as asked, in `MODULES` order', () => {
     expect(atOneAddress(['tasks:read', 'tasks:write', 'documents:read'])).toEqual([
-      { name: 'documents', isWriteOffered: false, initialAccess: 'read' },
-      { name: 'tasks', isWriteOffered: true, initialAccess: 'write' },
+      listed('documents', false, 'read'),
+      listed('tasks', true, 'write'),
     ])
   })
 
-  it('lists the modules the connection replaced holds beside those asked for, kept as they were', () => {
+  it('lists the modules the connection replaced holds beside those asked for, held as they were', () => {
+    expect(atOneAddress(['documents:read'], ['documents:read', 'documents:write', 'tasks:read'])).toEqual([
+      listed('documents', true, 'write'),
+      listed('tasks', false, 'read'),
+    ])
+  })
+
+  it('starts a write held at read at read when a challenge asks for it, marking the write asked for', () => {
+    // The challenge for a Tasks write names the connection's scopes with tasks:write
+    expect(atOneAddress(['documents:read', 'tasks:read', 'tasks:write'], ['documents:read', 'tasks:read'])).toEqual([
+      listed('documents', false, 'read'),
+      listed('tasks', true, 'read', 'write'),
+    ])
+  })
+
+  it('starts a module the connection does not hold not allowed on consenting again, marking what was asked', () => {
+    // A client asking for Tasks alone beside the Documents its connection holds
     expect(atOneAddress(['tasks:read'], ['documents:read', 'documents:write'])).toEqual([
-      { name: 'documents', isWriteOffered: true, initialAccess: 'write' },
-      { name: 'tasks', isWriteOffered: false, initialAccess: 'read' },
+      listed('documents', true, 'write'),
+      listed('tasks', false, 'none', 'read'),
     ])
-  })
-
-  it('starts a module as held, or as asked when that is more', () => {
-    expect(atOneAddress(['documents:read'], ['documents:read', 'documents:write'])).toEqual([
-      { name: 'documents', isWriteOffered: true, initialAccess: 'write' },
+    // A client asking every scope again, as one whose refresh token expired does, after the member
+    // left Tasks and Budget out
+    expect(atOneAddress(ALL, ['documents:read', 'documents:write'])).toEqual([
+      listed('documents', true, 'write'),
+      listed('tasks', true, 'none', 'write'),
+      listed('budget', true, 'none', 'write'),
     ])
-    expect(atOneAddress(['documents:read', 'documents:write'], ['documents:read'])).toEqual([
-      { name: 'documents', isWriteOffered: true, initialAccess: 'write' },
+    // A first consent starts each module with what was asked, Budget at read
+    expect(atOneAddress(ALL)).toEqual([
+      listed('documents', true, 'write'),
+      listed('tasks', true, 'write'),
+      listed('budget', true, 'read', 'write'),
     ])
   })
 
@@ -46,30 +77,26 @@ describe('readOAuthConsentModules', () => {
     const budget = (scopes: ModuleScope[], held: ModuleScope[] = []) =>
       atOneAddress(scopes, held).find(({ name }) => name === 'budget')
 
-    expect(budget(ALL)).toEqual({ name: 'budget', isWriteOffered: true, initialAccess: 'read' })
-    expect(budget(ALL, ['budget:read'])).toEqual({ name: 'budget', isWriteOffered: true, initialAccess: 'read' })
-    expect(budget(['tasks:read'], ['budget:read', 'budget:write'])).toEqual({
-      name: 'budget',
-      isWriteOffered: true,
-      initialAccess: 'read',
-    })
-    expect(budget(ALL, ['budget:read', 'budget:write'])).toEqual({
-      name: 'budget',
-      isWriteOffered: true,
-      initialAccess: 'write',
-    })
+    expect(budget(ALL)).toEqual(listed('budget', true, 'read', 'write'))
+    expect(budget(ALL, ['budget:read'])).toEqual(listed('budget', true, 'read', 'write'))
+    expect(budget(ALL, ['documents:read'])).toEqual(listed('budget', true, 'none', 'write'))
+    expect(budget(['tasks:read'], ['budget:read', 'budget:write'])).toEqual(listed('budget', true, 'read'))
+    expect(budget(ALL, ['budget:read', 'budget:write'])).toEqual(listed('budget', true, 'write'))
   })
 
-  it('starts Budget as any other at its own address, a consent of its own', () => {
+  it('starts a module as held, or as asked when that is more, at its own address, a consent of its own', () => {
     expect(
       readOAuthConsentModules({ address: 'budget', scopes: ['budget:read', 'budget:write'], heldScopes: [] }),
-    ).toEqual([{ name: 'budget', isWriteOffered: true, initialAccess: 'write' }])
+    ).toEqual([listed('budget', true, 'write')])
+    expect(
+      readOAuthConsentModules({ address: 'tasks', scopes: ['tasks:read', 'tasks:write'], heldScopes: ['tasks:read'] }),
+    ).toEqual([listed('tasks', true, 'write')])
   })
 
   it("lists a module's own address's module alone, and nothing of a scope its address does not serve", () => {
     expect(
       readOAuthConsentModules({ address: 'tasks', scopes: ['tasks:read'], heldScopes: ['documents:read'] }),
-    ).toEqual([{ name: 'tasks', isWriteOffered: false, initialAccess: 'read' }])
+    ).toEqual([listed('tasks', false, 'read')])
     expect(readOAuthConsentModules({ address: 'knowledge', scopes: ['knowledge:read'], heldScopes: [] })).toEqual([])
   })
 })

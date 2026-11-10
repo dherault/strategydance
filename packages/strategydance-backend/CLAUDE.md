@@ -182,8 +182,9 @@ the endpoints, the metadata, the authorization server, the consent and the sweep
 - It lives in `src/modules/<name>/`, one file per tool calling `domain/<name>/`.
   `register<Name>Module(server, access)` registers its tools on the server `createModulesServer(access,
   modules)` builds of the modules its caller names, and `<name>Instructions.ts` holds what it says of
-  itself, naming only the modules listed beside it. `MODULES` in core lists it, and the web's `module`
-  catalogue words it
+  itself, naming only the modules listed beside it. `toModuleInstructions` writes the rest, at the
+  one address naming the modules a connection is not allowed in, never their tools. `MODULES` in
+  core lists it, and the web's `module` catalogue words it
 - A tool's name is snake_case, unique across the modules and the agent's own tools, and a module's
   registration order is frozen. A tool takes a zod input and an `outputSchema`, answers through
   `toToolResult`, refuses through `toToolRefusal`, never a protocol error, and carries

@@ -21,6 +21,7 @@
   "module.agentsOpenConnectedAgents": "Verbundene Agenten öffnen",
   "module.agentsTitle": "{module} mit Ihren Agenten nutzen",
   "module.allow": "Zulassen",
+  "module.askedAccess": "Angefordert",
   "module.budgetAgentsButton": "Ihren Agenten Lese- und Schreibzugriff auf Ihr Budget gewähren",
   "module.budgetName": "Budget",
   "module.budgetReadAccess": "Budget und Rechnungen mit ihren Belegen einsehen.",

@@ -21,6 +21,7 @@
   "module.agentsOpenConnectedAgents": "「連携済みエージェント」を開く",
   "module.agentsTitle": "{module}をエージェントで利用",
   "module.allow": "許可",
+  "module.askedAccess": "リクエスト",
   "module.budgetAgentsButton": "エージェントに予算の閲覧と編集を許可する",
   "module.budgetName": "予算",
   "module.budgetReadAccess": "予算と請求書、およびその領収書の閲覧。",

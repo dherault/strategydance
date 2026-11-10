@@ -10,6 +10,8 @@ import { DOCUMENT_FOLD_ATTEMPTS } from '~constants'
 
 import { dataConnect } from '~firebase'
 
+import toCanonicalUuid from '~utils/toCanonicalUuid'
+
 import { EDITED_REFUSAL, EMPTY_REFUSAL, FOLDED_REFUSAL } from '~domain/documents/documentsRefusalMessages'
 import explainDocumentRefusal from '~domain/documents/explainDocumentRefusal'
 import foldDocumentEdit from '~domain/documents/foldDocumentEdit'
@@ -72,15 +74,16 @@ async function updateDocument(
 
   if (answered) return answered
 
+  const documentId = toCanonicalUuid(id)
   const reference = {
     organizationId: caller.organizationId,
     userId: caller.userId,
     membershipCreatedAt: caller.membershipCreatedAt,
-    id,
+    id: documentId,
   }
 
   if (!edit) {
-    const result = { id, title }
+    const result = { id: documentId, title }
 
     try {
       await renameDocumentForAgent(dataConnect, {
@@ -98,7 +101,7 @@ async function updateDocument(
       // A blank title on a document whose text is empty, as the rename finds it once it holds the row
       if (isOperationRefusal(error, EMPTY_REFUSAL)) return { outcome: 'empty' }
 
-      const refusal = await explainDocumentRefusal(caller, id, { isWrite: true })
+      const refusal = await explainDocumentRefusal(caller, documentId, { isWrite: true })
 
       if (refusal) return refusal
 
@@ -116,7 +119,7 @@ async function updateDocument(
     const { data } = await getDocumentForAgent(dataConnect, reference)
     const [row] = data.documents
 
-    if (!row) return (await explainDocumentRefusal(caller, id, { isWrite: true })) ?? { outcome: 'notFound' }
+    if (!row) return (await explainDocumentRefusal(caller, documentId, { isWrite: true })) ?? { outcome: 'notFound' }
     if (!row.isAiWritable) return { outcome: 'closedToAi' }
 
     const updates = row.documentUpdates_on_document
@@ -148,7 +151,7 @@ async function updateDocument(
       never have read, which only a read that holds it all gives a version of
     */
     const result = {
-      id,
+      id: documentId,
       ...(title !== undefined && { title }),
       ...(edit.type === 'content' && { version: hashDocumentText(read.blocks) }),
     }
@@ -189,7 +192,7 @@ async function updateDocument(
       if (isOperationRefusal(error, EDITED_REFUSAL)) continue
       if (!isOperationRefusal(error, FOLDED_REFUSAL)) throw error
 
-      const refusal = await explainDocumentRefusal(caller, id, { isWrite: true })
+      const refusal = await explainDocumentRefusal(caller, documentId, { isWrite: true })
 
       if (refusal) return refusal
     }

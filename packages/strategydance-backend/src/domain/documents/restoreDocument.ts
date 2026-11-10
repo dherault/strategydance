@@ -4,6 +4,8 @@ import type { DocumentsWriteResult, ModuleCall, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import toCanonicalUuid from '~utils/toCanonicalUuid'
+
 import { FULL_REFUSAL } from '~domain/documents/documentsRefusalMessages'
 import readDocumentAccess from '~domain/documents/readDocumentAccess'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
@@ -32,14 +34,15 @@ async function restoreDocument(
 
   if (answered) return answered
 
-  const result = { id }
+  const documentId = toCanonicalUuid(id)
+  const result = { id: documentId }
 
   try {
     await restoreDocumentForAgent(dataConnect, {
       organizationId: caller.organizationId,
       userId: caller.userId,
       membershipCreatedAt: caller.membershipCreatedAt,
-      id,
+      id: documentId,
       ...toModuleCallVariables(caller, call, result),
     })
 
@@ -51,7 +54,7 @@ async function restoreDocument(
     if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
     if (isOperationRefusal(error, FULL_REFUSAL)) return { outcome: 'full' }
 
-    const access = await readDocumentAccess(caller, id)
+    const access = await readDocumentAccess(caller, documentId)
 
     if (access.outcome !== 'found') return access
     if (!access.isAiReadable) return { outcome: 'keptFromAi' }

@@ -4,6 +4,8 @@ import type { DocumentsWriteResult, ModuleCall, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import toCanonicalUuid from '~utils/toCanonicalUuid'
+
 import explainDocumentRefusal from '~domain/documents/explainDocumentRefusal'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
@@ -34,14 +36,15 @@ async function deleteDocument(
 
   if (answered) return answered
 
-  const result = { id, restorableUntil: new Date(Date.now() + RESTORE_WINDOW_MS).toISOString() }
+  const documentId = toCanonicalUuid(id)
+  const result = { id: documentId, restorableUntil: new Date(Date.now() + RESTORE_WINDOW_MS).toISOString() }
 
   try {
     await deleteDocumentForAgent(dataConnect, {
       organizationId: caller.organizationId,
       userId: caller.userId,
       membershipCreatedAt: caller.membershipCreatedAt,
-      id,
+      id: documentId,
       ...toModuleCallVariables(caller, call, result),
     })
 
@@ -52,7 +55,7 @@ async function deleteDocument(
     if (answeredMeanwhile) return answeredMeanwhile
     if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
 
-    const refusal = await explainDocumentRefusal(caller, id, { isWrite: true })
+    const refusal = await explainDocumentRefusal(caller, documentId, { isWrite: true })
 
     if (refusal) return refusal
 

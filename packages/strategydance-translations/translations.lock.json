@@ -3419,12 +3419,28 @@
         "hash": "1196e7b07ce0cc1a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.tool.setDirectoryNotes.done": {
+        "hash": "590d13aa6035d4b3",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.setDirectoryNotes.running": {
+        "hash": "f7788b9e87daae42",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.setDirectoryStatus.done": {
+        "hash": "08fc2f9cc6953e0e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "conversation.tool.setDirectoryStatus.running": {
+        "hash": "0530844fa6acb4f9",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.tool.setKnowledgeInUse.done": {
-        "hash": "bf1d434f49d414d6",
+        "hash": "f2fa57fb95b51f2a",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.setKnowledgeInUse.running": {
-        "hash": "839ed480e4ed85bb",
+        "hash": "de9aa833496bea97",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "conversation.tool.stopSubagent.done": {

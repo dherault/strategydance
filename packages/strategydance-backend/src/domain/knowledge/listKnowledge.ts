@@ -46,14 +46,15 @@ export type ListKnowledgeResult =
   | KnowledgeRefusal
 
 /*
-  A kind's items as compact rows, by name, each saying whether the organization uses it, those
-  matching the query and filters, a page within `KNOWLEDGE_LIST_PAGE_LENGTH` characters of JSON with
-  a cursor while more remain. The inactive directories take no submission today, so no list offers
-  them, but one the organization uses is listed among the rest, since it submitted there before. The
-  catalogue is the release's, the same on every page, so a cursor is an offset, held to the filters
-  it was read under: with `inUse`, an item marked or cleared between two pages can move the rest by
-  one, which a list of the few items a company uses rarely spans. A caller who is no longer the
-  member the module read is refused
+  A kind's items as compact rows, by name, each saying whether the organization uses it, and a
+  directory where the organization stands with it, those matching the query and filters, a page
+  within `KNOWLEDGE_LIST_PAGE_LENGTH` characters of JSON with a cursor while more remain. The
+  inactive directories take no submission today, so no list offers them, but one the organization
+  uses is listed among the rest, since it submitted there before. The catalogue is the release's,
+  the same on every page, so a cursor is an offset, held to the filters it was read under: with
+  `inUse`, an item marked or cleared between two pages can move the rest by one, which a list of the
+  few items a company uses rarely spans. A caller who is no longer the member the module read is
+  refused
 */
 async function listKnowledge(
   caller: ModuleCaller,
@@ -99,7 +100,7 @@ async function listKnowledge(
   let length = JSON.stringify(frame).length + CURSOR_ROOM
 
   for (const entry of listed.slice(start)) {
-    const row = toKnowledgeRow(entry, uses.inUse.has(entry.item.id))
+    const row = toKnowledgeRow(entry, uses.inUse.has(entry.item.id), uses.directoryStatuses.get(entry.item.id) ?? null)
     // Each row counts with the comma before it
     const rowLength = JSON.stringify(row).length + 1
 

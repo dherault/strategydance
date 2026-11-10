@@ -4,6 +4,8 @@ import { initializeApp } from 'firebase-admin/app'
 import { getDataConnect } from 'firebase-admin/data-connect'
 import {
   connectorConfig,
+  createKnowledgeNoteForAgent,
+  DirectoryStatus,
   getKnowledgeDocumentLinkForAgent,
   getKnowledgeItemsForAgent,
   getKnowledgeMemberLinkForAgent,
@@ -15,10 +17,12 @@ import {
   linkKnowledgeMemberForAgent,
   linkKnowledgeTaskForAgent,
   pruneDeletedTasks,
+  setDirectoryStatusForAgent,
   setKnowledgeInUseForAgent,
   unlinkKnowledgeDocumentForAgent,
   unlinkKnowledgeMemberForAgent,
   unlinkKnowledgeTaskForAgent,
+  updateKnowledgeNoteForAgent,
 } from 'strategydance-database/backend'
 
 import { FIREBASE_PROJECT_ID } from '~constants'
@@ -73,6 +77,9 @@ const HOUR_MS = 60 * 60 * 1000
 const ITEM = 'send-cold-emails'
 const OTHER_ITEM = 'answer-questions-on-reddit'
 const CAPPED_ITEM = 'write-an-onboarding-email-sequence'
+
+// A directory's id, which the operations take as they are
+const DIRECTORY = 'betalist'
 
 // The createdAt of a membership that ended, which no operation finds
 const STALE = '2020-01-01T00:00:00Z'
@@ -302,6 +309,110 @@ async function checkUses() {
   check(
     "another organization's caller reads nothing of this one's",
     other.data.membership.length === 0 && other.data.knowledgeUses.length === 0,
+  )
+}
+
+async function checkDirectoryStatuses() {
+  const set = (directoryStatus: DirectoryStatus | null, isInUse: boolean, who = caller()) =>
+    setDirectoryStatusForAgent(dataConnect, { ...who, itemId: DIRECTORY, directoryStatus, isInUse, ...UNKEYED })
+  const readStatuses = () =>
+    getKnowledgeUsesForAgent(dataConnect, { ...caller(), kind: KnowledgeKind.DIRECTORY }).then(({ data }) => data)
+  const readItem = () =>
+    getKnowledgeItemsForAgent(dataConnect, { ...caller(), kind: KnowledgeKind.DIRECTORY, itemIds: [DIRECTORY] }).then(
+      ({ data }) => data,
+    )
+
+  check(
+    'a stale membership is refused setting a status',
+    await isRefused(set(DirectoryStatus.SUBMITTED, true, stale()), 'no longer a member'),
+  )
+  check(
+    'a status out of step with the flag is refused',
+    (await isRefused(set(DirectoryStatus.DISMISSED, true), 'in use exactly while'))
+      && (await isRefused(set(DirectoryStatus.LISTED, false), 'in use exactly while'))
+      && (await isRefused(set(null, true), 'in use exactly while')),
+  )
+  check('setting a directory submitted goes through', await isAccepted(set(DirectoryStatus.SUBMITTED, true)))
+
+  const submitted = await readStatuses()
+
+  check(
+    'the uses read lists a submitted directory in use, with its status',
+    submitted.knowledgeUses.some(({ itemId }) => itemId === DIRECTORY)
+      && submitted.directoryStatuses.length === 1
+      && submitted.directoryStatuses[0]!.directoryStatus === DirectoryStatus.SUBMITTED,
+  )
+
+  check('dismissing it goes through', await isAccepted(set(DirectoryStatus.DISMISSED, false)))
+
+  const dismissed = await readStatuses()
+
+  check(
+    'the uses read leaves a dismissed directory out of use, with its status',
+    !dismissed.knowledgeUses.some(({ itemId }) => itemId === DIRECTORY)
+      && dismissed.directoryStatuses[0]?.directoryStatus === DirectoryStatus.DISMISSED,
+  )
+
+  check('taking it back to do goes through', await isAccepted(set(null, false)))
+
+  const toDo = await readItem()
+
+  check(
+    'the upsert keeps the row back to do, with no status',
+    (await readStatuses()).directoryStatuses.length === 0
+      && toDo.knowledgeUses.length === 1
+      && toDo.knowledgeUses[0]!.directoryStatus === null
+      && !toDo.knowledgeUses[0]!.isInUse,
+  )
+}
+
+async function checkNotes() {
+  const note = (content: string, who = caller()) => ({
+    ...who,
+    kind: KnowledgeKind.DIRECTORY,
+    itemId: DIRECTORY,
+    content,
+    contentText: content,
+    ...UNKEYED,
+  })
+  const create = (content: string, who = caller()) => createKnowledgeNoteForAgent(dataConnect, note(content, who))
+  const update = (content: string, updatedAt: string, who = caller()) =>
+    updateKnowledgeNoteForAgent(dataConnect, { ...note(content, who), updatedAt })
+  const readNote = () =>
+    getKnowledgeItemsForAgent(dataConnect, { ...caller(), kind: KnowledgeKind.DIRECTORY, itemIds: [DIRECTORY] }).then(
+      ({ data }) => data.knowledgeNotes,
+    )
+
+  check('a stale membership is refused writing a note', await isRefused(create('Sent', stale()), 'no longer a member'))
+  check('a note past 20000 characters is refused', await isRefused(create('x'.repeat(20001)), 'at most 20000'))
+  check('writing the first note goes through', await isAccepted(create('Sent the form')))
+  check('a second first note is refused on its key', await isRefused(create('Mine'), 'knowledge_note_pkey'))
+
+  const [first] = await readNote()
+
+  check(
+    "the items read answers a directory's note, with when it was written",
+    first?.itemId === DIRECTORY && first.content === 'Sent the form' && Boolean(first.updatedAt),
+  )
+  check('replacing it as it was read goes through', await isAccepted(update('Listed', first!.updatedAt)))
+  check(
+    'replacing it as it was before is refused',
+    await isRefused(update('Mine', first!.updatedAt), 'changed since it was read'),
+  )
+
+  const notes = await read<{ knowledgeNotes: { content: string; contentText: string; updatedById: string }[] }>(
+    `query ReadNotes($organizationId: UUID!) {
+      knowledgeNotes(where: { organizationId: { eq: $organizationId } }) { content contentText updatedById }
+    }`,
+    { organizationId },
+  )
+
+  check(
+    'the note holds the replacement alone, its updatedBy the member',
+    notes.knowledgeNotes.length === 1
+      && notes.knowledgeNotes[0]!.content === 'Listed'
+      && notes.knowledgeNotes[0]!.contentText === 'Listed'
+      && notes.knowledgeNotes[0]!.updatedById === userId,
   )
 }
 
@@ -559,6 +670,8 @@ async function checkCascades() {
 try {
   await setUp()
   await checkUses()
+  await checkDirectoryStatuses()
+  await checkNotes()
   await checkDocumentLinks()
   await checkTaskLinks()
   await checkMemberLinks()

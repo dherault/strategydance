@@ -72,3 +72,16 @@ export const KnowledgeKind = {
 } as const
 
 export type KnowledgeKind = (typeof KnowledgeKind)[keyof typeof KnowledgeKind]
+
+/*
+  Where an organization stands with a directory of the knowledge: submitted to it, listed there, or
+  dismissed. A directory with none is to do. Declared in `schema.gql` as well, and `schema.test.ts`
+  holds the two to the same values, in the same order
+*/
+export const DirectoryStatus = {
+  SUBMITTED: 'SUBMITTED',
+  LISTED: 'LISTED',
+  DISMISSED: 'DISMISSED',
+} as const
+
+export type DirectoryStatus = (typeof DirectoryStatus)[keyof typeof DirectoryStatus]

@@ -865,13 +865,37 @@ const conversationMessages = defineMessages({
     id: 'conversation.tool.setKnowledgeInUse.running',
     defaultMessage: 'Marking what the company uses',
     description:
-      "What the AI is doing while it records whether the company uses an item of Strategy Dance's knowledge: a strategic framework it works with, a marketing tactic it runs or a directory it submitted its product to.",
+      "What the AI is doing while it records whether the company uses an item of Strategy Dance's knowledge: a strategic framework it works with or a marketing tactic it runs.",
   },
   toolSetKnowledgeInUseDone: {
     id: 'conversation.tool.setKnowledgeInUse.done',
     defaultMessage: 'Marked what the company uses',
     description:
-      "What the AI did once it recorded whether the company uses an item of Strategy Dance's knowledge: a strategic framework it works with, a marketing tactic it runs or a directory it submitted its product to. Past tense.",
+      "What the AI did once it recorded whether the company uses an item of Strategy Dance's knowledge: a strategic framework it works with or a marketing tactic it runs. Past tense.",
+  },
+  toolSetDirectoryStatusRunning: {
+    id: 'conversation.tool.setDirectoryStatus.running',
+    defaultMessage: 'Updating a directory’s status',
+    description:
+      'What the AI is doing while it records where the company stands with a directory a startup can be listed in: submitted to it, listed there, dismissed, or back to do.',
+  },
+  toolSetDirectoryStatusDone: {
+    id: 'conversation.tool.setDirectoryStatus.done',
+    defaultMessage: 'Updated a directory’s status',
+    description:
+      'What the AI did once it recorded where the company stands with a directory a startup can be listed in: submitted to it, listed there, dismissed, or back to do. Past tense.',
+  },
+  toolSetDirectoryNotesRunning: {
+    id: 'conversation.tool.setDirectoryNotes.running',
+    defaultMessage: 'Writing a directory’s notes',
+    description:
+      'What the AI is doing while it writes the team’s notes on a directory a startup can be listed in: what was sent, the replies and what to follow up.',
+  },
+  toolSetDirectoryNotesDone: {
+    id: 'conversation.tool.setDirectoryNotes.done',
+    defaultMessage: 'Wrote a directory’s notes',
+    description:
+      'What the AI did once it wrote the team’s notes on a directory a startup can be listed in: what was sent, the replies and what to follow up. Past tense.',
   },
   toolLinkKnowledgeRunning: {
     id: 'conversation.tool.linkKnowledge.running',

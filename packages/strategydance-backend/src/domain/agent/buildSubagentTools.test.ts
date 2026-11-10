@@ -70,11 +70,13 @@ describe('buildSubagentTools', () => {
       'list_knowledge',
       'read_knowledge',
       'set_knowledge_in_use',
+      'set_directory_status',
+      'set_directory_notes',
       'link_knowledge',
       'unlink_knowledge',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      'dde715b8583bc29eb042a2f2abb951b69ebe0578bc2f82a42884232d1de6533b',
+      '6d1695fd8020a55f4452e7cfb385cb9b0bfdbce22f438985098e96851fb76e48',
     )
   })
 

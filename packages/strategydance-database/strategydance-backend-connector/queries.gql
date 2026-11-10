@@ -3632,9 +3632,9 @@ query GetConversationAttachmentForAgent(
 # holds every id to it before it calls one, and reads past a row whose id the catalogue lost. A link
 # to a document follows the document's AI permission, as every read of a document by an agent does
 
-# The items of a kind the organization uses, for `list_knowledge`'s `inUse`: up to 5000, past every
-# kind's catalogue. The kind is selected at the top level, which has the generated SDK declare its
-# enum
+# The items of a kind the organization uses, for `list_knowledge`'s `inUse`, and the directories it
+# gave a status, for the rows' `status`: up to 5000 of each, past every kind's catalogue. The kind
+# and the status are selected at the top level, which has the generated SDK declare their enums
 query GetKnowledgeUsesForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -3663,10 +3663,26 @@ query GetKnowledgeUsesForAgent(
     kind
     itemId
   }
+  directoryStatuses: knowledgeUses(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      directoryStatus: { isNull: false }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 5000
+  ) {
+    itemId
+    directoryStatus
+  }
 }
 
-# Up to 10 items of a kind (`MAX_KNOWLEDGE_READ_IDS`), as `read_knowledge` reads them: their uses and
-# every link of theirs the agent may see, newest first, at most 100 of each kind of target per item
+# Up to 10 items of a kind (`MAX_KNOWLEDGE_READ_IDS`), as `read_knowledge` reads them: their uses,
+# their notes and every link of theirs the agent may see, newest first, at most 100 of each kind of target per item
 # (`MAX_KNOWLEDGE_LINKS`), so 1000 of each in all. The backend keeps each item's 20 newest with their
 # total, since a list's limit is the whole list's, not each item's share. A link to a document kept
 # from AI or deleted, or to a deleted task, is left out, and back once the document or the task is
@@ -3699,7 +3715,25 @@ query GetKnowledgeItemsForAgent(
   ) {
     itemId
     isInUse
+    directoryStatus
     changedAt
+  }
+  knowledgeNotes(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: $kind }
+      itemId: { in: $itemIds }
+      organization: {
+        userOrganizations_on_organization: {
+          exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } }
+        }
+      }
+    }
+    limit: 10
+  ) {
+    itemId
+    content
+    updatedAt
   }
   knowledgeDocumentLinks(
     where: {

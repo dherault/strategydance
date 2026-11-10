@@ -81,7 +81,9 @@ describe('list_knowledge', () => {
     ).toBe(true)
     expect(directories.map(row => row.id)).toEqual(DIRECTORIES.map(({ id }) => id))
     expect(
-      directories.every(row => Object.keys(row).join() === 'id,name,description,inUse,type,categories,businessModel'),
+      directories.every(
+        row => Object.keys(row).join() === 'id,name,description,inUse,status,type,categories,businessModel',
+      ),
     ).toBe(true)
 
     for (const rows of [frameworks[0]!.items, tactics[0]!.items, directories]) {

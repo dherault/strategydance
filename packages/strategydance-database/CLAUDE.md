@@ -28,9 +28,9 @@ The Data Connect service's conventions, beside the root `CLAUDE.md`: the schema 
   an organization the member left and rejoined
 - A variable joins an operation optional, so an older page can leave it out, and its `@check` reads
   `!has(vars.x) || vars.x == null || …`, since `vars.x == null` alone errors on an absent variable
-- `Locale`, `Currency` and `KnowledgeKind` are declared in both `schema.gql` and core, which
-  `schema.test.ts` holds together, as it holds the Budget's limits to their checks. Every other enum
-  lives here alone. An enum's order is Postgres': append a value, never reorder one
+- `Locale`, `Currency`, `KnowledgeKind` and `DirectoryStatus` are declared in both `schema.gql` and
+  core, which `schema.test.ts` holds together, as it holds the Budget's limits to their checks. Every
+  other enum lives here alone. An enum's order is Postgres': append a value, never reorder one
 - A schema change reaches production with its release, Data Connect first, and a migration that
   drops anything stops the release for a human
 

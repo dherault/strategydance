@@ -1159,6 +1159,29 @@ describe('runConversation', () => {
     expect(readRun(reference)?.status).toBe('COMPLETED')
   })
 
+  test('stores its turn once though the read after Claude answered it fails, without asking Claude again', async () => {
+    const reference = await start()
+    const scripted = createClient()
+    let isFailed = false
+
+    // The step's read right after the answer, which the turn it holds waits on
+    fake.beforeOperation = async name => {
+      if (name === 'GetConversationRunContext' && scripted.requests.length === 1 && !isFailed) {
+        isFailed = true
+
+        throw new Error('The database is unreachable')
+      }
+    }
+
+    expect(await runConversation(reference, { client: scripted.client, retryDelayMs: 0 })).toBe('finished')
+    expect(isFailed).toBe(true)
+    expect(scripted.requests).toHaveLength(1)
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+    expect(readEntries(reference).map(({ role }) => role)).toEqual(['USER', 'SYSTEM', 'ASSISTANT'])
+    expect(readThread(reference).filter(({ kind }) => kind === 'AGENT_TEXT')).toHaveLength(1)
+    expect(readUsage(reference).requests).toMatchObject([{ inputTokens: 1000, isSettled: true, isEstimated: false }])
+  })
+
   test('claims a run once when two workers are told of it at once', async () => {
     const reference = await start()
     const scripted = createClient([answer(), answer()])

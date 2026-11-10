@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { MAX_ACTIVE_RUNS_PER_MEMBER } from 'strategydance-core'
 import {
   ConversationRunStatus,
@@ -15,6 +13,7 @@ import { IS_USAGE_CAPPED } from '~constants'
 
 import { dataConnect } from '~firebase'
 
+import createId from '~utils/createId'
 import logger from '~utils/logger'
 
 import buildKeptConversationPreview from '~domain/conversations/buildKeptConversationPreview'
@@ -162,7 +161,7 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
       conversationId,
       anchorPosition: latest.anchorPosition,
     })
-    const retryingRunId = randomUUID().replaceAll('-', '')
+    const retryingRunId = createId()
 
     try {
       await retryConversationRunMutation(dataConnect, {

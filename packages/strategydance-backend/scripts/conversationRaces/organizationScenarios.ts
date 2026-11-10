@@ -2,7 +2,9 @@ import { deleteOrganization } from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
 
-import { type Member, asMember, createTeam, read } from './raceFixtures'
+import sendConversationMessage from '~domain/conversations/sendConversationMessage'
+
+import { type Member, asMember, createId, createTeam, read, startConversationOf } from './raceFixtures'
 import { JITTERS, type RaceScenario, describe, race } from './raceHarness'
 
 type Act = 'remove' | 'demote'
@@ -122,6 +124,52 @@ const deleteBesideDemotion: RaceScenario = {
   },
 }
 
-const organizationScenarios = [administratorsOnEachOther, deleteBesideDemotion]
+/*
+  An administrator deleting the organization as a message of their own is sent, which locks their
+  membership first, as every write of theirs does: the delete takes the membership after the
+  organization's row, so the send in flight finishes first and goes with the organization, or finds
+  it gone, never a deadlock failing the delete. Every other round the message starts the
+  conversation
+*/
+const deleteBesideSend: RaceScenario = {
+  name: 'delete-beside-send',
+  description: 'an administrator deleting the organization as a message of theirs is sent deletes it',
+  async run({ round, jitter, expect }) {
+    const {
+      organizationId,
+      members: [deleter],
+    } = await createTeam('delete-beside-send', round, ['ADMINISTRATOR'])
+    const conversationId = round % 2 ? (await startConversationOf(deleter!)).conversationId : createId()
+    const results = await race<unknown>(
+      {
+        deletes: () => deleteOrganization(dataConnect, { organizationId, userId: deleter!.userId }),
+        sends: () =>
+          sendConversationMessage({
+            organizationId,
+            userId: deleter!.userId,
+            conversationId,
+            messageId: createId(),
+            text: 'At once',
+            drawnText: 'At once',
+          }),
+      },
+      jitter,
+    )
+    const data = await read<{ organization: { id: string } | null }>(
+      'query ReadOrganization($id: UUID!) { organization(id: $id) { id } }',
+      { id: organizationId },
+    )
+
+    expect(
+      'the delete goes through, whatever the send was answered',
+      results.deletes?.status === 'fulfilled' && data.organization === null,
+      Object.entries(results)
+        .map(([writer, result]) => `${writer} ${describe(result)}`)
+        .join(', '),
+    )
+  },
+}
+
+const organizationScenarios = [administratorsOnEachOther, deleteBesideDemotion, deleteBesideSend]
 
 export default organizationScenarios

@@ -15,11 +15,11 @@ import holdEnqueuedRuns from './conversationRaces/holdEnqueuedRuns'
   sends them, on fixtures of their own, many rounds over, then reads what they left: one run per
   conversation, three in flight, five subagent slots, a promotion into each slot freed, a report
   delivered once, a cascade reaching a launch, a suspension reaching a send, an administrator left
-  after two act on each other, an organization's delete beside a demotion, two tasks linked one way,
-  a checklist started once, and the caps of a board and a checklist. A round that fails prints the
-  interleaving of the operations each writer ran, and a scenario whose writers never waited on each
-  other's locks, or that Postgres found deadlocked, fails too. It exits non-zero naming each
-  scenario that failed.
+  after two act on each other, an organization's delete beside a demotion or a send of its
+  deleter's, two tasks linked one way, a checklist started once, and the caps of a board and a
+  checklist. A round that fails prints the interleaving of the operations each writer ran, and a
+  scenario whose writers never waited on each other's locks, or that Postgres found deadlocked,
+  fails too. It exits non-zero naming each scenario that failed.
 
   Runs stay where their start left them, since the race drives a worker's steps itself where it
   means to (`holdEnqueuedRuns`). It never runs in CI, which runs no emulators: run it before a release

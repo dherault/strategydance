@@ -673,9 +673,13 @@ enum ConversationAttachmentStatus {
   PRUNING
 }
 
-# A member's chat with Strategy Dance in an organization. Private: only its author reads it,
-# administrators included, and only through operations keyed by the uid off the token and by their
-# current membership.
+# A member's chat with Strategy Dance in an organization. Every member of the organization reads it,
+# administrators or not, through operations keyed by the uid off the token and by their current
+# membership: its list, page, files, subagents and search are the team's. Only its author writes in
+# it and acts on it: the composer, the answers, Stop, Resume, Retry, Restore, Undo, the aspects,
+# Delete, the dock, the unread count and the badge stay theirs (conversations.md § Decisions, since
+# 2026-11-02), and so do the input and output of a call the agent made with their own account at an
+# OAuth server, which only they read (since 2026-11-10).
 #
 # Only the backend creates one, with its first message, its first run and its first transcript
 # entry in one mutation, so a conversation exists only once something was sent. The browser

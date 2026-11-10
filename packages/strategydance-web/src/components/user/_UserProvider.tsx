@@ -20,6 +20,7 @@ import useSystemTimezone from '~hooks/user/useSystemTimezone'
 import deleteProfilePicture from '~utils/user/deleteProfilePicture'
 import getAuthenticationProviders from '~utils/user/getAuthenticationProviders'
 import toDatabaseLocale from '~utils/user/toDatabaseLocale'
+import toMirroredUserName from '~utils/user/toMirroredUserName'
 import uploadProfilePicture from '~utils/user/uploadProfilePicture'
 
 import { requestApi } from '~data/api'
@@ -72,6 +73,10 @@ function UserProvider({ children }: PropsWithChildren) {
   // Whose welcome email this page has asked for, so it asks once a visit rather than on every
   // read of the row
   const welcomeRequestedForViewerIdRef = useRef<string | null>(null)
+
+  // What the mirror below last sent, for whom, until the row reads back in step: a value that
+  // never comes back as it was sent would otherwise be written and read again without end
+  const lastMirroredRef = useRef<string | null>(null)
 
   const user = viewerId ? (data?.user ?? null) : null
 
@@ -163,7 +168,7 @@ function UserProvider({ children }: PropsWithChildren) {
     // refuses a null. Firebase reads either back as null
     await updateFirebaseProfile(viewer, { photoURL: imageUrl ?? '' })
     await updateCurrentUser({
-      displayName: viewer.displayName,
+      displayName: toMirroredUserName(viewer.displayName),
       imageUrl,
       imageThumbnailUrl,
       timezone: timezone ?? user.timezone,
@@ -193,7 +198,7 @@ function UserProvider({ children }: PropsWithChildren) {
     insertingForViewerIdRef.current = viewer.uid
 
     createCurrentUser({
-      displayName: viewer.displayName,
+      displayName: toMirroredUserName(viewer.displayName),
       imageUrl: viewer.photoURL,
       locale: toDatabaseLocale(locale),
       timezone,
@@ -224,7 +229,7 @@ function UserProvider({ children }: PropsWithChildren) {
     */
     const hasDrifted =
       user.email !== viewer.email
-      || user.displayName !== viewer.displayName
+      || user.displayName !== toMirroredUserName(viewer.displayName)
       || user.imageUrl !== viewer.photoURL
       || user.authenticationProviders.join() !== authenticationProviders.join()
       /*
@@ -236,14 +241,16 @@ function UserProvider({ children }: PropsWithChildren) {
       || Boolean(timezone && user.timezone !== timezone)
 
     // A mount is not a write. Without this every reload touches the row, and `updatedAt` stops
-    // meaning anything
-    if (!hasDrifted) return
+    // meaning anything. A row in step forgets what was last sent, so the same values drifting
+    // again later are written again
+    if (!hasDrifted) {
+      lastMirroredRef.current = null
 
-    // The mutation rather than a function of this component's, so nothing it defines ends up in a
-    // dependency array. The compiler would keep such a function stable, but the lint rule
-    // reads the source rather than the compiler's output and cannot know that
-    updateCurrentUser({
-      displayName: viewer.displayName,
+      return
+    }
+
+    const variables = {
+      displayName: toMirroredUserName(viewer.displayName),
       imageUrl: viewer.photoURL,
       /*
         The thumbnail is of the picture the row had. A picture that drifted, as one changed where
@@ -253,9 +260,30 @@ function UserProvider({ children }: PropsWithChildren) {
       imageThumbnailUrl: user.imageUrl === viewer.photoURL ? undefined : null,
       timezone: timezone ?? user.timezone,
       authenticationProviders,
-    })
+    }
+
+    /*
+      The same values sent again would read back as they did, as an address the token holds that
+      the row never shows, or a name the mutation refuses, and drift again: they are sent once, and
+      anything that changed is sent. The address goes in too, since the mutation writes the token's.
+      A write that fails is forgotten, so it goes again
+    */
+    const mirrored = JSON.stringify([viewer.uid, viewer.email, variables])
+
+    if (lastMirroredRef.current === mirrored) return
+
+    lastMirroredRef.current = mirrored
+
+    // The mutation rather than a function of this component's, so nothing it defines ends up in a
+    // dependency array. The compiler would keep such a function stable, but the lint rule
+    // reads the source rather than the compiler's output and cannot know that
+    updateCurrentUser(variables)
       .then(() => refetchUser())
       .catch(error => {
+        // Sent again the next time the row is read, as a write that never went through reads back
+        // nothing that could loop
+        if (lastMirroredRef.current === mirrored) lastMirroredRef.current = null
+
         console.error('Failed to update the user', error)
       })
   }, [viewer, user, timezone, updateCurrentUser, refetchUser])

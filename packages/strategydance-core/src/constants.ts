@@ -345,6 +345,14 @@ export const WELCOME_EMAIL_WINDOW_DAYS = 7
 export const MAX_USER_NAME_LENGTH = 80
 
 /*
+  How long a name mirrored from the account may be, past the page's, since one from Google can be
+  longer: the page cuts a longer one to it rather than lose the whole row. Written out again in
+  `CreateCurrentUser`'s and `UpdateCurrentUser`'s checks, which cannot import it, and held to them
+  by `schema.test.ts`
+*/
+export const MAX_MIRRORED_USER_NAME_LENGTH = 256
+
+/*
   How long somebody's bio may be, which their team and agents read. Written out again in
   `UpdateCurrentUserProfile`'s check, which cannot import it: change the two together
 */

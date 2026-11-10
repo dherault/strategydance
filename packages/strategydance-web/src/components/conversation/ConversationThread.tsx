@@ -640,6 +640,7 @@ function ConversationThread({
               ? { conversationId: conversation.id, id: openSubagent.id, title: openSubagent.title }
               : undefined
           }
+          authorName={isAuthor ? undefined : authorName}
           onClose={() => setOpenToolCall(null)}
         />
       ) : null}

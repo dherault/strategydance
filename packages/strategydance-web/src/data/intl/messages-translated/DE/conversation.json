@@ -341,6 +341,7 @@
   "conversation.toolBadge": "Tool",
   "conversation.toolCall": "Tool-Aufruf · {name}",
   "conversation.toolCallLoadError": "Dieser Aufruf konnte nicht geladen werden. Überprüfe deine Verbindung und versuche es erneut.",
+  "conversation.toolCallPersonal": "Dieser Aufruf wurde mit dem eigenen Konto von {name} getätigt, daher sieht nur {name} die Ein- und Ausgabe.",
   "conversation.toolError": "Fehler",
   "conversation.toolInput": "Eingabe",
   "conversation.toolOutput": "Ausgabe",

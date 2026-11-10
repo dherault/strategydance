@@ -5,6 +5,7 @@ import type { DocumentsRefusal, ModuleCaller } from '~types'
 
 import decodeCursor from '~utils/decodeCursor'
 import encodeCursor from '~utils/encodeCursor'
+import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import hashDocumentText from '~domain/documents/hashDocumentText'
 import loadDocument from '~domain/documents/loadDocument'
@@ -54,7 +55,8 @@ async function readDocument(
 
   if (from !== undefined && !cursor) return { outcome: 'invalidCursor' }
 
-  const loaded = await loadDocument(caller, id)
+  const documentId = toCanonicalUuid(id)
+  const loaded = await loadDocument(caller, documentId)
 
   if (loaded.outcome !== 'loaded') return loaded
 
@@ -70,7 +72,7 @@ async function readDocument(
   return {
     outcome: 'read',
     reading: {
-      id,
+      id: documentId,
       title,
       aspects,
       isAiWritable,

@@ -341,6 +341,7 @@
   "conversation.toolBadge": "工具",
   "conversation.toolCall": "工具调用 · {name}",
   "conversation.toolCallLoadError": "无法加载此调用。请检查网络连接后重试。",
+  "conversation.toolCallPersonal": "此调用使用的是 {name} 的个人账号，因此只有其本人能查看输入和输出。",
   "conversation.toolError": "错误",
   "conversation.toolInput": "输入",
   "conversation.toolOutput": "输出",

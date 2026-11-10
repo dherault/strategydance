@@ -3519,6 +3519,10 @@
         "hash": "797df8b3272b4d9e",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "conversation.toolCallPersonal": {
+        "hash": "daad8bb9868c2213",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "conversation.toolError": {
         "hash": "61836d7de69854ab",
         "locales": "DE,ES,FR,JA,PT,ZH"

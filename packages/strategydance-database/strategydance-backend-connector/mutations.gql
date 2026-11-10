@@ -157,12 +157,13 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 # backend's, which sweeps them before running this, so a failed sweep leaves the organization to
 # delete again, and once more after, for an upload that raced it (`deleteOrganization`).
 #
-# The lock is the organization's row, which every change to who administers it takes first, so a
-# demotion or a removal of the caller in the same instant runs wholly before this or after it: one
-# before is read by the check, which reads the lock's response and so runs as a statement of its own
-# once the lock is held, and one after finds no organization. Each step being a statement of its
-# own, the delete writes the row the lock wrote, which one statement would skip (CLAUDE.md § The
-# database).
+# The locks are the organization's row, which every change to who administers it takes first, so a
+# demotion or a removal of the caller in the same instant runs wholly before this or after it, then
+# the caller's own membership, which their own writes take first, a send or a run's start among
+# them, so one of those in flight finishes before the delete reaches its rows. The check reads the
+# locks' responses, so it runs as a statement of its own once both are held: a demotion before is
+# read, and one after finds no organization. Each step being a statement of its own, the delete
+# writes the rows the locks wrote, which one statement would skip (CLAUDE.md § The database).
 #
 # `$organizationId` is also what every live query scoped to an organization refreshes on, the
 # team, the log, the documents and conversations among them, so a member watching any of them sees
@@ -171,9 +172,17 @@ mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(leve
   organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
     @check(expr: "this != null", message: "Only a member of an organization can delete it")
+  userOrganization_update(
+    key: { userId: $userId, organizationId_expr: "response.organization_update.id" }
+    data: { updatedAt_expr: "request.time" }
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can delete it")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
-      @check(expr: "this != null", message: "Only a member of an organization can delete it") {
+    userOrganization(
+      key: {
+        userId_expr: "response.userOrganization_update.userId"
+        organizationId_expr: "response.organization_update.id"
+      }
+    ) @check(expr: "this != null", message: "Only a member of an organization can delete it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can delete an organization")
     }
   }

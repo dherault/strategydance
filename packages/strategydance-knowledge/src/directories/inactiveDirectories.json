@@ -1048,7 +1048,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-11-10",
     "unreachableSince": null,
     "inactiveReason": "PARKED"
   },
@@ -1207,19 +1207,6 @@
     "lastChecked": null,
     "unreachableSince": null,
     "inactiveReason": "BROKEN_SUBMISSION"
-  },
-  {
-    "id": "launch-cab",
-    "name": "Launch.cab",
-    "type": "WEBSITE",
-    "rootUrl": "https://launch.cab/",
-    "submissionUrl": "https://launch.cab/",
-    "description": "",
-    "categories": [],
-    "businessModel": "UNKNOWN",
-    "lastChecked": null,
-    "unreachableSince": null,
-    "inactiveReason": "NO_SUBMISSION"
   },
   {
     "id": "launched",
@@ -2361,7 +2348,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-11-09",
     "unreachableSince": null,
     "inactiveReason": "UNREACHABLE"
   },

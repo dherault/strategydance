@@ -15,6 +15,8 @@ import { IS_USAGE_CAPPED } from '~constants'
 
 import { dataConnect } from '~firebase'
 
+import logger from '~utils/logger'
+
 import buildKeptConversationPreview from '~domain/conversations/buildKeptConversationPreview'
 import enqueueRun from '~domain/conversations/enqueueRun'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
@@ -62,8 +64,10 @@ export type RetryConversationRunResult =
 
   The live subagents the runs it cuts launched, those on the anchor, are asked to stop and deleted in
   the same write, at an instant of their own, so restoring the conversation never brings them back,
-  and their runs queued or waiting for a slot are ended right after (`stopConversationSubagents`):
-  their reports are never delivered, and what they wrote stays written. Each round reads where things stand first:
+  and their runs queued or waiting for a slot are ended right after (`stopConversationSubagents`),
+  best effort, since the retry is written by then and its run is queued whatever comes of it: their
+  reports are never delivered, and what they wrote stays written. Each round reads where things
+  stand first:
 
   - a retry sent again after its first try went through finds the run it started right after the
     one it retries, and is answered with it, queued again while it waits
@@ -182,11 +186,17 @@ async function retryConversationRun(reference: ConversationRunReference): Promis
       continue
     }
 
-    await stopConversationSubagents(
-      { organizationId, userId, conversationId },
-      { anchorPosition: latest.anchorPosition },
-      { isAsked: true },
-    )
+    // Asked to stop and deleted in the retry's write already, so a run of theirs this leaves ends once
+    // a worker takes it, and one waiting for a slot at the next reconcile
+    try {
+      await stopConversationSubagents(
+        { organizationId, userId, conversationId },
+        { anchorPosition: latest.anchorPosition },
+        { isAsked: true },
+      )
+    } catch (error) {
+      logger.warn(`Conversation ${conversationId}: the subagents its retry cut could not be stopped`, error)
+    }
 
     if (!(await enqueueRun({ ...reference, runId: retryingRunId }, 'conversation-runs')))
       return { outcome: 'unavailable' }

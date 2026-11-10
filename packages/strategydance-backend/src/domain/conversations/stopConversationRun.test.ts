@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
+import { MAX_ACTIVE_RUNS_PER_MEMBER } from 'strategydance-core'
+
+import type { ConversationRunQueue, ConversationRunReference } from '~types'
+
 import createConversationDatabaseFake from './testing/createConversationDatabaseFake'
 import createConversationTestKit, {
   ORGANIZATION_ID,
@@ -11,11 +15,16 @@ import createConversationTestKit, {
 
 const fake = createConversationDatabaseFake()
 
+// The reactions a stop starts, which here nothing runs
+const enqueueRun = mock(async (_reference: ConversationRunReference, _queue: ConversationRunQueue) => true)
+
 mock.module('~firebase', () => ({ dataConnect: {} }))
 
 mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
 
 mock.module('strategydance-database/backend', () => fake.sdk)
+
+mock.module('~domain/conversations/enqueueRun', () => ({ default: enqueueRun }))
 
 const { default: stopConversationRun } = await import('./stopConversationRun')
 const { default: runConversation } = await import('./runConversation')
@@ -23,9 +32,36 @@ const { default: runConversation } = await import('./runConversation')
 const kit = createConversationTestKit(fake)
 const { start, claim, expireLease, readRun, readConversation, readThread, readEntries, readUsage, createClient } = kit
 
+/*
+  A parent whose subagent reported while the member's 3 runs were taken by other conversations, the
+  runs it answers with, so its reaction is due once one of them ends
+*/
+async function holdReaction() {
+  const parent = await start()
+
+  await kit.call('finishConversationRun', { ...(await claim(parent)), status: 'COMPLETED' })
+
+  const subagent = await kit.launch(parent)
+  const others: ConversationRunReference[] = []
+
+  for (let index = 0; index < MAX_ACTIVE_RUNS_PER_MEMBER; index++) others.push(await start(`Other ${index}`))
+
+  await kit.call('finishSubagentRun', { ...(await claim(subagent)), status: 'COMPLETED', report: 'Done.' })
+
+  return { parent, others }
+}
+
+// The reactions a conversation started
+function readReactions(parent: ConversationRunReference) {
+  return [...fake.runs.values()].filter(
+    run => run.conversationId === parent.conversationId && run.trigger === 'REPORTS',
+  )
+}
+
 beforeEach(() => {
   fake.reset()
   fake.addMember('author', ORGANIZATION_ID)
+  enqueueRun.mockClear()
 })
 
 describe('stopConversationRun', () => {
@@ -112,6 +148,21 @@ describe('stopConversationRun', () => {
 
     expect(await stopConversationRun(reference)).toEqual({ outcome: 'missing' })
     expect(readRun(reference)?.status).toBe('QUEUED')
+  })
+  test('answers a stopped run stopped though its subagents could not be stopped after it, and starts the reaction it held back', async () => {
+    const { parent, others } = await holdReaction()
+    const [queued] = others
+
+    if (!queued) throw new Error('No other run started')
+
+    // The read of the subagents to stop, once the run's own stop is written
+    fake.beforeOperation = async name => {
+      if (name === 'GetSubagentsToStop') throw new Error('The database is unreachable')
+    }
+
+    expect(await stopConversationRun(queued)).toEqual({ outcome: 'stopped' })
+    expect(readRun(queued)?.status).toBe('STOPPED')
+    expect(readReactions(parent)).toHaveLength(1)
   })
 })
 

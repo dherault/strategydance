@@ -28,10 +28,11 @@ type Props = {
 
 /*
   One directory of the Directories page: its name, with a mark when the team noted it, a Reddit
-  community or a site lately unreachable, its description, or its address before it has one, what
-  it charges, the kinds of product it lists, where the organization stands with it, and a link to
-  its submission page, which opens in a new tab. A click anywhere else on the row opens the
-  directory's dialog; its name is the link the keyboard reaches
+  community or a site lately unreachable, its description, or its address before it has one, what it
+  charges, the kinds of product it lists, where the organization stands with it, and a link to its
+  submission page, which opens in a new tab. A click anywhere else on the row opens the directory's
+  dialog; its name is the link the keyboard reaches. Both keep the address's tab, which TanStack
+  drops from a link that names no search, so the page behind the dialog stays on it
 */
 function DirectoryRow({ directory, state }: Props) {
   const { formatMessage } = useIntl()
@@ -49,6 +50,7 @@ function DirectoryRow({ directory, state }: Props) {
     navigate({
       to: '/$organizationSlug/directories/$directoryId',
       params: { organizationSlug, directoryId: directory.id },
+      search: true,
       state: { isFromDirectoriesPage: true },
       resetScroll: false,
     })
@@ -65,6 +67,7 @@ function DirectoryRow({ directory, state }: Props) {
             <Link
               to="/$organizationSlug/directories/$directoryId"
               params={{ organizationSlug, directoryId: directory.id }}
+              search
               state={{ isFromDirectoriesPage: true }}
               resetScroll={false}
               className="truncate rounded-xs font-semibold text-secondary no-underline hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"

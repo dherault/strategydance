@@ -115,4 +115,54 @@ describe('createDirectoryNotesSaver', () => {
 
     expect(sent).toEqual(['Listed', 'Listed'])
   })
+
+  it('never brings back notes a failed send held once newer ones went out', async () => {
+    const sends: { content: string; resolve: () => void; reject: () => void }[] = []
+    const { saver, sent } = createSaver(
+      content =>
+        new Promise<void>((resolve, reject) => {
+          sends.push({ content, resolve, reject: () => reject(new Error('Offline')) })
+        }),
+    )
+
+    saver.open('')
+    saver.change('Listed')
+    saver.flush()
+    saver.change('Listed, waiting')
+    saver.flush()
+    sends[0]?.reject()
+    sends[1]?.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(saver.hasPending()).toBe(false)
+    expect(saver.flush()).toBe('nothing')
+    expect(sent).toEqual(['Listed', 'Listed, waiting'])
+  })
+
+  it('keeps the newest notes waiting when every send on its way fails', async () => {
+    const sends: { content: string; reject: () => void }[] = []
+    const { saver, sent } = createSaver(
+      content =>
+        new Promise<void>((_resolve, reject) => {
+          sends.push({ content, reject: () => reject(new Error('Offline')) })
+        }),
+    )
+
+    saver.open('')
+    saver.change('Listed')
+    saver.flush()
+    saver.change('Listed, waiting')
+    saver.flush()
+    sends[0]?.reject()
+    sends[1]?.reject()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(saver.hasPending()).toBe(true)
+
+    saver.flush()
+
+    expect(sent).toEqual(['Listed', 'Listed, waiting', 'Listed, waiting'])
+  })
 })

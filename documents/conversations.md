@@ -1770,8 +1770,10 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
 
 **Strategy Dance's agent** reaches the Documents module from M16 and the Tasks module from M17:
 
-- **In process, through the module's own handler.** The worker builds each module's handler, the
-  one the public endpoint mounts, and connects the SDK's `Client` to it through a
+- **In process, through one handler of its modules.** The worker builds the handler of every module
+  it uses, as each public endpoint builds its own module's, which builds one server of them all for
+  each request, and connects one `Client` of the SDK's to it, since modules-address.md's M1: before
+  it, each module had a handler and a client of its own. The client goes through a
   `StreamableHTTPClientTransport` whose `fetch` hands each request to the handler's own, `(url,
   init) => handler.fetch(new Request(url, init), { authInfo })`, since the transport calls its
   `fetch` with an address and options rather than a `Request`, the run's member as the caller, with
@@ -2023,7 +2025,9 @@ authorization server from M18 and a consent page from M19:
   `http://localhost:3003/mcp/documents` as its own issuer, with the consent page on the local web
   app, and `bun run check:oauth` runs the whole flow against it, refresh, reuse and revocation
   included. The Tasks module follows the same path: `bun run mcp:tasks <email>` from M15, the same
-  stdio script taking the module's name, and `http://localhost:3003/mcp/tasks` from M21.
+  stdio script taking the module's name, and `http://localhost:3003/mcp/tasks` from M21. From
+  modules-address.md's M1, `bun run mcp <email>` serves every served module on one server over
+  stdio the same way.
 
 **Later modules**, software solutions among them, each add a folder under
 `src/modules/`, an entry in `MODULES`, their address, scopes and labels, and their tools to the

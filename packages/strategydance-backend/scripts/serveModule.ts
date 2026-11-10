@@ -5,6 +5,7 @@ import { serveStdio } from '@modelcontextprotocol/server/stdio'
 import {
   MAX_AGENT_CONNECTION_ORGANIZATIONS,
   MODULES,
+  SERVED_MODULE_NAMES,
   SERVED_MODULES,
   toOrganizationPathSegment,
 } from 'strategydance-core'
@@ -13,16 +14,18 @@ import type { ModuleAccess } from '~types'
 
 import { authentication, dataConnect } from '~firebase'
 
-import MODULE_SERVERS from '~modules/moduleServers'
+import createModulesServer from '~modules/createModulesServer'
 
 /*
-  Serves a module over stdio, as one account of the emulators, so an MCP client on this machine,
-  Claude Code say, reaches it before the authorization server exists. The package's scripts name the
-  module, one each:
+  Serves modules over stdio, as one account of the emulators, so an MCP client on this machine,
+  Claude Code say, reaches them before the authorization server exists: every module served to
+  external agents on one server, or the one module named. The package's scripts:
 
+    bun run mcp <email> [--organization <id or slug>]…
     bun run mcp:documents <email> [--organization <id or slug>]…
     bun run mcp:tasks <email> [--organization <id or slug>]…
     bun run mcp:budget <email> [--organization <id or slug>]…
+    claude mcp add strategydance-local -- bun run mcp <email>
     claude mcp add strategydance-documents-local -- bun run mcp:documents <email>
     claude mcp add strategydance-tasks-local -- bun run mcp:tasks <email>
     claude mcp add strategydance-budget-local -- bun run mcp:budget <email>
@@ -32,7 +35,7 @@ import MODULE_SERVERS from '~modules/moduleServers'
 
   It acts as the account with that address, which has to have signed in to the app once, in the
   organizations named, or in every one the account belongs to, up to as many as a connection
-  reaches, with every scope of the module, as an external agent would: each call names the
+  reaches, with every scope of the modules served, as an external agent would: each call names the
   organization it acts in, and its results carry each document's or task's address on the local web
   app. Knowledge, whose tools name no organization, acts in the one named, or in the account's only
   one.
@@ -50,7 +53,7 @@ if (
   || !process.env.FIREBASE_STORAGE_EMULATOR_HOST
 ) {
   console.error(
-    'FIREBASE_AUTH_EMULATOR_HOST, DATA_CONNECT_EMULATOR_HOST and FIREBASE_STORAGE_EMULATOR_HOST are not all set. This script only reads and writes the emulators: run `bun run mcp:documents`, `bun run mcp:tasks` or `bun run mcp:budget`',
+    'FIREBASE_AUTH_EMULATOR_HOST, DATA_CONNECT_EMULATOR_HOST and FIREBASE_STORAGE_EMULATOR_HOST are not all set. This script only reads and writes the emulators: run `bun run mcp`, `bun run mcp:documents`, `bun run mcp:tasks` or `bun run mcp:budget`',
   )
   process.exit(1)
 }
@@ -65,14 +68,21 @@ const { values, positionals } = parseArgs({
   allowPositionals: true,
 })
 
-// The module the package's script names, then the account
-const served = MODULES.find(({ name }) => name === positionals[0])
+// The module the package's script names, if it names one, then the account
+const namedModule = MODULES.find(({ name }) => name === positionals[0])
+const [address, ...others] = namedModule ? positionals.slice(1) : positionals
 // Firebase lowercases the addresses it stores
-const email = positionals[1]?.trim().toLowerCase()
+const email = address?.trim().toLowerCase()
+// What is served: the module named, or every module served to external agents, on one server
+const modules = namedModule ? [namedModule] : SERVED_MODULES
+const title = namedModule ? namedModule.title : `Strategy Dance (${SERVED_MODULE_NAMES.join(', ')})`
 
-if (!served || !email || positionals.length > 2) {
+// An account named without an at sign is more likely a module's name mistyped
+if (!email?.includes('@') || others.length) {
   console.error(
-    `Usage: bun run mcp:${served?.name ?? `<${MODULES.map(({ name }) => name).join(' | ')}>`} <email> [--organization <id or slug>]…`,
+    namedModule
+      ? `Usage: bun run mcp:${namedModule.name} <email> [--organization <id or slug>]…`
+      : `Usage: bun run mcp <email> [--organization <id or slug>]…, or bun scripts/serveModule.ts <${MODULES.map(({ name }) => name).join(' | ')}> <email> for one module`,
   )
   process.exit(1)
 }
@@ -119,14 +129,14 @@ async function findMemberships(userId: string) {
   }
 
   const reached = named.length ? [...new Set(chosen.filter(membership => membership !== undefined))] : memberships
-  const most =
-    served && SERVED_MODULES.some(({ name }) => name === served.name) ? MAX_AGENT_CONNECTION_ORGANIZATIONS : 1
+  // A module whose tools name no organization acts in one
+  const most = modules.every(({ name }) => SERVED_MODULE_NAMES.includes(name)) ? MAX_AGENT_CONNECTION_ORGANIZATIONS : 1
 
   if (reached.length && reached.length <= most) return reached
 
   console.error(
     memberships.length
-      ? `${email} belongs to ${memberships.length} organizations, more than this module reaches at once (${most}): name ${most === 1 ? 'one' : 'some'} with --organization\n${memberships.map(({ organizationId, organization }) => `  ${organization.slug ?? organizationId}  ${organization.name}`).join('\n')}`
+      ? `${email} belongs to ${memberships.length} organizations, more than this server reaches at once (${most}): name ${most === 1 ? 'one' : 'some'} with --organization\n${memberships.map(({ organizationId, organization }) => `  ${organization.slug ?? organizationId}  ${organization.name}`).join('\n')}`
       : `${email} belongs to no organization yet`,
   )
   process.exit(1)
@@ -137,7 +147,7 @@ const memberships = await findMemberships(userId)
 const access: ModuleAccess = {
   kind: 'external',
   userId,
-  scopes: [served.scopes.read, served.scopes.write],
+  scopes: modules.flatMap(({ scopes }) => [scopes.read, scopes.write]),
   idempotencyScope: `connection:${randomUUID()}`,
   organizations: memberships.map(({ organizationId, createdAt, organization }) => ({
     organizationId,
@@ -147,10 +157,15 @@ const access: ModuleAccess = {
   })),
 }
 
-serveStdio(() => MODULE_SERVERS[served.name](access), {
-  onerror: error => console.error(`${served.title} failed`, error),
-})
+serveStdio(
+  () =>
+    createModulesServer(
+      access,
+      modules.map(({ name }) => name),
+    ),
+  { onerror: error => console.error(`${title} failed`, error) },
+)
 
 console.error(
-  `Serving ${served.title} over stdio as ${email} in ${memberships.map(({ organizationId, organization }) => organization.slug ?? organizationId).join(', ')}`,
+  `Serving ${title} over stdio as ${email} in ${memberships.map(({ organizationId, organization }) => organization.slug ?? organizationId).join(', ')}`,
 )

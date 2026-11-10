@@ -419,10 +419,10 @@ which fills the bill dialog with the answer for the member to check. The module 
 - its title is "Strategy Dance Budget";
 - its scopes are `budget:read` and `budget:write`.
 
-Its server is `createBudgetServer(caller)`, in `src/modules/budget/`, with one file per tool, on
-`domain/budget/`. Like the Tasks module, it carries no AI permission: an agent acting as a member reads
-and writes the bills as that member could, and never the budget itself, which stays an
-administrator's, on the page.
+It registers its tools with `registerBudgetModule(server, access)`, in `src/modules/budget/`, with
+one file per tool, on `domain/budget/`, on the server of the modules its caller names. Like the
+Tasks module, it carries no AI permission: an agent acting as a member reads and writes the bills as
+that member could, and never the budget itself, which stays an administrator's, on the page.
 
 Its tools, in their frozen order:
 

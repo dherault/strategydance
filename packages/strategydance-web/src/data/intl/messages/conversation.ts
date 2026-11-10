@@ -1341,9 +1341,9 @@ const conversationMessages = defineMessages({
   },
   toolCallPersonal: {
     id: 'conversation.toolCallPersonal',
-    defaultMessage: 'Only {name} sees what this call sent and read with their own account.',
+    defaultMessage: 'This call was made with {name}’s own account, so only they see its input and output.',
     description:
-      "In the dialog that shows an action the AI took in another company's service, in place of what it sent and got back, when another member started the conversation: the AI acted there with that member's own account, so only they see it. {name} is that member's name.",
+      "In the dialog that shows an action the AI took in another company's service, in place of what it sent and got back, when another member started the conversation: the AI acted there with that member's own account, so only they see what it sent and got back. {name} is that member's name.",
   },
   questionWaiting: {
     id: 'conversation.question.waiting',

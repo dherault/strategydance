@@ -341,7 +341,7 @@
   "conversation.toolBadge": "Outil",
   "conversation.toolCall": "Appel d'outil · {name}",
   "conversation.toolCallLoadError": "Impossible de charger cet appel. Vérifiez votre connexion et réessayez.",
-  "conversation.toolCallPersonal": "Seul {name} peut voir ce que cet appel a envoyé et lu avec son propre compte.",
+  "conversation.toolCallPersonal": "Cet appel a été effectué avec le propre compte de {name}, donc seul {name} peut en voir les entrées et sorties.",
   "conversation.toolError": "Erreur",
   "conversation.toolInput": "Entrée",
   "conversation.toolOutput": "Sortie",

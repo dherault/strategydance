@@ -341,7 +341,7 @@
   "conversation.toolBadge": "Ferramenta",
   "conversation.toolCall": "Chamada de ferramenta · {name}",
   "conversation.toolCallLoadError": "Não foi possível carregar esta chamada. Verifique sua conexão e tente novamente.",
-  "conversation.toolCallPersonal": "Apenas {name} vê o que esta chamada enviou e leu com a sua própria conta.",
+  "conversation.toolCallPersonal": "Esta chamada foi feita com a própria conta de {name}, por isso apenas {name} vê a entrada e a saída.",
   "conversation.toolError": "Erro",
   "conversation.toolInput": "Entrada",
   "conversation.toolOutput": "Saída",

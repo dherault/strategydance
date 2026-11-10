@@ -20,14 +20,17 @@ type Options = {
   sends nothing, and whether anything waits to be sent or is on its way (`hasPending`), which keeps
   the notes as typed rather than as somebody else stored them meanwhile, until the server has the
   page's own. A send that failed waits again, so the words are kept to send with the next change,
-  unless newer notes went out or wait after it. A flush says when it held notes too long to send,
-  which a dialog closing then says it dropped
+  unless notes went out after it, the same ones included, or wait. A flush says when it held notes
+  too long to send, which a dialog closing then says it dropped
 */
 function createDirectoryNotesSaver({ save, onError, onTooLongChange, delay = SAVE_DELAY }: Options) {
   let saved: string | null = null
   let pending: string | null = null
   // How many sends are on their way, whose notes the server does not have yet
   let sending = 0
+  // Counts the sends and the opens, so a send that failed knows whether notes went out or were
+  // opened since
+  let generation = 0
   let timer: ReturnType<typeof setTimeout> | null = null
 
   function clearTimer() {
@@ -52,13 +55,18 @@ function createDirectoryNotesSaver({ save, onError, onTooLongChange, delay = SAV
     pending = null
     saved = content
     sending++
+    generation++
+
+    const sent = generation
+
     // Counted before it settles, so the re-render it starts never reads nothing as waiting
     onTooLongChange(false)
     save(content)
       .catch(() => {
-        // Sends to one row run in order, so notes sent after these supersede them: they wait
-        // again only when they are still the newest, and nothing newer waits
-        if (pending === null && saved === content) pending = content
+        // Sends to one row run in order, so notes sent after these supersede them, the same notes
+        // sent again included: they wait again only while nothing went out or was opened since,
+        // and nothing newer waits
+        if (pending === null && generation === sent) pending = content
 
         onError()
       })
@@ -75,6 +83,7 @@ function createDirectoryNotesSaver({ save, onError, onTooLongChange, delay = SAV
       clearTimer()
       saved = content
       pending = null
+      generation++
       onTooLongChange(false)
     },
     change(content: string) {

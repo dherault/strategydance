@@ -9,7 +9,6 @@ import {
   claimQueuedConversationRun,
   connectorConfig,
   finishConversationRun,
-  getConversationSendContext,
   startConversation,
 } from 'strategydance-database/backend'
 
@@ -36,7 +35,7 @@ const checkId = createId().slice(0, 8)
 const organizationIds: string[] = []
 const userIds: string[] = []
 
-export async function write(query: string, variables: Variables = {}) {
+async function write(query: string, variables: Variables = {}) {
   await dataConnect.executeGraphql(query, { variables })
 }
 
@@ -48,48 +47,12 @@ export async function read<Data>(query: string, variables: Variables = {}) {
 
 export type Member = { organizationId: string; userId: string; membershipCreatedAt: string }
 
-/*
-  A member of an organization of their own, made for one round of one scenario, so nothing another
-  round left counts against their runs, their slots or their caps
-*/
-export async function createMember(scenario: string, round: number): Promise<Member> {
-  const userId = `race-${checkId}-${scenario}-${round}`
-  const organizationId = createId()
-
-  userIds.push(userId)
-  organizationIds.push(organizationId)
-
-  // Signed up as the app has them, since a user's row takes its id and address off the token
-  await webConnector.executeMutation(
-    'CreateCurrentUser',
-    { locale: 'EN', authenticationProviders: [] },
-    { impersonate: { authClaims: { sub: userId, email: `${userId}@example.com` } } },
-  )
-  await write(
-    `mutation SetUp($organizationId: UUID!, $userId: String!) {
-      organization_insert(data: { id: $organizationId, name: "Raced organization" })
-      userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: MEMBER })
-    }`,
-    { organizationId, userId },
-  )
-
-  const { data } = await getConversationSendContext(dataConnect, {
-    organizationId,
-    userId,
-    conversationId: createId(),
-    messageId: createId(),
-  })
-
-  if (!data.userOrganization) throw new Error(`${userId} is not a member`)
-
-  return { organizationId, userId, membershipCreatedAt: data.userOrganization.createdAt }
-}
-
 export type Role = 'ADMINISTRATOR' | 'MEMBER'
 
 /*
-  An organization of its own made for one round of one scenario, with a member of each role named,
-  in that order, each signed up as `createMember`'s is
+  An organization of its own made for one round of one scenario, so nothing another round left
+  counts against its members' runs, their slots or their caps, with a member of each role named, in
+  that order
 */
 export async function createTeam(scenario: string, round: number, roles: Role[]) {
   const organizationId = createId()
@@ -98,6 +61,7 @@ export async function createTeam(scenario: string, round: number, roles: Role[])
   userIds.push(...teamUserIds)
   organizationIds.push(organizationId)
 
+  // Signed up as the app has them, since a user's row takes its id and address off the token
   for (const userId of teamUserIds) {
     await webConnector.executeMutation(
       'CreateCurrentUser',
@@ -136,6 +100,15 @@ export async function createTeam(scenario: string, round: number, roles: Role[])
   }
 
   return { organizationId, members }
+}
+
+// The one member of an organization of their own, as `createTeam` makes it
+export async function createMember(scenario: string, round: number): Promise<Member> {
+  const {
+    members: [member],
+  } = await createTeam(scenario, round, ['MEMBER'])
+
+  return member!
 }
 
 // The member as Strategy Dance's agent acts for them through a module, with no launcher, which no

@@ -5,6 +5,13 @@
 # Neither takes an email. `email_expr` reads it off the verified token, so a signed-in caller
 # cannot put somebody else's address on their own row: `email` is unique, and a client that
 # chose its own could squat the address a real person is about to sign up with
+#
+# Both bound what they mirror, since the page is not the only possible caller and every teammate's
+# team, list and presence reads carry the name: a name to 256 characters, past the 80 the account
+# page allows (`MAX_USER_NAME_LENGTH`), since one mirrored from Google can be longer, and a time zone
+# to 64, past the longest IANA name. An operation takes no `@check` of its own, and the first visit
+# has no row of its own yet, so the checks sit on the list of the caller's rows, read first and
+# redacted, whose own checks run even when it comes back empty
 
 mutation CreateCurrentUser(
   $displayName: String
@@ -12,7 +19,20 @@ mutation CreateCurrentUser(
   $locale: Locale!
   $timezone: String
   $authenticationProviders: [AuthenticationProvider!]!
-) @auth(level: USER) {
+) @auth(level: USER) @transaction {
+  query @redact {
+    users(where: { id: { eq_expr: "auth.uid" } })
+      @check(
+        expr: "!has(vars.displayName) || vars.displayName == null || size(vars.displayName) <= 256"
+        message: "A name is at most 256 characters"
+      )
+      @check(
+        expr: "!has(vars.timezone) || vars.timezone == null || size(vars.timezone) <= 64"
+        message: "A time zone is at most 64 characters"
+      ) {
+      id
+    }
+  }
   user_insert(
     data: {
       id_expr: "auth.uid"
@@ -37,7 +57,20 @@ mutation UpdateCurrentUser(
   $imageThumbnailUrl: String
   $timezone: String
   $authenticationProviders: [AuthenticationProvider!]!
-) @auth(level: USER) {
+) @auth(level: USER) @transaction {
+  query @redact {
+    users(where: { id: { eq_expr: "auth.uid" } })
+      @check(
+        expr: "!has(vars.displayName) || vars.displayName == null || size(vars.displayName) <= 256"
+        message: "A name is at most 256 characters"
+      )
+      @check(
+        expr: "!has(vars.timezone) || vars.timezone == null || size(vars.timezone) <= 64"
+        message: "A time zone is at most 64 characters"
+      ) {
+      id
+    }
+  }
   user_update(
     key: { id_expr: "auth.uid" }
     data: {

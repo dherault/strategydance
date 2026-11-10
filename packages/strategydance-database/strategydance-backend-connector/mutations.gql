@@ -101,9 +101,9 @@ mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) 
 # replaced, whose files the backend then deletes. The backend passes both, the thumbnail null for
 # a logo sent without one, which clears the thumbnail the previous logo had.
 #
-# Data Connect runs one write per row in a mutation, a second one silently changing nothing, so
-# there is no separate row lock here as elsewhere: the URL is read, then written, which takes the
-# lock, then the administrator is checked, a failure rolling the write back. The read comes before
+# The write is the lock, since the row it locks is the row it writes, so there is no separate row
+# lock here as elsewhere: the URL is read, then written, which takes the lock, then the
+# administrator is checked, a failure rolling the write back. The read comes before
 # the lock, so two uploads in the same instant can both read the URL the first replaces: the file
 # the second wrote over is then named by neither answer and stays behind. That costs a file, never
 # a row pointing at one that was deleted, since nothing is deleted that an answer did not name.
@@ -5875,9 +5875,9 @@ mutation FoldDocumentForAgent(
       id
     }
   }
-  # A mutation takes one query step, and the pending updates have to be read once the row above is
-  # locked, so the membership and the variables are checked here too, after the writes before it:
-  # a refusal rolls them back all the same
+  # The pending updates have to be read once the row above is locked, through its read-back, so the
+  # membership and the variables are checked here too, after the writes before it: a refusal rolls
+  # them back all the same
   query @redact {
     membership: userOrganizations(
       where: {
@@ -6026,9 +6026,9 @@ mutation FoldDocumentWithRevisionForAgent(
       afterFingerprint: $revisionAfterFingerprint
     }
   ) @include(if: $isRevised)
-  # A mutation takes one query step, and the pending updates have to be read once the row above is
-  # locked, so the membership and the variables are checked here too, after the writes before it:
-  # a refusal rolls them back all the same
+  # The pending updates have to be read once the row above is locked, through its read-back, so the
+  # membership and the variables are checked here too, after the writes before it: a refusal rolls
+  # them back all the same
   query @redact {
     membership: userOrganizations(
       where: {
@@ -6143,8 +6143,8 @@ mutation RestoreDocumentRevision(
       restoredVersionAt: $restoredVersionAt
     }
   )
-  # A mutation takes one query step, read once the row above is locked, so the membership and the
-  # variables are checked here, after the writes: a refusal rolls them back all the same
+  # Read once the row above is locked, through its read-back, so the membership and the variables
+  # are checked here, after the writes: a refusal rolls them back all the same
   query @redact {
     membership: userOrganizations(
       where: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
@@ -6181,8 +6181,8 @@ mutation RestoreDocumentRevision(
 # Retitles a document for an agent, held to what `RenameDocument` holds a title to, when the call
 # changes its title alone. A document keeps a title or some text, so a blank title is refused on one
 # whose text is empty, nothing pending: checked once the row is locked, so a fold emptying the text
-# at the same moment cannot pass it together with this. A mutation takes one query step, so the
-# membership's and the variables' checks follow the writes too, which a refusal rolls back
+# at the same moment cannot pass it together with this. The membership's and the variables' checks
+# follow the writes too, in the step that reads the text, and a refusal rolls them back
 mutation RenameDocumentForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -8086,9 +8086,9 @@ mutation RenameOrganizationIntegration(
 # that locked the row first commits before this write takes it, and the deletes then see its
 # connection, since the checks read the organization's lock's response, which runs every step as a
 # statement of its own (CLAUDE.md § The database); one that comes after waits for this write and
-# finds the revision moved, refused. The
-# other order would let a connection made between the deletes and the write outlive them. The
-# emulator runs one transaction at a time, so the order is reasoned here rather than tested.
+# finds the revision moved, refused. The other order would let a connection made between the
+# deletes and the write outlive them. The emulator runs one transaction at a time, so the order is
+# reasoned here rather than tested.
 #
 # Every variable is passed, null to clear its column: one left out leaves the column as it was, the
 # old server's key included

@@ -182,12 +182,11 @@ mutation AddOrganizationExploredAspect(
 # CEL has no standard `trim()`, so the pattern says it instead. A color is six uppercase hex digits.
 # A brief is at most 500 characters (`MAX_ORGANIZATION_BRIEF_LENGTH`).
 #
-# The write comes first rather than a separate row lock, because Data Connect runs one write per
-# row in a mutation: a second `organization_update`, aliased or not, silently changes nothing. The
-# write takes the organization's row lock itself, as the lock step of `UpdateOrganizationMemberRole`
-# does, and the checks after it read its response, so they run as a statement of their own and read
-# what a demotion committed while the lock was waited for, which one statement would miss (CLAUDE.md
-# § The database). A check that fails rolls the write back
+# The write comes first and is the lock itself, since the row it locks is the row it writes
+# (CLAUDE.md § The database): it takes the organization's row lock, as the lock step of
+# `UpdateOrganizationMemberRole` does, and the checks after it read its response, so they run as a
+# statement of their own and read what a demotion committed while the lock was waited for, which one
+# statement would miss. A check that fails rolls the write back
 mutation UpdateOrganization($organizationId: UUID!, $name: String!, $color: String, $brief: String, $isPublic: Boolean!)
 @auth(level: USER)
 @transaction {

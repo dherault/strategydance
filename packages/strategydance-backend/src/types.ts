@@ -118,6 +118,16 @@ export type ConversationAttachmentReference = {
   claudeFileId?: string | null
 }
 
+// Where a route finds a file of a conversation for its caller: its id, conversation and organization,
+// and the caller
+export type ConversationAttachmentLocation = {
+  // Canonical, as `toCanonicalUuid` writes them, and the caller's uid as the backend verified it
+  organizationId: string
+  userId: string
+  conversationId: string
+  attachmentId: string
+}
+
 // What every write of the worker that claimed a run is fenced on: the attempt it claimed, and the
 // membership the run was started under
 export type ConversationRunFence = ConversationRunReference & {

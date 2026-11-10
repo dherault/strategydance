@@ -52,9 +52,9 @@ function isSameId(a: string, b: string) {
   to, with a warning when that is only their own computer; the organizations the agent will act in,
   ticked to begin with as the connection it replaces reaches them, or the one they have open, among
   which they choose at least one; and the access, for each module asked for or held by the connection
-  it replaces, as `readOAuthConsentModules` starts it, which they may reduce. A module's own address
-  shows its one module as it always has; the one address names each module, any of which the member
-  may leave not allowed, so long as one is allowed.
+  it replaces, as `readOAuthConsentModules` starts it, which they may change within what was asked
+  for or held. A module's own address shows its one module as it always has; the one address names
+  each module, any of which the member may leave not allowed, so long as one is allowed.
 
   Either answer sends the browser back to the agent, replacing this page, so going back never lands
   on a request already decided. While it leaves, the page says where it is going, and both buttons

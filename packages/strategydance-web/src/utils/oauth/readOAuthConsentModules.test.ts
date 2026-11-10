@@ -33,12 +33,24 @@ describe('readOAuthConsentModules', () => {
     ])
   })
 
-  it('starts a module as held, or as asked when that is more', () => {
+  it('starts a module held as held, its write offered when asked', () => {
     expect(atOneAddress(['documents:read'], ['documents:read', 'documents:write'])).toEqual([
       { name: 'documents', isWriteOffered: true, initialAccess: 'write' },
     ])
     expect(atOneAddress(['documents:read', 'documents:write'], ['documents:read'])).toEqual([
-      { name: 'documents', isWriteOffered: true, initialAccess: 'write' },
+      { name: 'documents', isWriteOffered: true, initialAccess: 'read' },
+    ])
+  })
+
+  it('starts a write held at read at read when a challenge asks for it, and a module only asked for as asked', () => {
+    // The challenge for a Tasks write names the connection's scopes with tasks:write
+    expect(atOneAddress(['documents:read', 'tasks:read', 'tasks:write'], ['documents:read', 'tasks:read'])).toEqual([
+      { name: 'documents', isWriteOffered: false, initialAccess: 'read' },
+      { name: 'tasks', isWriteOffered: true, initialAccess: 'read' },
+    ])
+    expect(atOneAddress(['documents:read', 'tasks:read', 'tasks:write'], ['documents:read'])).toEqual([
+      { name: 'documents', isWriteOffered: false, initialAccess: 'read' },
+      { name: 'tasks', isWriteOffered: true, initialAccess: 'write' },
     ])
   })
 
@@ -60,10 +72,13 @@ describe('readOAuthConsentModules', () => {
     })
   })
 
-  it('starts Budget as any other at its own address, a consent of its own', () => {
+  it('starts a module as held, or as asked when that is more, at its own address, a consent of its own', () => {
     expect(
       readOAuthConsentModules({ address: 'budget', scopes: ['budget:read', 'budget:write'], heldScopes: [] }),
     ).toEqual([{ name: 'budget', isWriteOffered: true, initialAccess: 'write' }])
+    expect(
+      readOAuthConsentModules({ address: 'tasks', scopes: ['tasks:read', 'tasks:write'], heldScopes: ['tasks:read'] }),
+    ).toEqual([{ name: 'tasks', isWriteOffered: true, initialAccess: 'write' }])
   })
 
   it("lists a module's own address's module alone, and nothing of a scope its address does not serve", () => {

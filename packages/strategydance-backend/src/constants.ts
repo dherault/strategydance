@@ -392,12 +392,16 @@ export const BILL_UPDATE_ATTEMPTS = 3
   well within the cut, but 20 of each at their longest titles and names take some 11000 characters
   an item, so a read of ten such items is cut, as any tool result is. An item links at most 100 of
   each, which its link operations hold under the organization's lock, while a document, a task or a
-  member is linked to any number of items: nothing grows with it but the catalogue, which is bounded
+  member is linked to any number of items: nothing grows with it but the catalogue, which is bounded.
+  The directories read share 30000 characters of JSON for their notes, so one read alone always
+  answers its notes whole, a note's 20000 characters of blocks coming to less as Markdown, beside
+  the item and its links, within the cut
 */
 export const KNOWLEDGE_LIST_PAGE_LENGTH = 40000
 export const MAX_KNOWLEDGE_READ_IDS = 10
 export const MAX_KNOWLEDGE_READ_LINKS = 20
 export const MAX_KNOWLEDGE_LINKS = 100
+export const KNOWLEDGE_READ_NOTES_LENGTH = 30000
 
 /* ---
   OAUTH

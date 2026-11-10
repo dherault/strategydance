@@ -1,3 +1,5 @@
+import type { DirectoryStatus } from 'strategydance-core'
+
 import type { KnowledgeEntry } from '~types'
 
 export type KnowledgeRow = ReturnType<typeof toKnowledgeRow>
@@ -5,10 +7,10 @@ export type KnowledgeRow = ReturnType<typeof toKnowledgeRow>
 /*
   An item as a list shows it, short enough for a kind to fit a page or a few: what tells the agent
   which items to read whole, each value as the package writes it, its meaning left to the read, and
-  whether the organization uses it. An inactive directory, listed while the organization uses it,
-  says why it takes no submission today
+  whether the organization uses it, and a directory where it stands, null for one to do. An inactive
+  directory, listed while the organization uses it, says why it takes no submission today
 */
-function toKnowledgeRow({ kind, item }: KnowledgeEntry, inUse: boolean) {
+function toKnowledgeRow({ kind, item }: KnowledgeEntry, inUse: boolean, status: DirectoryStatus | null) {
   const { id, name, description } = item
 
   switch (kind) {
@@ -32,6 +34,7 @@ function toKnowledgeRow({ kind, item }: KnowledgeEntry, inUse: boolean) {
         name,
         description,
         inUse,
+        status,
         type: item.type,
         categories: item.categories,
         businessModel: item.businessModel,

@@ -21,8 +21,19 @@ export type FakeKnowledgeUse = {
   kind: string
   itemId: string
   isInUse: boolean
+  directoryStatus: string | null
   changedAt: string
   changedById: string | null
+}
+
+export type FakeKnowledgeNote = {
+  organizationId: string
+  kind: string
+  itemId: string
+  content: string
+  contentText: string | null
+  updatedAt: string
+  updatedById: string | null
 }
 
 export type FakeKnowledgeLink = {
@@ -41,6 +52,7 @@ type Base = ModuleDatabaseFakeBase & { documents: Map<string, FakeDocument>; tas
 function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
   const { stamp, id, isMember, membersOf, membershipOf, insertResult, storeResult, checkKey } = base
   const uses: FakeKnowledgeUse[] = []
+  const notes: FakeKnowledgeNote[] = []
   const links: FakeKnowledgeLink[] = []
 
   // Declared here rather than read off the base, so a call narrows what follows it
@@ -50,12 +62,30 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
 
   // A use written straight into its table, whatever its id, as an earlier release may have written one
   function insertUse(fields: Partial<FakeKnowledgeUse> & { organizationId: string; kind: string; itemId: string }) {
-    const use: FakeKnowledgeUse = { isInUse: true, changedAt: stamp(), changedById: null, ...fields }
+    const use: FakeKnowledgeUse = {
+      isInUse: true,
+      directoryStatus: null,
+      changedAt: stamp(),
+      changedById: null,
+      ...fields,
+    }
 
     use.organizationId = id(use.organizationId)
     uses.push(use)
 
     return use
+  }
+
+  // A note written straight into its table, as the page writes one
+  function insertNote(
+    fields: Partial<FakeKnowledgeNote> & { organizationId: string; kind: string; itemId: string; content: string },
+  ) {
+    const note: FakeKnowledgeNote = { contentText: null, updatedAt: stamp(), updatedById: null, ...fields }
+
+    note.organizationId = id(note.organizationId)
+    notes.push(note)
+
+    return note
   }
 
   // A link written straight into its table, created now unless `createdAt` says when
@@ -73,6 +103,13 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
     return uses.find(
       use =>
         use.organizationId === id(variables.organizationId) && use.kind === variables.kind && use.itemId === itemId,
+    )
+  }
+
+  function findNote(variables: AnyVariables, itemId: unknown) {
+    return notes.find(
+      note =>
+        note.organizationId === id(variables.organizationId) && note.kind === variables.kind && note.itemId === itemId,
     )
   }
 
@@ -236,6 +273,17 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
             .slice(0, 5000)
             .map(({ kind, itemId }) => ({ kind, itemId }))
         : [],
+      directoryStatuses: isMember(variables)
+        ? uses
+            .filter(
+              use =>
+                use.organizationId === id(variables.organizationId)
+                && use.kind === variables.kind
+                && use.directoryStatus !== null,
+            )
+            .slice(0, 5000)
+            .map(({ itemId, directoryStatus }) => ({ itemId, directoryStatus }))
+        : [],
     }),
 
     GetKnowledgeItemsForAgent: variables => {
@@ -243,6 +291,7 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
         return {
           membership: [],
           knowledgeUses: [],
+          knowledgeNotes: [],
           knowledgeDocumentLinks: [],
           knowledgeTaskLinks: [],
           knowledgeMemberLinks: [],
@@ -255,7 +304,12 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
           .map(itemId => findUse(variables, itemId))
           .filter(use => use !== undefined)
           .slice(0, 10)
-          .map(({ itemId, isInUse, changedAt }) => ({ itemId, isInUse, changedAt })),
+          .map(({ itemId, isInUse, directoryStatus, changedAt }) => ({ itemId, isInUse, directoryStatus, changedAt })),
+        knowledgeNotes: (variables.itemIds as string[])
+          .map(itemId => findNote(variables, itemId))
+          .filter(note => note !== undefined)
+          .slice(0, 10)
+          .map(({ itemId, content, updatedAt }) => ({ itemId, content, updatedAt })),
         knowledgeDocumentLinks: readLinks(variables, 'document').map(({ itemId, targetId }) => ({
           itemId,
           document: { id: targetId, title: base.documents.get(targetId)!.title },
@@ -387,10 +441,19 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
 
   base.onReset(() => {
     uses.length = 0
+    notes.length = 0
     links.length = 0
   })
 
-  return Object.assign(base, { knowledgeUses: uses, knowledgeLinks: links, insertUse, insertLink, linksOf })
+  return Object.assign(base, {
+    knowledgeUses: uses,
+    knowledgeNotes: notes,
+    knowledgeLinks: links,
+    insertUse,
+    insertNote,
+    insertLink,
+    linksOf,
+  })
 }
 
 export type KnowledgeDatabaseFake = ReturnType<typeof createKnowledgeDatabaseFake<Base>>

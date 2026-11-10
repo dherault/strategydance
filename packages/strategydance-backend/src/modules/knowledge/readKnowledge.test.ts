@@ -20,6 +20,7 @@ import {
 import type { ModuleCaller } from '~types'
 
 import { MAX_TOOL_RESULT_LENGTH } from '~domain/conversations/conversationToolResults'
+import hashKnowledgeNote from '~domain/knowledge/hashKnowledgeNote'
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
 const fake = createModuleDatabaseFake()
@@ -58,6 +59,11 @@ const NOTHING_KEPT = {
   members: { items: [], total: 0 },
 }
 
+// What a directory has of its notes after what the company keeps of it, and what one never noted has
+const NOTE_FIELDS = ['notes', 'isNotesComplete', 'notesVersion']
+
+const NO_NOTES = { notes: '', isNotesComplete: true, notesVersion: hashKnowledgeNote('') }
+
 function read(kind: string, ids: string[]) {
   return kit.answer<Page>('read_knowledge', { kind, ids })
 }
@@ -72,8 +78,8 @@ describe('read_knowledge', () => {
     expect(Object.keys(framework!)).toEqual([...STRATEGIC_FRAMEWORK_FIELDS, ...STATE_FIELDS])
     expect(framework).toEqual({ ...STRATEGIC_FRAMEWORKS[0]!, ...NOTHING_KEPT })
     expect(Object.keys(tactic!)).toEqual([...MARKETING_TACTIC_FIELDS, ...STATE_FIELDS])
-    expect(Object.keys(directories[0]!)).toEqual([...DIRECTORY_FIELDS, ...STATE_FIELDS])
-    expect(Object.keys(directories[1]!)).toEqual([...INACTIVE_DIRECTORY_FIELDS, ...STATE_FIELDS])
+    expect(Object.keys(directories[0]!)).toEqual([...DIRECTORY_FIELDS, ...STATE_FIELDS, ...NOTE_FIELDS])
+    expect(Object.keys(directories[1]!)).toEqual([...INACTIVE_DIRECTORY_FIELDS, ...STATE_FIELDS, ...NOTE_FIELDS])
   })
 
   it('gives each value of an enum with its meaning, a directory keeping its type as it is', async () => {
@@ -95,6 +101,7 @@ describe('read_knowledge', () => {
     expect(readDirectory).toEqual({
       ...directory,
       ...NOTHING_KEPT,
+      ...NO_NOTES,
       categories: directory.categories.map(value => ({ value, meaning: DIRECTORY_CATEGORY_DESCRIPTIONS[value] })),
       businessModel: {
         value: directory.businessModel,

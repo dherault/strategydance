@@ -264,7 +264,8 @@ function UserProvider({ children }: PropsWithChildren) {
     /*
       The same values sent again would read back as they did, as an address the token holds that
       the row never shows, or a name the mutation refuses, and drift again: they are sent once, and
-      anything that changed is sent. The address goes in too, since the mutation writes the token's
+      anything that changed is sent. The address goes in too, since the mutation writes the token's.
+      A write that fails is forgotten, so it goes again
     */
     const mirrored = JSON.stringify([viewer.uid, viewer.email, variables])
 
@@ -278,6 +279,10 @@ function UserProvider({ children }: PropsWithChildren) {
     updateCurrentUser(variables)
       .then(() => refetchUser())
       .catch(error => {
+        // Sent again the next time the row is read, as a write that never went through reads back
+        // nothing that could loop
+        if (lastMirroredRef.current === mirrored) lastMirroredRef.current = null
+
         console.error('Failed to update the user', error)
       })
   }, [viewer, user, timezone, updateCurrentUser, refetchUser])

@@ -479,8 +479,9 @@ mutation CreateDefaultChecklistItems(
 #
 # At most 100 live columns (`MAX_CHECKLIST_ITEMS` in strategydance-core), counted under a lock: the
 # first step writes the caller's own membership, which also refuses anybody outside the
-# organization, so two tabs adding at once count one after the other. A name is one line of at most
-# 40 characters (`MAX_CHECKLIST_ITEM_NAME_LENGTH`)
+# organization, and the count reads its response, so it runs as a statement of its own once the
+# lock is held and two tabs adding at once count one after the other (CLAUDE.md § The database). A
+# name is one line of at most 40 characters (`MAX_CHECKLIST_ITEM_NAME_LENGTH`)
 mutation CreateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float!)
 @auth(level: USER)
 @transaction {
@@ -496,7 +497,11 @@ mutation CreateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!,
     )
   query @redact {
     checklistItems(
-      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        userId: { eq_expr: "response.userOrganization_update.userId" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+      }
       limit: 100
     ) @check(expr: "size(this) < 100", message: "A checklist holds at most 100 columns") {
       id
@@ -570,7 +575,11 @@ mutation RestoreChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: U
   ) @redact @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it")
   query @redact {
     checklistItems(
-      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        userId: { eq_expr: "response.userOrganization_update.userId" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+      }
       limit: 100
     ) @check(expr: "size(this) < 100", message: "A checklist holds at most 100 columns") {
       id
@@ -741,12 +750,13 @@ mutation RecordActivity($organizationId: UUID!, $date: Date!) @auth(level: USER)
 # column's last task or before its first.
 #
 # At most 1000 live tasks an organization (`MAX_TASKS` in strategydance-core), counted under a lock:
-# the first step writes the organization's row, and finds nothing unless the caller belongs to it,
-# so two members adding at once count one after the other. A name is one line of at most 120
-# characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at most 20000
-# characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there once. It is
-# assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks it waits on
-# and blocks are linked once it is stored, by `AddTaskDependency`.
+# the first step writes the organization's row, and the membership and the count read its response,
+# so they run as a statement of their own once it is held and two members adding at once count one
+# after the other, which one statement would not (CLAUDE.md § The database). A name is one line of
+# at most 120 characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at
+# most 20000 characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there
+# once. It is assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks
+# it waits on and blocks are linked once it is stored, by `AddTaskDependency`.
 #
 # `$descriptionText` is the plain text of `$description`, which the Tasks module's queries match, at
 # most as long. The refusals' messages are `CreateTask`'s: change them together
@@ -763,15 +773,9 @@ mutation CreateTaskWithText(
   $dueDate: Date
   $aspects: [CompanyAspect!]!
 ) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can add to its tasks")
+    @check(expr: "this != null", message: "Only a member of an organization can add to its tasks")
     @check(
       expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
       message: "A task's name is 1 to 120 characters on one line, with no space at either end"
@@ -789,8 +793,14 @@ mutation CreateTaskWithText(
       message: "A task is assigned to a member or to Strategy Dance, not both"
     )
   query @redact {
-    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can add to its tasks") {
+      role
+    }
+    tasks(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
       id
     }
     # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
@@ -832,12 +842,13 @@ mutation CreateTaskWithText(
 # column's last task or before its first.
 #
 # At most 1000 live tasks an organization (`MAX_TASKS` in strategydance-core), counted under a lock:
-# the first step writes the organization's row, and finds nothing unless the caller belongs to it,
-# so two members adding at once count one after the other. A name is one line of at most 120
-# characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at most 20000
-# characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there once. It is
-# assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks it waits on
-# and blocks are linked once it is stored, by `AddTaskDependency`
+# the first step writes the organization's row, and the membership and the count read its response,
+# so they run as a statement of their own once it is held and two members adding at once count one
+# after the other, which one statement would not (CLAUDE.md § The database). A name is one line of
+# at most 120 characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at
+# most 20000 characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there
+# once. It is assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks
+# it waits on and blocks are linked once it is stored, by `AddTaskDependency`
 mutation CreateTask(
   $organizationId: UUID!
   $id: UUID!
@@ -850,15 +861,9 @@ mutation CreateTask(
   $dueDate: Date
   $aspects: [CompanyAspect!]!
 ) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can add to its tasks")
+    @check(expr: "this != null", message: "Only a member of an organization can add to its tasks")
     @check(
       expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
       message: "A task's name is 1 to 120 characters on one line, with no space at either end"
@@ -873,8 +878,14 @@ mutation CreateTask(
       message: "A task is assigned to a member or to Strategy Dance, not both"
     )
   query @redact {
-    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can add to its tasks") {
+      role
+    }
+    tasks(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
       id
     }
     # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
@@ -1123,16 +1134,18 @@ mutation DeleteTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tran
 # organization's row: without it, deleting a task at the cap, adding another and taking the delete
 # back would keep 1001
 mutation RestoreTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  ) @redact @check(expr: "this == 1", message: "Only a member of an organization can change its tasks")
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its tasks")
   query @redact {
-    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+    }
+    tasks(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
       id
     }
   }
@@ -1229,11 +1242,15 @@ mutation RemoveTaskDependency($organizationId: UUID!, $taskId: UUID!, $dependenc
 # so a document never starts blank: a page that would add nothing adds nothing.
 #
 # At most 1000 documents an organization (`MAX_DOCUMENTS` in strategydance-core), counted under a
-# lock: the first step writes the organization's row, and finds nothing unless the caller belongs
-# to it, so two members adding at once count one after the other. A title is one line of at most
-# 200 characters (`MAX_DOCUMENT_TITLE_LENGTH`), spaces and all since it is saved as it is typed,
-# and the content at most 200000 characters of serialized blocks (`MAX_DOCUMENT_CONTENT_LENGTH`).
-# Each aspect is there once. What agents may do with it, chosen on the draft, comes with it.
+# lock: the first step writes the organization's row, and the membership and the count read its
+# response, so they run as a statement of their own once it is held and two members adding at once
+# count one after the other, which one statement would not (CLAUDE.md § The database). The count
+# leaves out the document's own id, so a create sent again after its answer was lost is still
+# refused for its id, which the page reads back, rather than for the cap. A title is one line of at
+# most 200 characters (`MAX_DOCUMENT_TITLE_LENGTH`), spaces and all since it is saved as it is
+# typed, and the content at most 200000 characters of serialized blocks
+# (`MAX_DOCUMENT_CONTENT_LENGTH`). Each aspect is there once. What agents may do with it, chosen on
+# the draft, comes with it.
 #
 # `$state` is the draft's text as a Yjs document, the same text as `$content`, so the document is
 # shared from its first save and nobody seeds a second copy of it. Optional, since a page from
@@ -1253,15 +1270,9 @@ mutation CreateDocumentWithText(
   $isAiWritable: Boolean!
   $state: String
 ) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can add to its documents")
+    @check(expr: "this != null", message: "Only a member of an organization can add to its documents")
     @check(
       expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
       message: "A document's title is at most 200 characters on one line"
@@ -1281,8 +1292,18 @@ mutation CreateDocumentWithText(
       message: "A document is tagged with each aspect at most once"
     )
   query @redact {
-    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can add to its documents") {
+      role
+    }
+    documents(
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        id: { ne: $id }
+        deletedAt: { isNull: true }
+      }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
       id
     }
   }
@@ -1315,15 +1336,9 @@ mutation CreateDocument(
   $isAiWritable: Boolean!
   $state: String
 ) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can add to its documents")
+    @check(expr: "this != null", message: "Only a member of an organization can add to its documents")
     @check(
       expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
       message: "A document's title is at most 200 characters on one line"
@@ -1342,8 +1357,18 @@ mutation CreateDocument(
       message: "A document is tagged with each aspect at most once"
     )
   query @redact {
-    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can add to its documents") {
+      role
+    }
+    documents(
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        id: { ne: $id }
+        deletedAt: { isNull: true }
+      }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
       id
     }
   }
@@ -1504,16 +1529,18 @@ mutation DeleteDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @
 # organization's row: without it, deleting a document at the cap, adding another and taking the
 # delete back would keep 1001
 mutation RestoreDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  ) @redact @check(expr: "this == 1", message: "Only a member of an organization can change its documents")
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its documents")
   query @redact {
-    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
+      role
+    }
+    documents(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
       id
     }
   }

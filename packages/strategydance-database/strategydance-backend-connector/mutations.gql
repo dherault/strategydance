@@ -5708,10 +5708,10 @@ mutation SeedDocumentStateForAgent(
 
 # Adds a document an agent wrote, its first snapshot built from the agent's Markdown, `content` and
 # `contentText` beside it. Held to `CreateDocument`'s bounds and to the 1000 documents an
-# organization keeps, counted under the same lock on the organization's row, so an agent and a page
-# adding at once cannot pass it. It starts with agents allowed to read and change it, as a document
-# made on the page does, so the agent that made it can go on with it, and the team can turn either
-# off
+# organization keeps, counted under the same lock on the organization's row, the membership and the
+# count reading its response, so an agent and a page adding at once cannot pass it. It starts with
+# agents allowed to read and change it, as a document made on the page does, so the agent that made
+# it can go on with it, and the team can turn either off
 mutation CreateDocumentForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -5730,15 +5730,9 @@ mutation CreateDocumentForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
       message: "An idempotency key is 1 to 200 characters"
@@ -5773,8 +5767,20 @@ mutation CreateDocumentForAgent(
     }
   ) @include(if: $isKeyed)
   query @redact {
-    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    documents(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
       id
     }
   }
@@ -6339,7 +6345,7 @@ mutation DeleteDocumentForAgent(
 }
 
 # Takes back a delete for an agent, as `RestoreDocument` does: within a day of it, and against the
-# 1000 documents an organization keeps, under the same lock on its row
+# 1000 documents an organization keeps, under the same lock on its row, read through its response
 mutation RestoreDocumentForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -6353,15 +6359,9 @@ mutation RestoreDocumentForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
       message: "An idempotency key is 1 to 200 characters"
@@ -6379,8 +6379,20 @@ mutation RestoreDocumentForAgent(
     }
   ) @include(if: $isKeyed)
   query @redact {
-    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    documents(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
       id
     }
   }
@@ -6468,10 +6480,10 @@ mutation DeleteExpiredModuleCallResults @auth(level: NO_ACCESS) {
 # None records an `ActivityDay`: what an agent does on the board counts toward nobody's streak
 
 # Adds a task an agent wrote, held to `CreateTask`'s bounds and to the 1000 tasks an organization
-# keeps, counted under the same lock on the organization's row, so an agent and a page adding at once
-# cannot pass it. `$position` is past the last of its column as the module read it,
-# `$descriptionText` the plain text of `$description`, and `$doneAt` when it was done, the module's
-# time, sent for a task created into Done alone
+# keeps, counted under the same lock on the organization's row, the membership and the count reading
+# its response, so an agent and a page adding at once cannot pass it. `$position` is past the last
+# of its column as the module read it, `$descriptionText` the plain text of `$description`, and
+# `$doneAt` when it was done, the module's time, sent for a task created into Done alone
 mutation CreateTaskForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -6495,15 +6507,9 @@ mutation CreateTaskForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
       message: "An idempotency key is 1 to 200 characters"
@@ -6537,8 +6543,20 @@ mutation CreateTaskForAgent(
     }
   ) @include(if: $isKeyed)
   query @redact {
-    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    tasks(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
       id
     }
     # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
@@ -6890,9 +6908,9 @@ mutation DeleteTaskForAgent(
 }
 
 # Takes back a delete for an agent, as `RestoreTask` does: within a day of it, with the links other
-# tasks had to it, and against the 1000 tasks an organization keeps, under the same lock on its row.
-# The module refuses a restore whose kept links would close a loop with one made meanwhile before it
-# writes, naming them, where the page's Undo removes them itself
+# tasks had to it, and against the 1000 tasks an organization keeps, under the same lock on its row,
+# read through its response. The module refuses a restore whose kept links would close a loop with
+# one made meanwhile before it writes, naming them, where the page's Undo removes them itself
 mutation RestoreTaskForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -6906,15 +6924,9 @@ mutation RestoreTaskForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
       message: "An idempotency key is 1 to 200 characters"
@@ -6932,8 +6944,20 @@ mutation RestoreTaskForAgent(
     }
   ) @include(if: $isKeyed)
   query @redact {
-    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    tasks(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
       id
     }
   }

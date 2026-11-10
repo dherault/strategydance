@@ -3,6 +3,8 @@ import { restoreDocumentForAgent } from 'strategydance-database/backend'
 
 import type { DocumentsWriteResult, ModuleCall, ModuleCaller } from '~types'
 
+import { RESTORE_WINDOW_MS } from '~constants'
+
 import { dataConnect } from '~firebase'
 
 import { FULL_REFUSAL } from '~domain/documents/documentsRefusalMessages'
@@ -12,9 +14,6 @@ import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
 import isOperationRefusal from '~domain/modules/isOperationRefusal'
 import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
-
-// How long after its delete a document can be restored, as `RestoreDocumentForAgent` holds it
-const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export type RestoredDocument = {
   id: string

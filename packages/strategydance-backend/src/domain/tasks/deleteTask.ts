@@ -3,6 +3,8 @@ import { deleteTaskForAgent } from 'strategydance-database/backend'
 
 import type { ModuleCall, ModuleCaller, TasksWriteResult } from '~types'
 
+import { RESTORE_WINDOW_MS } from '~constants'
+
 import { dataConnect } from '~firebase'
 
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
@@ -11,9 +13,6 @@ import isOperationRefusal from '~domain/modules/isOperationRefusal'
 import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
 import { NOT_FOUND_REFUSAL } from '~domain/tasks/tasksRefusalMessages'
-
-// How long a deleted task can be restored, as the page's Undo and the sweep hold it
-const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
 
 // What deleting answers: the task, and until when `restore_task` brings it back
 export type DeletedTask = {

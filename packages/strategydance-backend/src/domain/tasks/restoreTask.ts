@@ -3,7 +3,7 @@ import { getTaskForAgent, restoreTaskForAgent, TaskStatus } from 'strategydance-
 
 import type { ModuleCall, ModuleCaller, TasksWriteResult } from '~types'
 
-import { MAX_LOOP_TASKS_NAMED } from '~constants'
+import { MAX_LOOP_TASKS_NAMED, RESTORE_WINDOW_MS } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -16,9 +16,6 @@ import readTaskBoard from '~domain/tasks/readTaskBoard'
 import { FULL_REFUSAL, GONE_REFUSAL } from '~domain/tasks/tasksRefusalMessages'
 import toTaskLinks from '~domain/tasks/toTaskLinks'
 import toTaskReferences from '~domain/tasks/toTaskReferences'
-
-// How long after its delete a task can be restored, as `RestoreTaskForAgent` holds it
-const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export type RestoredTask = {
   id: string

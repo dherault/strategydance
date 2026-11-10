@@ -104,8 +104,11 @@ describe('createModulesServer', () => {
 
     for (const tool of tools) expect(tool.inputSchema.required).toContain('organization')
 
-    expect(kit.client.getInstructions()).toBe(toModuleInstructions({ listed: ['documents', 'tasks'] }, access))
-    expect(kit.client.getInstructions()).not.toMatch(/budget|bill/i)
+    expect(kit.client.getInstructions()).toBe(
+      toModuleInstructions({ listed: ['documents', 'tasks'], unheld: ['budget'] }, access),
+    )
+    expect(kit.client.getInstructions()).toContain('not allowed this connection in the Budget module')
+    expect(kit.client.getInstructions()).not.toMatch(/bill|read_budget/i)
   })
 
   it('answers a call to a module listed beside others, in the organization it names', async () => {

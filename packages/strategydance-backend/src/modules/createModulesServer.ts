@@ -13,10 +13,11 @@ import toModuleInstructions from '~modules/toModuleInstructions'
   read lists nothing. A tool's name is unique across the modules, so they share one server.
 
   Given one module, the server goes by its module's name and title and says what its module's own
-  server always said. Given several, it goes by the one address's, `strategydance`, "Strategy Dance", and its instructions
-  say what Strategy Dance is once, then what each module it lists holds. The caller names the
-  modules, never the access's kind: Strategy Dance's worker every module its agent uses, a module's
-  endpoint its module
+  server always said. Given several, it goes by the one address's, `strategydance`, "Strategy
+  Dance", and its instructions say what Strategy Dance is once, then what each module it lists
+  holds, and last the modules given that it does not list, which the member could allow. The
+  caller names the modules, never the access's kind: Strategy Dance's worker every module its agent
+  uses, a module's endpoint its module
 */
 function createModulesServer(access: ModuleAccess, modules: readonly ModuleName[]) {
   const given = MODULES.filter(({ name }) => modules.includes(name))
@@ -32,7 +33,12 @@ function createModulesServer(access: ModuleAccess, modules: readonly ModuleName[
     {
       capabilities: { tools: {} },
       instructions: toModuleInstructions(
-        alone ? { alone: alone.name } : { listed: listed.map(({ name }) => name) },
+        alone
+          ? { alone: alone.name }
+          : {
+              listed: listed.map(({ name }) => name),
+              unheld: given.filter(module => !listed.includes(module)).map(({ name }) => name),
+            },
         access,
       ),
     },

@@ -98,6 +98,22 @@ describe('toModuleInstructions', () => {
     expect(withoutBudget).not.toMatch(/budget|bill/i)
   })
 
+  it('names last the modules an external agent was not allowed in, never their tools', () => {
+    const withoutBudget = toModuleInstructions({ listed: ['documents', 'tasks'], unheld: ['budget'] }, EXTERNAL)
+    const tasksAlone = toModuleInstructions({ listed: ['tasks'], unheld: ['budget', 'documents'] }, EXTERNAL)
+
+    expect(withoutBudget).toEndWith(
+      'ask them rather than choose.\n\nThe member has not allowed this connection in the Budget module, which this server serves too. When they ask for something there, tell them they can allow it by connecting you again.',
+    )
+    expect(withoutBudget).not.toMatch(/bill|read_budget/i)
+    expect(tasksAlone).toContain('not allowed this connection in the Documents and Budget modules, which')
+    expect(tasksAlone).not.toContain('read_document')
+    expect(toModuleInstructions({ listed: ['documents', 'tasks'], unheld: [] }, EXTERNAL)).toBe(
+      toModuleInstructions({ listed: ['documents', 'tasks'] }, EXTERNAL),
+    )
+    expect(toModuleInstructions({ listed: ['documents'], unheld: ['budget'] }, AGENT)).not.toContain('not allowed')
+  })
+
   it('says a module listed alone on a server of several is its one module, worded as beside none', () => {
     const instructions = toModuleInstructions({ listed: ['documents'] }, EXTERNAL)
 

@@ -24,19 +24,25 @@ const IDEMPOTENCY = `Every write tool takes an idempotency key in the call's _me
   A server of one module, `{ alone }`, says it of "This server", as a module's server always has. A
   server of several, `{ listed }`, the modules it lists, says what Strategy Dance is once, then each
   module in `MODULES`' order, each naming only modules listed, then the key and the organizations
-  once.
+  once. Last, an external agent's server of several names the modules it was given but does not list,
+  `unheld`, those the member did not allow this connection: their tools are not listed, so this is
+  how the agent learns the member could allow one, by connecting it again.
 
   The key and the organizations are said where a served module is listed, whose tools take both.
   Knowledge and Subagents serve Strategy Dance's agent alone, which acts in its run's organization
   and reads no instructions, so they are told nothing more
 */
-function toModuleInstructions(server: { alone: ModuleName } | { listed: readonly ModuleName[] }, access: ModuleAccess) {
+function toModuleInstructions(
+  server: { alone: ModuleName } | { listed: readonly ModuleName[]; unheld?: readonly ModuleName[] },
+  access: ModuleAccess,
+) {
   const names = 'alone' in server ? [server.alone] : server.listed
   const isServed = names.some(name => SERVED_MODULE_NAMES.includes(name))
 
   return [
     ...('alone' in server ? toAlone(server.alone) : toSeveral(server.listed)),
     ...(isServed ? [IDEMPOTENCY, ...toReached(access)] : []),
+    ...('unheld' in server && server.unheld ? toUnheld(server.unheld, access) : []),
   ].join('\n\n')
 }
 
@@ -84,6 +90,24 @@ function toReached(access: ModuleAccess) {
 
   return [
     `This connection reaches ${organizations.length} of the member's organizations, ${listModuleOrganizations(organizations, 'and')}, and every tool takes the one its call acts in as organization. Each id belongs to one organization: name the one it came from. When the member has not said which organization they mean, ask them rather than choose.`,
+  ]
+}
+
+// The modules an external agent's connection was not allowed in, which the server serves beside
+// those it lists, in `MODULES`' order: named, never their tools, so the agent can tell the member
+// what they could allow. Strategy Dance's agent holds every module
+function toUnheld(given: readonly ModuleName[], access: ModuleAccess) {
+  if (access.kind === 'agent') return []
+
+  const labels = MODULES.filter(({ name }) => given.includes(name)).map(({ name }) => MODULE_INSTRUCTIONS[name].label)
+  const last = labels.pop()
+
+  if (!last) return []
+
+  const modules = labels.length ? `the ${labels.join(', ')} and ${last} modules` : `the ${last} module`
+
+  return [
+    `The member has not allowed this connection in ${modules}, which this server serves too. When they ask for something there, tell them they can allow it by connecting you again.`,
   ]
 }
 

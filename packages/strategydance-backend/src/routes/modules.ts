@@ -5,7 +5,7 @@ import {
 } from '@modelcontextprotocol/express'
 import { toNodeHandler } from '@modelcontextprotocol/node'
 import express, { type NextFunction, type Request, type Response, Router } from 'express'
-import { SERVED_MODULES } from 'strategydance-core'
+import { MODULE_ADDRESSES } from 'strategydance-core'
 
 import { APP_URL, MAX_MODULE_REQUEST_BYTES, MODULES_PATH, OAUTH_ISSUER } from '~constants'
 
@@ -15,6 +15,7 @@ import respondJsonRpcError from '~utils/respondJsonRpcError'
 
 import moduleAddressRateLimitMiddleware from '~middleware/moduleAddressRateLimit'
 import moduleRateLimitMiddleware from '~middleware/moduleRateLimit'
+import createUnheldModuleChallengeMiddleware from '~middleware/unheldModuleChallenge'
 
 import createAgentConnectionTokenVerifier from '~domain/oauth/createAgentConnectionTokenVerifier'
 
@@ -22,9 +23,10 @@ import createModuleHandler from '~modules/createModuleHandler'
 
 /*
   The modules' endpoints, where the agents members connected call a module as them, mounted at
-  `MODULES_PATH` on the public backend: each served module at its own address, `POST` alone, through
-  the handler Strategy Dance's agent goes through too, so both get the same tools and checks. Before
-  it, in this order:
+  `MODULES_PATH` on the public backend: each address of `MODULE_ADDRESSES`, the one address first,
+  serving every served module, then each module's own, `POST` alone, through the handler Strategy
+  Dance's agent goes through too, given the address's modules, so both get the same tools and
+  checks. Before it, in this order:
 
   - Any other method answers 405: the handler is stateless, so it opens no stream to `GET` and has
     no session to `DELETE`
@@ -33,11 +35,14 @@ import createModuleHandler from '~modules/createModuleHandler'
   - The address's rate limit, which counts only refused calls, so tokens made up, or calls past a
     connection's limit, cost a bounded number of reads of the database
   - The bearer check (RFC 6750), with the token verifier and the endpoint's own address as the
-    resource the token must name, so a token for one module never opens another. A request without
-    a valid token answers 401, naming the module's protected resource metadata, which names the
-    authorization server. The caller the handler builds a server for comes from the token
+    resource the token must name, so a token for one address never opens another. A request without
+    a valid token answers 401, naming the address's protected resource metadata, which names the
+    authorization server. The caller the handler builds a server for comes from the token, and the
+    server lists the modules of the address whose read the token holds
   - The connection's rate limit, then the body, read only now, so nobody unverified has a megabyte
     buffered, and handed to the handler whole, since the parser has consumed the stream
+  - A call to a tool of a module the address serves but the token cannot read answers 403, naming
+    the scopes the client asks again for, since the server lists no tool of such a module
 
   No App Check, which no external agent can carry: the token is the guard. Everything answers in
   MCP's JSON-RPC, never the app's envelope
@@ -47,13 +52,16 @@ function createModulesRouter() {
   const parseBody = express.json({ limit: MAX_MODULE_REQUEST_BYTES })
   const checkOrigin = originValidation([new URL(APP_URL).hostname])
 
-  for (const module of SERVED_MODULES) {
-    const path = module.path.slice(MODULES_PATH.length)
-    const resource = new URL(module.path, OAUTH_ISSUER)
-    const nodeHandler = toNodeHandler(createModuleHandler([module.name]), {
+  for (const address of MODULE_ADDRESSES) {
+    // The one address is the router's own root
+    const path = address.path.slice(MODULES_PATH.length) || '/'
+    const resource = new URL(address.path, OAUTH_ISSUER)
+    const nodeHandler = toNodeHandler(createModuleHandler(address.modules), {
       maxRequestBodySize: MAX_MODULE_REQUEST_BYTES,
-      onerror: error => logger.error(`POST ${module.path} failed`, error),
+      onerror: error => logger.error(`POST ${address.path} failed`, error),
     })
+
+    const resourceMetadataUrl = getOAuthProtectedResourceMetadataUrl(resource)
 
     router.post(
       path,
@@ -62,10 +70,11 @@ function createModulesRouter() {
       requireBearerAuth({
         verifier: createAgentConnectionTokenVerifier(resource),
         expectedResource: resource,
-        resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resource),
+        resourceMetadataUrl,
       }),
       moduleRateLimitMiddleware,
       parseBody,
+      createUnheldModuleChallengeMiddleware(address, resourceMetadataUrl),
       (request: Request, response: Response) => nodeHandler(request, response, request.body),
     )
 

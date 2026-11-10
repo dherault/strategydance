@@ -9,6 +9,7 @@ import toHyphenatedUuid from '~utils/toHyphenatedUuid'
 import buildAuthorizationResponseUrl from '~domain/oauth/buildAuthorizationResponseUrl'
 import checkClientIdUrl from '~domain/oauth/checkClientIdUrl'
 import checkPkceChallenge from '~domain/oauth/checkPkceChallenge'
+import describeModuleScopes from '~domain/oauth/describeModuleScopes'
 import isRegisteredClientId from '~domain/oauth/isRegisteredClientId'
 import isValidRedirectUri from '~domain/oauth/isValidRedirectUri'
 import matchesRedirectUri from '~domain/oauth/matchesRedirectUri'
@@ -111,14 +112,9 @@ async function startOAuthAuthorization(query: string): Promise<Authorization> {
 
   if (!target) return refuse('invalid_target', "The request's resource names no module of this server.")
 
-  const scopes = parseModuleScopes(target.module, values.scope)
+  const scopes = parseModuleScopes(target.modules, values.scope)
 
-  if (!scopes) {
-    return refuse(
-      'invalid_scope',
-      `The request asks for ${target.module.scopes.read}, alone or with ${target.module.scopes.write}.`,
-    )
-  }
+  if (!scopes) return refuse('invalid_scope', `The request asks for ${describeModuleScopes(target.modules)}.`)
 
   // Marked used before its request is stored, so the daily sweep never prunes a client an
   // authorization is naming: a registration pruned since it was read is a client nobody knows

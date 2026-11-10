@@ -3033,13 +3033,16 @@ query GetAgentConnectionAccessToken($hash: String!) @auth(level: NO_ACCESS) {
   }
 }
 
-# What the consent page ticks to begin with: the organizations the member's connection for this
-# client and module reaches already, by the memberships they hold, read once they are signed in.
-# `$userId` is the uid the backend verified
+# What the consent page starts from: the organizations the member's connection for this client at
+# this address reaches already, by the memberships they hold, which it ticks to begin with, and the
+# access it holds, which it keeps unless the member changes it and which Allow checks what it keeps
+# against, read once they are signed in. `$module` is the address's name, and `$userId` the uid the
+# backend verified
 query GetAgentConnectionForConsent($userId: String!, $clientId: String!, $module: String!) @auth(level: NO_ACCESS) {
   agentConnections(where: { userId: { eq: $userId }, clientId: { eq: $clientId }, module: { eq: $module } }, limit: 1) {
     organizationIds
     grantedAt
+    scopes
   }
   userOrganizations(where: { userId: { eq: $userId } }, limit: 100) {
     organizationId

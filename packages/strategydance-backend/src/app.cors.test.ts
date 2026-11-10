@@ -41,6 +41,7 @@ describe('createApp in production', () => {
   test("answers any origin on the OAuth protocol's endpoints, without credentials", async () => {
     for (const path of [
       '/.well-known/oauth-authorization-server',
+      '/.well-known/oauth-protected-resource/mcp',
       '/.well-known/oauth-protected-resource/mcp/documents',
       '/.well-known/oauth-protected-resource/mcp/tasks',
       '/.well-known/oauth-protected-resource/mcp/budget',
@@ -77,6 +78,7 @@ describe('createApp in production', () => {
     for (const path of [
       '/oauth/requests/abc',
       '/oauth/requests/abc/approve',
+      '/mcp',
       '/mcp/documents',
       '/mcp/tasks',
       '/mcp/budget',

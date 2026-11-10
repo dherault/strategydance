@@ -1749,7 +1749,9 @@ the call's `_meta`, `com.strategydance/idempotencyKey`, at most 200 characters:
   the organization, the tool, `argumentsHash` (SHA-256 of the arguments as canonical JSON, keys
   sorted, since a client may serialize them again), `result` (the small JSON text the tool
   answered), `expiresAt` and `createdAt`. The scope is the caller's, never the client's:
-  `conversation:<id>` for Strategy Dance's agent, `connection:<id>` for an external one, so two
+  `conversation:<id>` for Strategy Dance's agent, and for an external one `connection:<id>` at a
+  module's own address or, at the one address, `external:` and a hash of the member, the client and
+  the address, which outlives a consent again ([modules-address.md](modules-address.md)), so two
   clients of one member choosing the same key never meet.
 - **Each write's mutation** is an `@transaction` that inserts that row first, right after the
   membership check, then writes. A second call with the same key, at once or later, finds the key
@@ -1852,13 +1854,16 @@ authorization server from M18 and a consent page from M19:
     GET and DELETE answer 405.
   - No App Check, which an external agent cannot carry: the token is the guard. The answers are
     MCP's JSON-RPC, not `ApiResponse`.
-  - A connection granted read only still lists every tool: every write tool registers the SDK's
-    `scopeChallenge` for its module's write scope, `documents:write` or `tasks:write`, which keeps a
+  - A connection granted read only still lists every tool: every write tool registers a
+    `scopeChallenge` for its module's write scope (`requireModuleWriteScope`), which keeps a
     challenged tool visible, so the model knows the writes exist, and a call to one answers 403 with
-    `WWW-Authenticate: Bearer error="insufficient_scope"`, the scope and the resource metadata, as
-    the specification's step-up asks. The client can then ask again for read and write, and the
-    member's new consent replaces the connection. The tool checks the scope itself too, a second
-    guard that refuses before anything is read or written.
+    `WWW-Authenticate: Bearer error="insufficient_scope"`, the resource metadata and the scopes the
+    connection holds with the module's read and write, as the specification's step-up asks. The
+    client can then ask again for exactly those, and the member's new consent replaces the
+    connection, keeping what it held. The tool checks the scope itself too, a second guard that
+    refuses before anything is read or written. At the one address, a call to a tool of a module the
+    token does not read is challenged the same way for that module's read, since its server lists
+    none of that module's tools.
   - The connection's `lastUsedAt` is written at most once a minute, and no refresh names that
     write.
 - **The authorization server** is the public backend too, issuer `https://api.strategydance.com`:
@@ -2006,10 +2011,11 @@ authorization server from M18 and a consent page from M19:
   more, its module and access, when it connected and when it was last used, Organizations, whose
   dialog ticks what it reaches and saves another list without the agent
   (`UpdateAgentConnectionOrganizations`, from its next call), and Disconnect, which deletes it with
-  its tokens. A connection to a module no endpoint serves any more, renamed or retired, goes with its
-  tokens in the daily sweep (`pruneUnservedAgentConnections`) once neither made nor used for a week,
-  so a worker left on an older release, which the deploy updates after the backend, never takes a
-  newer module's; its agent connects again to the module that took its place.
+  its tokens. A connection at an address no endpoint serves any more, renamed or retired, goes with
+  its tokens in the daily sweep (`pruneUnservedAgentConnections`, given the served addresses' names,
+  the one address's `strategydance` among them) once neither made nor used for a week, so a worker
+  left on an older release, which the deploy updates after the backend, never takes a newer
+  address's; its agent connects again where it is served now.
 - **Use with your agents**, an icon button after the Documents page's own action, its tooltip saying
   what an agent may do there, opens a dialog with the module's
   address, a copy button, and how to add it to claude.ai (Settings, Connectors, Add custom
@@ -2632,7 +2638,8 @@ for Strategy Dance's agent and an external one alike (see the database's `CLAUDE
   text as the fold read it, every pending update merged: its snapshot, compressed with gzip, which
   only the backend reads, and its `content`, BlockNote's blocks, which the document's history draws
   as the page draws a document; who made it, the member, and where from, the module call's scope,
-  `conversation:<id>` or `connection:<id>`; the call's key, Claude's `tool_use` id for Strategy
+  `conversation:<id>`, `connection:<id>` or, at the one address, `external:<hash>`; the call's key,
+  Claude's `tool_use` id for Strategy
   Dance's agent; and a fingerprint of the text the edit left, a hash of every node, attribute and
   character y-prosemirror reads from it, ids included, by which an Undo knows nobody has written
   since and an edit knows it changed something. Never `read_document`'s version, a hash of the

@@ -7,8 +7,8 @@ import {
   DEVELOPMENT_API_URL,
   MAX_AGENT_CONNECTION_ORGANIZATIONS,
   MAX_AGENT_CONNECTIONS,
+  MODULE_ADDRESSES,
   readAgentConnectionReach,
-  SERVED_MODULE_NAMES,
 } from 'strategydance-core'
 import {
   approveOAuthAuthorizationRequest,
@@ -28,7 +28,7 @@ import {
   rotateAgentConnectionRefreshToken,
 } from 'strategydance-database/backend'
 
-import { FIREBASE_PROJECT_ID, MODULE_PROTOCOL_VERSION } from '~constants'
+import { FIREBASE_PROJECT_ID, MODULE_IDEMPOTENCY_KEY_META, MODULE_PROTOCOL_VERSION } from '~constants'
 
 import { authentication, dataConnect } from '~firebase'
 
@@ -120,8 +120,10 @@ const READ_WRITE = ['documents:read', 'documents:write']
 const DOCUMENTS = { name: 'documents', resource } as const
 const TASKS = { name: 'tasks', resource: `${apiUrl}/mcp/tasks` } as const
 const BUDGET = { name: 'budget', resource: `${apiUrl}/mcp/budget` } as const
+// The one address, every served module at `/mcp`, its connections named `strategydance`
+const ONE_ADDRESS = { name: 'strategydance', resource: `${apiUrl}/mcp` } as const
 
-type CheckedModule = typeof DOCUMENTS | typeof TASKS | typeof BUDGET
+type CheckedModule = typeof DOCUMENTS | typeof TASKS | typeof BUDGET | typeof ONE_ADDRESS
 
 // What the check made that its organization does not take with it, for the tear down
 const clientIds = new Set<string>()
@@ -568,10 +570,10 @@ async function checkFlow() {
   const challenge = challenged.headers.get('www-authenticate') ?? ''
 
   check(
-    "the endpoint challenges a read-only token's write, naming the write scope",
+    "the endpoint challenges a narrowed token's write, naming the connection's scopes with the write",
     challenged.status === 403
       && challenge.includes('error="insufficient_scope"')
-      && challenge.includes('scope="documents:write"'),
+      && challenge.includes('scope="documents:read documents:write"'),
   )
 
   // The client revokes
@@ -591,6 +593,225 @@ async function checkFlow() {
     "the module's endpoint refuses the revoked connection's access token",
     (await postModule(resource, narrowed.access_token, { method: 'tools/list' })).status === 401,
   )
+}
+
+/*
+  The whole flow at the one address, as a client goes through it: an authorization for two modules,
+  the member's Allow narrowing one, the exchange, the tools of the modules held alone, a challenge
+  for a module left out and for a read-only module's write, a write retried across a consent again,
+  a refresh narrowing to one module, then its duplicate and the revocation
+*/
+async function checkOneAddress() {
+  const metadata = await readMetadata()
+  const endpoint = `${metadata.issuer}/mcp`
+  const redirectUri = 'http://127.0.0.1:43210/callback'
+  const form = { 'Content-Type': 'application/x-www-form-urlencoded' }
+  const headers = { Authorization: `Bearer ${await signIn()}`, 'Content-Type': 'application/json' }
+  const allowed = ['documents:read', 'documents:write', 'tasks:read']
+  const registration = await fetch(metadata.registration_endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_name: `Check ${checkId} one address`, redirect_uris: ['http://127.0.0.1/callback'] }),
+  })
+  const { client_id: clientId } = (await registration.json()) as { client_id: string }
+
+  clientIds.add(clientId)
+  registeredClientIds.add(clientId)
+
+  const resourceMetadata = (await (
+    await fetch(`${metadata.issuer}/.well-known/oauth-protected-resource/mcp`)
+  ).json()) as { resource: string; scopes_supported: string[]; resource_name: string }
+
+  check(
+    "the one address's protected resource metadata names it, every served scope and Strategy Dance",
+    resourceMetadata.resource === endpoint
+      && resourceMetadata.scopes_supported.join(' ') === metadata.scopes_supported.join(' ')
+      && resourceMetadata.resource_name === 'Strategy Dance',
+  )
+
+  // Authorizes at the one address, the member allowing what the request asks, or less, or what the
+  // connection held, and exchanges the code
+  async function consent(scope: string, chosen: string[]) {
+    const verifier = createSecret()
+    const authorizeUrl = new URL(metadata.authorization_endpoint)
+
+    for (const [name, value] of Object.entries({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      code_challenge: createHashOf(verifier),
+      code_challenge_method: 'S256',
+      resource: endpoint,
+      scope,
+      state: 'checked',
+    })) {
+      authorizeUrl.searchParams.set(name, value)
+    }
+
+    const authorization = await fetch(authorizeUrl, { redirect: 'manual' })
+    const requestId = new URL(authorization.headers.get('location') ?? 'invalid:').searchParams.get('request') ?? ''
+    const reading = await fetch(`${apiUrl}/oauth/requests/${requestId}`, { headers })
+    const { data: summary } = (await reading.json()) as {
+      data?: { address: string; module: string | null; scopes: string[]; heldScopes: string[] }
+    }
+    const approval = await fetch(`${apiUrl}/oauth/requests/${requestId}/approve`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ organizationIds: [organizationId], scopes: chosen }),
+    })
+    const { data: decision } = (await approval.json()) as { data?: { redirectUrl: string } }
+    const code = new URL(decision?.redirectUrl ?? 'invalid:').searchParams.get('code') ?? ''
+    const exchange = await fetch(metadata.token_endpoint, {
+      method: 'POST',
+      headers: form,
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        code_verifier: verifier,
+        resource: endpoint,
+      }),
+    })
+
+    return { summary, approved: approval.status === 200, tokens: (await exchange.json()) as Tokens }
+  }
+
+  const first = await consent('documents:read documents:write tasks:read tasks:write', allowed)
+
+  check(
+    'the consent page reads a request at the one address: its name, no module, the access asked, nothing held',
+    first.summary?.address === 'strategydance'
+      && first.summary.module === null
+      && first.summary.scopes.join(' ') === 'documents:read documents:write tasks:read tasks:write'
+      && first.summary.heldScopes.length === 0,
+  )
+  check(
+    'a consent at the one address to two modules, Tasks narrowed to read, issues a pair of those scopes',
+    first.approved && first.tokens.scope === allowed.join(' '),
+  )
+
+  const client = await openModule(endpoint, first.tokens.access_token)
+  const names = (await client.listTools()).tools.map(({ name }) => name)
+
+  check(
+    'the one address lists the tools of the modules held alone, as one server named strategydance',
+    client.getServerVersion()?.name === 'strategydance'
+      && names.includes('create_document')
+      && names.includes('list_tasks')
+      && !names.includes('read_budget'),
+  )
+
+  const write = {
+    name: 'create_document',
+    arguments: { organization: organizationId, title: `One address ${checkId}`, aspects: [], content: 'Once.' },
+    _meta: { [MODULE_IDEMPOTENCY_KEY_META]: `one-address-${checkId}` },
+  }
+  const written = await client.callTool(write)
+
+  await client.close()
+
+  const challengeOf = async (token: string, name: string, args: Record<string, unknown>) => {
+    const challenged = await postModule(endpoint, token, {
+      method: 'tools/call',
+      params: { name, arguments: { organization: organizationId, ...args } },
+    })
+
+    return { status: challenged.status, header: challenged.headers.get('www-authenticate') ?? '' }
+  }
+  const budget = await challengeOf(first.tokens.access_token, 'read_budget', {})
+  const task = await challengeOf(first.tokens.access_token, 'create_task', { name: 'Refused', status: 'TODO' })
+
+  check(
+    "a call to a module left out is challenged for its read, with the connection's scopes",
+    budget.status === 403 && budget.header.includes('scope="documents:read documents:write tasks:read budget:read"'),
+  )
+  check(
+    "a read-only module's write is challenged with the connection's scopes and the write",
+    task.status === 403 && task.header.includes('scope="documents:read documents:write tasks:read tasks:write"'),
+  )
+  check(
+    "the one address's token opens no module's own address",
+    (await postModule(`${metadata.issuer}/mcp/documents`, first.tokens.access_token, { method: 'tools/list' })).status
+      === 401,
+  )
+
+  // The member consents again, the client asking for Tasks alone, and keeps Documents
+  const again = await consent('tasks:read', allowed)
+  const retriedClient = await openModule(endpoint, again.tokens.access_token)
+  const retried = await retriedClient.callTool(write)
+
+  await retriedClient.close()
+
+  check(
+    'a consent again names what the connection held, and keeps it',
+    again.summary?.heldScopes.join(' ') === allowed.join(' ') && again.tokens.scope === allowed.join(' '),
+  )
+  check(
+    'a write retried after a consent again is answered from its stored result, written once',
+    !written.isError
+      && JSON.stringify(retried.structuredContent) === JSON.stringify(written.structuredContent)
+      && (await countDocumentsNamed(`One address ${checkId}`)) === 1,
+  )
+
+  // A refresh narrowing to one module, its duplicate, and the revocation
+  const refresh = (refreshToken: string, scope?: string) =>
+    fetch(metadata.token_endpoint, {
+      method: 'POST',
+      headers: form,
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: clientId,
+        resource: endpoint,
+        ...(scope ? { scope } : {}),
+      }),
+    })
+  const narrowed = (await (await refresh(again.tokens.refresh_token, 'tasks:read')).json()) as Tokens
+  const duplicate = (await (await refresh(again.tokens.refresh_token, 'tasks:read')).json()) as Tokens
+  const narrowedClient = await openModule(endpoint, narrowed.access_token)
+  const narrowedNames = (await narrowedClient.listTools()).tools.map(({ name }) => name)
+
+  await narrowedClient.close()
+
+  const document = await challengeOf(narrowed.access_token, 'list_documents', {})
+
+  check(
+    "a refresh narrowing to Tasks lists its tools alone, and challenges a Documents call with the connection's scopes",
+    narrowed.scope === 'tasks:read'
+      && narrowedNames.includes('list_tasks')
+      && !narrowedNames.includes('list_documents')
+      && document.status === 403
+      && document.header.includes('scope="documents:read documents:write tasks:read"'),
+  )
+  check(
+    'the spent refresh token presented again is answered with the same pair',
+    duplicate.access_token === narrowed.access_token && duplicate.refresh_token === narrowed.refresh_token,
+  )
+
+  const revocation = await fetch(metadata.revocation_endpoint, {
+    method: 'POST',
+    headers: form,
+    body: new URLSearchParams({ token: narrowed.refresh_token, client_id: clientId }),
+  })
+
+  check(
+    "revoking the one address's refresh token ends the connection",
+    revocation.status === 200
+      && (await refresh(narrowed.refresh_token)).status === 400
+      && (await postModule(endpoint, narrowed.access_token, { method: 'tools/list' })).status === 401,
+  )
+}
+
+async function countDocumentsNamed(title: string) {
+  const data = await read<{ documents: { id: string }[] }>(
+    `query CountDocuments($organizationId: UUID!, $title: String!) {
+      documents(where: { organizationId: { eq: $organizationId }, title: { eq: $title } }) { id }
+    }`,
+    { organizationId, title },
+  )
+
+  return data.documents.length
 }
 
 // A pending request a client made, asking for read and write unless told otherwise
@@ -619,7 +840,15 @@ function approve(
     organizations = [organizationId],
     user = userId,
     module = DOCUMENTS,
-  }: { scopes?: string[]; organizations?: string[]; user?: string; module?: CheckedModule } = {},
+    heldScopes,
+  }: {
+    scopes?: string[]
+    organizations?: string[]
+    user?: string
+    module?: CheckedModule
+    // Left out, as the backend before the one address sends it
+    heldScopes?: string[]
+  } = {},
 ) {
   const connectionId = createId()
   const code = createSecret()
@@ -638,6 +867,7 @@ function approve(
       module: module.name,
       resource: module.resource,
       scopes,
+      ...(heldScopes && { heldScopes }),
       codeHash: createHashOf(code),
     }),
   }
@@ -687,6 +917,68 @@ function exchange(
       refreshTokenHash: createHashOf(refreshToken),
     }),
   }
+}
+
+/*
+  Allow's held scopes on the database: kept beside what the request asked for when the connection
+  it replaces holds them, refused when it does not, and nothing beyond what was asked when the
+  backend before the one address leaves them out
+*/
+async function checkHeldScopes() {
+  const clientId = `https://check-${checkId}.example.com/held.json`
+  const both = ['documents:read', 'documents:write']
+  const held = approve(await createRequest(clientId, both, ONE_ADDRESS), clientId, {
+    scopes: both,
+    module: ONE_ADDRESS,
+  })
+
+  check('an Allow at the one address goes through', (await refusal(held.approval)) === null)
+
+  const notHeld = approve(await createRequest(clientId, ['tasks:read'], ONE_ADDRESS), clientId, {
+    scopes: ['tasks:read'],
+    heldScopes: ['budget:read'],
+    module: ONE_ADDRESS,
+  })
+
+  check(
+    'an Allow keeping a scope the connection it replaces does not hold is refused, leaving it as it was',
+    (await refusal(notHeld.approval))?.includes('The connection this consent replaces holds no such access') === true
+      && (await readConnections(clientId))[0]?.id === held.connectionId,
+  )
+
+  const asOlder = approve(await createRequest(clientId, ['tasks:read'], ONE_ADDRESS), clientId, {
+    scopes: ['tasks:read', 'documents:read'],
+    module: ONE_ADDRESS,
+  })
+
+  check(
+    'an Allow without held scopes, as the backend before the one address sends it, is refused a scope not asked for',
+    (await refusal(asOlder.approval))?.includes('The authorization request was decided already or has expired')
+      === true,
+  )
+
+  const kept = approve(await createRequest(clientId, ['tasks:read'], ONE_ADDRESS), clientId, {
+    scopes: ['tasks:read'],
+    heldScopes: both,
+    module: ONE_ADDRESS,
+  })
+
+  check('an Allow keeping what the connection it replaces held goes through', (await refusal(kept.approval)) === null)
+
+  const [connection] = await readConnections(clientId)
+
+  check(
+    'the connection holds what was asked for and what it kept, replacing the earlier one',
+    connection?.id === kept.connectionId
+      && [...connection.scopes].sort().join(' ') === 'documents:read documents:write tasks:read',
+  )
+
+  const { data } = await getAgentConnectionForConsent(dataConnect, { userId, clientId, module: 'strategydance' })
+
+  check(
+    "the consent read answers the connection's scopes",
+    [...(data.agentConnections[0]?.scopes ?? [])].sort().join(' ') === 'documents:read documents:write tasks:read',
+  )
 }
 
 async function checkConsent() {
@@ -1105,10 +1397,10 @@ async function checkModuleEndpoint({
   const challenge = challenged.headers.get('www-authenticate') ?? ''
 
   check(
-    `the endpoint challenges a read-only ${title} token's write, naming ${scopes.write}, and writes nothing`,
+    `the endpoint challenges a read-only ${title} token's write, naming ${scopes.read} with ${scopes.write}, and writes nothing`,
     challenged.status === 403
       && challenge.includes('error="insufficient_scope"')
-      && challenge.includes(`scope="${scopes.write}"`)
+      && challenge.includes(`scope="${scopes.read} ${scopes.write}"`)
       && (await countNamed(`Refused ${checkId}`)) === 0,
   )
 
@@ -1568,12 +1860,14 @@ async function checkPrunes() {
   const clientId = `https://check-${checkId}-unserved.example.com/agent.json`
 
   // The other member's, since the member was removed, all made over a week ago but one: to a module
-  // no endpoint serves, to one a newer release may serve, made a moment ago, and to a module served
+  // no endpoint serves, to one a newer release may serve, made a moment ago, to a module served, and
+  // at the one address
   await write(
     `mutation Unserved($userId: String!, $organizationId: UUID!, $clientId: String!, $weekAgo: Timestamp!) {
       unserved: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt: $weekAgo, clientId: $clientId, module: "retired", scopes: ["retired:read"], createdAt: $weekAgo })
       recent: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt_expr: "request.time", clientId: $clientId, module: "newer", scopes: ["newer:read"] })
       served: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt: $weekAgo, clientId: $clientId, module: "documents", scopes: ["documents:read"], createdAt: $weekAgo })
+      oneAddress: agentConnection_insert(data: { userId: $userId, organizationIds: [$organizationId], grantedAt: $weekAgo, clientId: $clientId, module: "strategydance", scopes: ["tasks:read"], createdAt: $weekAgo })
     }`,
     {
       userId: otherUserId,
@@ -1585,7 +1879,7 @@ async function checkPrunes() {
 
   const prune = async () => {
     await pruneOAuthAuthorizationRequests(dataConnect)
-    await pruneUnservedAgentConnections(dataConnect, { modules: [...SERVED_MODULE_NAMES] })
+    await pruneUnservedAgentConnections(dataConnect, { modules: MODULE_ADDRESSES.map(({ name }) => name) })
     await pruneAgentConnectionTokens(dataConnect)
     await pruneOAuthClients(dataConnect)
   }
@@ -1601,18 +1895,20 @@ async function checkPrunes() {
   )
 
   check(
-    "the sweep deletes a connection to a module no endpoint serves idle for a week, and keeps a recent one and a served module's",
+    "the sweep deletes a connection to a module no endpoint serves idle for a week, and keeps a recent one, a served module's and the one address's",
     agentConnections
       .map(({ module }) => module)
       .sort()
-      .join() === 'documents,newer',
+      .join() === 'documents,newer,strategydance',
   )
 }
 
 try {
   await setUp()
   await checkFlow()
+  await checkOneAddress()
   await checkConsent()
+  await checkHeldScopes()
   await checkConnectedAgents()
   await checkModuleEndpoint(TASKS_ENDPOINT)
   await checkModuleEndpoint(BUDGET_ENDPOINT)

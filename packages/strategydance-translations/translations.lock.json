@@ -5277,6 +5277,14 @@
         "hash": "0165f7f9695277e9",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.connectionModuleRead": {
+        "hash": "b25463602d016995",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.connectionModuleReadWrite": {
+        "hash": "b1bab6752c8714f7",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.connectionReachesNone": {
         "hash": "cab2285b9f0e7aa8",
         "locales": "DE,ES,FR,JA,PT,ZH"
@@ -5417,8 +5425,20 @@
         "hash": "fc17a6afccf7ce05",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
+      "module.modulesRequired": {
+        "hash": "e722fab3082c5fe1",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
       "module.neverUsed": {
         "hash": "f3b3f482da53545b",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.noAccess": {
+        "hash": "37d3f5f6b4f68e8d",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.noAccessHint": {
+        "hash": "2d9947c94ac8c7da",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.noOrganizationDescription": {
@@ -5427,6 +5447,10 @@
       },
       "module.noOrganizationTitle": {
         "hash": "12bc2fb1d984653e",
+        "locales": "DE,ES,FR,JA,PT,ZH"
+      },
+      "module.oneAddressName": {
+        "hash": "d01ef06c01cce40d",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "module.openConnectedAgents": {
@@ -6232,7 +6256,7 @@
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.delegatePrompt": {
-        "hash": "92cc65bc23cdcaeb",
+        "hash": "82210821a92a2ab8",
         "locales": "DE,ES,FR,JA,PT,ZH"
       },
       "task.delegatePromptCopied": {

@@ -69,6 +69,8 @@ const { default: createOAuthRequestsRouter } = await import('./oauthRequests')
 const { default: createWellKnownRouter } = await import('./wellKnown')
 
 const ISSUER = 'http://localhost:3003'
+const ONE_ADDRESS = `${ISSUER}/mcp`
+const ONE_ADDRESS_RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp`
 const DOCUMENTS = `${ISSUER}/mcp/documents`
 const TASKS = `${ISSUER}/mcp/tasks`
 const RESOURCE_METADATA = `${ISSUER}/.well-known/oauth-protected-resource/mcp/documents`
@@ -117,9 +119,10 @@ function encode(parameters: Record<string, string>) {
 // An agent the member connected, through the whole flow: authorization, Allow and the exchange
 async function connect({
   scopes = ['documents:read', 'documents:write'],
+  allowed = scopes,
   resource = DOCUMENTS,
   organizationIds = [ORGANIZATION_ID],
-}: { scopes?: string[]; resource?: string; organizationIds?: string[] } = {}) {
+}: { scopes?: string[]; allowed?: string[]; resource?: string; organizationIds?: string[] } = {}) {
   const { data } = await (
     fake.sdk.createOAuthAuthorizationRequest as (
       ...args: unknown[]
@@ -139,7 +142,7 @@ async function connect({
   const approved = await fetch(`${origin}/oauth/requests/${data.oAuthAuthorizationRequest_insert.id}/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ organizationIds, scopes }),
+    body: JSON.stringify({ organizationIds, scopes: allowed }),
   })
   const { data: decision } = (await approved.json()) as { data: { redirectUrl: string } }
   const exchanged = await fetch(`${origin}/oauth/token`, {
@@ -156,6 +159,23 @@ async function connect({
   })
 
   return (await exchanged.json()) as Tokens
+}
+
+// A refresh of a connection's tokens, naming the scopes it asks for, or none for all of its own
+async function refresh(tokens: Tokens, { resource = DOCUMENTS, scope }: { resource?: string; scope?: string } = {}) {
+  const refreshed = await fetch(`${origin}/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: encode({
+      grant_type: 'refresh_token',
+      refresh_token: tokens.refresh_token,
+      client_id: CLIENT_ID,
+      resource,
+      ...(scope && { scope }),
+    }),
+  })
+
+  return (await refreshed.json()) as Tokens
 }
 
 // An external agent on a module's endpoint, as the SDK's client calls it over HTTP with its bearer token
@@ -375,7 +395,7 @@ describe('the Documents module for external agents', () => {
     expect(challenged.status).toBe(403)
     expect(challenged.body.error).toBe('insufficient_scope')
     expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
-    expect(challenged.headers.get('www-authenticate')).toContain('scope="documents:write"')
+    expect(challenged.headers.get('www-authenticate')).toContain('scope="documents:read documents:write"')
     expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${RESOURCE_METADATA}"`)
     expect(documentsOfOrganization()).toEqual([])
 
@@ -396,6 +416,23 @@ describe('the Documents module for external agents', () => {
     expect(written.status).toBe(200)
     expect(written.body.result.isError).toBeFalsy()
     expect(documentsOfOrganization()).toHaveLength(1)
+  })
+
+  test("challenges a write of a token a refresh narrowed to read with its connection's scopes, which a client asks for again", async () => {
+    const narrowed = await refresh(await connect(), { scope: 'documents:read' })
+
+    expect(narrowed.scope).toBe('documents:read')
+
+    const challenged = await send(
+      callTool('create_document', { ...IN_ORGANIZATION, title: 'New', aspects: [], content: 'Text' }),
+      { token: narrowed.access_token },
+    )
+
+    expect(challenged.status).toBe(403)
+    expect(challenged.headers.get('www-authenticate')).toContain('scope="documents:read documents:write"')
+    expect(challenged.headers.get('www-authenticate')).toContain(
+      'error_description="Writing here needs documents:write"',
+    )
   })
 
   test('applies a write retried with its key once, under the connection', async () => {
@@ -665,7 +702,7 @@ describe('the Tasks module for external agents', () => {
     expect(challenged.status).toBe(403)
     expect(challenged.body.error).toBe('insufficient_scope')
     expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
-    expect(challenged.headers.get('www-authenticate')).toContain('scope="tasks:write"')
+    expect(challenged.headers.get('www-authenticate')).toContain('scope="tasks:read tasks:write"')
     expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${TASKS_RESOURCE_METADATA}"`)
     expect(tasksOfOrganization()).toEqual([])
 
@@ -821,7 +858,7 @@ describe('the Budget module for external agents', () => {
       expect(challenged.status).toBe(403)
       expect(challenged.body.error).toBe('insufficient_scope')
       expect(challenged.headers.get('www-authenticate')).toContain('error="insufficient_scope"')
-      expect(challenged.headers.get('www-authenticate')).toContain('scope="budget:write"')
+      expect(challenged.headers.get('www-authenticate')).toContain('scope="budget:read budget:write"')
       expect(challenged.headers.get('www-authenticate')).toContain(`resource_metadata="${BUDGET_RESOURCE_METADATA}"`)
     }
 
@@ -905,6 +942,196 @@ describe('the Budget module for external agents', () => {
     expect(
       (await send(callTool('list_bills', { ...IN_ORGANIZATION }), { token, path: BUDGET_PATH })).body.result.isError,
     ).toBeFalsy()
+  })
+})
+
+describe('the one address, every served module at /mcp', () => {
+  const ONE_PATH = '/mcp'
+  const list = { jsonrpc: '2.0', id: 1, method: 'tools/list' }
+  const DOCUMENTS_AND_TASKS_READ = ['documents:read', 'documents:write', 'tasks:read']
+  const createDocument = (title: string) =>
+    callTool('create_document', { ...IN_ORGANIZATION, title, aspects: [], content: 'Text' })
+
+  test("answers a request without a token 401, naming the one address's protected resource metadata", async () => {
+    const { status, headers } = await send(list, { path: ONE_PATH })
+
+    expect(status).toBe(401)
+    expect(headers.get('www-authenticate')).toContain(`resource_metadata="${ONE_ADDRESS_RESOURCE_METADATA}"`)
+  })
+
+  test("serves its protected resource metadata with every served module's scopes, beside each module's own", async () => {
+    const response = await fetch(ONE_ADDRESS_RESOURCE_METADATA.replace(ISSUER, origin))
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      resource: ONE_ADDRESS,
+      authorization_servers: [ISSUER],
+      scopes_supported: [
+        'documents:read',
+        'documents:write',
+        'tasks:read',
+        'tasks:write',
+        'budget:read',
+        'budget:write',
+      ],
+      resource_name: 'Strategy Dance',
+    })
+
+    for (const name of SERVED_MODULE_NAMES) {
+      const own = await fetch(`${origin}/.well-known/oauth-protected-resource/mcp/${name}`)
+
+      expect(((await own.json()) as { resource: string }).resource).toBe(`${ISSUER}/mcp/${name}`)
+    }
+  })
+
+  test('lists the tools of the modules its connection holds alone, as one server, and serves their calls', async () => {
+    const tokens = await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+    const client = await open(tokens.access_token, ONE_PATH)
+    const names = (await client.listTools()).tools.map(({ name }) => name)
+
+    expect(tokens.scope).toBe(DOCUMENTS_AND_TASKS_READ.join(' '))
+    expect(client.getServerVersion()).toMatchObject({ name: 'strategydance', title: 'Strategy Dance' })
+    expect(names).toHaveLength(16)
+    expect(names).toContain('create_document')
+    expect(names).toContain('list_tasks')
+    expect(names).not.toContain('read_budget')
+
+    const created = await client.callTool({
+      name: 'create_document',
+      arguments: { ...IN_ORGANIZATION, title: 'Launch plan', aspects: [], content: 'We launch in spring.' },
+    })
+    const listed = await client.callTool({ name: 'list_tasks', arguments: { ...IN_ORGANIZATION } })
+
+    expect(created.isError).toBeFalsy()
+    expect(listed.isError).toBeFalsy()
+    expect(documentsOfOrganization()).toHaveLength(1)
+
+    await client.close()
+  })
+
+  test("refuses a module's own address's token, and opens no module's address with its own", async () => {
+    const tasks = await connect({ scopes: ['tasks:read'], resource: TASKS })
+    const oneAddress = await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+
+    expect((await send(list, { token: tasks.access_token, path: ONE_PATH })).status).toBe(401)
+    expect((await send(list, { token: oneAddress.access_token, path: '/mcp/tasks' })).status).toBe(401)
+    expect((await send(list, { token: oneAddress.access_token, path: '/mcp/documents' })).status).toBe(401)
+    expect((await send(list, { token: oneAddress.access_token, path: ONE_PATH })).status).toBe(200)
+  })
+
+  test("challenges a read-only module's write with every scope the connection holds, a refresh's narrowed token's too", async () => {
+    const tokens = await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+    const narrowed = await refresh(tokens, { resource: ONE_ADDRESS, scope: 'tasks:read' })
+    const write = callTool('create_task', { ...IN_ORGANIZATION, name: 'Refused', status: 'TODO' })
+
+    expect(narrowed.scope).toBe('tasks:read')
+
+    for (const token of [tokens.access_token, narrowed.access_token]) {
+      const challenged = await send(write, { token, path: ONE_PATH })
+
+      expect(challenged.status).toBe(403)
+      expect(challenged.headers.get('www-authenticate')).toContain(
+        'scope="documents:read documents:write tasks:read tasks:write"',
+      )
+      expect(challenged.headers.get('www-authenticate')).toContain(
+        `resource_metadata="${ONE_ADDRESS_RESOURCE_METADATA}"`,
+      )
+    }
+
+    expect(tasksOfOrganization()).toEqual([])
+  })
+
+  test("challenges a call to a tool of a module the connection does not hold for that module's read, writing nothing", async () => {
+    const tokens = await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+    const narrowed = await refresh(tokens, { resource: ONE_ADDRESS, scope: 'tasks:read' })
+    const cases = [
+      [
+        tokens.access_token,
+        callTool('read_budget', { ...IN_ORGANIZATION }),
+        'documents:read documents:write tasks:read budget:read',
+        'read_budget needs budget:read',
+      ],
+      [
+        narrowed.access_token,
+        createDocument('Refused'),
+        'documents:read documents:write tasks:read',
+        'create_document needs documents:read',
+      ],
+    ] as const
+
+    for (const [token, call, scope, description] of cases) {
+      const challenged = await send(call, { token, path: ONE_PATH })
+
+      expect(challenged.status).toBe(403)
+      expect(challenged.body.error).toBe('insufficient_scope')
+      expect(challenged.headers.get('www-authenticate')).toContain(`scope="${scope}"`)
+      expect(challenged.headers.get('www-authenticate')).toContain(`error_description="Calling ${description}"`)
+      expect(challenged.headers.get('www-authenticate')).toContain(
+        `resource_metadata="${ONE_ADDRESS_RESOURCE_METADATA}"`,
+      )
+    }
+
+    expect(documentsOfOrganization()).toEqual([])
+  })
+
+  test("answers a call to a name no module of the address has as the SDK does, at a module's own address too", async () => {
+    const oneAddress = await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+    const documents = await connect()
+
+    for (const [token, path, name] of [
+      [oneAddress.access_token, ONE_PATH, 'no_such_tool'],
+      // A tool of a module served to no external agent
+      [oneAddress.access_token, ONE_PATH, 'link_knowledge'],
+      [documents.access_token, '/mcp/documents', 'read_budget'],
+    ] as const) {
+      const answered = await send(callTool(name, { ...IN_ORGANIZATION }), { token, path })
+
+      expect(answered.status).toBe(200)
+      expect(answered.body.error.message).toContain('not found')
+    }
+  })
+
+  test('applies a write retried after a consent again once, its scope outliving the connection it replaced', async () => {
+    const write = {
+      ...createDocument('Once'),
+      params: { ...createDocument('Once').params, _meta: { [MODULE_IDEMPOTENCY_KEY_META]: 'retried' } },
+    }
+    const first = await send(write, {
+      token: (await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })).access_token,
+      path: ONE_PATH,
+    })
+    const [before] = fake.connectionsOf(MEMBER)
+
+    // The member consents again for the same client, asked for Tasks alone, keeping Documents
+    const again = await connect({ scopes: ['tasks:read'], allowed: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })
+    const [after] = fake.connectionsOf(MEMBER)
+    const second = await send(write, { token: again.access_token, path: ONE_PATH })
+
+    expect(after?.id).not.toBe(before?.id)
+    expect(second.body.result.structuredContent).toEqual(first.body.result.structuredContent)
+    expect(documentsOfOrganization()).toHaveLength(1)
+    expect([...fake.results.values()].map(({ idempotencyScope }) => idempotencyScope)).toEqual([
+      `external:${createHash('sha256')
+        .update(JSON.stringify([MEMBER, CLIENT_ID, 'strategydance']))
+        .digest('base64url')}`,
+    ])
+  })
+
+  test('answers a write retried after a consent that took its write away with the challenge, never its stored result', async () => {
+    const write = {
+      ...createDocument('Once'),
+      params: { ...createDocument('Once').params, _meta: { [MODULE_IDEMPOTENCY_KEY_META]: 'retried' } },
+    }
+
+    await send(write, {
+      token: (await connect({ scopes: DOCUMENTS_AND_TASKS_READ, resource: ONE_ADDRESS })).access_token,
+      path: ONE_PATH,
+    })
+
+    const narrowed = await connect({ scopes: ['documents:read'], resource: ONE_ADDRESS })
+
+    expect((await send(write, { token: narrowed.access_token, path: ONE_PATH })).status).toBe(403)
+    expect(documentsOfOrganization()).toHaveLength(1)
   })
 })
 

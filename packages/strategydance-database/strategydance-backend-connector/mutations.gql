@@ -7551,13 +7551,14 @@ mutation RecordOAuthClientUse($id: UUID!) @auth(level: NO_ACCESS) {
   oAuthClient_update(id: $id, data: { lastUsedAt_expr: "request.time" })
 }
 
-# A member allows an external agent to act as them on one module in the organizations they chose:
+# A member allows an external agent to act as them at an address in the organizations they chose:
 # the connection and the code, valid for a minute (`OAUTH_CODE_LIFETIME_MS` in the backend), bound
-# to the request.
+# to the request. `$module` is the address's name, `strategydance` for the one address, or a
+# module's for its own.
 #
 # The first step writes the member's own row, a lock every consent of theirs takes, and every edit of
 # a connection's organizations, so their consents and edits take turns, two at once for one client
-# and module included. Nothing else writes a user row and a membership both, so taking the two in
+# and address included. Nothing else writes a user row and a membership both, so taking the two in
 # this order waits on nobody holding them the other way. The second writes each membership chosen,
 # the lock a run's start and a search take too, read through the first's response so it runs as a
 # statement of its own, and refuses unless the member is in every organization named: the
@@ -7565,13 +7566,21 @@ mutation RecordOAuthClientUse($id: UUID!) @auth(level: NO_ACCESS) {
 # organizations (`MAX_AGENT_CONNECTION_ORGANIZATIONS` in strategydance-core). A member connects at
 # most 100 agents (`MAX_AGENT_CONNECTIONS` in strategydance-core), counted after both, leaving out
 # the connection this one replaces, so the Connected agents tab, which reads that many, lists every
-# one. The earlier connection for that client and module goes, with its tokens, and the new one takes
-# its place, so the member holds one connection for it, of the organizations and the access they
-# last allowed, granted now. The request is decided last, since it references the connection, and
-# only while it is undecided and unexpired, for the client and the resource it names, granting no
-# scope it did not ask for: a check refusing it rolls the whole mutation back, so a double submit, or
-# an Allow racing a Deny, decides it once. `$userId` is the uid the backend verified, and
-# `$connectionId` and `$codeHash` are the backend's own
+# one. The earlier connection for that client and address goes, with its tokens, and the new one
+# takes its place, so the member holds one connection for it, of the organizations and the access
+# they last allowed, granted now. The request is decided last, since it references the connection,
+# and only while it is undecided and unexpired, for the client and the resource it names: a check
+# refusing it rolls the whole mutation back, so a double submit, or an Allow racing a Deny, decides
+# it once.
+#
+# A consent grants nothing that neither the agent asked for nor the member granted before. `$scopes`
+# is what the request asked for, the request matching only if it asked for every one of them.
+# `$heldScopes`, optional, is what the member keeps that the request did not ask for, each held by
+# the connection this one replaces, read after the lock so a narrowing that committed while Allow
+# waited is seen, and appended once the connection is inserted, in a step of its own that reads the
+# insert's response. Left out, as the backend before the one address leaves it, it grants nothing
+# beyond `$scopes`. `$userId` is the uid the backend verified, and `$connectionId` and `$codeHash`
+# are the backend's own
 mutation ApproveOAuthAuthorizationRequest(
   $id: UUID!
   $userId: String!
@@ -7583,6 +7592,7 @@ mutation ApproveOAuthAuthorizationRequest(
   $module: String!
   $resource: String!
   $scopes: [String!]!
+  $heldScopes: [String!]
   $codeHash: String!
 ) @auth(level: NO_ACCESS) @transaction {
   user_update(key: { id: $userId }, data: { updatedAt_expr: "request.time" })
@@ -7613,6 +7623,16 @@ mutation ApproveOAuthAuthorizationRequest(
     ) @check(expr: "size(this) < 100", message: "A member connects at most 100 agents") {
       id
     }
+    replaced: agentConnections(
+      where: { userId: { eq_expr: "response.user_update.id" }, clientId: { eq: $clientId }, module: { eq: $module } }
+      limit: 1
+    )
+      @check(
+        expr: "!has(vars.heldScopes) || vars.heldScopes == null || vars.heldScopes.all(scope, size(this) == 1 && scope in this[0].scopes)"
+        message: "The connection this consent replaces holds no such access"
+      ) {
+      scopes
+    }
   }
   agentConnection_deleteMany(where: { userId: { eq: $userId }, clientId: { eq: $clientId }, module: { eq: $module } })
     @redact
@@ -7629,6 +7649,10 @@ mutation ApproveOAuthAuthorizationRequest(
       scopes: $scopes
     }
   )
+  agentConnection_update(
+    key: { id_expr: "response.agentConnection_insert.id" }
+    data: { scopes_update: [{ append: $heldScopes }] }
+  ) @redact
   oAuthAuthorizationRequest_updateMany(
     where: {
       id: { eq: $id }
@@ -7799,14 +7823,15 @@ mutation PruneOAuthAuthorizationRequests @auth(level: NO_ACCESS) {
   oAuthAuthorizationRequest_deleteMany(where: { expiresAt: { lt_time: { now: true, sub: { days: 1 } } } })
 }
 
-# The daily sweep's: deletes the connections to a module no endpoint serves any more, with their
-# tokens, which no endpoint accepts, so a renamed or retired module's connections leave the Connected
-# agents tab and stop counting toward `MAX_AGENT_CONNECTIONS`. `$modules` is every module the
-# sweep's release serves.
+# The daily sweep's: deletes the connections at an address no endpoint serves any more, with their
+# tokens, which no endpoint accepts, so a renamed or retired address's connections leave the
+# Connected agents tab and stop counting toward `MAX_AGENT_CONNECTIONS`. `$modules` names every
+# address the sweep's release serves, `strategydance` for the one address and each module's own, as
+# a connection's `module` holds it.
 #
 # Only those neither made nor used for a week. A connection no endpoint serves is never used again,
 # so it ages past that. A worker left on an older release, since the deploy updates it after the
-# backend, can know fewer modules than the backend serves: the week keeps it from taking a
+# backend, can know fewer addresses than the backend serves: the week keeps it from taking a
 # connection the backend made and its agent uses
 mutation PruneUnservedAgentConnections($modules: [String!]!) @auth(level: NO_ACCESS) {
   agentConnection_deleteMany(

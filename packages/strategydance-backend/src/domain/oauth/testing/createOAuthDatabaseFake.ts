@@ -280,7 +280,13 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
 
       return {
         agentConnections: connection
-          ? [{ organizationIds: [...connection.organizationIds], grantedAt: connection.grantedAt }]
+          ? [
+              {
+                organizationIds: [...connection.organizationIds],
+                grantedAt: connection.grantedAt,
+                scopes: [...connection.scopes],
+              },
+            ]
           : [],
         userOrganizations: membershipsOfUser(variables.userId),
       }
@@ -369,6 +375,8 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
       const request = requests.get(id(variables.id))
       const registeredClientId = variables.registeredClientId ? id(variables.registeredClientId) : null
       const scopes = variables.scopes as string[]
+      // Left out by the backend before the one address, and then nothing beyond `$scopes`
+      const heldScopes = (variables.heldScopes as string[] | null | undefined) ?? []
 
       const organizationIds = (variables.organizationIds as string[]).map(id)
 
@@ -392,6 +400,15 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         ).length >= MAX_AGENT_CONNECTIONS
       ) {
         refuse('A member connects at most 100 agents')
+      }
+      // Read after the lock, before the delete: each scope kept beyond the request's held by the
+      // connection this consent replaces
+      const replaced = connectionsOf(String(variables.userId)).find(
+        connection => connection.clientId === variables.clientId && connection.module === variables.module,
+      )
+
+      if (heldScopes.some(scope => !replaced?.scopes.includes(scope))) {
+        refuse('The connection this consent replaces holds no such access')
       }
       if (
         !request
@@ -423,7 +440,8 @@ function createOAuthDatabaseFake<Base extends ModuleDatabaseFakeBase>(base: Base
         registeredClientId,
         clientName: variables.clientName ?? null,
         module: variables.module,
-        scopes: [...scopes],
+        // Appended once inserted, as the mutation's step of its own does
+        scopes: [...scopes, ...heldScopes],
         createdAt: time,
         lastUsedAt: null,
       }

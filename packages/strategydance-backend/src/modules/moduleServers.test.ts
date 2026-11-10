@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from 'bun:test'
 import { createHash } from 'node:crypto'
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
-import { MODULES, SERVED_MODULES, type ModuleName } from 'strategydance-core'
+import { MODULES, SERVED_MODULE_NAMES, SERVED_MODULES, type ModuleName } from 'strategydance-core'
 
 import type { ModuleAccess } from '~types'
 
@@ -19,6 +19,7 @@ mock.module('strategydance-database/backend', () => fake.sdk)
 const { default: MODULE_REGISTRATIONS } = await import('./moduleRegistrations')
 const { default: createModuleHandler } = await import('./createModuleHandler')
 const { default: toModuleAuthInfo } = await import('./toModuleAuthInfo')
+const { default: findToolModule } = await import('./findToolModule')
 
 // The names Claude takes for a tool, which a dot, though MCP allows one, is not among
 const CLAUDE_TOOL_NAME = /^[a-zA-Z0-9_-]{1,128}$/
@@ -40,6 +41,7 @@ const EXTERNAL: Extract<ModuleAccess, { kind: 'external' }> = {
   kind: 'external',
   userId: 'member',
   scopes: MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
+  connectionScopes: MODULES.flatMap(({ scopes }) => [scopes.read, scopes.write]),
   idempotencyScope: 'connection:checked',
   organizations: [
     {
@@ -107,6 +109,16 @@ describe('the modules’ servers', () => {
       expect(module.scopes.read).toBe(`${module.name}:read`)
       expect(module.scopes.write).toBe(`${module.name}:write`)
     }
+  })
+
+  it("finds each served module's tools by their names, and no other module's", async () => {
+    for (const module of MODULES) {
+      for (const name of await listToolNames([module.name])) {
+        expect(findToolModule(name)).toBe(SERVED_MODULE_NAMES.includes(module.name) ? module.name : undefined)
+      }
+    }
+
+    expect(findToolModule('no_such_tool')).toBeUndefined()
   })
 
   it('names every tool as Claude takes a tool name, and no two alike across the modules', async () => {

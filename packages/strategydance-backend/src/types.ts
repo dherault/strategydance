@@ -255,8 +255,9 @@ export type DocumentEdit =
   (`ModuleAccess`), never from a tool's arguments alone. `membershipCreatedAt` is the membership's
   as it was verified, so a member removed, or removed and invited back, stops every agent acting as
   them at its next call. `idempotencyScope` is what their keys are kept under, `conversation:<id>`
-  for the agent and `connection:<id>` for an external one, so two clients choosing the same key
-  never meet. `launcher` is the run calling, for the Subagents module, which only a worker that has
+  for the agent, and for an external one `external:<hash>` of the member, the client and the
+  address at the one address, which outlives a consent, or `connection:<id>` at a module's own, so
+  two clients choosing the same key never meet. `launcher` is the run calling, for the Subagents module, which only a worker that has
   claimed a run fills, from the run it claimed
 */
 export type ModuleCaller = {
@@ -312,7 +313,11 @@ export type ModuleAccess =
   | {
       kind: 'external'
       userId: string
+      // What the token holds, which a refresh may have narrowed, within its connection's
       scopes: ModuleScope[]
+      // What the connection holds, which a scope challenge names beside what a call needs, so a
+      // client asking again for exactly the challenge's scopes keeps every module it held
+      connectionScopes: ModuleScope[]
       idempotencyScope: string
       organizations: ReachedModuleOrganization[]
     }

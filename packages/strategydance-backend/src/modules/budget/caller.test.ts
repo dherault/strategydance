@@ -51,7 +51,7 @@ describe('the caller', () => {
     for (const [name, args] of writes(bill.id)) {
       await expect(kit.call(name, args)).rejects.toMatchObject({
         name: 'InsufficientScopeError',
-        requiredScope: 'budget:write',
+        requiredScope: 'budget:read budget:write',
       })
     }
 

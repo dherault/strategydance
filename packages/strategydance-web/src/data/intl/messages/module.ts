@@ -134,6 +134,30 @@ const moduleMessages = defineMessages({
     defaultMessage: 'Read and write',
     description: 'The access that lets an agent read a module and change what is in it, as a short label.',
   },
+  noAccess: {
+    id: 'module.noAccess',
+    defaultMessage: 'Not allowed',
+    description:
+      'The access that keeps an agent out of a module altogether, as a short label, offered beside "Read" and "Read and write" when a member connects an agent to several modules at once.',
+  },
+  noAccessHint: {
+    id: 'module.noAccessHint',
+    defaultMessage: 'It can neither read nor change anything here.',
+    description:
+      'Under the "Not allowed" access of one module, on the page where a member connects an agent to several modules at once. "It" is the agent, "here" the module.',
+  },
+  oneAddressName: {
+    id: 'module.oneAddressName',
+    defaultMessage: 'Strategy Dance',
+    description:
+      'The name of the one address that serves every module to an external agent, where its title would be, as in "Connect Claude to Strategy Dance". It is the product\'s name: keep it as it is.',
+  },
+  modulesRequired: {
+    id: 'module.modulesRequired',
+    defaultMessage: 'Allow at least one module.',
+    description:
+      "Under the modules a member chooses an external agent's access to, on the page where they connect it, when they left every one not allowed.",
+  },
   unnamedAgent: {
     id: 'module.unnamedAgent',
     defaultMessage: 'Unnamed agent',
@@ -361,6 +385,18 @@ const moduleMessages = defineMessages({
     defaultMessage: '{moduleName} · {access}',
     description:
       'On a connected agent, the module it may use and its access, such as "Documents · Read and write". {moduleName} is the module\'s name and {access} the access\'s short label.',
+  },
+  connectionModuleRead: {
+    id: 'module.connectionModuleRead',
+    defaultMessage: '{moduleName}: read.',
+    description:
+      'On an agent connected to several modules at once, one module it may read but not change, as in "Documents: read and write. Tasks: read.". {moduleName} is the module\'s name.',
+  },
+  connectionModuleReadWrite: {
+    id: 'module.connectionModuleReadWrite',
+    defaultMessage: '{moduleName}: read and write.',
+    description:
+      'On an agent connected to several modules at once, one module it may read and change, as in "Documents: read and write. Tasks: read.". {moduleName} is the module\'s name.',
   },
   connectionReachesNone: {
     id: 'module.connectionReachesNone',

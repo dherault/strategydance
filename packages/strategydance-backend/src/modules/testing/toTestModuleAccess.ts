@@ -25,6 +25,8 @@ function toTestModuleAccess(
     kind,
     userId,
     scopes,
+    // Its connection holding what its token holds, as no refresh narrowed it
+    connectionScopes: scopes,
     idempotencyScope,
     organizations: [{ organizationId, membershipCreatedAt, segment, name }],
   }

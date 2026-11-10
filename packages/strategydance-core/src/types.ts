@@ -302,10 +302,22 @@ export type ModuleName = (typeof MODULES)[number]['name']
 // A scope one of `MODULES` grants
 export type ModuleScope = (typeof MODULES)[number]['scopes'][keyof ModuleDefinition['scopes']]
 
+// The name of one of `MODULE_ADDRESSES`: the one address's, or a module's own
+export type ModuleAddressName = 'strategydance' | ModuleName
+
+// One of `MODULE_ADDRESSES`: what an address is called, its path, what MCP clients show for it, and
+// the modules it serves, in `MODULES`' order
+export type ModuleAddress = {
+  readonly name: ModuleAddressName
+  readonly path: string
+  readonly title: string
+  readonly modules: readonly ModuleName[]
+}
+
 /*
   What the consent page reads of an authorization request an external agent made: who is asking,
-  where the member will be sent back, the module, the access asked for, and what the member's
-  connection for them reaches already. A registered client is unverified, since nothing proves who
+  where the member will be sent back, the address and the access asked for, and what the member's
+  connection for them there holds and reaches already. A registered client is unverified, since nothing proves who
   registered it; a client ID metadata document's is verified, and its domain is the document's. The
   name is the client's own, stripped of control and direction characters and cut short, and never
   comes with a logo, which would load an address of the client's choosing
@@ -319,11 +331,20 @@ export type OAuthAuthorizationRequestSummary = {
   redirectHost: string
   // A loopback address, which any program on the member's computer could be listening on
   isLoopbackRedirect: boolean
-  module: ModuleName
+  // The address the request names, which serves the modules the page may grant
+  address: ModuleAddressName
+  // The module of a module's own address, for a page loaded before the one address, which reads
+  // this alone and draws nothing for a request where it is null. A later release drops it
+  module: ModuleName | null
+  // The access asked for: for each module asked for, its read scope, alone or with its write scope
   scopes: ModuleScope[]
+  // The access the reader's connection for this client at this address holds, which consenting
+  // again keeps unless the member changes it, beside what was asked for: none when they have no such
+  // connection
+  heldScopes: ModuleScope[]
   expiresAt: string
-  // The organizations the reader's connection for this client and module reaches already, which
-  // the page ticks to begin with: none when they have no such connection
+  // The organizations the reader's connection for this client at this address reaches already,
+  // which the page ticks to begin with: none when they have no such connection
   reachedOrganizationIds: string[]
 }
 

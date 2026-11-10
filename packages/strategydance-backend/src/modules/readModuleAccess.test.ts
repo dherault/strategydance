@@ -16,6 +16,7 @@ const EXTERNAL: ModuleAccess = {
   kind: 'external',
   userId: 'member',
   scopes: ['documents:read'],
+  connectionScopes: ['documents:read', 'documents:write'],
   idempotencyScope: 'connection:checked',
   organizations: [{ ...ORGANIZATION, segment: 'acme-ab12', name: 'Acme' }],
 }
@@ -50,6 +51,19 @@ describe('readModuleAccess', () => {
       resource,
       scopes: ['documents:read'],
     })
+  })
+
+  it("reads back an external agent's connection scopes beside its token's, and refuses an access missing them", () => {
+    expect(readModuleAccess(toModuleAuthInfo(EXTERNAL))).toMatchObject({
+      scopes: ['documents:read'],
+      connectionScopes: ['documents:read', 'documents:write'],
+    })
+
+    const { connectionScopes: _left, ...withoutThem } = EXTERNAL as Extract<ModuleAccess, { kind: 'external' }>
+
+    expect(() => readModuleAccess(carrying(withoutThem))).toThrow()
+    expect(() => readModuleAccess(carrying({ ...EXTERNAL, connectionScopes: ['admin'] }))).toThrow()
+    expect(() => readModuleAccess(carrying({ ...AGENT, connectionScopes: ['documents:read'] }))).toThrow()
   })
 
   it('reads back the run calling, which a worker that claimed one fills, for Strategy Dance’s agent', () => {

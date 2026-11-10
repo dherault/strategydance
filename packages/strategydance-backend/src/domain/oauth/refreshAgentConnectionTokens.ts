@@ -10,10 +10,13 @@ import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
 
+import checkModuleScopes from '~domain/oauth/checkModuleScopes'
 import deriveSuccessorTokens from '~domain/oauth/deriveSuccessorTokens'
+import describeModuleScopes from '~domain/oauth/describeModuleScopes'
 import hashOAuthToken from '~domain/oauth/hashOAuthToken'
 import isConnectionGoneRefusal from '~domain/oauth/isConnectionGoneRefusal'
 import parseModuleResource from '~domain/oauth/parseModuleResource'
+import readHeldScopes from '~domain/oauth/readHeldScopes'
 import readOAuthTokenSecret from '~domain/oauth/readOAuthTokenSecret'
 import toTokenAnswer, { type TokenResult } from '~domain/oauth/toTokenAnswer'
 
@@ -76,16 +79,18 @@ async function refreshAgentConnectionTokens(values: Refresh, attempt = 1): Promi
     return refuse('invalid_grant', "The connection reaches none of the member's organizations any more")
   }
 
-  // What the access token holds: the scopes the refresh names, read always among them, within the
-  // refresh token's, in its order
-  const refreshScopes = token.scopes
+  // What the access token holds: the scopes the refresh names, within the refresh token's, in its
+  // order, under the rule a consent holds to: at least one module's read, and never a write without
+  // its read. The refresh token's are those of a module its address still serves, so a module the
+  // address stops serving drops out rather than refuse every refresh
+  const refreshScopes = readHeldScopes(target.modules, token.scopes)
   const asked = scope ? new Set(scope.split(' ').filter(Boolean)) : new Set(refreshScopes)
   const accessScopes = refreshScopes.filter(granted => asked.has(granted))
 
-  if (accessScopes.length !== asked.size || !asked.has(target.module.scopes.read)) {
+  if (accessScopes.length !== asked.size || !checkModuleScopes(target.modules, accessScopes)) {
     return refuse(
       'invalid_scope',
-      `A refresh asks for ${target.module.scopes.read}, alone or with the scopes its token was granted`,
+      `A refresh asks for ${describeModuleScopes(target.modules)}, within the scopes its token was granted`,
     )
   }
 

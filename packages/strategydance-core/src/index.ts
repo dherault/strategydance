@@ -31,3 +31,5 @@ export * from './helpers/exchangeRate'
 export * from './helpers/budget'
 
 export * from './helpers/agentConnection'
+
+export * from './helpers/moduleAddress'

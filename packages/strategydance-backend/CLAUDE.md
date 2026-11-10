@@ -174,7 +174,10 @@ before a release that changes them.
 ## Modules
 
 A module is a capability served as an MCP server, to Strategy Dance's agent in process and to
-members' own agents at `/mcp/<name>` (conversations.md § Modules).
+members' own agents at the one address, `/mcp`, beside its own, `/mcp/<name>`, through a transition
+(conversations.md § Modules, [modules-address.md](../../documents/modules-address.md)). Core's
+`MODULE_ADDRESSES` lists the addresses, each an OAuth resource whose scopes are its modules', which
+the endpoints, the metadata, the authorization server, the consent and the sweep read.
 
 - It lives in `src/modules/<name>/`, one file per tool calling `domain/<name>/`.
   `register<Name>Module(server, access)` registers its tools on the server `createModulesServer(access,
@@ -196,9 +199,12 @@ members' own agents at `/mcp/<name>` (conversations.md § Modules).
   under the call's idempotency key (`com.strategydance/idempotencyKey` in `_meta`)
 - Its operations are `…ForAgent`, holding to the AI permissions, each write named in the refreshes
   of the live queries whose rows it changes
-- A module served to external agents is in `SERVED_MODULE_NAMES`, takes `requireModuleWriteScope`
-  on every write, its searches on the member's allowance, `ModuleAgentsButton` on its page and its
-  endpoint in `check:oauth`
+- A module served to external agents is in `SERVED_MODULE_NAMES`, which serves it at the one
+  address and its own, takes `requireModuleWriteScope` on every write, its searches on the member's
+  allowance, `ModuleAgentsButton` on its page and its endpoint in `check:oauth`
+- A scope challenge names the scopes the connection holds with those the call needs
+  (`toModuleScopeChallenge`), never the needed ones alone, so a client asking again keeps every
+  module it held. An external access carries the connection's scopes as `connectionScopes` for it
 - Tests drive it through `createModuleTestKit` on `createModuleDatabaseFake`, which a new module's
   fake joins. A tool reaching the conversation runtime or the bucket imports it inside its handler.
   `bun run check:<name>-module` checks the operations
@@ -249,7 +255,7 @@ members' own agents at `/mcp/<name>` (conversations.md § Modules).
 | `send:conversation <email> [--conversation <id>] [--file <path>]… <text>` | Sends a message through `dev:backend` and prints the conversation's address |
 | `launch:subagent <email> --conversation <id> [--count <n>] <brief>` | Launches subagents as the module does, printing each report |
 | `measure:subagents` | Prices briefs run as subagents on each model weighed, capped at $15 in all |
-| `mcp <email>`, `mcp:documents <email>`, `mcp:tasks <email>`, `mcp:budget <email>` | Every served module on one server, or one module, over stdio, as that account, in every organization it is in or each `--organization <id or slug>` named, for `claude mcp add strategydance-local -- bun run mcp <email>`. Over HTTP, the local backend serves `http://localhost:3003/mcp/<name>` |
+| `mcp <email>`, `mcp:documents <email>`, `mcp:tasks <email>`, `mcp:budget <email>` | Every served module on one server, or one module, over stdio, as that account, in every organization it is in or each `--organization <id or slug>` named, for `claude mcp add strategydance-local -- bun run mcp <email>`. Over HTTP, the local backend serves `http://localhost:3003/mcp`, and each module at `…/mcp/<name>` |
 | `seed:budget <email>`, `sync:exchange-rates` | Fills an organization's Budget; syncs the ECB's rates, which the emulators need once |
 | `check:directories` | Runs the directories' check, about $0.10 a directory, into this checkout or, with `--publish`, the pull request |
 | `emulators:postgres` | The races' stack, four emulators on one Postgres, until Ctrl-C |

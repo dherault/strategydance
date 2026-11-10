@@ -237,8 +237,20 @@ describe('the agent connections', () => {
       MAX_AGENT_CONNECTION_ORGANIZATIONS,
     ])
     expect(readNumbers(approve, /size\(this\) < (\d+)/g)).toEqual([MAX_AGENT_CONNECTIONS])
-    expect(readNumbers(approve, /limit: (\d+)/g)).toEqual([MAX_AGENT_CONNECTIONS])
+    // The count of the member's other connections, then the one this consent replaces
+    expect(readNumbers(approve, /limit: (\d+)/g)).toEqual([MAX_AGENT_CONNECTIONS, 1])
     expect(approve).toContain('this == size(vars.organizationIds)')
+  })
+
+  it('ApproveOAuthAuthorizationRequest keeps only held scopes beyond those asked for, nothing when they are left out', () => {
+    const approve = readOperation(backendMutations, 'ApproveOAuthAuthorizationRequest')
+
+    expect(approve).toContain('$heldScopes: [String!]\n')
+    expect(approve).toContain(
+      '!has(vars.heldScopes) || vars.heldScopes == null || vars.heldScopes.all(scope, size(this) == 1 && scope in this[0].scopes)',
+    )
+    expect(approve).toContain('scopes: { includesAll: $scopes }')
+    expect(approve).not.toMatch(/includesAll: \$heldScopes|in: \$heldScopes/)
   })
 
   it('UpdateAgentConnectionOrganizations holds the organizations to the cap and counts them, refreshing the list', () => {

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MODULES } from 'strategydance-core'
 import { useDeleteAgentConnection } from 'strategydance-database/web/react'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Dialog, DialogTrigger } from 'strategydance-design-system/components/ui/Dialog'
@@ -11,6 +10,7 @@ import type { AgentConnection, AgentConnectionMembership } from '~types'
 import useAuthentication from '~hooks/authentication/useAuthentication'
 
 import getAgentConnectionDomain from '~utils/agentConnection/getAgentConnectionDomain'
+import readAgentConnectionAccess from '~utils/agentConnection/readAgentConnectionAccess'
 import getModuleMessages from '~utils/module/getModuleMessages'
 
 import AgentConnectionLastUsed from '~components/agentConnection/AgentConnectionLastUsed'
@@ -31,21 +31,22 @@ type Props = {
 }
 
 /*
-  One connected agent: who it is and what vouches for it, the module and the access it holds, the
-  organizations it reaches, or that it reaches none of the reader's any more, when it connected and
-  when it last called the module, a way to change its organizations, and Disconnect, which asks
-  twice, since only a new consent from the agent undoes it. Disconnecting deletes the
-  connection with its tokens, so the agent's next call or refresh is refused, and the live list
-  drops the row
+  One connected agent: who it is and what vouches for it, where it connected and the access it
+  holds, a module's own address by the module and the one address by Strategy Dance with each
+  module it holds there, the organizations it reaches, or that it reaches none of the reader's any
+  more, when it connected and when it last called a module, a way to change its organizations, and
+  Disconnect, which asks twice, since only a new consent from the agent undoes it. Disconnecting
+  deletes the connection with its tokens, so the agent's next call or refresh is refused, and the
+  live list drops the row
 */
 function AgentConnectionRow({ connection, memberships, now }: Props) {
-  const { formatMessage, formatDate } = useIntl()
+  const { formatMessage, formatDate, formatList } = useIntl()
   const { data: viewer } = useAuthentication()
   const { mutateAsync: deleteConnection, isPending } = useDeleteAgentConnection(dataConnect)
   const [isEditing, setIsEditing] = useState(false)
 
   const agentName = connection.clientName ?? formatMessage(moduleMessages.unnamedAgent)
-  const definition = MODULES.find(({ name }) => name === connection.module)
+  const access = readAgentConnectionAccess(connection)
 
   async function disconnect() {
     if (!viewer) return
@@ -72,16 +73,27 @@ function AgentConnectionRow({ connection, memberships, now }: Props) {
           />
         </div>
         <span className="text-sm text-foreground">
-          {definition
+          {access.kind === 'address'
             ? formatMessage(moduleMessages.connectionModule, {
-                moduleName: formatMessage(getModuleMessages(definition.name).name),
-                access: formatMessage(
-                  connection.scopes.includes(definition.scopes.write)
-                    ? moduleMessages.readWriteAccess
-                    : moduleMessages.readAccess,
+                moduleName: formatMessage(moduleMessages.oneAddressName),
+                // Sentences one after the other, as the locale sets them: a space between them in
+                // English, none after a full-width full stop
+                access: formatList(
+                  access.modules.map(({ name, isWrite }) =>
+                    formatMessage(
+                      isWrite ? moduleMessages.connectionModuleReadWrite : moduleMessages.connectionModuleRead,
+                      { moduleName: formatMessage(getModuleMessages(name).name) },
+                    ),
+                  ),
+                  { type: 'unit', style: 'narrow' },
                 ),
               })
-            : connection.module}
+            : access.kind === 'module'
+              ? formatMessage(moduleMessages.connectionModule, {
+                  moduleName: formatMessage(getModuleMessages(access.name).name),
+                  access: formatMessage(access.isWrite ? moduleMessages.readWriteAccess : moduleMessages.readAccess),
+                })
+              : access.name}
         </span>
         {connection.organizations.length ? (
           <ul className="m-0 flex list-none flex-wrap items-center gap-x-3 gap-y-1 p-0 text-xs text-muted-foreground">

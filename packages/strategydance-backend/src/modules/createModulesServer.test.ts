@@ -45,6 +45,7 @@ function external(scopes: ModuleAccess['scopes']): ModuleAccess {
     kind: 'external',
     userId: 'member',
     scopes,
+    connectionScopes: scopes,
     idempotencyScope: 'connection:checked',
     organizations: [
       {

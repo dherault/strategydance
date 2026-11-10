@@ -18,6 +18,7 @@ const { default: readModuleAccess } = await import('~modules/readModuleAccess')
 
 const DOCUMENTS = 'http://localhost:3003/mcp/documents'
 const TASKS = 'http://localhost:3003/mcp/tasks'
+const ONE_ADDRESS = 'http://localhost:3003/mcp'
 const ORGANIZATION_ID = '0f9c2b8e4b1a4d2c9e7f6a5b4c3d2e1f'
 const OTHER_ORGANIZATION_ID = '1a2b3c4d5e6f47089a0b1c2d3e4f5a6b'
 const THIRD_ORGANIZATION_ID = '2b3c4d5e6f7a48190b1c2d3e4f5a6b7c'
@@ -107,6 +108,7 @@ describe('createAgentConnectionTokenVerifier', () => {
       kind: 'external',
       userId: MEMBER,
       scopes: ['documents:read', 'documents:write'],
+      connectionScopes: ['documents:read', 'documents:write'],
       idempotencyScope: `connection:${CONNECTION_ID}`,
       organizations: [
         {
@@ -141,6 +143,68 @@ describe('createAgentConnectionTokenVerifier', () => {
     connect()
 
     expect(await refusal('access', createAgentConnectionTokenVerifier(new URL(TASKS)))).toBe('invalid_token')
+  })
+
+  test("refuses a module's own address's token at the one address, and the one address's at a module's", async () => {
+    const oneAddress = createAgentConnectionTokenVerifier(new URL(ONE_ADDRESS))
+
+    connect({ scopes: ['tasks:read'], resource: TASKS })
+
+    expect(await refusal('access', oneAddress)).toBe('invalid_token')
+
+    connect({ scopes: ['documents:read', 'tasks:read'], resource: ONE_ADDRESS })
+
+    expect(await refusal('access', createAgentConnectionTokenVerifier(new URL(TASKS)))).toBe('invalid_token')
+    expect(await refusal('access')).toBe('invalid_token')
+    expect((await oneAddress.verifyAccessToken('access')).scopes).toEqual(['documents:read', 'tasks:read'])
+  })
+
+  test("keys the one address's writes on the member, the client and the address, so the scope outlives a consent", async () => {
+    const oneAddress = createAgentConnectionTokenVerifier(new URL(ONE_ADDRESS))
+    const clientId = 'https://client.example.com/oauth/metadata.json'
+    const scopeOf = async () => readModuleAccess(await oneAddress.verifyAccessToken('access')).idempotencyScope
+
+    connect({ scopes: ['documents:read', 'tasks:read'], resource: ONE_ADDRESS })
+
+    const scope = await scopeOf()
+
+    expect(scope).toBe(`external:${hash(JSON.stringify([MEMBER, clientId, 'strategydance']))}`)
+
+    // A consent again replaces the connection by another, of another id, its tokens with it
+    const connection = fake.connections.get(CONNECTION_ID)!
+    const replacement = 'cccccccccccccccccccccccccccccccc'
+
+    fake.connections.delete(CONNECTION_ID)
+    fake.connections.set(replacement, { ...connection, id: replacement })
+    fake.tokens.get('ACCESS')!.connectionId = replacement
+
+    expect(await scopeOf()).toBe(scope)
+
+    fake.connections.get(replacement)!.clientId = 'https://other.example.com/oauth/metadata.json'
+
+    expect(await scopeOf()).not.toBe(scope)
+
+    fake.connections.get(replacement)!.clientId = clientId
+    fake.addMember('other member', ORGANIZATION_ID)
+    Object.assign(fake.connections.get(replacement)!, { userId: 'other member', grantedAt: fake.stamp() })
+
+    expect(await scopeOf()).not.toBe(scope)
+  })
+
+  test('carries no scope of a module its address does not serve, so no challenge ever names one', async () => {
+    connect({ scopes: ['tasks:read', 'budget:read', 'budget:write'], resource: TASKS })
+
+    expect(
+      readModuleAccess(await createAgentConnectionTokenVerifier(new URL(TASKS)).verifyAccessToken('access')),
+    ).toMatchObject({ scopes: ['tasks:read'], connectionScopes: ['tasks:read'] })
+  })
+
+  test("keeps a module's own address's writes under the connection's id", async () => {
+    connect({ scopes: ['tasks:read'], resource: TASKS })
+
+    expect(
+      readModuleAccess(await createAgentConnectionTokenVerifier(new URL(TASKS)).verifyAccessToken('access')),
+    ).toMatchObject({ idempotencyScope: `connection:${CONNECTION_ID}` })
   })
 
   test('refuses a refresh token presented as an access token', async () => {

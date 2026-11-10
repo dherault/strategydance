@@ -1,22 +1,20 @@
-import type { ModuleDefinition, ModuleScope } from 'strategydance-core'
+import { type ModuleDefinition, type ModuleScope, toModuleScopes, toModuleScopesInOrder } from 'strategydance-core'
+
+import checkModuleScopes from '~domain/oauth/checkModuleScopes'
 
 /*
-  The scopes an authorization asks of a module: its read scope, alone or with its write scope,
-  since a consent offers read or read and write and write never comes without read. A request naming
-  no scope asks for both. Null for a scope past the module's, or write without read. Answered in the
-  module's order, read first
+  The scopes an authorization asks of an address's modules: for each, its read scope, alone or with
+  its write scope, or neither, at least one module read, since a consent offers each module read or
+  read and write and write never comes without read. A request naming no scope asks for every
+  module's read and write. Null for a scope of no module the address serves, write without read, or
+  no read at all. Answered in `MODULES`' order, each module's read first
 */
-function parseModuleScopes(module: ModuleDefinition, scope: string | undefined): ModuleScope[] | null {
-  const read = module.scopes.read as ModuleScope
-  const write = module.scopes.write as ModuleScope
+function parseModuleScopes(modules: readonly ModuleDefinition[], scope: string | undefined): ModuleScope[] | null {
+  if (!scope) return toModuleScopesInOrder(toModuleScopes(modules))
 
-  if (!scope) return [read, write]
+  const asked = scope.split(' ').filter(Boolean)
 
-  const asked = new Set(scope.split(' ').filter(Boolean))
-
-  if (!asked.has(read) || [...asked].some(name => name !== read && name !== write)) return null
-
-  return asked.has(write) ? [read, write] : [read]
+  return checkModuleScopes(modules, asked) ? toModuleScopesInOrder(asked) : null
 }
 
 export default parseModuleScopes

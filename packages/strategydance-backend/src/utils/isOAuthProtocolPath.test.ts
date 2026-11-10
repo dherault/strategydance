@@ -6,6 +6,9 @@ describe('isOAuthProtocolPath', () => {
   test("is one of the protocol's own endpoints, as Express routes it", () => {
     for (const path of [
       '/.well-known/oauth-authorization-server',
+      '/.well-known/oauth-protected-resource/mcp',
+      '/.well-known/oauth-protected-resource/mcp/',
+      '/.well-known/oauth-protected-resource/mcp/tasks',
       '/oauth/register',
       '/oauth/authorize',
       '/oauth/token',
@@ -25,6 +28,10 @@ describe('isOAuthProtocolPath', () => {
       '/oauth/requests/abc/approve',
       '/oauth/token//',
       '/oauth/tokens',
+      '/mcp',
+      '/mcp/tasks',
+      '/.well-known/oauth-protected-resource',
+      '/.well-known/oauth-protected-resource/mcp/knowledge',
       '/organizations',
       '/',
     ]) {

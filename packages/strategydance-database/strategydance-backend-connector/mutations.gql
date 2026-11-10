@@ -9,22 +9,28 @@
 #
 # A team holds at most 100 members and pending invitations together, `MAX_TEAM_SIZE` in
 # strategydance-core. The first step takes the organization's row lock, so the calls for one
-# organization run one after the other and each counts what the one before it committed: a
-# batch, or two administrators inviting at once, cannot slip past the limit together
+# organization run one after the other, and the checks read its response, so they run as a
+# statement of their own once it is held and each counts what the one before it committed, which
+# one statement would miss (CLAUDE.md § The database): a batch, or two administrators inviting at
+# once, cannot slip past the limit together, nor an administrator demoted meanwhile invite
 mutation CreateOrganizationInvitation($organizationId: UUID!, $userId: String!, $email: String!)
 @auth(level: NO_ACCESS)
 @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can invite people to it")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can invite people to it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can invite people")
     }
-    userOrganizations(where: { organizationId: { eq: $organizationId }, user: { email: { eq: $email } } }, limit: 1)
-      @check(expr: "size(this) == 0", message: "The address belongs to a member already", optional: true) {
+    userOrganizations(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, user: { email: { eq: $email } } }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "The address belongs to a member already", optional: true) {
       userId
     }
-    organization(id: $organizationId)
+    organization(key: { id_expr: "response.organization_update.id" })
       @check(
         expr: "size(this.userOrganizations_on_organization) + size(this.organizationInvitations_on_organization) < 100"
         message: "The team is full"
@@ -95,13 +101,15 @@ mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) 
 # replaced, whose files the backend then deletes. The backend passes both, the thumbnail null for
 # a logo sent without one, which clears the thumbnail the previous logo had.
 #
-# Data Connect runs one write per row in a mutation, a second one silently changing nothing, so
-# there is no separate row lock here as elsewhere: the URL is read, then written, which takes the
-# lock, then the administrator is checked, a failure rolling the write back. The read comes before
+# The write is the lock, since the row it locks is the row it writes, so there is no separate row
+# lock here as elsewhere: the URL is read, then written, which takes the lock, then the
+# administrator is checked, a failure rolling the write back. The read comes before
 # the lock, so two uploads in the same instant can both read the URL the first replaces: the file
 # the second wrote over is then named by neither answer and stays behind. That costs a file, never
 # a row pointing at one that was deleted, since nothing is deleted that an answer did not name.
-# Only the membership is redacted, since the URLs are the answer
+# The administrator is read through the write's response, so the read runs as a statement of its
+# own once the lock is held and sees a demotion committed meanwhile, which one statement would miss
+# (CLAUDE.md § The database). Only the membership is redacted, since the URLs are the answer
 mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoUrl: String, $logoThumbnailUrl: String)
 @auth(level: NO_ACCESS)
 @transaction {
@@ -114,9 +122,9 @@ mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoU
   organization_update(
     id: $organizationId
     data: { logoUrl: $logoUrl, logoThumbnailUrl: $logoThumbnailUrl, updatedAt_expr: "request.time" }
-  )
+  ) @check(expr: "this != null", message: "Only a member of an organization can change its logo")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its logo") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change an organization's logo")
     }
@@ -133,8 +141,9 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
     }
   }
   organization_update(id: $organizationId, data: { bannerUrl: $bannerUrl, updatedAt_expr: "request.time" })
+    @check(expr: "this != null", message: "Only a member of an organization can change its banner")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its banner") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change an organization's banner")
     }
@@ -148,27 +157,32 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 # backend's, which sweeps them before running this, so a failed sweep leaves the organization to
 # delete again, and once more after, for an upload that raced it (`deleteOrganization`).
 #
-# The lock is the caller's own membership rather than the organization's row, as elsewhere an
-# administrator acts: Data Connect runs one write per row in a mutation, so a delete after an
-# `organization_update` would find nothing. Demoting or removing the caller writes their
-# membership too: one that has written it commits before the check below reads the member it
-# left, and one that comes after this delete finds nothing. Those take the organization's row
-# first, though, the opposite order, so the two landing in the same instant deadlock, and
-# Postgres fails one of the two requests, leaving the other's outcome whole. A consistent order
-# would take a second write to one row, which Data Connect skips. The membership goes with the
-# organization anyway, so touching it costs nothing.
+# The locks are the organization's row, which every change to who administers it takes first, so a
+# demotion or a removal of the caller in the same instant runs wholly before this or after it, then
+# the caller's own membership, which their own writes take first, a send or a run's start among
+# them, so one of those in flight finishes before the delete reaches its rows. The check reads the
+# locks' responses, so it runs as a statement of its own once both are held: a demotion before is
+# read, and one after finds no organization. Each step being a statement of its own, the delete
+# writes the rows the locks wrote, which one statement would skip (CLAUDE.md § The database).
 #
 # `$organizationId` is also what every live query scoped to an organization refreshes on, the
 # team, the log, the documents and conversations among them, so a member watching any of them sees
 # it go
 mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(level: NO_ACCESS) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can delete it")
   userOrganization_update(
-    key: { userId: $userId, organizationId: $organizationId }
+    key: { userId: $userId, organizationId_expr: "response.organization_update.id" }
     data: { updatedAt_expr: "request.time" }
-  ) @redact
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can delete it")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
-      @check(expr: "this != null", message: "Only a member of an organization can delete it") {
+    userOrganization(
+      key: {
+        userId_expr: "response.userOrganization_update.userId"
+        organizationId_expr: "response.organization_update.id"
+      }
+    ) @check(expr: "this != null", message: "Only a member of an organization can delete it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can delete an organization")
     }
   }
@@ -5698,10 +5712,10 @@ mutation SeedDocumentStateForAgent(
 
 # Adds a document an agent wrote, its first snapshot built from the agent's Markdown, `content` and
 # `contentText` beside it. Held to `CreateDocument`'s bounds and to the 1000 documents an
-# organization keeps, counted under the same lock on the organization's row, so an agent and a page
-# adding at once cannot pass it. It starts with agents allowed to read and change it, as a document
-# made on the page does, so the agent that made it can go on with it, and the team can turn either
-# off
+# organization keeps, counted under the same lock on the organization's row, the membership and the
+# count reading its response, so an agent and a page adding at once cannot pass it. It starts with
+# agents allowed to read and change it, as a document made on the page does, so the agent that made
+# it can go on with it, and the team can turn either off
 mutation CreateDocumentForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -5720,15 +5734,9 @@ mutation CreateDocumentForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
       message: "An idempotency key is 1 to 200 characters"
@@ -5763,8 +5771,20 @@ mutation CreateDocumentForAgent(
     }
   ) @include(if: $isKeyed)
   query @redact {
-    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    documents(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
       id
     }
   }
@@ -5856,9 +5876,17 @@ mutation FoldDocumentForAgent(
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The document was folded, deleted or closed to agents since it was read")
-  # A mutation takes one query step, and the pending updates have to be read once the row above is
-  # locked, so the membership and the variables are checked here too, after the writes before it:
-  # a refusal rolls them back all the same
+  # The row read back once its write holds its lock, whose response the reads after it take, so
+  # every step runs as a statement of its own and sees what was committed while the lock was waited
+  # for, which one statement would miss (CLAUDE.md § The database)
+  locked: query @redact {
+    document(id: $id) {
+      id
+    }
+  }
+  # The pending updates have to be read once the row above is locked, through its read-back, so the
+  # membership and the variables are checked here too, after the writes before it: a refusal rolls
+  # them back all the same
   query @redact {
     membership: userOrganizations(
       where: {
@@ -5886,14 +5914,17 @@ mutation FoldDocumentForAgent(
     # The title as committed, which a title this fold writes replaces: a document keeps a title or
     # some text, so an edit emptying the text of an untitled one is refused, a rename blanking the
     # title at the same moment included
-    document(id: $id) {
+    document(key: { id_expr: "response.locked.document.id" }) {
       title
         @check(
           expr: "vars.content != '' || ((has(vars.title) && vars.title != null) ? vars.title.matches('[[:^space:]]') : this.matches('[[:^space:]]'))"
           message: "A document keeps a title or some text"
         )
     }
-    pending: documentUpdates(where: { documentId: { eq: $id }, id: { nin: $updateIds } }, limit: 1)
+    pending: documentUpdates(
+      where: { documentId: { eq_expr: "response.locked.document.id" }, id: { nin: $updateIds } }
+      limit: 1
+    )
       @check(
         expr: "!vars.isWholeReplacement || size(this) == 0"
         message: "The document was edited since it was read"
@@ -5984,6 +6015,12 @@ mutation FoldDocumentWithRevisionForAgent(
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The document was folded, deleted or closed to agents since it was read")
+  # The row read back after its lock, as `FoldDocumentForAgent` reads it
+  locked: query @redact {
+    document(id: $id) {
+      id
+    }
+  }
   documentRevision_insert(
     data: {
       documentId: $id
@@ -5996,9 +6033,9 @@ mutation FoldDocumentWithRevisionForAgent(
       afterFingerprint: $revisionAfterFingerprint
     }
   ) @include(if: $isRevised)
-  # A mutation takes one query step, and the pending updates have to be read once the row above is
-  # locked, so the membership and the variables are checked here too, after the writes before it:
-  # a refusal rolls them back all the same
+  # The pending updates have to be read once the row above is locked, through its read-back, so the
+  # membership and the variables are checked here too, after the writes before it: a refusal rolls
+  # them back all the same
   query @redact {
     membership: userOrganizations(
       where: {
@@ -6030,14 +6067,17 @@ mutation FoldDocumentWithRevisionForAgent(
     # The title as committed, which a title this fold writes replaces: a document keeps a title or
     # some text, so an edit emptying the text of an untitled one is refused, a rename blanking the
     # title at the same moment included
-    document(id: $id) {
+    document(key: { id_expr: "response.locked.document.id" }) {
       title
         @check(
           expr: "vars.content != '' || ((has(vars.title) && vars.title != null) ? vars.title.matches('[[:^space:]]') : this.matches('[[:^space:]]'))"
           message: "A document keeps a title or some text"
         )
     }
-    pending: documentUpdates(where: { documentId: { eq: $id }, id: { nin: $updateIds } }, limit: 1)
+    pending: documentUpdates(
+      where: { documentId: { eq_expr: "response.locked.document.id" }, id: { nin: $updateIds } }
+      limit: 1
+    )
       @check(
         expr: "!vars.isWholeReplacement || size(this) == 0"
         message: "The document was edited since it was read"
@@ -6090,6 +6130,12 @@ mutation RestoreDocumentRevision(
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The document was folded or deleted since it was read")
+  # The row read back after its lock, as `FoldDocumentForAgent` reads it
+  locked: query @redact {
+    document(id: $id) {
+      id
+    }
+  }
   documentRevision_insert(
     data: {
       id: $revisionId
@@ -6102,8 +6148,8 @@ mutation RestoreDocumentRevision(
       restoredVersionAt: $restoredVersionAt
     }
   )
-  # A mutation takes one query step, read once the row above is locked, so the membership and the
-  # variables are checked here, after the writes: a refusal rolls them back all the same
+  # Read once the row above is locked, through its read-back, so the membership and the variables
+  # are checked here, after the writes: a refusal rolls them back all the same
   query @redact {
     membership: userOrganizations(
       where: { userId: { eq: $userId }, organizationId: { eq: $organizationId } }
@@ -6120,15 +6166,17 @@ mutation RestoreDocumentRevision(
           message: "A revision holds at most 2000000 characters of state and 200000 of content"
         )
     }
-    document(id: $id) {
+    document(key: { id_expr: "response.locked.document.id" }) {
       title
         @check(
           expr: "vars.content != '' || this.matches('[[:^space:]]')"
           message: "A document keeps a title or some text"
         )
     }
-    pending: documentUpdates(where: { documentId: { eq: $id }, id: { nin: $updateIds } }, limit: 1)
-      @check(expr: "!vars.isUndo || size(this) == 0", message: "The document was edited since it was read") {
+    pending: documentUpdates(
+      where: { documentId: { eq_expr: "response.locked.document.id" }, id: { nin: $updateIds } }
+      limit: 1
+    ) @check(expr: "!vars.isUndo || size(this) == 0", message: "The document was edited since it was read") {
       id
     }
   }
@@ -6138,8 +6186,8 @@ mutation RestoreDocumentRevision(
 # Retitles a document for an agent, held to what `RenameDocument` holds a title to, when the call
 # changes its title alone. A document keeps a title or some text, so a blank title is refused on one
 # whose text is empty, nothing pending: checked once the row is locked, so a fold emptying the text
-# at the same moment cannot pass it together with this. A mutation takes one query step, so the
-# membership's and the variables' checks follow the writes too, which a refusal rolls back
+# at the same moment cannot pass it together with this. The membership's and the variables' checks
+# follow the writes too, in the step that reads the text, and a refusal rolls them back
 mutation RenameDocumentForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -6176,6 +6224,12 @@ mutation RenameDocumentForAgent(
     }
     data: { title: $title, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "The document was deleted or closed to agents since it was read")
+  # The row read back after its lock, as `FoldDocumentForAgent` reads it
+  locked: query @redact {
+    document(id: $id) {
+      id
+    }
+  }
   query @redact {
     membership: userOrganizations(
       where: {
@@ -6196,7 +6250,7 @@ mutation RenameDocumentForAgent(
         )
     }
     # The text as committed, which this mutation does not write
-    document(id: $id)
+    document(key: { id_expr: "response.locked.document.id" })
       @check(
         expr: "vars.title.matches('[[:^space:]]') || this.content != '' || size(this.documentUpdates_on_document) > 0"
         message: "A document keeps a title or some text"
@@ -6329,7 +6383,7 @@ mutation DeleteDocumentForAgent(
 }
 
 # Takes back a delete for an agent, as `RestoreDocument` does: within a day of it, and against the
-# 1000 documents an organization keeps, under the same lock on its row
+# 1000 documents an organization keeps, under the same lock on its row, read through its response
 mutation RestoreDocumentForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -6343,15 +6397,9 @@ mutation RestoreDocumentForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
       message: "An idempotency key is 1 to 200 characters"
@@ -6369,8 +6417,20 @@ mutation RestoreDocumentForAgent(
     }
   ) @include(if: $isKeyed)
   query @redact {
-    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    documents(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
       id
     }
   }
@@ -6458,10 +6518,10 @@ mutation DeleteExpiredModuleCallResults @auth(level: NO_ACCESS) {
 # None records an `ActivityDay`: what an agent does on the board counts toward nobody's streak
 
 # Adds a task an agent wrote, held to `CreateTask`'s bounds and to the 1000 tasks an organization
-# keeps, counted under the same lock on the organization's row, so an agent and a page adding at once
-# cannot pass it. `$position` is past the last of its column as the module read it,
-# `$descriptionText` the plain text of `$description`, and `$doneAt` when it was done, the module's
-# time, sent for a task created into Done alone
+# keeps, counted under the same lock on the organization's row, the membership and the count reading
+# its response, so an agent and a page adding at once cannot pass it. `$position` is past the last
+# of its column as the module read it, `$descriptionText` the plain text of `$description`, and
+# `$doneAt` when it was done, the module's time, sent for a task created into Done alone
 mutation CreateTaskForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -6485,15 +6545,9 @@ mutation CreateTaskForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
       message: "An idempotency key is 1 to 200 characters"
@@ -6527,8 +6581,20 @@ mutation CreateTaskForAgent(
     }
   ) @include(if: $isKeyed)
   query @redact {
-    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    tasks(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
       id
     }
     # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
@@ -6688,10 +6754,11 @@ mutation UpdateTaskForAgent(
 }
 
 # Makes a task wait on another for an agent, as `AddTaskDependency` does and under the same lock and
-# checks: both live and the organization's, never itself or a task that waits on it, at most 50 links
-# counting those to deleted tasks. A longer loop is refused by the module, which reads the board's
-# links first; two writers closing one at the same instant only leave its tasks blocked, as two
-# members can. A link that exists already changes nothing
+# checks, which read its response, the membership the module read among them: both live and the
+# organization's, never itself or a task that waits on it, at most 50 links counting those to deleted
+# tasks. A longer loop is refused by the module, which reads the board's links first; two writers
+# closing one at the same instant only leave its tasks blocked, as two members can. A link that
+# exists already changes nothing
 mutation AddTaskDependencyForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -6706,15 +6773,9 @@ mutation AddTaskDependencyForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
       message: "An idempotency key is 1 to 200 characters"
@@ -6733,14 +6794,32 @@ mutation AddTaskDependencyForAgent(
     }
   ) @include(if: $isKeyed)
   query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
     waiting: tasks(
-      where: { id: { eq: $taskId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        id: { eq: $taskId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        deletedAt: { isNull: true }
+      }
       limit: 1
     ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
       id
     }
     awaited: tasks(
-      where: { id: { eq: $dependencyId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        id: { eq: $dependencyId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        deletedAt: { isNull: true }
+      }
       limit: 1
     ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
       id
@@ -6867,9 +6946,9 @@ mutation DeleteTaskForAgent(
 }
 
 # Takes back a delete for an agent, as `RestoreTask` does: within a day of it, with the links other
-# tasks had to it, and against the 1000 tasks an organization keeps, under the same lock on its row.
-# The module refuses a restore whose kept links would close a loop with one made meanwhile before it
-# writes, naming them, where the page's Undo removes them itself
+# tasks had to it, and against the 1000 tasks an organization keeps, under the same lock on its row,
+# read through its response. The module refuses a restore whose kept links would close a loop with
+# one made meanwhile before it writes, naming them, where the page's Undo removes them itself
 mutation RestoreTaskForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -6883,15 +6962,9 @@ mutation RestoreTaskForAgent(
   $result: String!
   $expiresAt: Timestamp
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq: $userId }, createdAt: { eq: $membershipCreatedAt } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
       message: "An idempotency key is 1 to 200 characters"
@@ -6909,8 +6982,20 @@ mutation RestoreTaskForAgent(
     }
   ) @include(if: $isKeyed)
   query @redact {
-    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
+    tasks(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
       id
     }
   }
@@ -7881,8 +7966,10 @@ mutation PruneOAuthClients @auth(level: NO_ACCESS) {
 # Adds a server, with what reaching it found: its tools for one that took no OAuth, or the issuer of
 # its authorization server for one that does, whose tools wait for a member's connection (M28).
 #
-# The first step takes the organization's row lock, so two administrators adding at once count each
-# other: at most 50 live servers (`MAX_INTEGRATIONS` in strategydance-core), and no two of one name
+# The first step takes the organization's row lock, and the checks read its response, so they run
+# as a statement of their own once it is held (CLAUDE.md § The database) and two administrators
+# adding at once count each other: at most 50 live servers (`MAX_INTEGRATIONS` in
+# strategydance-core), and no two of one name
 mutation CreateOrganizationIntegration(
   $organizationId: UUID!
   $userId: String!
@@ -7901,21 +7988,23 @@ mutation CreateOrganizationIntegration(
   $toolCount: Int
   $toolDefinitionHashes: [String!]!
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can add a server to it")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can add a server to it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can add a server")
     }
     organizationIntegrations(
-      where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
       limit: 50
     ) @check(expr: "size(this) < 50", message: "An organization adds at most 50 servers") {
       id
     }
     taken: organizationIntegrations(
       where: {
-        organizationId: { eq: $organizationId }
+        organizationId: { eq_expr: "response.organization_update.id" }
         normalizedName: { eq: $normalizedName }
         deletedAt: { isNull: true }
       }
@@ -7955,16 +8044,18 @@ mutation RenameOrganizationIntegration(
   $normalizedName: String!
   $readName: String!
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its servers")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
     }
     taken: organizationIntegrations(
       where: {
         _and: [
-          { organizationId: { eq: $organizationId }, normalizedName: { eq: $normalizedName } }
+          { organizationId: { eq_expr: "response.organization_update.id" }, normalizedName: { eq: $normalizedName } }
           { deletedAt: { isNull: true } }
           { _not: { id: { eq: $integrationId } } }
         ]
@@ -7996,9 +8087,11 @@ mutation RenameOrganizationIntegration(
 #
 # The server's own write comes first, the deletes after it: under read committed, a member's Connect
 # that locked the row first commits before this write takes it, and the deletes then see its
-# connection; one that comes after waits for this write and finds the revision moved, refused. The
-# other order would let a connection made between the deletes and the write outlive them. The
-# emulator runs one transaction at a time, so the order is reasoned here rather than tested.
+# connection, since the checks read the organization's lock's response, which runs every step as a
+# statement of its own (CLAUDE.md § The database); one that comes after waits for this write and
+# finds the revision moved, refused. The other order would let a connection made between the
+# deletes and the write outlive them. The emulator runs one transaction at a time, so the order is
+# reasoned here rather than tested.
 #
 # Every variable is passed, null to clear its column: one left out leaves the column as it was, the
 # old server's key included
@@ -8023,16 +8116,18 @@ mutation ReconfigureOrganizationIntegration(
   $toolCount: Int
   $toolDefinitionHashes: [String!]!
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its servers")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
     }
     taken: organizationIntegrations(
       where: {
         _and: [
-          { organizationId: { eq: $organizationId }, normalizedName: { eq: $normalizedName } }
+          { organizationId: { eq_expr: "response.organization_update.id" }, normalizedName: { eq: $normalizedName } }
           { deletedAt: { isNull: true } }
           { _not: { id: { eq: $integrationId } } }
         ]
@@ -8106,16 +8201,18 @@ mutation UpdateOrganizationIntegrationKey(
   $toolDefinitionHashes: [String!]!
   $removedToolDefinitionHashes: [String!]!
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its servers")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its servers") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a server")
     }
     taken: organizationIntegrations(
       where: {
         _and: [
-          { organizationId: { eq: $organizationId }, normalizedName: { eq: $normalizedName } }
+          { organizationId: { eq_expr: "response.organization_update.id" }, normalizedName: { eq: $normalizedName } }
           { deletedAt: { isNull: true } }
           { _not: { id: { eq: $integrationId } } }
         ]
@@ -8394,21 +8491,23 @@ mutation RestoreOrganizationIntegration(
   $integrationId: UUID!
   $normalizedName: String!
 ) @auth(level: NO_ACCESS) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can restore its servers")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can restore its servers") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can restore a server")
     }
     organizationIntegrations(
-      where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
       limit: 50
     ) @check(expr: "size(this) < 50", message: "An organization adds at most 50 servers") {
       id
     }
     taken: organizationIntegrations(
       where: {
-        organizationId: { eq: $organizationId }
+        organizationId: { eq_expr: "response.organization_update.id" }
         normalizedName: { eq: $normalizedName }
         deletedAt: { isNull: true }
       }
@@ -8554,13 +8653,17 @@ mutation StartIntegrationAuthorization(
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can connect an account to its servers") {
-      role
+      userId
     }
   }
+  # Reads the membership read after the lock, which runs every step as a statement of its own, so
+  # the member's Connect another request committed while the lock was waited for is replaced
+  # rather than refused by the unique pair, which one statement would miss (CLAUDE.md § The
+  # database)
   integrationAuthorization_deleteMany(
     where: {
       integrationId: { eq: $integrationId }
-      membershipUserId: { eq: $userId }
+      membershipUserId: { eq_expr: "response.query.userOrganization.userId" }
       membershipOrganizationId: { eq: $organizationId }
     }
   ) @redact
@@ -8655,8 +8758,9 @@ mutation CancelIntegrationAuthorization(
 # Stores a member's connection once its code was exchanged: locks the server's row at the
 # configuration and issuer the Connect started under, replaces the member's earlier connection to it,
 # and stores the new one, under a fresh generation. A member removed meanwhile is refused by the
-# connection's reference to the membership, which Data Connect reports before the step's check. Every
-# variable is passed, null included
+# membership's check after the lock, or, removed once it has run, by the connection's reference to
+# the membership, unless the removal's cascade meets the earlier connection this deletes, a deadlock
+# Postgres fails one of. Every variable is passed, null included
 mutation ConnectIntegration(
   $organizationId: UUID!
   $userId: String!
@@ -8690,13 +8794,17 @@ mutation ConnectIntegration(
   query @redact {
     userOrganization(key: { userId: $userId, organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can connect an account to its servers") {
-      role
+      userId
     }
   }
+  # Reads the membership read after the lock, which runs every step as a statement of its own, so
+  # the member's Connect another request committed while the lock was waited for is replaced
+  # rather than refused by the unique pair, which one statement would miss (CLAUDE.md § The
+  # database)
   integrationConnection_deleteMany(
     where: {
       integrationId: { eq: $integrationId }
-      membershipUserId: { eq: $userId }
+      membershipUserId: { eq_expr: "response.query.userOrganization.userId" }
       membershipOrganizationId: { eq: $organizationId }
     }
   ) @redact
@@ -9593,15 +9701,17 @@ mutation ReserveBillReceiptForAgent(
   )
 }
 
-# Reserves a receipt Strategy Dance's agent names by a file the member sent in a conversation, before
-# the file is copied under it, as `ReserveBillReceiptForAgent` reserves one handed over in base64: its
-# row, `UPLOADING`, under an id the module made, so its file is never without its row, the
-# membership the module read matched on its `createdAt` first. The copy carries no bytes in a call's
-# body, so its size is the page's `MAX_BILL_RECEIPT_SIZE` at most rather than the agent's, and the
-# query step holds the reservation to the member's own file, stored and sent in `$conversationId`, of
-# the name, type and size the module read, so nothing else is reserved that large. It writes no
-# `ModuleCallResult`: the bill's write holds the call's key, and a receipt a retry leaves held by
-# nothing is pruned by the daily sweep
+# Reserves a receipt Strategy Dance's agent names by a file the member sent in a conversation,
+# before the file is copied under it, as `ReserveBillReceiptForAgent` reserves one handed over in
+# base64: its row, `UPLOADING`, under an id the module made, so its file is never without its row,
+# the membership the module read locked first and matched on its `createdAt` through the lock's
+# response, which runs every step as a statement of its own, so the membership and the file are read
+# as they stand once the lock is held (CLAUDE.md § The database). The copy carries no bytes in a
+# call's body, so its size is the page's `MAX_BILL_RECEIPT_SIZE` at most rather than the agent's,
+# and the query step holds the reservation to the member's own file, stored and sent in
+# `$conversationId`, of the name, type and size the module read, so nothing else is reserved that
+# large. It writes no `ModuleCallResult`: the bill's write holds the call's key, and a receipt a
+# retry leaves held by nothing is pruned by the daily sweep
 mutation ReserveAttachmentBillReceiptForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -9613,17 +9723,27 @@ mutation ReserveAttachmentBillReceiptForAgent(
   $contentType: String!
   $size: Int!
 ) @auth(level: NO_ACCESS) @transaction {
-  userOrganization_updateMany(
-    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
     data: { updatedAt_expr: "request.time" }
   )
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "size(vars.name) >= 1 && size(vars.name) <= 200 && vars.name.matches('^[^\\r\\n]*$') && vars.size >= 1 && vars.size <= 10485760 && vars.contentType in ['application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'image/jpeg', 'image/png', 'image/webp']"
       message: "A receipt has a name on one line of at most 200 characters, a type a bill takes, and at most 10 MiB"
     )
   query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq_expr: "response.userOrganization_update.userId" }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
     conversationAttachments(
       where: {
         id: { eq: $attachmentId }

@@ -182,20 +182,20 @@ mutation AddOrganizationExploredAspect(
 # CEL has no standard `trim()`, so the pattern says it instead. A color is six uppercase hex digits.
 # A brief is at most 500 characters (`MAX_ORGANIZATION_BRIEF_LENGTH`).
 #
-# The write comes first rather than a separate row lock, because Data Connect runs one write per
-# row in a mutation: a second `organization_update`, aliased or not, silently changes nothing. The
-# write takes the organization's row lock itself, as the lock step of `UpdateOrganizationMemberRole`
-# does, so the checks after it read what a demotion in the same instant committed, and a check
-# that fails rolls the write back
+# The write comes first and is the lock itself, since the row it locks is the row it writes
+# (CLAUDE.md § The database): it takes the organization's row lock, as the lock step of
+# `UpdateOrganizationMemberRole` does, and the checks after it read its response, so they run as a
+# statement of their own and read what a demotion committed while the lock was waited for, which one
+# statement would miss. A check that fails rolls the write back
 mutation UpdateOrganization($organizationId: UUID!, $name: String!, $color: String, $brief: String, $isPublic: Boolean!)
 @auth(level: USER)
 @transaction {
   organization_update(
     id: $organizationId
     data: { name: $name, color: $color, brief: $brief, isPublic: $isPublic, updatedAt_expr: "request.time" }
-  )
+  ) @check(expr: "this != null", message: "Only a member of an organization can change its settings")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its settings") {
       role
         @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change an organization's settings")
@@ -221,19 +221,26 @@ mutation UpdateOrganization($organizationId: UUID!, $name: String!, $color: Stri
 # The first step touches the organization's row, which takes its lock until the transaction
 # ends, so every change to who administers an organization runs one after the other. Without it
 # two administrators demoting each other at once would each read the other as an administrator
-# and both succeed, leaving none. The one that waited reads after the other commits, since
-# Postgres starts each statement on what is committed by then
+# and both succeed, leaving none. The checks read the lock's response, so they run as a statement
+# of their own once the lock is held, and the one that waited reads what the other committed: one
+# statement reads the snapshot it started with, from before (CLAUDE.md § The database)
 mutation UpdateOrganizationMemberRole($organizationId: UUID!, $userId: String!, $role: OrganizationRole!)
 @auth(level: USER)
 @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change a role in it")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change a role in it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a role")
     }
     userOrganizations(
-      where: { organizationId: { eq: $organizationId }, role: { eq: ADMINISTRATOR }, userId: { ne: $userId } }
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        role: { eq: ADMINISTRATOR }
+        userId: { ne: $userId }
+      }
       limit: 1
     )
       @check(
@@ -255,15 +262,17 @@ mutation UpdateOrganizationMemberRole($organizationId: UUID!, $userId: String!, 
 # The length is checked here as well as by the form, since the form is not the only possible
 # caller. It sits on the first step's field because an operation takes no `@check` of its own.
 #
-# The organization's row lock comes first, as in `UpdateOrganizationMemberRole`, so an
-# administrator demoted in the same instant cannot still write somebody else's title: whichever
-# runs second reads what the first committed
+# The organization's row lock comes first, as in `UpdateOrganizationMemberRole`, and the check
+# reads its response, so an administrator demoted in the same instant cannot still write somebody
+# else's title: whichever runs second reads what the first committed
 mutation UpdateOrganizationMemberJobTitle($organizationId: UUID!, $userId: String!, $jobTitle: String)
 @auth(level: USER)
 @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change a job title in it")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change a job title in it") {
       role
         @check(
@@ -339,11 +348,14 @@ mutation UpdateTodayPreferences($organizationId: UUID!, $priorityOrder: [String!
 # It deletes the membership and takes them off the tasks they were doing on the organization's
 # board, which go back to nobody. Nothing else changes, so they can be invited again later, as the
 # page promises. It takes the organization's row lock first, as `UpdateOrganizationMemberRole` does,
-# so two administrators removing each other at once cannot both succeed and leave none
+# and reads the caller's role through its response, once the lock is held, so two administrators
+# removing each other at once cannot both succeed and leave none
 mutation RemoveOrganizationMember($organizationId: UUID!, $userId: String!) @auth(level: USER) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can remove somebody from it")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can remove somebody from it") {
       role
         @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can remove somebody")
@@ -362,12 +374,14 @@ mutation RemoveOrganizationMember($organizationId: UUID!, $userId: String!) @aut
 #
 # Keyed by the address rather than the id, which the team page never reads. Canceling one that
 # was accepted or canceled a moment ago deletes nothing and succeeds, since the outcome is the
-# one asked for. The organization's row lock comes first, so an administrator demoted in the
-# same instant cannot still cancel
+# one asked for. The organization's row lock comes first, and the check reads its response, so an
+# administrator demoted in the same instant cannot still cancel
 mutation DeleteOrganizationInvitation($organizationId: UUID!, $email: String!) @auth(level: USER) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can cancel an invitation to it")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can cancel an invitation to it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can cancel an invitation")
     }
@@ -415,7 +429,9 @@ mutation DeclineOrganizationInvitation($id: UUID!, $organizationId: UUID!) @auth
 #
 # The first step writes the caller's own membership, which refuses anybody outside the
 # organization and is the lock the rest runs under: a second tab asking at the same time waits,
-# then finds the four the first made and is refused. Any column at all, a deleted one included,
+# then finds the four the first made and is refused, since the check reads the lock's response and
+# so runs as a statement of its own once the lock is held, where one statement would read the
+# snapshot from before (CLAUDE.md § The database). Any column at all, a deleted one included,
 # refuses it too, so a member who removed the defaults does not get them back, and a member invited
 # again keeps the checklist they had. Each name is held to what `CreateChecklistItem` holds one to
 mutation CreateDefaultChecklistItems(
@@ -436,8 +452,10 @@ mutation CreateDefaultChecklistItems(
       message: "A checklist column's name is 1 to 40 characters on one line, with no space at either end"
     )
   query @redact {
-    checklistItems(where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId } }, limit: 1)
-      @check(expr: "size(this) == 0", message: "The checklist was started already") {
+    checklistItems(
+      where: { userId: { eq_expr: "response.userOrganization_update.userId" }, organizationId: { eq: $organizationId } }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "The checklist was started already") {
       id
     }
   }
@@ -460,8 +478,9 @@ mutation CreateDefaultChecklistItems(
 #
 # At most 100 live columns (`MAX_CHECKLIST_ITEMS` in strategydance-core), counted under a lock: the
 # first step writes the caller's own membership, which also refuses anybody outside the
-# organization, so two tabs adding at once count one after the other. A name is one line of at most
-# 40 characters (`MAX_CHECKLIST_ITEM_NAME_LENGTH`)
+# organization, and the count reads its response, so it runs as a statement of its own once the
+# lock is held and two tabs adding at once count one after the other (CLAUDE.md § The database). A
+# name is one line of at most 40 characters (`MAX_CHECKLIST_ITEM_NAME_LENGTH`)
 mutation CreateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!, $position: Float!)
 @auth(level: USER)
 @transaction {
@@ -477,7 +496,11 @@ mutation CreateChecklistItem($organizationId: UUID!, $id: UUID!, $name: String!,
     )
   query @redact {
     checklistItems(
-      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        userId: { eq_expr: "response.userOrganization_update.userId" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+      }
       limit: 100
     ) @check(expr: "size(this) < 100", message: "A checklist holds at most 100 columns") {
       id
@@ -551,7 +574,11 @@ mutation RestoreChecklistItem($organizationId: UUID!, $id: UUID!) @auth(level: U
   ) @redact @check(expr: "this != null", message: "Only a member of an organization can keep a checklist in it")
   query @redact {
     checklistItems(
-      where: { userId: { eq_expr: "auth.uid" }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        userId: { eq_expr: "response.userOrganization_update.userId" }
+        organizationId: { eq: $organizationId }
+        deletedAt: { isNull: true }
+      }
       limit: 100
     ) @check(expr: "size(this) < 100", message: "A checklist holds at most 100 columns") {
       id
@@ -722,12 +749,13 @@ mutation RecordActivity($organizationId: UUID!, $date: Date!) @auth(level: USER)
 # column's last task or before its first.
 #
 # At most 1000 live tasks an organization (`MAX_TASKS` in strategydance-core), counted under a lock:
-# the first step writes the organization's row, and finds nothing unless the caller belongs to it,
-# so two members adding at once count one after the other. A name is one line of at most 120
-# characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at most 20000
-# characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there once. It is
-# assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks it waits on
-# and blocks are linked once it is stored, by `AddTaskDependency`.
+# the first step writes the organization's row, and the membership and the count read its response,
+# so they run as a statement of their own once it is held and two members adding at once count one
+# after the other, which one statement would not (CLAUDE.md § The database). A name is one line of
+# at most 120 characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at
+# most 20000 characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there
+# once. It is assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks
+# it waits on and blocks are linked once it is stored, by `AddTaskDependency`.
 #
 # `$descriptionText` is the plain text of `$description`, which the Tasks module's queries match, at
 # most as long. The refusals' messages are `CreateTask`'s: change them together
@@ -744,15 +772,9 @@ mutation CreateTaskWithText(
   $dueDate: Date
   $aspects: [CompanyAspect!]!
 ) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can add to its tasks")
+    @check(expr: "this != null", message: "Only a member of an organization can add to its tasks")
     @check(
       expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
       message: "A task's name is 1 to 120 characters on one line, with no space at either end"
@@ -770,8 +792,14 @@ mutation CreateTaskWithText(
       message: "A task is assigned to a member or to Strategy Dance, not both"
     )
   query @redact {
-    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can add to its tasks") {
+      role
+    }
+    tasks(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
       id
     }
     # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
@@ -813,12 +841,13 @@ mutation CreateTaskWithText(
 # column's last task or before its first.
 #
 # At most 1000 live tasks an organization (`MAX_TASKS` in strategydance-core), counted under a lock:
-# the first step writes the organization's row, and finds nothing unless the caller belongs to it,
-# so two members adding at once count one after the other. A name is one line of at most 120
-# characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at most 20000
-# characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there once. It is
-# assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks it waits on
-# and blocks are linked once it is stored, by `AddTaskDependency`
+# the first step writes the organization's row, and the membership and the count read its response,
+# so they run as a statement of their own once it is held and two members adding at once count one
+# after the other, which one statement would not (CLAUDE.md § The database). A name is one line of
+# at most 120 characters (`MAX_TASK_NAME_LENGTH`) with no space at either end, and a description at
+# most 20000 characters of serialized blocks (`MAX_TASK_DESCRIPTION_LENGTH`). Each aspect is there
+# once. It is assigned to a member of the organization, to Strategy Dance, or to nobody. The tasks
+# it waits on and blocks are linked once it is stored, by `AddTaskDependency`
 mutation CreateTask(
   $organizationId: UUID!
   $id: UUID!
@@ -831,15 +860,9 @@ mutation CreateTask(
   $dueDate: Date
   $aspects: [CompanyAspect!]!
 ) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can add to its tasks")
+    @check(expr: "this != null", message: "Only a member of an organization can add to its tasks")
     @check(
       expr: "size(vars.name) <= 120 && vars.name.matches('^[[:^space:]](.*[[:^space:]])?$')"
       message: "A task's name is 1 to 120 characters on one line, with no space at either end"
@@ -854,8 +877,14 @@ mutation CreateTask(
       message: "A task is assigned to a member or to Strategy Dance, not both"
     )
   query @redact {
-    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can add to its tasks") {
+      role
+    }
+    tasks(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
       id
     }
     # Only a member can be assigned. With no assignee there is nobody to check, whatever this reads
@@ -1104,16 +1133,18 @@ mutation DeleteTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tran
 # organization's row: without it, deleting a task at the cap, adding another and taking the delete
 # back would keep 1001
 mutation RestoreTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  ) @redact @check(expr: "this == 1", message: "Only a member of an organization can change its tasks")
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its tasks")
   query @redact {
-    tasks(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+    }
+    tasks(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 tasks") {
       id
     }
   }
@@ -1135,33 +1166,41 @@ mutation RestoreTask($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tra
 # deleted tasks count, since bringing those back brings the links back with them, which would
 # otherwise take it past 50: the board reads each task's count of every link, so its pickers offer
 # no more than this takes.
-# Counted and checked under a lock: the first step writes the organization's row, and finds nothing
-# unless the caller belongs to it, so links added at once, as a pick of several tasks sends them,
-# count one after the other, and two members linking two tasks both ways cannot both succeed. A
-# longer loop is left out by the page, which offers no task that would close one; two members
+# Counted and checked under a lock: the first step writes the organization's row, and the checks
+# after it, the caller's membership among them, read its response, so they run as a statement of
+# their own once it is held and see the links committed while it was waited for, which one statement
+# would miss (CLAUDE.md § The database). So links added at once, as a pick of several tasks sends
+# them, count one after the other, and two members linking two tasks both ways cannot both succeed.
+# A longer loop is left out by the page, which offers no task that would close one; two members
 # closing one at once only leave its tasks blocked, which either of them can undo
 mutation AddTaskDependency($organizationId: UUID!, $taskId: UUID!, $dependencyId: UUID!)
 @auth(level: USER)
 @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can change its tasks")
+    @check(expr: "this != null", message: "Only a member of an organization can change its tasks")
     @check(expr: "vars.taskId != vars.dependencyId", message: "A task cannot wait on itself")
   query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can change its tasks") {
+      role
+    }
     waiting: tasks(
-      where: { id: { eq: $taskId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        id: { eq: $taskId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        deletedAt: { isNull: true }
+      }
       limit: 1
     ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
       id
     }
     awaited: tasks(
-      where: { id: { eq: $dependencyId }, organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }
+      where: {
+        id: { eq: $dependencyId }
+        organizationId: { eq_expr: "response.organization_update.id" }
+        deletedAt: { isNull: true }
+      }
       limit: 1
     ) @check(expr: "size(this) == 1", message: "No task by that id in the organization") {
       id
@@ -1202,11 +1241,15 @@ mutation RemoveTaskDependency($organizationId: UUID!, $taskId: UUID!, $dependenc
 # so a document never starts blank: a page that would add nothing adds nothing.
 #
 # At most 1000 documents an organization (`MAX_DOCUMENTS` in strategydance-core), counted under a
-# lock: the first step writes the organization's row, and finds nothing unless the caller belongs
-# to it, so two members adding at once count one after the other. A title is one line of at most
-# 200 characters (`MAX_DOCUMENT_TITLE_LENGTH`), spaces and all since it is saved as it is typed,
-# and the content at most 200000 characters of serialized blocks (`MAX_DOCUMENT_CONTENT_LENGTH`).
-# Each aspect is there once. What agents may do with it, chosen on the draft, comes with it.
+# lock: the first step writes the organization's row, and the membership and the count read its
+# response, so they run as a statement of their own once it is held and two members adding at once
+# count one after the other, which one statement would not (CLAUDE.md § The database). The count
+# leaves out the document's own id, so a create sent again after its answer was lost is still
+# refused for its id, which the page reads back, rather than for the cap. A title is one line of at
+# most 200 characters (`MAX_DOCUMENT_TITLE_LENGTH`), spaces and all since it is saved as it is
+# typed, and the content at most 200000 characters of serialized blocks
+# (`MAX_DOCUMENT_CONTENT_LENGTH`). Each aspect is there once. What agents may do with it, chosen on
+# the draft, comes with it.
 #
 # `$state` is the draft's text as a Yjs document, the same text as `$content`, so the document is
 # shared from its first save and nobody seeds a second copy of it. Optional, since a page from
@@ -1226,15 +1269,9 @@ mutation CreateDocumentWithText(
   $isAiWritable: Boolean!
   $state: String
 ) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can add to its documents")
+    @check(expr: "this != null", message: "Only a member of an organization can add to its documents")
     @check(
       expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
       message: "A document's title is at most 200 characters on one line"
@@ -1254,8 +1291,18 @@ mutation CreateDocumentWithText(
       message: "A document is tagged with each aspect at most once"
     )
   query @redact {
-    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can add to its documents") {
+      role
+    }
+    documents(
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        id: { ne: $id }
+        deletedAt: { isNull: true }
+      }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
       id
     }
   }
@@ -1288,15 +1335,9 @@ mutation CreateDocument(
   $isAiWritable: Boolean!
   $state: String
 ) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  )
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
     @redact
-    @check(expr: "this == 1", message: "Only a member of an organization can add to its documents")
+    @check(expr: "this != null", message: "Only a member of an organization can add to its documents")
     @check(
       expr: "size(vars.title) <= 200 && vars.title.matches('^[^\\r\\n]*$')"
       message: "A document's title is at most 200 characters on one line"
@@ -1315,8 +1356,18 @@ mutation CreateDocument(
       message: "A document is tagged with each aspect at most once"
     )
   query @redact {
-    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can add to its documents") {
+      role
+    }
+    documents(
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        id: { ne: $id }
+        deletedAt: { isNull: true }
+      }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
       id
     }
   }
@@ -1477,16 +1528,18 @@ mutation DeleteDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @
 # organization's row: without it, deleting a document at the cap, adding another and taking the
 # delete back would keep 1001
 mutation RestoreDocument($organizationId: UUID!, $id: UUID!) @auth(level: USER) @transaction {
-  organization_updateMany(
-    where: {
-      id: { eq: $organizationId }
-      userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } }
-    }
-    data: { updatedAt_expr: "request.time" }
-  ) @redact @check(expr: "this == 1", message: "Only a member of an organization can change its documents")
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change its documents")
   query @redact {
-    documents(where: { organizationId: { eq: $organizationId }, deletedAt: { isNull: true } }, limit: 1000)
-      @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
+      @check(expr: "this != null", message: "Only a member of an organization can change its documents") {
+      role
+    }
+    documents(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, deletedAt: { isNull: true } }
+      limit: 1000
+    ) @check(expr: "size(this) < 1000", message: "An organization keeps at most 1000 documents") {
       id
     }
   }
@@ -2111,13 +2164,18 @@ mutation UpdateAgentConnectionScopes($userId: String!, $id: UUID!, $scopes: [Str
 # currency the page goes on counting in. Always sent with every variable, written whole over the row,
 # which the first set inserts.
 #
-# The write comes first, the row's lock, so the checks after it read what a demotion in the same
-# instant committed, and a check that fails rolls it back, as in `UpdateOrganization`. An amount is
-# 1 to 10^15 minor units (`MAX_MONEY_MINOR` in strategydance-core). The checks are optional under the
-# membership, so somebody who is no member is told so (CLAUDE.md § The database)
+# The organization's row lock comes first, as every change to who administers it takes it, and the
+# checks after the write read its response, so they run as a statement of their own and read what a
+# demotion in the same instant committed, as in `UpdateOrganization`, and a check that fails rolls
+# the write back. An amount is 1 to 10^15 minor units (`MAX_MONEY_MINOR` in strategydance-core). The
+# checks are optional under the membership, so somebody who is no member is told so (CLAUDE.md § The
+# database)
 mutation SetBudget($organizationId: UUID!, $currency: Currency!, $amountMinor: Int64, $period: BudgetPeriod)
 @auth(level: USER)
 @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can set its budget")
   budget_upsert(
     data: {
       organizationId: $organizationId
@@ -2129,7 +2187,7 @@ mutation SetBudget($organizationId: UUID!, $currency: Currency!, $amountMinor: I
     }
   )
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can set its budget") {
       role
         @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can set the budget", optional: true)

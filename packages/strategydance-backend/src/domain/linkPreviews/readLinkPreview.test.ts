@@ -89,4 +89,21 @@ describe('readLinkPreview', () => {
       expect(message).not.toMatch(/reset|token|secret|pdf/)
     }
   })
+
+  test('names an address that is no web one as such, never by its text nor as null', async () => {
+    const refused: Fetch = mock(async () => {
+      throw new OutboundRefusal('Not a web address', 'address')
+    })
+
+    logged.length = 0
+
+    for (const url of ['data:text/html,<p>secret</p>', 'not an address']) {
+      expect(await readLinkPreview(url, refused)).toEqual({ url })
+    }
+
+    expect(logged).toEqual([
+      'Link previews: could not read an address that is not a web one',
+      'Link previews: could not read an address that is not a web one',
+    ])
+  })
 })

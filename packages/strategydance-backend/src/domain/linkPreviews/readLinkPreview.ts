@@ -12,6 +12,14 @@ const MAX_HTML_BYTES = 1024 * 1024
 const TIMEOUT_MS = 5000
 const MAX_REDIRECTS = 5
 
+// What a log names an address by: its origin alone, or what it is when it has none, as an address
+// that does not parse, and a `data:` or `mailto:` one, whose origin reads "null"
+function toLoggedOrigin(url: string) {
+  const origin = URL.canParse(url) ? new URL(url).origin : 'null'
+
+  return origin === 'null' ? 'an address that is not a web one' : origin
+}
+
 /*
   What a web page says of itself, for a link preview card: fetched through `fetchOutbound`, which
   reaches public addresses alone, and read from the HTML it answers with. Anything else, a page
@@ -20,7 +28,7 @@ const MAX_REDIRECTS = 5
   hold a secret, as a reset link or a signed address does
 */
 async function readLinkPreview(url: string, fetch = fetchOutbound): Promise<LinkPreviewData> {
-  const origin = URL.canParse(url) ? new URL(url).origin : 'an address that does not parse'
+  const origin = toLoggedOrigin(url)
 
   try {
     const response = await fetch(url, {

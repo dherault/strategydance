@@ -1541,7 +1541,10 @@ member.
   written in, a link to `doc:<id>` or `task:<id>` being a mention of the document or the task that
   `read_document` or `read_task` opens, one to `conversation:<id>` a mention of one of the team's
   conversations, which no tool opens, and that the team shares each document, which members may
-  be editing while the agent does.
+  be editing while the agent does. At the one address they say what Strategy Dance is once, then
+  each module listed, and last the served modules the member did not allow the connection, by name
+  alone, so the agent can tell the member they could allow one by connecting it again
+  ([modules-address.md](modules-address.md) § Instructions).
 
 **The Documents module's tools**, built in M14, reaching Strategy Dance's agent in M16 and external
 agents in M20:
@@ -1936,9 +1939,9 @@ address from modules-address.md's M2:
     as many as the agent's connection for that client and address reaches already ticked to begin
     with, or the organization the member has open; and the access in each module, not allowed
     beside another module, read, or read and write when the client asked for it or the connection
-    held it, starting as held, or as asked when that is more, Budget's write starting unchosen at
-    the one address unless asked for and held, for every organization ticked, Allow staying off
-    while no module is allowed. Never the client's logo, which would load an address of its
+    held it, starting as held, or as asked when that is more, but at the one address a write held
+    at read starting at read even when asked for, and Budget's write starting unchosen unless asked
+    for and held, for every organization ticked, Allow staying off while no module is allowed. Never the client's logo, which would load an address of its
     choosing. Allow and Deny call `POST /oauth/requests/:requestId/approve` and `…/deny`, with the
     member's ID token and App Check, as every route the app calls.
   - Allow and Deny each decide the request under `@check(this == 1)` on a request still undecided

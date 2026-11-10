@@ -54,7 +54,8 @@ agents, or touch integrations, which are other companies' servers.
 
 ## Decisions
 
-Proposed on 2026-11-07, for David to settle in review:
+Proposed on 2026-11-07 and built in M1 to M3. The review of 2026-11-10 (Review of 2026-11-10,
+below) changed two, as each says:
 
 - **One address, `/mcp`.** Its server is named `strategydance` and titled "Strategy Dance", one
   OAuth resource whose `scopes_supported` are the served modules' scopes. In Claude Code, `claude
@@ -62,7 +63,9 @@ Proposed on 2026-11-07, for David to settle in review:
 - **Access per module, on one consent.**
   - For each module the client asks for, the member chooses not allowed, read, or read and write
     when the client asked for write.
-  - The organizations are ticked once, for every module.
+  - The organizations are ticked once, for every module. A member who wants Budget in one
+    organization and Documents in two connects a second client, where a connection per module told
+    them apart.
   - At least one module is allowed.
   - A client naming no scope asks for every served module, read and write, as a request naming
     none asks for both today.
@@ -73,6 +76,11 @@ Proposed on 2026-11-07, for David to settle in review:
     write is never carried over to a request that did not ask for it. A later module that touches
     money starts the same way. `/mcp/budget` is the consent of its own conversations.md meant, and
     stays as it is.
+  - **A write held at read starts at read.** At the one address, a write the connection held at
+    read starts at read even when the client asks for it, offered still: the member chose read, on
+    an earlier consent or through Access, and an agent asking again, as a write's challenge has it
+    do, is not the member choosing otherwise. Before the review of 2026-11-10 it started chosen, so
+    one click on Allow undid a narrowing.
 - **The tools follow the access.**
   - A connection lists the tools of each module it holds the read scope of, and none of a module it
     does not: a member who left Budget out finds no bill tool in their agent.
@@ -106,7 +114,8 @@ Proposed on 2026-11-07, for David to settle in review:
   listing up.
 
 Left for later:
-- **Retiring the per-module addresses**, which Retiring them describes.
+- **Retiring the per-module addresses**, M4, which Retiring them describes, with what the
+  transition keeps beside them.
 - **Knowledge and Subagents for external agents**, each a plan of its own, as knowledge.md and
   conversations.md § Subagents say.
 
@@ -161,9 +170,14 @@ Strategy Dance's agent reads no server instructions: only an external agent's cl
 given several modules says, in order:
 1. what Strategy Dance is, once;
 2. each listed module's own paragraphs, in `MODULES`' order, worded as one server's: "the Documents
-   module's read_document" becomes `read_document`, and a module that is not listed is never named;
+   module's read_document" becomes `read_document`, and a module that is not listed is never named
+   in them;
 3. the idempotency key, once;
-4. the organizations the connection reaches, once, as `toModuleInstructions` writes them.
+4. the organizations the connection reaches, once, as `toModuleInstructions` writes them;
+5. for an external agent, the modules it was given but does not list, those the member did not
+   allow this connection, by name and never by their tools, so the agent can tell the member they
+   could allow one by connecting it again. Added in the review of 2026-11-10: before, an agent asked
+   to add a bill with Budget left out could not know Budget was there to allow.
 
 The key and the organizations are said where a served module is listed, whose tools take both:
 Knowledge's and Subagents' servers never said them. A module listed alone on a server given several
@@ -238,16 +252,18 @@ same milestone.
 - **The consent page** lists each module the request asks for, and each the connection it replaces
   holds, with its access: not allowed, read, or read and write when write was asked for or is held.
   - It is worded by the module from the `module` catalogue, as `OAuthConsentAccess` words one now.
-  - To begin with, a module is chosen as the connection it replaces holds it, or with what was
-    asked for when that is more; a module only asked for, read and write when asked, read when not.
-    Budget's write alone starts chosen only when the request asks for it and the connection held
-    it. Every module the page grants is shown with its access, held ones included, so nothing is
+  - To begin with, a module is chosen as the connection it replaces holds it, its write kept when
+    held even if not asked for; a module only asked for, read and write when asked, read when not.
+    A write held at read starts at read even when asked for, since the review of 2026-11-10, and
+    Budget's write starts chosen only when the request asks for it and the connection held it.
+    Every module the page grants is shown with its access, held ones included, so nothing is
     granted out of the member's sight.
   - The organizations are ticked once for every module, as today.
   - Allow stays off while no module is allowed. "Not allowed" is offered only beside another module,
     and a module's own address shows its one module as it always has.
   - A module's own address keeps what its connection held the same way, its write included, since it
-    goes through the same rule.
+    goes through the same rule, but starts a module as held, or as asked when that is more: Access
+    narrows nothing there, and its write challenge is how a member there grants a write.
 - **Allow** takes the scopes chosen, checked against the rule above, each asked for or held by the
   connection it replaces: a consent never grants what neither the agent asked for nor the member
   granted before.
@@ -420,6 +436,8 @@ times.
 - one token, whose scopes bound what it does in each module. A client connected to all three holds
   as much today, and a leaked token holds every module allowed, which Access narrows;
 - one rate limit across the modules, where today each module's connection has its own;
+- one set of organizations for every module, where a connection per module could reach different
+  ones;
 - the member's search allowance, the AI permissions, the `organization` parameter and the
   idempotency key, as they are.
 
@@ -433,8 +451,12 @@ times.
   two rows. Connected agents marks the older one from M3, when the module pages start giving the one
   address. Before M3, no member is told of it, so two rows come only from someone who found it.
 - **A module left out stays out of sight.** A connection lists only the modules it holds, so its
-  agent cannot find one the member left out, and a member who wants it consents again, where today
-  they add the module's address.
+  agent cannot call one the member left out, and a member who wants it consents again, where today
+  they add the module's address. Its instructions name the modules left out, so the agent can tell
+  the member.
+- **One set of organizations.** Every module of a connection reaches the same organizations, so a
+  member who wants Budget in fewer of them than Documents connects a second client. Few members
+  belong to several organizations yet: per-module organizations wait until one asks.
 
 ## Milestones
 
@@ -443,6 +465,9 @@ times.
 | M1 | One server, any modules | backend | | [#315](https://github.com/dherault/strategydance/pull/315) |
 | M2 | One OAuth resource at `/mcp` | core, database, backend, web | M1 | [#316](https://github.com/dherault/strategydance/pull/316) |
 | M3 | Access and the module pages | database, backend, web, root | M2 | [#317](https://github.com/dherault/strategydance/pull/317) |
+| M4 | Retire the per-module addresses | core, database, backend, web, root | M3, its trigger | |
+
+M1 to M3 merged into `dev` on 2026-11-10. What the release owes by hand is in After the release.
 
 ### Conventions for every milestone
 
@@ -556,3 +581,55 @@ Access and the module pages above, and the documents that follow.
 - In the app against the local backend: connect Claude Code at `/mcp`, narrow Tasks to read on
   Connected agents, and see a task write challenged at the next call.
 - The four checks.
+
+### M4: Retire the per-module addresses
+
+Retiring them above, once its trigger holds: the release after the one that ships `/mcp`, once a
+read-only count of production's connections at a per-module address used in the last 14 days is
+zero, or once David has told the members who hold one. The transition keeps, and M4 removes:
+- each served module's own entry in `MODULE_ADDRESSES`, its endpoint and its metadata, which then
+  answer 404, their paths staying reserved;
+- `connection:<id>` as an idempotency scope, every external agent's being `external:`;
+- the request summary's `module`, which pages from before M2 read;
+- the per-module row's marking as older and its link, and `/mcp/budget`'s consent of its own;
+- `strategydance-tasks` and `strategydance-documents` in the root `CLAUDE.md`'s Tackling a task.
+
+`AgentConnection.module` holds an address's name since M2. Renaming it `address` is a migration,
+whose release stops at Data Connect for a human (`CLAUDE.md` § Releases and production): M4 takes
+it only if David wants the name to say what it holds.
+
+**To verify:** `check:oauth` with the per-module checks gone, a per-module address answering 404,
+and the sweep deleting a per-module connection a week after its last use.
+
+### After the release
+
+What the release that ships M1 to M3 owes by hand, once `main` deploys:
+- `bun run probe:claude`, owed since M1 (#315), with the Anthropic key read through gcloud as
+  #315 says, since a run now connects its modules through one client.
+- Re-adding Claude Code's server, `claude mcp add --transport http strategydance
+  https://api.strategydance.com/mcp`, then `/mcp`, allowing Tasks and Documents: the root
+  `CLAUDE.md` names it from #317, and production answers 404 there until the release.
+- claude.ai, ChatGPT and Cursor connected at `/mcp` by hand, as Risks asks: the consent, the tools
+  of the modules allowed, a write challenged and allowed again.
+
+## Review of 2026-11-10
+
+An adversarial review of #315, #316 and #317, once merged, found no correctness or security defect:
+one scope rule at an authorization, Allow, a refresh and the verifier, Allow's held scopes checked
+after the member's lock, Access only narrowing under the same lock, the verifier narrowing a token
+to its connection at every call, and no operation or column removed, so the release does not stop
+at Data Connect. It changed:
+- the consent's defaults, so a write held at read starts at read (Decisions);
+- the instructions, which name the modules a connection was not allowed in (Instructions);
+- `check:oauth`, which walks an Allow granting nothing asked for, only what was held;
+- this document, which says what one set of organizations costs, writes M4 and lists what the
+  release owes.
+
+It kept, having weighed them again:
+- a refresh naming more than its token holds getting what is left, rather than `invalid_scope`
+  (RFC 6749, 6), which never widens and spares the member a consent;
+- one rate limit across the modules;
+- `findToolModule`'s stand-in, which `moduleServers.test.ts` pins;
+- a batch answered 403 whole, batches having left MCP in 2025-06-18;
+- a token a refresh narrowed below its connection challenged into a consent rather than a refresh,
+  which few clients ever make.

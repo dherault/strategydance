@@ -3279,18 +3279,20 @@ transaction at a time (see Risks). As the review of M1 to M38 proposed on 2026-1
     `CreateBill`'s is, with the membership read after it. A document's folds and its agent's rename
     read the row back after their write, as `MarkSubagentReportsDelivered` reads the parent. A
     Connect deletes the one under way through the membership it read, and `DeleteOrganization`
-    takes the organization's row first, as every change to who administers it does, which ends the
-    deadlock it met a demotion of its deleter with. The same went for what the list had missed:
+    takes the organization's row first, as every change to who administers it does, then its
+    deleter's membership, as their own writes do, which ends the deadlock it met a demotion of its
+    deleter with and meets no send of theirs. The same went for what the list had missed:
     `ReserveAttachmentBillReceiptForAgent`, added since, and `UpdateOrganizationLogo` and
     `UpdateOrganizationBanner`. `SetBudget` locked only the budget's row, which no demotion takes,
     so it now takes the organization's first. `ApproveOAuthAuthorizationRequest` had read its lock's
     response since a connection reached several organizations. `check:conversation-races` races
-    six of them: two administrators removing or demoting each other, two tasks linked both ways,
+    seven of them: two administrators removing or demoting each other, two tasks linked both ways,
     two first visits to the Today page, the caps of a board and a checklist, and an organization's
-    delete beside a demotion of its deleter. On `dev`'s connectors the first five failed 14, 4, 12,
-    7 and 13 rounds of 20, on its membership-first order the delete deadlocked 12 times in 20, and
-    all six pass on #324's. Production's engine is taken to compile as its emulator does, which
-    Cloud SQL's Query Insights could confirm.
+    delete beside a demotion of its deleter or a send of theirs. On `dev`'s connectors the first
+    five failed 14, 4, 12, 7 and 13 rounds of 20; on its membership-first order the delete
+    deadlocked 12 times in 20 beside a demotion, and on the organization's row alone 3 times beside
+    a send; all seven pass on #324's. Production's engine is taken to compile as its emulator does,
+    which Cloud SQL's Query Insights could confirm.
   - **The race check** (`checkConversationRaces.ts`, its scenarios in `conversationRaces/`) runs the
     backend's own domain functions as the writers, `enqueueRun` swapped by a Bun plugin for one that
     queues nothing, since `mock.module` is `bun test`'s, and drives a worker's steps itself where a

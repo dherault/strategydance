@@ -6015,9 +6015,7 @@ mutation FoldDocumentWithRevisionForAgent(
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The document was folded, deleted or closed to agents since it was read")
-  # The row read back once its write holds its lock, whose response the reads after it take, so
-  # every step runs as a statement of its own and sees what was committed while the lock was waited
-  # for, which one statement would miss (CLAUDE.md § The database)
+  # The row read back after its lock, as `FoldDocumentForAgent` reads it
   locked: query @redact {
     document(id: $id) {
       id
@@ -6132,9 +6130,7 @@ mutation RestoreDocumentRevision(
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The document was folded or deleted since it was read")
-  # The row read back once its write holds its lock, whose response the reads after it take, so
-  # every step runs as a statement of its own and sees what was committed while the lock was waited
-  # for, which one statement would miss (CLAUDE.md § The database)
+  # The row read back after its lock, as `FoldDocumentForAgent` reads it
   locked: query @redact {
     document(id: $id) {
       id
@@ -6228,9 +6224,7 @@ mutation RenameDocumentForAgent(
     }
     data: { title: $title, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "The document was deleted or closed to agents since it was read")
-  # The row read back once its write holds its lock, whose response the reads after it take, so
-  # every step runs as a statement of its own and sees what was committed while the lock was waited
-  # for, which one statement would miss (CLAUDE.md § The database)
+  # The row read back after its lock, as `FoldDocumentForAgent` reads it
   locked: query @redact {
     document(id: $id) {
       id
@@ -8765,7 +8759,8 @@ mutation CancelIntegrationAuthorization(
 # configuration and issuer the Connect started under, replaces the member's earlier connection to it,
 # and stores the new one, under a fresh generation. A member removed meanwhile is refused by the
 # membership's check after the lock, or, removed once it has run, by the connection's reference to
-# the membership. Every variable is passed, null included
+# the membership, unless the removal's cascade meets the earlier connection this deletes, a deadlock
+# Postgres fails one of. Every variable is passed, null included
 mutation ConnectIntegration(
   $organizationId: UUID!
   $userId: String!

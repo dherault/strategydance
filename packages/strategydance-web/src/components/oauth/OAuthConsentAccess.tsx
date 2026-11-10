@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { useIntl } from 'react-intl'
 import type { ModuleName } from 'strategydance-core'
+import { Badge } from 'strategydance-design-system/components/ui/Badge'
 import { fieldLabelClassName } from 'strategydance-design-system/components/ui/Field'
 import { Radio } from 'strategydance-design-system/components/ui/Radio'
 
@@ -17,6 +18,9 @@ type Props = {
   isWriteOffered: boolean
   // Not allowed is offered beside other modules, where the member may keep the agent out of one
   isNoneOffered: boolean
+  // What the agent asked for beyond where the module started, marked so the member sees why it sent
+  // them here, or nothing
+  askedAccess?: Exclude<OAuthConsentAccessLevel, 'none'> | null
   // Labelled by the module's name, beside other modules, or "Access" when it is the only one
   isNamed: boolean
   onChange: (access: OAuthConsentAccessLevel) => void
@@ -25,10 +29,19 @@ type Props = {
 
 /*
   What the agent will be allowed to do in a module, worded by the module: read, or read and write,
-  and beside other modules not at all. A module offered read alone shows it as a fact, there being
-  nothing to choose
+  and beside other modules not at all, the option the agent asked for marked when the page started
+  below it. A module offered read alone shows it as a fact, there being nothing to choose
 */
-function OAuthConsentAccess({ module, access, isWriteOffered, isNoneOffered, isNamed, onChange, disabled }: Props) {
+function OAuthConsentAccess({
+  module,
+  access,
+  isWriteOffered,
+  isNoneOffered,
+  askedAccess = null,
+  isNamed,
+  onChange,
+  disabled,
+}: Props) {
   const { formatMessage } = useIntl()
   const id = useId()
   const messages = getModuleMessages(module)
@@ -83,7 +96,22 @@ function OAuthConsentAccess({ module, access, isWriteOffered, isNoneOffered, isN
         <Radio
           key={option.value}
           name={`${id}-access`}
-          label={option.label}
+          label={
+            option.value === askedAccess ? (
+              <>
+                {option.label}
+                <Badge
+                  variant="primary"
+                  size="sm"
+                  className="ml-2"
+                >
+                  {formatMessage(moduleMessages.askedAccess)}
+                </Badge>
+              </>
+            ) : (
+              option.label
+            )
+          }
           hint={option.hint}
           checked={access === option.value}
           disabled={disabled}

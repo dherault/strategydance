@@ -134,6 +134,12 @@ const moduleMessages = defineMessages({
     defaultMessage: 'Read and write',
     description: 'The access that lets an agent read a module and change what is in it, as a short label.',
   },
+  askedAccess: {
+    id: 'module.askedAccess',
+    defaultMessage: 'Asked for',
+    description:
+      "A short mark beside one access option of a module on the page where a member allows an AI agent: the agent asked for this access, but the page starts below it, since the agent's connection did not hold it before. The member chooses it to grant it.",
+  },
   noAccess: {
     id: 'module.noAccess',
     defaultMessage: 'Not allowed',

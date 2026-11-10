@@ -16,7 +16,12 @@ export type OAuthConsentModule = {
   isWriteOffered: boolean
   // Not allowed only for a module asked for beside the modules of a connection consented to again
   initialAccess: OAuthConsentAccessLevel
+  // What the agent asked for beyond where the module starts, which the page marks so the member
+  // sees why the agent sent them, or null when the module starts at what was asked or above it
+  askedAccess: Exclude<OAuthConsentAccessLevel, 'none'> | null
 }
+
+const LEVELS: readonly OAuthConsentAccessLevel[] = ['none', 'read', 'write']
 
 function readLevel(module: ModuleDefinition, scopes: readonly string[]): OAuthConsentAccessLevel {
   if (!scopes.includes(module.scopes.read)) return 'none'
@@ -96,11 +101,14 @@ function readOAuthConsentModules({
 
     if (asked === 'none' && held === 'none') return []
 
+    const initialAccess = readInitialAccess(module.name, { asked, held, isSeveral, isConsentingAgain })
+
     return [
       {
         name: module.name,
         isWriteOffered: asked === 'write' || held === 'write',
-        initialAccess: readInitialAccess(module.name, { asked, held, isSeveral, isConsentingAgain }),
+        initialAccess,
+        askedAccess: asked !== 'none' && LEVELS.indexOf(asked) > LEVELS.indexOf(initialAccess) ? asked : null,
       },
     ]
   })

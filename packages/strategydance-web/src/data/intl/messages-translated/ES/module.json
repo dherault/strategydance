@@ -21,6 +21,7 @@
   "module.agentsOpenConnectedAgents": "Abrir Agentes conectados",
   "module.agentsTitle": "Usa {module} con tus agentes",
   "module.allow": "Permitir",
+  "module.askedAccess": "Solicitado",
   "module.budgetAgentsButton": "Permite a tus agentes leer y modificar tu presupuesto",
   "module.budgetName": "Presupuesto",
   "module.budgetReadAccess": "Leer el presupuesto y las facturas, con sus recibos.",

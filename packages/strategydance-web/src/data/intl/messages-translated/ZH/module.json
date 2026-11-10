@@ -21,6 +21,7 @@
   "module.agentsOpenConnectedAgents": "打开已连接智能体",
   "module.agentsTitle": "配合您的智能体使用 {module}",
   "module.allow": "允许",
+  "module.askedAccess": "已请求",
   "module.budgetAgentsButton": "允许您的智能体读取和写入预算",
   "module.budgetName": "预算",
   "module.budgetReadAccess": "查看预算和账单及其凭证。",

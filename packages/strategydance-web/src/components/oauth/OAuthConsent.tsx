@@ -246,6 +246,7 @@ function OAuthConsent({ requestId }: Props) {
                 access={accesses[module.name] ?? 'none'}
                 isWriteOffered={module.isWriteOffered}
                 isNoneOffered={consentModules.length > 1}
+                askedAccess={module.askedAccess}
                 isNamed
                 onChange={access => setChosenAccesses(chosen => ({ ...chosen, [module.name]: access }))}
                 disabled={isDeciding}

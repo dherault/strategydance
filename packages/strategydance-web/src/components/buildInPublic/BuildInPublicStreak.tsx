@@ -1,4 +1,5 @@
 import { useIntl } from 'react-intl'
+import { countCalendarDays } from 'strategydance-core'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { CardField, FlameColor } from '~types'
@@ -14,7 +15,6 @@ import getStreak from '~utils/buildInPublic/getStreak'
 import getStreakCharges from '~utils/buildInPublic/getStreakCharges'
 import getStreakDayLabel from '~utils/buildInPublic/getStreakDayLabel'
 import getStreakDays from '~utils/buildInPublic/getStreakDays'
-import getDaysBetween from '~utils/date/getDaysBetween'
 import toCalendarDate from '~utils/date/toCalendarDate'
 
 import BuildInPublicBattery from '~components/buildInPublic/BuildInPublicBattery'
@@ -67,7 +67,7 @@ function BuildInPublicStreak({ settings }: Props) {
     ACTIVE_DAYS_WINDOW,
     organization ? getOrganizationDayCount(organization.createdAt, today) : ACTIVE_DAYS_WINDOW,
   )
-  const activeDayCount = dates.filter(date => date <= today && getDaysBetween(date, today) < activeDaysWindow).length
+  const activeDayCount = dates.filter(date => date <= today && countCalendarDays(date, today) < activeDaysWindow).length
   // A card is posted for anybody to see, so it names the reader only by the name they gave
   const name = user?.displayName ?? null
 

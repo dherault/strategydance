@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
+import { addCalendarDays } from 'strategydance-core'
 import { Avatar, AvatarGroup } from 'strategydance-design-system/components/ui/Avatar'
 import { hasRichText } from 'strategydance-design-system/lib/hasRichText'
 import { cn } from 'strategydance-design-system/lib/utils'
@@ -13,7 +14,6 @@ import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
 import getOrganizationDayCount from '~utils/buildInPublic/getOrganizationDayCount'
-import addDays from '~utils/date/addDays'
 import toCalendarDate from '~utils/date/toCalendarDate'
 import getMemberName from '~utils/team/getMemberName'
 
@@ -69,7 +69,7 @@ function BuildInPublicCompany({ settings }: Props) {
   const bannerUrl = organization?.bannerUrl ?? null
   const members = team.userOrganizations
   const dayCount = organization ? getOrganizationDayCount(organization.createdAt, today) : 1
-  const weekStart = addDays(today, -6)
+  const weekStart = addCalendarDays(today, -6)
 
   const { members: pickedIds } = settings.readCard('company-team', {
     members: members.slice(0, MAX_TEAM_AVATARS).map(member => member.user.id),

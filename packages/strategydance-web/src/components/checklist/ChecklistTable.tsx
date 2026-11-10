@@ -1,7 +1,7 @@
 import { CheckIcon, ChevronDownIcon, LockIcon, LockOpenIcon, PlusIcon } from 'lucide-react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { MAX_CHECKLIST_HISTORY_DAYS } from 'strategydance-core'
+import { addCalendarDays, countCalendarDays, MAX_CHECKLIST_HISTORY_DAYS } from 'strategydance-core'
 import { Badge } from 'strategydance-design-system/components/ui/Badge'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import { Popover, PopoverContent, PopoverTrigger } from 'strategydance-design-system/components/ui/Popover'
@@ -16,8 +16,6 @@ import useDragReorder from '~hooks/common/useDragReorder'
 import useLocalDate from '~hooks/common/useLocalDate'
 
 import createId from '~utils/common/createId'
-import addDays from '~utils/date/addDays'
-import getDaysBetween from '~utils/date/getDaysBetween'
 import getLocalDate from '~utils/date/getLocalDate'
 import toCalendarDate from '~utils/date/toCalendarDate'
 
@@ -103,11 +101,11 @@ function ChecklistTable({ userId, isOwn }: Props) {
   // history is read
   const joinedOn = owner ? getLocalDate(new Date(owner.createdAt), timeZone) : today
   const startsOn = [joinedOn, checklist.earliest[0]?.date ?? today, today].sort()[0]!
-  const dayCount = Math.min(getDaysBetween(startsOn, today) + 1, MAX_CHECKLIST_HISTORY_DAYS)
+  const dayCount = Math.min(countCalendarDays(startsOn, today) + 1, MAX_CHECKLIST_HISTORY_DAYS)
   const canExpand = dayCount > COLLAPSED_DAYS
   const isShowingAll = isExpanded && history !== null
   const days = Array.from({ length: isShowingAll ? dayCount : Math.min(COLLAPSED_DAYS, dayCount) }, (_, index) =>
-    addDays(today, -index),
+    addCalendarDays(today, -index),
   )
   const currentYear = today.slice(0, 4)
 

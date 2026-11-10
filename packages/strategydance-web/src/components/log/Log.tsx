@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { useIntl } from 'react-intl'
+import { addCalendarDays } from 'strategydance-core'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useLocalDate from '~hooks/common/useLocalDate'
 import useOrganizationLogWeek from '~hooks/log/useOrganizationLogWeek'
 import useCurrentOrganization from '~hooks/organization/useCurrentOrganization'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
-
-import addDays from '~utils/date/addDays'
 
 import PageSection from '~components/layout/PageSection'
 import LogComposer from '~components/log/LogComposer'
@@ -43,14 +42,14 @@ function Log() {
 
   const olderWeeks = loaded.today === today ? loaded.weeks : []
   const viewerId = viewer?.uid ?? null
-  const newestWeek: Week = { from: addDays(today, -(WEEK_DAYS - 1)), to: today }
+  const newestWeek: Week = { from: addCalendarDays(today, -(WEEK_DAYS - 1)), to: today }
   const { data: newest } = useOrganizationLogWeek({ ...newestWeek, isLive: true })
   const membersById = new Map(team.userOrganizations.map(member => [member.user.id, member]))
   const todayEntry = newest.logEntries.find(entry => entry.user.id === viewerId && entry.date === today) ?? null
   const weeks = [newestWeek, ...olderWeeks]
 
   function loadPrevious(olderDate: string) {
-    setLoaded({ today, weeks: [...olderWeeks, { from: addDays(olderDate, -(WEEK_DAYS - 1)), to: olderDate }] })
+    setLoaded({ today, weeks: [...olderWeeks, { from: addCalendarDays(olderDate, -(WEEK_DAYS - 1)), to: olderDate }] })
   }
 
   if (!organization) return null

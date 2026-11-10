@@ -1,4 +1,5 @@
 import { useIntl } from 'react-intl'
+import { countCalendarDays } from 'strategydance-core'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { CardField } from '~types'
@@ -11,7 +12,6 @@ import useLocalDate from '~hooks/common/useLocalDate'
 
 import formatCardDay from '~utils/buildInPublic/formatCardDay'
 import getChecklistGrid from '~utils/buildInPublic/getChecklistGrid'
-import getDaysBetween from '~utils/date/getDaysBetween'
 import getLocalDate from '~utils/date/getLocalDate'
 import toCalendarDate from '~utils/date/toCalendarDate'
 
@@ -68,7 +68,7 @@ function BuildInPublicChecklist({ settings }: Props) {
 
   const owner = checklist.owner[0] ?? null
   const joinedOn = owner ? getLocalDate(new Date(owner.createdAt)) : today
-  const days = Math.max(1, Math.min(CHECKLIST_WINDOW_DAYS, getDaysBetween(joinedOn, today) + 1))
+  const days = Math.max(1, Math.min(CHECKLIST_WINDOW_DAYS, countCalendarDays(joinedOn, today) + 1))
   // Every tick of the last year, with the last week's the checklist holds, which a tick made since
   // the year was read is in
   const ticks = new Map(items.map(item => [item.id, new Set(item.completions.map(completion => completion.date))]))

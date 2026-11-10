@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from 'react'
+import { addCalendarDays } from 'strategydance-core'
 
 import useAuthentication from '~hooks/authentication/useAuthentication'
 import useChecklist from '~hooks/checklist/useChecklist'
@@ -6,8 +7,6 @@ import useLocalDate from '~hooks/common/useLocalDate'
 import useOrganizationLogWeek from '~hooks/log/useOrganizationLogWeek'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 import useTodayPreferences from '~hooks/today/useTodayPreferences'
-
-import addDays from '~utils/date/addDays'
 
 import Loading from '~components/common/Loading'
 
@@ -32,7 +31,11 @@ function TodayWait({ children }: PropsWithChildren) {
   const { initialLoading: arePreferencesLoading } = useTodayPreferences()
   const { initialLoading: isChecklistLoading } = useChecklist(viewerId)
   const today = useLocalDate()
-  const { initialLoading: isLogLoading } = useOrganizationLogWeek({ from: addDays(today, -6), to: today, isLive: true })
+  const { initialLoading: isLogLoading } = useOrganizationLogWeek({
+    from: addCalendarDays(today, -6),
+    to: today,
+    isLive: true,
+  })
 
   if (isTeamLoading || arePreferencesLoading || isChecklistLoading || isLogLoading) {
     return <Loading source="TodayWait" />

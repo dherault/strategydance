@@ -1,6 +1,6 @@
-import { MAX_STREAK_CHARGES } from '~constants'
+import { addCalendarDays } from 'strategydance-core'
 
-import addDays from '~utils/date/addDays'
+import { MAX_STREAK_CHARGES } from '~constants'
 
 /*
   The streak charges of somebody active on the days given, `YYYY-MM-DD` in any order: how many
@@ -24,7 +24,7 @@ function getStreakCharges(dates: string[], today: string) {
   }
 
   if (first !== null) {
-    for (let date = first; date < today; date = addDays(date, 1)) {
+    for (let date = first; date < today; date = addCalendarDays(date, 1)) {
       if (activeDates.has(date)) {
         count = Math.min(MAX_STREAK_CHARGES, count + 1)
       } else if (count > 0) {

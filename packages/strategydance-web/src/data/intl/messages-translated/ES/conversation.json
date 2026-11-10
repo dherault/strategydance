@@ -341,6 +341,7 @@
   "conversation.toolBadge": "Herramienta",
   "conversation.toolCall": "Llamada a herramienta · {name}",
   "conversation.toolCallLoadError": "No se pudo cargar esta llamada. Comprueba tu conexión e inténtalo de nuevo.",
+  "conversation.toolCallPersonal": "Solo {name} ve lo que esta llamada envió y leyó con su propia cuenta.",
   "conversation.toolError": "Error",
   "conversation.toolInput": "Entrada",
   "conversation.toolOutput": "Salida",

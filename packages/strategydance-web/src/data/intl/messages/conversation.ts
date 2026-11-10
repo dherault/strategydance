@@ -1339,6 +1339,12 @@ const conversationMessages = defineMessages({
     defaultMessage: 'This call could not be loaded. Check your connection and try again.',
     description: 'In the dialog that shows a tool the AI used, when its input and output could not be read.',
   },
+  toolCallPersonal: {
+    id: 'conversation.toolCallPersonal',
+    defaultMessage: 'Only {name} sees what this call sent and read with their own account.',
+    description:
+      "In the dialog that shows an action the AI took in another company's service, in place of what it sent and got back, when another member started the conversation: the AI acted there with that member's own account, so only they see it. {name} is that member's name.",
+  },
   questionWaiting: {
     id: 'conversation.question.waiting',
     defaultMessage: 'Waiting for your answer',

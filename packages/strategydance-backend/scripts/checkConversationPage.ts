@@ -146,6 +146,24 @@ const conversations = {
 const messageIds = new Map(MESSAGE_POSITIONS.map(position => [position, createId()]))
 const membersMessageId = createId()
 
+/*
+  The author's calls to the organization's MCP servers, in a conversation of their own kept out of
+  the dock's, and in a subagent of it: with their own account at an OAuth server, with the
+  organization's key, to a server since pruned, which leaves its name and nulls the server, and an
+  approval to the OAuth one. Only the author reads what a call made with their own account sent and
+  read, and a pruned server's call is taken for one
+*/
+const callsConversationId = createId()
+const callsSubagentId = createId()
+const integrationIds = { oauth: createId(), apiKey: createId() }
+const callIds = {
+  oauth: createId(),
+  apiKey: createId(),
+  pruned: createId(),
+  approval: createId(),
+  subagentOauth: createId(),
+}
+
 // The files the first message sent, uploaded out of the order they are read in: by when they were
 // uploaded, then by id. Two share an instant, so their ids decide. Another member's file is set on
 // the same message too, which no send does, so only the filter keeps it out
@@ -218,6 +236,52 @@ async function setUp() {
     }),
     conversation(conversations.members, memberId, { nextMessagePosition: 1, messageCount: 1 }),
   ])
+  const integration = (id: string, name: string, authentication: string) => ({
+    id,
+    organizationId,
+    name,
+    normalizedName: name.toLowerCase(),
+    url: `https://${name.toLowerCase()}.example.com/mcp`,
+    authentication,
+  })
+
+  await insertMany('OrganizationIntegration', [
+    integration(integrationIds.oauth, 'Linear', 'OAUTH'),
+    integration(integrationIds.apiKey, 'Stripe', 'API_KEY'),
+  ])
+  await insertMany('Conversation', [
+    conversation(callsConversationId, authorId, { nextMessagePosition: 4, messageCount: 4 }),
+    conversation(callsSubagentId, authorId, { parentId: callsConversationId, nextMessagePosition: 1, messageCount: 1 }),
+  ])
+
+  const call = (id: string, conversationId: string, position: number, fields: Variables) => ({
+    id,
+    conversationId,
+    position,
+    kind: 'TOOL_CALL',
+    toolName: 'call_integration_tool',
+    toolStatus: 'SUCCEEDED',
+    toolInput: '{"query":"roadmap"}',
+    toolOutput: '{"issues":[]}',
+    integrationToolName: 'search_issues',
+    ...fields,
+  })
+
+  await insertMany('ConversationMessage', [
+    call(callIds.oauth, callsConversationId, 0, { integrationId: integrationIds.oauth, integrationName: 'Linear' }),
+    call(callIds.apiKey, callsConversationId, 1, { integrationId: integrationIds.apiKey, integrationName: 'Stripe' }),
+    call(callIds.pruned, callsConversationId, 2, { integrationName: 'Notion' }),
+    call(callIds.approval, callsConversationId, 3, {
+      kind: 'APPROVAL',
+      toolStatus: null,
+      toolOutput: null,
+      integrationId: integrationIds.oauth,
+      integrationName: 'Linear',
+      approvalState: 'PENDING',
+    }),
+    call(callIds.subagentOauth, callsSubagentId, 0, { integrationId: integrationIds.oauth, integrationName: 'Linear' }),
+  ])
+
   await insertMany('ConversationMessage', [
     ...MESSAGE_POSITIONS.map(position => ({
       id: messageIds.get(position),
@@ -487,6 +551,45 @@ async function runChecks() {
     'another member reads the call, and nobody outside does',
     othersToolCall.conversationMessages[0]?.toolInput === '{"query":"pricing"}'
       && outsidersToolCall.conversationMessages.length === 0,
+  )
+
+  // Calls to the organization's MCP servers, which the author made with their own account or not
+  const readsCall = async (userId: string, messageId: string) =>
+    (await readAs<ToolCallRead>(userId, 'GetConversationToolCall', { organizationId, messageId }))
+      .conversationMessages[0]?.toolInput === '{"query":"roadmap"}'
+  const personalCallIds = [callIds.oauth, callIds.pruned, callIds.approval, callIds.subagentOauth]
+
+  check(
+    'the author reads every call they made, with their own account at an OAuth server, a subagent of theirs and an approval included',
+    (await Promise.all([...personalCallIds, callIds.apiKey].map(id => readsCall(authorId, id)))).every(Boolean),
+  )
+  check(
+    "another member reads nothing of a call made with the author's own account, a pruned server's included",
+    (await Promise.all(personalCallIds.map(id => readsCall(memberId, id)))).every(isRead => !isRead),
+  )
+  check(
+    "another member reads a call made with the organization's key, and nobody outside does",
+    (await readsCall(memberId, callIds.apiKey)) && !(await readsCall(outsiderId, callIds.apiKey)),
+  )
+
+  type OutputsRead = { conversationMessages: { id: string; toolOutput: string | null }[] }
+
+  const outputsOf = async (userId: string) =>
+    (
+      await readAs<OutputsRead>(userId, 'GetConversationToolOutputs', {
+        organizationId,
+        id: callsConversationId,
+        messageIds: Object.values(callIds),
+      })
+    ).conversationMessages
+      .map(({ id }) => id)
+      .sort()
+
+  check(
+    "the author reads the outputs of their conversation's calls, and another member those made with the organization's key alone",
+    (await outputsOf(authorId)).join() === [callIds.oauth, callIds.apiKey, callIds.pruned].sort().join()
+      && (await outputsOf(memberId)).join() === callIds.apiKey
+      && (await outputsOf(outsiderId)).length === 0,
   )
 
   // The dock's windows, read by their ids

@@ -148,7 +148,7 @@ export, port the styles from `conversations.css` onto the design system's compon
 | Subagents | Strategy Dance's agent hands work off to subagents, runs of its own that carry out a brief it writes, in parallel, and report back, as David chose on 2026-10-12: through the Subagents module, an MCP server of Strategy Dance's that only its own agents reach, in process (M30 to M34). A subagent acts as the member, is one level deep, has every tool the agent has but `ask_user`, the Subagents module's own and, as David chose on 2026-10-16, the two deletes, and takes up to four chained runs. The parent reacts to their reports in a run of its own, the first run no member starts, and never launches from it (see Subagents) |
 | The orchestrator | Later, with no milestones yet: once a day in each organization that turns it on, a run acting as the organization, through an agent membership, reads its documents and tasks, launches subagents, reorganizes what it finds and keeps a log (see The orchestrator). Until then nothing starts without a member, except a parent's reaction to its subagents |
 | The aspect page | Unchanged: no Conversations section and no suggestions in this plan, as David chose on 2026-10-11, since their design will likely change. The agent still tags each conversation's aspects (M23) |
-| Who reads a conversation | Every member of its organization, administrators or not, as David chose on 2026-11-02: the list, the page, the files, the subagents and the search are the team's, and the composer, the answers, Stop, Resume, Retry, Restore, Undo, the aspects, Delete, the dock, the unread count and the badge stay the author's. Until then a conversation was private to its author |
+| Who reads a conversation | Every member of its organization, administrators or not, as David chose on 2026-11-02: the list, the page, the files, the subagents and the search are the team's, and the composer, the answers, Stop, Resume, Retry, Restore, Undo, the aspects, Delete, the dock, the unread count and the badge stay the author's. So do the input and output of a call the agent made with the author's own account at an OAuth server, as David chose on 2026-11-10: another member sees that the call was made, never what it sent or read. Until then a conversation was private to its author |
 | Rollout | Strategy Dance administrators only (`User.isAdministrator`) until the final milestone, M38, opened it to everyone, modules' connections from external agents included |
 | Pull requests | Small, one concern each |
 
@@ -170,7 +170,9 @@ export, port the styles from `conversations.css` onto the design system's compon
   Access. None of them is in the design: all are built from the design system's components.
 - Every member of an organization reads every conversation there, administrators or not, and
   only its author writes in it, as David chose on 2026-11-02; until then only its author saw it.
-  Each organization has its own.
+  A call the agent made with the author's own account at an OAuth server is the exception, as
+  David chose on 2026-11-10: what it sent and read, its input and output, stays the author's, and
+  another member opening it finds a notice in their place. Each organization has its own.
 
 ### The list, `/conversations`
 

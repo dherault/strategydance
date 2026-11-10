@@ -25,6 +25,7 @@ export const MESSAGE_TYPES = [
   'buildInPublic',
   'checklist',
   'conversation',
+  'directory',
   'document',
   'explore',
   'externalMcpServer',

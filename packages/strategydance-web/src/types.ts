@@ -231,6 +231,8 @@ declare module '@tanstack/history' {
     isFromConversationThread?: boolean
     // Whether the Budget page opened the bill, so closing it steps back to the page's entry
     isFromBudgetPage?: boolean
+    // Whether the Directories page opened the directory, so closing it steps back to the page's entry
+    isFromDirectoriesPage?: boolean
   }
 }
 

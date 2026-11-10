@@ -185,17 +185,18 @@ mutation AddOrganizationExploredAspect(
 # The write comes first rather than a separate row lock, because Data Connect runs one write per
 # row in a mutation: a second `organization_update`, aliased or not, silently changes nothing. The
 # write takes the organization's row lock itself, as the lock step of `UpdateOrganizationMemberRole`
-# does, so the checks after it read what a demotion in the same instant committed, and a check
-# that fails rolls the write back
+# does, and the checks after it read its response, so they run as a statement of their own and read
+# what a demotion committed while the lock was waited for, which one statement would miss (CLAUDE.md
+# § The database). A check that fails rolls the write back
 mutation UpdateOrganization($organizationId: UUID!, $name: String!, $color: String, $brief: String, $isPublic: Boolean!)
 @auth(level: USER)
 @transaction {
   organization_update(
     id: $organizationId
     data: { name: $name, color: $color, brief: $brief, isPublic: $isPublic, updatedAt_expr: "request.time" }
-  )
+  ) @check(expr: "this != null", message: "Only a member of an organization can change its settings")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its settings") {
       role
         @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change an organization's settings")
@@ -221,19 +222,26 @@ mutation UpdateOrganization($organizationId: UUID!, $name: String!, $color: Stri
 # The first step touches the organization's row, which takes its lock until the transaction
 # ends, so every change to who administers an organization runs one after the other. Without it
 # two administrators demoting each other at once would each read the other as an administrator
-# and both succeed, leaving none. The one that waited reads after the other commits, since
-# Postgres starts each statement on what is committed by then
+# and both succeed, leaving none. The checks read the lock's response, so they run as a statement
+# of their own once the lock is held, and the one that waited reads what the other committed: one
+# statement reads the snapshot it started with, from before (CLAUDE.md § The database)
 mutation UpdateOrganizationMemberRole($organizationId: UUID!, $userId: String!, $role: OrganizationRole!)
 @auth(level: USER)
 @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change a role in it")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change a role in it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change a role")
     }
     userOrganizations(
-      where: { organizationId: { eq: $organizationId }, role: { eq: ADMINISTRATOR }, userId: { ne: $userId } }
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        role: { eq: ADMINISTRATOR }
+        userId: { ne: $userId }
+      }
       limit: 1
     )
       @check(
@@ -255,15 +263,17 @@ mutation UpdateOrganizationMemberRole($organizationId: UUID!, $userId: String!, 
 # The length is checked here as well as by the form, since the form is not the only possible
 # caller. It sits on the first step's field because an operation takes no `@check` of its own.
 #
-# The organization's row lock comes first, as in `UpdateOrganizationMemberRole`, so an
-# administrator demoted in the same instant cannot still write somebody else's title: whichever
-# runs second reads what the first committed
+# The organization's row lock comes first, as in `UpdateOrganizationMemberRole`, and the check
+# reads its response, so an administrator demoted in the same instant cannot still write somebody
+# else's title: whichever runs second reads what the first committed
 mutation UpdateOrganizationMemberJobTitle($organizationId: UUID!, $userId: String!, $jobTitle: String)
 @auth(level: USER)
 @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can change a job title in it")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change a job title in it") {
       role
         @check(
@@ -339,11 +349,14 @@ mutation UpdateTodayPreferences($organizationId: UUID!, $priorityOrder: [String!
 # It deletes the membership and takes them off the tasks they were doing on the organization's
 # board, which go back to nobody. Nothing else changes, so they can be invited again later, as the
 # page promises. It takes the organization's row lock first, as `UpdateOrganizationMemberRole` does,
-# so two administrators removing each other at once cannot both succeed and leave none
+# and reads the caller's role through its response, once the lock is held, so two administrators
+# removing each other at once cannot both succeed and leave none
 mutation RemoveOrganizationMember($organizationId: UUID!, $userId: String!) @auth(level: USER) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can remove somebody from it")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can remove somebody from it") {
       role
         @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can remove somebody")
@@ -362,12 +375,14 @@ mutation RemoveOrganizationMember($organizationId: UUID!, $userId: String!) @aut
 #
 # Keyed by the address rather than the id, which the team page never reads. Canceling one that
 # was accepted or canceled a moment ago deletes nothing and succeeds, since the outcome is the
-# one asked for. The organization's row lock comes first, so an administrator demoted in the
-# same instant cannot still cancel
+# one asked for. The organization's row lock comes first, and the check reads its response, so an
+# administrator demoted in the same instant cannot still cancel
 mutation DeleteOrganizationInvitation($organizationId: UUID!, $email: String!) @auth(level: USER) @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can cancel an invitation to it")
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can cancel an invitation to it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can cancel an invitation")
     }
@@ -2111,13 +2126,18 @@ mutation UpdateAgentConnectionScopes($userId: String!, $id: UUID!, $scopes: [Str
 # currency the page goes on counting in. Always sent with every variable, written whole over the row,
 # which the first set inserts.
 #
-# The write comes first, the row's lock, so the checks after it read what a demotion in the same
-# instant committed, and a check that fails rolls it back, as in `UpdateOrganization`. An amount is
-# 1 to 10^15 minor units (`MAX_MONEY_MINOR` in strategydance-core). The checks are optional under the
-# membership, so somebody who is no member is told so (CLAUDE.md § The database)
+# The organization's row lock comes first, as every change to who administers it takes it, and the
+# checks after the write read its response, so they run as a statement of their own and read what a
+# demotion in the same instant committed, as in `UpdateOrganization`, and a check that fails rolls
+# the write back. An amount is 1 to 10^15 minor units (`MAX_MONEY_MINOR` in strategydance-core). The
+# checks are optional under the membership, so somebody who is no member is told so (CLAUDE.md § The
+# database)
 mutation SetBudget($organizationId: UUID!, $currency: Currency!, $amountMinor: Int64, $period: BudgetPeriod)
 @auth(level: USER)
 @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can set its budget")
   budget_upsert(
     data: {
       organizationId: $organizationId
@@ -2129,7 +2149,7 @@ mutation SetBudget($organizationId: UUID!, $currency: Currency!, $amountMinor: I
     }
   )
   query @redact {
-    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "auth.uid", organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can set its budget") {
       role
         @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can set the budget", optional: true)

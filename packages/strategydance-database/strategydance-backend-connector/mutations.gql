@@ -9,22 +9,28 @@
 #
 # A team holds at most 100 members and pending invitations together, `MAX_TEAM_SIZE` in
 # strategydance-core. The first step takes the organization's row lock, so the calls for one
-# organization run one after the other and each counts what the one before it committed: a
-# batch, or two administrators inviting at once, cannot slip past the limit together
+# organization run one after the other, and the checks read its response, so they run as a
+# statement of their own once it is held and each counts what the one before it committed, which
+# one statement would miss (CLAUDE.md § The database): a batch, or two administrators inviting at
+# once, cannot slip past the limit together, nor an administrator demoted meanwhile invite
 mutation CreateOrganizationInvitation($organizationId: UUID!, $userId: String!, $email: String!)
 @auth(level: NO_ACCESS)
 @transaction {
-  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" }) @redact
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can invite people to it")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can invite people to it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can invite people")
     }
-    userOrganizations(where: { organizationId: { eq: $organizationId }, user: { email: { eq: $email } } }, limit: 1)
-      @check(expr: "size(this) == 0", message: "The address belongs to a member already", optional: true) {
+    userOrganizations(
+      where: { organizationId: { eq_expr: "response.organization_update.id" }, user: { email: { eq: $email } } }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "The address belongs to a member already", optional: true) {
       userId
     }
-    organization(id: $organizationId)
+    organization(key: { id_expr: "response.organization_update.id" })
       @check(
         expr: "size(this.userOrganizations_on_organization) + size(this.organizationInvitations_on_organization) < 100"
         message: "The team is full"
@@ -101,7 +107,9 @@ mutation DeleteUnsentOrganizationInvitation($id: UUID!, $organizationId: UUID!) 
 # the lock, so two uploads in the same instant can both read the URL the first replaces: the file
 # the second wrote over is then named by neither answer and stays behind. That costs a file, never
 # a row pointing at one that was deleted, since nothing is deleted that an answer did not name.
-# Only the membership is redacted, since the URLs are the answer
+# The administrator is read through the write's response, so the read runs as a statement of its
+# own once the lock is held and sees a demotion committed meanwhile, which one statement would miss
+# (CLAUDE.md § The database). Only the membership is redacted, since the URLs are the answer
 mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoUrl: String, $logoThumbnailUrl: String)
 @auth(level: NO_ACCESS)
 @transaction {
@@ -114,9 +122,9 @@ mutation UpdateOrganizationLogo($organizationId: UUID!, $userId: String!, $logoU
   organization_update(
     id: $organizationId
     data: { logoUrl: $logoUrl, logoThumbnailUrl: $logoThumbnailUrl, updatedAt_expr: "request.time" }
-  )
+  ) @check(expr: "this != null", message: "Only a member of an organization can change its logo")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its logo") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change an organization's logo")
     }
@@ -133,8 +141,9 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
     }
   }
   organization_update(id: $organizationId, data: { bannerUrl: $bannerUrl, updatedAt_expr: "request.time" })
+    @check(expr: "this != null", message: "Only a member of an organization can change its banner")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId: $userId, organizationId_expr: "response.organization_update.id" })
       @check(expr: "this != null", message: "Only a member of an organization can change its banner") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can change an organization's banner")
     }
@@ -152,7 +161,8 @@ mutation UpdateOrganizationBanner($organizationId: UUID!, $userId: String!, $ban
 # administrator acts: Data Connect runs one write per row in a mutation, so a delete after an
 # `organization_update` would find nothing. Demoting or removing the caller writes their
 # membership too: one that has written it commits before the check below reads the member it
-# left, and one that comes after this delete finds nothing. Those take the organization's row
+# left, since the check reads the lock's response and so runs as a statement of its own once the
+# lock is held (CLAUDE.md § The database), and one that comes after this delete finds nothing. Those take the organization's row
 # first, though, the opposite order, so the two landing in the same instant deadlock, and
 # Postgres fails one of the two requests, leaving the other's outcome whole. A consistent order
 # would take a second write to one row, which Data Connect skips. The membership goes with the
@@ -165,9 +175,9 @@ mutation DeleteOrganization($organizationId: UUID!, $userId: String!) @auth(leve
   userOrganization_update(
     key: { userId: $userId, organizationId: $organizationId }
     data: { updatedAt_expr: "request.time" }
-  ) @redact
+  ) @redact @check(expr: "this != null", message: "Only a member of an organization can delete it")
   query @redact {
-    userOrganization(key: { userId: $userId, organizationId: $organizationId })
+    userOrganization(key: { userId_expr: "response.userOrganization_update.userId", organizationId: $organizationId })
       @check(expr: "this != null", message: "Only a member of an organization can delete it") {
       role @check(expr: "this == 'ADMINISTRATOR'", message: "Only an administrator can delete an organization")
     }

@@ -14,8 +14,9 @@ import reconcileSubagentRuns from '~domain/subagents/reconcileSubagentRuns'
   subagent runs in the organization reconciled (`reconcileSubagentRuns`), its own subagents' and every
   other parent's, since any of them holds one of the member's five slots, then the conversation's
   reaction to its subagents' reports started when one is due, which the member's runs held back, or
-  its reports marked delivered when it is full. Answers `missing` unless the conversation is the
-  caller's, in that organization, not deleted and no subagent itself, which no member action reaches
+  its reports marked delivered when it is full, though the reconcile failed, which it throws after.
+  Answers `missing` unless the conversation is the caller's, in that organization, not deleted and
+  no subagent itself, which no member action reaches
 */
 async function reconcileConversationSubagents({
   organizationId,
@@ -35,13 +36,23 @@ async function reconcileConversationSubagents({
     return { outcome: 'missing' as const }
   }
 
-  await reconcileSubagentRuns({ organizationId, userId })
+  // A failed reconcile holds back no reaction: the reaction starts all the same, and the failure is
+  // thrown after it, for the route to report
+  let failure: { error: unknown } | null = null
+
+  try {
+    await reconcileSubagentRuns({ organizationId, userId })
+  } catch (error) {
+    failure = { error }
+  }
 
   try {
     await reactToSubagentReports({ organizationId, userId, conversationId })
   } catch (error) {
     logger.warn(`Conversation ${conversationId}: its reaction to its subagents' reports could not start`, error)
   }
+
+  if (failure) throw failure.error
 
   return { outcome: 'reconciled' as const }
 }

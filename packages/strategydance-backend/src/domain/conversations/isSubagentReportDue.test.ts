@@ -65,6 +65,17 @@ describe('isSubagentReportDue', () => {
     expect(isSubagentReportDue({ ...BASE, usage: requests(25) })).toBe(true)
   })
 
+  test('counts only the requests that reached Claude, never the attempts its API refused', () => {
+    const refused = () => request({ model: null, stopReason: 'error', inputTokens: 0, outputTokens: 0 })
+    const requests = (count: number) => ({
+      requests: [refused(), refused(), ...Array.from({ length: count }, () => request()), refused()],
+      byModel: {},
+    })
+
+    expect(isSubagentReportDue({ ...BASE, usage: requests(23) })).toBe(false)
+    expect(isSubagentReportDue({ ...BASE, usage: requests(24) })).toBe(true)
+  })
+
   test('is due under two minutes before its ten', () => {
     expect(isSubagentReportDue({ ...BASE, startedAt: minutesAgo(7.9) })).toBe(false)
     expect(isSubagentReportDue({ ...BASE, startedAt: minutesAgo(8) })).toBe(true)

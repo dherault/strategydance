@@ -724,6 +724,21 @@ describe('runConversation', () => {
     ])
   })
 
+  test('charges a stream that failed partway on an error of no API what it reported using, rather than its worst case', async () => {
+    const reference = await start()
+    const scripted = createClient([
+      { started: answer([], { inputTokens: 5000, outputTokens: 1 }), error: new TypeError('terminated') },
+      answer(),
+    ])
+
+    expect(await runConversation(reference, { client: scripted.client, retryDelayMs: 1 })).toBe('finished')
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+    expect(readUsage(reference).requests).toMatchObject([
+      { inputTokens: 5000, outputTokens: 1, stopReason: 'error', isEstimated: true, isSettled: true },
+      { inputTokens: 1000, outputTokens: 50, isSettled: true, isEstimated: false },
+    ])
+  })
+
   test('sends again a request whose stream sent an overload before its message started, never one past it', async () => {
     // As the SDK throws an `error` event of the stream: a bare APIError, its type the API's
     const overloaded = () =>
@@ -909,6 +924,44 @@ describe('runConversation', () => {
     expect(readRun(reference)).toMatchObject({ status: 'FAILED', failure: 'The run sent its 2 requests' })
     expect(readEntries(reference)).toHaveLength(1)
     expect(readThread(reference).at(-1)).toMatchObject({ kind: 'NOTE', noteKind: 'FAILED' })
+  })
+
+  test('counts toward its requests only those that reached Claude, so attempts refused before them leave it its last', async () => {
+    const reference = await start()
+    const paused = () =>
+      answer([{ type: 'text', text: 'Still looking.', citations: null }], { stopReason: 'pause_turn' })
+    const scripted = createClient([
+      new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+      new Anthropic.RateLimitError(429, { type: 'rate_limit_error' }, 'Rate limited', new Headers()),
+      paused(),
+      paused(),
+      answer(),
+    ])
+
+    expect(
+      await runConversation(reference, { client: scripted.client, apiRetryDelayMs: 1, limits: { maxRequests: 3 } }),
+    ).toBe('finished')
+    expect(scripted.requests).toHaveLength(5)
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+    expect(readThread(reference).at(-1)).toMatchObject({ kind: 'AGENT_TEXT', text: REPLY })
+  })
+
+  test('sends none past its requests that reached Claude, the attempts refused before them aside', async () => {
+    const reference = await start()
+    const paused = () =>
+      answer([{ type: 'text', text: 'Still looking.', citations: null }], { stopReason: 'pause_turn' })
+    const scripted = createClient([
+      new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+      paused(),
+      paused(),
+      paused(),
+    ])
+
+    expect(
+      await runConversation(reference, { client: scripted.client, apiRetryDelayMs: 1, limits: { maxRequests: 2 } }),
+    ).toBe('finished')
+    expect(scripted.requests).toHaveLength(3)
+    expect(readRun(reference)).toMatchObject({ status: 'FAILED', failure: 'The run sent its 2 requests' })
   })
 
   test('sends no request once its minutes since it was first claimed have gone, a worker taking it over included', async () => {
@@ -1157,6 +1210,29 @@ describe('runConversation', () => {
     expect(await runConversation(reference, { client: scripted.client, retryDelayMs: 0 })).toBe('finished')
     expect(scripted.requests).toHaveLength(1)
     expect(readRun(reference)?.status).toBe('COMPLETED')
+  })
+
+  test('stores its turn once though the read after Claude answered it fails, without asking Claude again', async () => {
+    const reference = await start()
+    const scripted = createClient()
+    let isFailed = false
+
+    // The step's read right after the answer, which the turn it holds waits on
+    fake.beforeOperation = async name => {
+      if (name === 'GetConversationRunContext' && scripted.requests.length === 1 && !isFailed) {
+        isFailed = true
+
+        throw new Error('The database is unreachable')
+      }
+    }
+
+    expect(await runConversation(reference, { client: scripted.client, retryDelayMs: 0 })).toBe('finished')
+    expect(isFailed).toBe(true)
+    expect(scripted.requests).toHaveLength(1)
+    expect(readRun(reference)?.status).toBe('COMPLETED')
+    expect(readEntries(reference).map(({ role }) => role)).toEqual(['USER', 'SYSTEM', 'ASSISTANT'])
+    expect(readThread(reference).filter(({ kind }) => kind === 'AGENT_TEXT')).toHaveLength(1)
+    expect(readUsage(reference).requests).toMatchObject([{ inputTokens: 1000, isSettled: true, isEstimated: false }])
   })
 
   test('claims a run once when two workers are told of it at once', async () => {

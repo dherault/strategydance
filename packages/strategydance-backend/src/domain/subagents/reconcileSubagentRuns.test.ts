@@ -349,6 +349,33 @@ describe('reconcileConversationSubagents', () => {
       outcome: 'missing',
     })
   })
+  test('starts the reaction due though the member’s subagent runs could not be reconciled, then throws', async () => {
+    const parent = await kit.start()
+
+    await kit.call('finishConversationRun', { ...(await kit.claim(parent)), status: 'COMPLETED' })
+
+    const subagent = await kit.launch(parent)
+
+    await kit.call('finishSubagentRun', { ...(await kit.claim(subagent)), status: 'COMPLETED', report: 'Done.' })
+
+    let isFailed = false
+
+    // The reconcile's first read
+    fake.beforeOperation = async name => {
+      if (name === 'GetSubagentSlots' && !isFailed) {
+        isFailed = true
+
+        throw new Error('The database is unreachable')
+      }
+    }
+
+    await expect(reconcileConversationSubagents({ ...MEMBER, conversationId: parent.conversationId })).rejects.toThrow(
+      'The database is unreachable',
+    )
+    expect(
+      [...fake.runs.values()].filter(run => run.conversationId === parent.conversationId && run.trigger === 'REPORTS'),
+    ).toHaveLength(1)
+  })
 })
 
 // A reference no run has, for a test whose own is missing

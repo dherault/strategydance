@@ -1,7 +1,5 @@
-import { randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
 
-import { toCanonicalUuid } from 'strategydance-core'
 import { completeBillReceiptUpload, reserveBillReceiptForAgent } from 'strategydance-database/backend'
 
 import type { ModuleCaller } from '~types'
@@ -9,6 +7,7 @@ import type { ModuleCaller } from '~types'
 import { dataConnect } from '~firebase'
 
 import buildBillReceiptObjectName from '~utils/buildBillReceiptObjectName'
+import createId from '~utils/createId'
 
 import billReceiptStorage from '~domain/budget/billReceiptStorage'
 import type { AgentBillReceiptFile } from '~domain/budget/readAgentBillReceipt'
@@ -31,7 +30,7 @@ async function writeAgentBillReceipt(
   caller: ModuleCaller,
   { name, contentType, bytes }: AgentBillReceiptFile,
 ): Promise<WriteAgentBillReceiptResult> {
-  const receiptId = toCanonicalUuid(randomUUID())
+  const receiptId = createId()
   const reference = { organizationId: caller.organizationId, userId: caller.userId, receiptId }
 
   try {

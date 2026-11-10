@@ -1,6 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
-import { toCanonicalUuid } from 'strategydance-core'
 import { completeBillReceiptUpload, reserveAttachmentBillReceiptForAgent } from 'strategydance-database/backend'
 
 import type { ModuleCaller } from '~types'
@@ -8,6 +5,7 @@ import type { ModuleCaller } from '~types'
 import { dataConnect } from '~firebase'
 
 import buildBillReceiptObjectName from '~utils/buildBillReceiptObjectName'
+import createId from '~utils/createId'
 
 import billReceiptStorage from '~domain/budget/billReceiptStorage'
 import { ATTACHMENT_REFUSAL } from '~domain/budget/budgetRefusalMessages'
@@ -32,7 +30,7 @@ async function copyConversationBillReceipt(
   caller: ModuleCaller,
   file: ConversationBillReceiptFile,
 ): Promise<CopyConversationBillReceiptResult> {
-  const receiptId = toCanonicalUuid(randomUUID())
+  const receiptId = createId()
   const reference = { organizationId: caller.organizationId, userId: caller.userId, receiptId }
 
   try {

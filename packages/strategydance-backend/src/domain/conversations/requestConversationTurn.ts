@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import Anthropic from '@anthropic-ai/sdk'
 import type { BetaContentBlock, BetaMessage } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import { MAX_CONVERSATION_INPUT_TOKENS } from 'strategydance-core'
@@ -18,6 +16,7 @@ import { CONVERSATION_API_MAX_RETRY_DELAY_MS, MAX_CONVERSATION_API_RETRIES } fro
 
 import { dataConnect } from '~firebase'
 
+import createId from '~utils/createId'
 import logger from '~utils/logger'
 
 import buildConversationContext, { type ConversationContext } from '~domain/agent/buildConversationContext'
@@ -669,10 +668,6 @@ function logRequest(runId: string, index: number, message: BetaMessage) {
       `Conversation run ${runId}: request ${index}'s input was changed by the API: ${JSON.stringify(message.input_transformations)}`,
     )
   }
-}
-
-function createId() {
-  return randomUUID().replaceAll('-', '')
 }
 
 export default requestConversationTurn

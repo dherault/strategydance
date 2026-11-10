@@ -1,11 +1,11 @@
-import { randomUUID } from 'node:crypto'
-
-import { getPositionBetween, MAX_TASKS, toCanonicalUuid } from 'strategydance-core'
+import { getPositionBetween, MAX_TASKS } from 'strategydance-core'
 import { type CompanyAspect, createTaskForAgent, TaskStatus } from 'strategydance-database/backend'
 
 import type { ModuleCall, ModuleCaller, TaskAssignee, TasksWriteResult } from '~types'
 
 import { dataConnect } from '~firebase'
+
+import createId from '~utils/createId'
 
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
 import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
@@ -72,7 +72,7 @@ async function createTask(
   if (read.board.tasks.length >= MAX_TASKS) return { outcome: 'full' }
 
   const column = read.board.tasks.filter(task => task.status === status).sort(compareTaskPlaces)
-  const id = toCanonicalUuid(randomUUID())
+  const id = createId()
   const result = { id, name, status, assignee: toTaskAssignee(assignment) }
 
   try {

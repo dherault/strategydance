@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { setTimeout as wait } from 'node:timers/promises'
 
 import type { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages'
@@ -52,6 +51,7 @@ import {
 
 import { dataConnect } from '~firebase'
 
+import createId from '~utils/createId'
 import logger from '~utils/logger'
 
 import type { ConversationRequestConfig } from '~domain/agent/buildConversationRequest'
@@ -663,7 +663,7 @@ async function takeStep({
       await lease.write(() =>
         storeConversationToolResults(dataConnect, {
           ...fence,
-          entryId: randomUUID().replaceAll('-', ''),
+          entryId: createId(),
           position: entry.position + 1,
           content: serializeTranscriptContent(content),
           ...(isReanchored && { anchorPosition: entry.position + 1 }),

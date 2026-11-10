@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { MAX_ACTIVE_RUNS_PER_MEMBER } from 'strategydance-core'
 import {
   ConversationRunStatus,
@@ -13,6 +11,8 @@ import type { ConversationRunReference, ReachedUsageCap } from '~types'
 import { IS_USAGE_CAPPED } from '~constants'
 
 import { dataConnect } from '~firebase'
+
+import createId from '~utils/createId'
 
 import buildKeptConversationPreview from '~domain/conversations/buildKeptConversationPreview'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
@@ -137,7 +137,7 @@ async function resumeConversationRun(reference: ConversationRunReference): Promi
 
     if (cap) return { outcome: 'capped', cap }
 
-    const resumingRunId = randomUUID().replaceAll('-', '')
+    const resumingRunId = createId()
 
     try {
       await resumeConversationRunMutation(dataConnect, {

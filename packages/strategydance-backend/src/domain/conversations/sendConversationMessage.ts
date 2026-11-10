@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import {
   buildConversationPreview,
   buildConversationTitle,
@@ -25,6 +23,8 @@ import type { ConversationContentBlock, ReachedUsageCap } from '~types'
 import { IS_USAGE_CAPPED } from '~constants'
 
 import { dataConnect } from '~firebase'
+
+import createId from '~utils/createId'
 
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
 import buildConversationFileNames from '~domain/agent/buildConversationFileNames'
@@ -243,7 +243,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       ),
       ...(input.text ? [{ type: 'text', text: input.text }] : []),
     ]
-    const runId = randomUUID().replaceAll('-', '')
+    const runId = createId()
     const message = {
       organizationId,
       userId,

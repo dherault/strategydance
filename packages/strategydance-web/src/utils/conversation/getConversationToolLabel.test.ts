@@ -43,6 +43,7 @@ describe('getConversationToolLabel', () => {
       ['list_knowledge', 'Browsing the knowledge', 'Browsed the knowledge'],
       ['read_knowledge', 'Reading the knowledge', 'Read the knowledge'],
       ['set_knowledge_in_use', 'Marking what the company uses', 'Marked what the company uses'],
+      ['set_directory_status', 'Updating a directory’s status', 'Updated a directory’s status'],
       ['link_knowledge', 'Linking knowledge', 'Linked knowledge'],
       ['unlink_knowledge', 'Unlinking knowledge', 'Unlinked knowledge'],
     ] as const

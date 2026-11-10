@@ -316,6 +316,8 @@
   "conversation.tool.restoreTask.running": "Aufgabe wird wiederhergestellt",
   "conversation.tool.searchDocuments.done": "Dokumente durchsucht",
   "conversation.tool.searchDocuments.running": "Dokumente durchsuchen",
+  "conversation.tool.setDirectoryStatus.done": "Status eines Verzeichnisses aktualisiert",
+  "conversation.tool.setDirectoryStatus.running": "Aktualisiert den Status eines Verzeichnisses",
   "conversation.tool.setKnowledgeInUse.done": "Nutzung durch das Unternehmen markiert",
   "conversation.tool.setKnowledgeInUse.running": "Markiert, was das Unternehmen nutzt",
   "conversation.tool.stopSubagent.done": "Subagent gestoppt",

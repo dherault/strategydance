@@ -9659,9 +9659,9 @@ mutation ReserveAttachmentBillReceiptForAgent(
 # Each runs as one transaction that checks the membership the module read, then, when the call
 # carries an idempotency key (`$isKeyed`), inserts its `ModuleCallResult`, `$result` being what the
 # module answers, and only then writes, as the Tasks module's writes do. The module calls one only
-# when it changes something: a flag it holds already, a link there already and one that is not are
-# answered from its read, writing nothing. No live query reads these tables, since no page shows them
-# yet, and none records an `ActivityDay`
+# when it changes something: a flag or a status it holds already, a link there already and one that
+# is not are answered from its read, writing nothing. The directories' page reads a directory's
+# status and notes live, so the writes of those join its refreshes. None records an `ActivityDay`
 
 # Marks an item in use, or no longer, for the member the agent acts as. Keeps the row when the flag
 # goes back to false, so an item the company stopped using is told apart from one it never tried
@@ -9715,6 +9715,71 @@ mutation SetKnowledgeInUseForAgent(
       kind: $kind
       itemId: $itemId
       isInUse: $isInUse
+      changedAt_expr: "request.time"
+      changedById: $userId
+    }
+  )
+}
+
+# Sets where the organization stands with a directory, for the member the agent acts as: submitted
+# to, listed or dismissed, or, null, back to do, `isInUse` following it, true exactly while it is
+# submitted or listed. Keeps the row when it goes back to do, as `SetKnowledgeInUseForAgent` does
+mutation SetDirectoryStatusForAgent(
+  $organizationId: UUID!
+  $userId: String!
+  $membershipCreatedAt: Timestamp!
+  $itemId: String!
+  $directoryStatus: DirectoryStatus
+  $isInUse: Boolean!
+  $isKeyed: Boolean!
+  $idempotencyScope: String!
+  $idempotencyKey: String!
+  $tool: String!
+  $argumentsHash: String!
+  $result: String!
+  $expiresAt: Timestamp
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq: $userId }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+        @check(
+          expr: "!vars.isKeyed || (size(vars.idempotencyKey) >= 1 && size(vars.idempotencyKey) <= 200)"
+          message: "An idempotency key is 1 to 200 characters"
+          optional: true
+        )
+        @check(
+          expr: "vars.isInUse == (has(vars.directoryStatus) && vars.directoryStatus != null && (vars.directoryStatus == 'SUBMITTED' || vars.directoryStatus == 'LISTED'))"
+          message: "A directory is in use exactly while it is submitted or listed"
+          optional: true
+        )
+    }
+  }
+  moduleCallResult_insert(
+    data: {
+      idempotencyScope: $idempotencyScope
+      idempotencyKey: $idempotencyKey
+      userId: $userId
+      organizationId: $organizationId
+      tool: $tool
+      argumentsHash: $argumentsHash
+      result: $result
+      expiresAt: $expiresAt
+    }
+  ) @include(if: $isKeyed)
+  knowledgeUse_upsert(
+    data: {
+      organizationId: $organizationId
+      kind: DIRECTORY
+      itemId: $itemId
+      isInUse: $isInUse
+      directoryStatus: $directoryStatus
       changedAt_expr: "request.time"
       changedById: $userId
     }

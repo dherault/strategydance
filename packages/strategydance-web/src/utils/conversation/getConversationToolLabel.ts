@@ -134,6 +134,13 @@ const TOOL_LABELS = new Map<string, { running: MessageDescriptor; done: MessageD
     },
   ],
   [
+    'set_directory_status',
+    {
+      running: conversationMessages.toolSetDirectoryStatusRunning,
+      done: conversationMessages.toolSetDirectoryStatusDone,
+    },
+  ],
+  [
     'link_knowledge',
     { running: conversationMessages.toolLinkKnowledgeRunning, done: conversationMessages.toolLinkKnowledgeDone },
   ],

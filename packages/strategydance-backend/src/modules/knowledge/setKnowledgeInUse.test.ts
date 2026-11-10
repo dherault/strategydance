@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test'
 
-import { INACTIVE_DIRECTORIES, MARKETING_TACTICS, STRATEGIC_FRAMEWORKS } from 'strategydance-knowledge'
+import { DIRECTORIES, MARKETING_TACTICS, STRATEGIC_FRAMEWORKS } from 'strategydance-knowledge'
 
 import createModuleDatabaseFake from '~domain/modules/testing/createModuleDatabaseFake'
 
@@ -104,12 +104,13 @@ describe('set_knowledge_in_use', () => {
     expect(fake.knowledgeUses).toEqual([])
   })
 
-  it('marks a directory that takes no submission today, which the company may have submitted to before', async () => {
+  it('refuses a directory, which takes a status instead, writing nothing', async () => {
     const kit = await organization.connect()
-    const directory = INACTIVE_DIRECTORIES[0]!.id
 
-    await kit.answer('set_knowledge_in_use', { kind: 'DIRECTORY', id: directory, inUse: true })
-
-    expect(fake.knowledgeUses).toMatchObject([{ kind: 'DIRECTORY', itemId: directory, isInUse: true }])
+    expect(
+      await kit.refusal('set_knowledge_in_use', { kind: 'DIRECTORY', id: DIRECTORIES[0]!.id, inUse: true }),
+    ).toContain('set_directory_status')
+    expect(writes()).toEqual([])
+    expect(fake.knowledgeUses).toEqual([])
   })
 })

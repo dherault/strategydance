@@ -1,4 +1,4 @@
-import { KnowledgeKind } from 'strategydance-core'
+import { DirectoryStatus, KnowledgeKind } from 'strategydance-core'
 
 import type { FakeDocument } from '~domain/documents/testing/createDocumentsDatabaseFake'
 import type { AnyVariables, ModuleDatabaseFakeBase } from '~domain/modules/testing/createModuleDatabaseFakeBase'
@@ -261,6 +261,7 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
   }
 
   base.sdk.KnowledgeKind = KnowledgeKind
+  base.sdk.DirectoryStatus = DirectoryStatus
 
   base.addOperations({
     GetKnowledgeUsesForAgent: variables => ({
@@ -423,6 +424,50 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
         knowledgeUse_upsert: {
           organizationId: id(variables.organizationId),
           kind: variables.kind,
+          itemId: variables.itemId,
+        },
+      }
+    },
+  })
+
+  base.addOperations({
+    SetDirectoryStatusForAgent: variables => {
+      if (!isMember(variables)) refuse('The caller is no longer a member of the organization')
+
+      checkKey(variables)
+
+      const status = variables.directoryStatus ?? null
+
+      if (Boolean(variables.isInUse) !== (status === 'SUBMITTED' || status === 'LISTED')) {
+        refuse('A directory is in use exactly while it is submitted or listed')
+      }
+
+      insertResult(variables)
+      storeResult(variables)
+
+      const key = { organizationId: variables.organizationId, kind: 'DIRECTORY', itemId: variables.itemId }
+      const use = findUse(key, variables.itemId)
+      const fields = {
+        isInUse: Boolean(variables.isInUse),
+        directoryStatus: status,
+        changedAt: stamp(),
+        changedById: String(variables.userId),
+      }
+
+      if (use) Object.assign(use, fields)
+      else {
+        insertUse({
+          organizationId: String(variables.organizationId),
+          kind: 'DIRECTORY',
+          itemId: String(variables.itemId),
+          ...fields,
+        })
+      }
+
+      return {
+        knowledgeUse_upsert: {
+          organizationId: id(variables.organizationId),
+          kind: 'DIRECTORY',
           itemId: variables.itemId,
         },
       }

@@ -793,6 +793,8 @@ export type KnowledgeRefusal =
   | { outcome: 'otherKindFilter'; filter: 'categories' | 'businessModels' }
   /** An id the release's catalogue does not hold for the kind */
   | { outcome: 'unknownItem'; kind: KnowledgeKind; id: string }
+  /** A directory marked in use, which takes a status instead */
+  | { outcome: 'directoryTakesStatus' }
   /** A link or an unlink naming no target, or more than one */
   | { outcome: 'noTarget' }
   /** A document the organization does not hold, or deleted */

@@ -174,11 +174,12 @@ describe('the modules’ servers', () => {
     ])
   })
 
-  it('lists the five tools of the Knowledge module, reads first', async () => {
+  it('lists the six tools of the Knowledge module, reads first', async () => {
     expect(await listToolNames(['knowledge'])).toEqual([
       'list_knowledge',
       'read_knowledge',
       'set_knowledge_in_use',
+      'set_directory_status',
       'link_knowledge',
       'unlink_knowledge',
     ])
@@ -216,7 +217,7 @@ describe('the modules’ servers', () => {
       tasks: '42af7d60ae8bda104e93d5006c5f81540f7c6c194ed3f9d1bd2602b107894444',
       budget: '1003a23a2c4385f0588f07509474fd8daad83b5acdc07fbbd373f5cbbcc383d4',
       subagents: '57bbfc8a19b3603dcd0933af96ae8e0ef012fd21b04b1a1b4f454ff2bd6a6aa4',
-      knowledge: '01338cc9b7950e64ce464ba96144cde428959f5caf628c09f8b3e6b643c6c621',
+      knowledge: 'ae3f9aa11f3f9e3b92e84823cef1344b4f5f4aa58f0c34eb72f3cee5d37c7378',
     })
   })
 })

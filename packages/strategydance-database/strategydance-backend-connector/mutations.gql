@@ -5872,6 +5872,14 @@ mutation FoldDocumentForAgent(
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The document was folded, deleted or closed to agents since it was read")
+  # The row read back once its write holds its lock, whose response the reads after it take, so
+  # every step runs as a statement of its own and sees what was committed while the lock was waited
+  # for, which one statement would miss (CLAUDE.md § The database)
+  locked: query @redact {
+    document(id: $id) {
+      id
+    }
+  }
   # A mutation takes one query step, and the pending updates have to be read once the row above is
   # locked, so the membership and the variables are checked here too, after the writes before it:
   # a refusal rolls them back all the same
@@ -5902,14 +5910,17 @@ mutation FoldDocumentForAgent(
     # The title as committed, which a title this fold writes replaces: a document keeps a title or
     # some text, so an edit emptying the text of an untitled one is refused, a rename blanking the
     # title at the same moment included
-    document(id: $id) {
+    document(key: { id_expr: "response.locked.document.id" }) {
       title
         @check(
           expr: "vars.content != '' || ((has(vars.title) && vars.title != null) ? vars.title.matches('[[:^space:]]') : this.matches('[[:^space:]]'))"
           message: "A document keeps a title or some text"
         )
     }
-    pending: documentUpdates(where: { documentId: { eq: $id }, id: { nin: $updateIds } }, limit: 1)
+    pending: documentUpdates(
+      where: { documentId: { eq_expr: "response.locked.document.id" }, id: { nin: $updateIds } }
+      limit: 1
+    )
       @check(
         expr: "!vars.isWholeReplacement || size(this) == 0"
         message: "The document was edited since it was read"
@@ -6000,6 +6011,14 @@ mutation FoldDocumentWithRevisionForAgent(
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The document was folded, deleted or closed to agents since it was read")
+  # The row read back once its write holds its lock, whose response the reads after it take, so
+  # every step runs as a statement of its own and sees what was committed while the lock was waited
+  # for, which one statement would miss (CLAUDE.md § The database)
+  locked: query @redact {
+    document(id: $id) {
+      id
+    }
+  }
   documentRevision_insert(
     data: {
       documentId: $id
@@ -6046,14 +6065,17 @@ mutation FoldDocumentWithRevisionForAgent(
     # The title as committed, which a title this fold writes replaces: a document keeps a title or
     # some text, so an edit emptying the text of an untitled one is refused, a rename blanking the
     # title at the same moment included
-    document(id: $id) {
+    document(key: { id_expr: "response.locked.document.id" }) {
       title
         @check(
           expr: "vars.content != '' || ((has(vars.title) && vars.title != null) ? vars.title.matches('[[:^space:]]') : this.matches('[[:^space:]]'))"
           message: "A document keeps a title or some text"
         )
     }
-    pending: documentUpdates(where: { documentId: { eq: $id }, id: { nin: $updateIds } }, limit: 1)
+    pending: documentUpdates(
+      where: { documentId: { eq_expr: "response.locked.document.id" }, id: { nin: $updateIds } }
+      limit: 1
+    )
       @check(
         expr: "!vars.isWholeReplacement || size(this) == 0"
         message: "The document was edited since it was read"
@@ -6106,6 +6128,14 @@ mutation RestoreDocumentRevision(
       updatedAt_expr: "request.time"
     }
   ) @check(expr: "this == 1", message: "The document was folded or deleted since it was read")
+  # The row read back once its write holds its lock, whose response the reads after it take, so
+  # every step runs as a statement of its own and sees what was committed while the lock was waited
+  # for, which one statement would miss (CLAUDE.md § The database)
+  locked: query @redact {
+    document(id: $id) {
+      id
+    }
+  }
   documentRevision_insert(
     data: {
       id: $revisionId
@@ -6136,15 +6166,17 @@ mutation RestoreDocumentRevision(
           message: "A revision holds at most 2000000 characters of state and 200000 of content"
         )
     }
-    document(id: $id) {
+    document(key: { id_expr: "response.locked.document.id" }) {
       title
         @check(
           expr: "vars.content != '' || this.matches('[[:^space:]]')"
           message: "A document keeps a title or some text"
         )
     }
-    pending: documentUpdates(where: { documentId: { eq: $id }, id: { nin: $updateIds } }, limit: 1)
-      @check(expr: "!vars.isUndo || size(this) == 0", message: "The document was edited since it was read") {
+    pending: documentUpdates(
+      where: { documentId: { eq_expr: "response.locked.document.id" }, id: { nin: $updateIds } }
+      limit: 1
+    ) @check(expr: "!vars.isUndo || size(this) == 0", message: "The document was edited since it was read") {
       id
     }
   }
@@ -6192,6 +6224,14 @@ mutation RenameDocumentForAgent(
     }
     data: { title: $title, updatedAt_expr: "request.time" }
   ) @check(expr: "this == 1", message: "The document was deleted or closed to agents since it was read")
+  # The row read back once its write holds its lock, whose response the reads after it take, so
+  # every step runs as a statement of its own and sees what was committed while the lock was waited
+  # for, which one statement would miss (CLAUDE.md § The database)
+  locked: query @redact {
+    document(id: $id) {
+      id
+    }
+  }
   query @redact {
     membership: userOrganizations(
       where: {
@@ -6212,7 +6252,7 @@ mutation RenameDocumentForAgent(
         )
     }
     # The text as committed, which this mutation does not write
-    document(id: $id)
+    document(key: { id_expr: "response.locked.document.id" })
       @check(
         expr: "vars.title.matches('[[:^space:]]') || this.content != '' || size(this.documentUpdates_on_document) > 0"
         message: "A document keeps a title or some text"

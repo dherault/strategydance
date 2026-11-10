@@ -3,23 +3,27 @@ import { parseArgs } from 'node:util'
 import holdEnqueuedRuns from './conversationRaces/holdEnqueuedRuns'
 
 /*
-  Races the bounds conversations' runs keep against a real Postgres, where writers side by side
-  meet as they do in production, which the person's emulator never lets them:
+  Races the bounds conversations' runs keep, and those other mutations keep under a lock, against a
+  real Postgres, where writers side by side meet as they do in production, which the person's
+  emulator never lets them:
 
     bun run check:conversation-races [--rounds <n>] [--scenario <name>]…
 
-  The package's script serves Data Connect on a throwaway Postgres for it (`withPostgresEmulators.ts`).
-  Each scenario releases the backend's own domain functions at once, the writers a member's actions
-  and the worker run, on fixtures of their own, many rounds over, then reads what they left: one run
-  per conversation, three in flight, five subagent slots, a promotion into each slot freed, a report
-  delivered once, a cascade reaching a launch, and a suspension reaching a send. A round that fails
-  prints the interleaving of the operations each writer ran, and a scenario whose writers never
-  waited on each other's locks, or that Postgres found deadlocked, fails too. It exits non-zero
-  naming each scenario that failed.
+  The package's script serves Data Connect on a throwaway Postgres for it
+  (`withPostgresEmulators.ts`). Each scenario releases the backend's own domain functions at once,
+  the writers a member's actions and the worker run, or the page's operations as a member's token
+  sends them, on fixtures of their own, many rounds over, then reads what they left: one run per
+  conversation, three in flight, five subagent slots, a promotion into each slot freed, a report
+  delivered once, a cascade reaching a launch, a suspension reaching a send, an administrator left
+  after two act on each other, two tasks linked one way, a checklist started once, and the caps of a
+  board and a checklist. A round that fails prints the interleaving of the operations each writer
+  ran, and a scenario whose writers never waited on each other's locks, or that Postgres found
+  deadlocked, fails too. It exits non-zero naming each scenario that failed.
 
   Runs stay where their start left them, since the race drives a worker's steps itself where it
   means to (`holdEnqueuedRuns`). It never runs in CI, which runs no emulators: run it before a release
-  that changes a run's mutations, as `probe:claude` runs before one that changes a request
+  that changes a run's mutations, or one a scenario races, as `probe:claude` runs before one that
+  changes a request
 */
 if (!process.env.RACES_POSTGRES_CONTAINER || !process.env.DATA_CONNECT_EMULATOR_HOST) {
   console.error('This races against a Postgres of its own: run `bun run check:conversation-races`')

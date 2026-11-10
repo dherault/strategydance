@@ -13,6 +13,8 @@ import {
   startConversation,
 } from 'strategydance-database/backend'
 
+import type { ModuleCaller } from '~types'
+
 import { FIREBASE_PROJECT_ID } from '~constants'
 
 import { dataConnect } from '~firebase'
@@ -34,7 +36,7 @@ const checkId = createId().slice(0, 8)
 const organizationIds: string[] = []
 const userIds: string[] = []
 
-async function write(query: string, variables: Variables = {}) {
+export async function write(query: string, variables: Variables = {}) {
   await dataConnect.executeGraphql(query, { variables })
 }
 
@@ -81,6 +83,83 @@ export async function createMember(scenario: string, round: number): Promise<Mem
   if (!data.userOrganization) throw new Error(`${userId} is not a member`)
 
   return { organizationId, userId, membershipCreatedAt: data.userOrganization.createdAt }
+}
+
+export type Role = 'ADMINISTRATOR' | 'MEMBER'
+
+/*
+  An organization of its own made for one round of one scenario, with a member of each role named,
+  in that order, each signed up as `createMember`'s is
+*/
+export async function createTeam(scenario: string, round: number, roles: Role[]) {
+  const organizationId = createId()
+  const teamUserIds = roles.map((_, index) => `race-${checkId}-${scenario}-${round}-${index + 1}`)
+
+  userIds.push(...teamUserIds)
+  organizationIds.push(organizationId)
+
+  for (const userId of teamUserIds) {
+    await webConnector.executeMutation(
+      'CreateCurrentUser',
+      { locale: 'EN', authenticationProviders: [] },
+      { impersonate: { authClaims: { sub: userId, email: `${userId}@example.com` } } },
+    )
+  }
+
+  await write(
+    `mutation SetUp($organizationId: UUID!) {
+      organization_insert(data: { id: $organizationId, name: "Raced organization" })
+    }`,
+    { organizationId },
+  )
+
+  const members: Member[] = []
+
+  for (const [index, userId] of teamUserIds.entries()) {
+    await write(
+      `mutation Join($organizationId: UUID!, $userId: String!, $role: OrganizationRole!) {
+        userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: $role })
+      }`,
+      { organizationId, userId, role: roles[index] },
+    )
+
+    const data = await read<{ userOrganization: { createdAt: string } | null }>(
+      `query ReadMembership($organizationId: UUID!, $userId: String!) {
+        userOrganization(key: { userId: $userId, organizationId: $organizationId }) { createdAt }
+      }`,
+      { organizationId, userId },
+    )
+
+    if (!data.userOrganization) throw new Error(`${userId} is not a member`)
+
+    members.push({ organizationId, userId, membershipCreatedAt: data.userOrganization.createdAt })
+  }
+
+  return { organizationId, members }
+}
+
+// The member as Strategy Dance's agent acts for them through a module, with no launcher, which no
+// write a race makes reads
+export function asAgent(member: Member): ModuleCaller {
+  return {
+    kind: 'agent',
+    userId: member.userId,
+    organizationId: member.organizationId,
+    membershipCreatedAt: member.membershipCreatedAt,
+    scopes: [],
+    idempotencyScope: `race-${checkId}`,
+  }
+}
+
+// Rows written as they are, a hundred to a mutation, the most a list takes
+export async function insertRows(table: string, rows: Variables[]) {
+  const field = `${table.charAt(0).toLowerCase()}${table.slice(1)}_insertMany`
+
+  for (let start = 0; start < rows.length; start += 100) {
+    await write(`mutation Insert($rows: [${table}_Data!]!) { ${field}(data: $rows) }`, {
+      rows: rows.slice(start, start + 100),
+    })
+  }
 }
 
 export async function tearDown() {

@@ -9662,15 +9662,17 @@ mutation ReserveBillReceiptForAgent(
   )
 }
 
-# Reserves a receipt Strategy Dance's agent names by a file the member sent in a conversation, before
-# the file is copied under it, as `ReserveBillReceiptForAgent` reserves one handed over in base64: its
-# row, `UPLOADING`, under an id the module made, so its file is never without its row, the
-# membership the module read matched on its `createdAt` first. The copy carries no bytes in a call's
-# body, so its size is the page's `MAX_BILL_RECEIPT_SIZE` at most rather than the agent's, and the
-# query step holds the reservation to the member's own file, stored and sent in `$conversationId`, of
-# the name, type and size the module read, so nothing else is reserved that large. It writes no
-# `ModuleCallResult`: the bill's write holds the call's key, and a receipt a retry leaves held by
-# nothing is pruned by the daily sweep
+# Reserves a receipt Strategy Dance's agent names by a file the member sent in a conversation,
+# before the file is copied under it, as `ReserveBillReceiptForAgent` reserves one handed over in
+# base64: its row, `UPLOADING`, under an id the module made, so its file is never without its row,
+# the membership the module read locked first and matched on its `createdAt` through the lock's
+# response, which runs every step as a statement of its own, so the membership and the file are read
+# as they stand once the lock is held (CLAUDE.md § The database). The copy carries no bytes in a
+# call's body, so its size is the page's `MAX_BILL_RECEIPT_SIZE` at most rather than the agent's,
+# and the query step holds the reservation to the member's own file, stored and sent in
+# `$conversationId`, of the name, type and size the module read, so nothing else is reserved that
+# large. It writes no `ModuleCallResult`: the bill's write holds the call's key, and a receipt a
+# retry leaves held by nothing is pruned by the daily sweep
 mutation ReserveAttachmentBillReceiptForAgent(
   $organizationId: UUID!
   $userId: String!
@@ -9682,17 +9684,27 @@ mutation ReserveAttachmentBillReceiptForAgent(
   $contentType: String!
   $size: Int!
 ) @auth(level: NO_ACCESS) @transaction {
-  userOrganization_updateMany(
-    where: { userId: { eq: $userId }, organizationId: { eq: $organizationId }, createdAt: { eq: $membershipCreatedAt } }
+  userOrganization_update(
+    key: { userId: $userId, organizationId: $organizationId }
     data: { updatedAt_expr: "request.time" }
   )
     @redact
-    @check(expr: "this == 1", message: "The caller is no longer a member of the organization")
+    @check(expr: "this != null", message: "The caller is no longer a member of the organization")
     @check(
       expr: "size(vars.name) >= 1 && size(vars.name) <= 200 && vars.name.matches('^[^\\r\\n]*$') && vars.size >= 1 && vars.size <= 10485760 && vars.contentType in ['application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'image/jpeg', 'image/png', 'image/webp']"
       message: "A receipt has a name on one line of at most 200 characters, a type a bill takes, and at most 10 MiB"
     )
   query @redact {
+    membership: userOrganizations(
+      where: {
+        userId: { eq_expr: "response.userOrganization_update.userId" }
+        organizationId: { eq: $organizationId }
+        createdAt: { eq: $membershipCreatedAt }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 1", message: "The caller is no longer a member of the organization") {
+      userId
+    }
     conversationAttachments(
       where: {
         id: { eq: $attachmentId }

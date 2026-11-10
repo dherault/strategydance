@@ -13,6 +13,7 @@ import findPassedSpendCeilings from '~domain/conversations/findPassedSpendCeilin
 import findReachedUsageCap from '~domain/conversations/findReachedUsageCap'
 import { priceRequestWorstCase } from '~domain/conversations/priceConversationUsage'
 import readSpendCeilingFreedAt from '~domain/conversations/readSpendCeilingFreedAt'
+import toSpendSums from '~domain/conversations/toSpendSums'
 
 /*
   The input every request of a run sends at least, its system prompt and its tools, which the least
@@ -67,9 +68,8 @@ async function readReachedUsageCap(
 
   if (!spend) return cap
 
-  const read = (sum: { costBound_sum?: string | null }[]) => Number(sum[0]?.costBound_sum ?? 0)
   const [passed, ...alsoPassed] = findPassedSpendCeilings(
-    { member: read(spend.data.member), account: read(spend.data.account), organization: read(spend.data.organization) },
+    toSpendSums(spend.data),
     DAILY_SPEND_CEILINGS,
     readLeastRequestCost(isSubagent),
   )

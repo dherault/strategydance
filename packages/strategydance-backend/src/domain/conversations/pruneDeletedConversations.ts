@@ -45,25 +45,28 @@ const MAX_DURATION_MS = 5 * 60 * 1000
   subagent's files are its parent's, which go with it. A subagent is claimed only once no run holds
   it, and a parent still holding a subagent, claimed or not, is kept for the next sweep. A conversation whose files could not all be
   deleted is kept, still claimed, and every claimed conversation is deleted, whichever sweep claimed
-  it, so a sweep that failed after claiming is finished by the next. Answers how many it claimed and
-  deleted, and how many files and module call results went with them
+  it, so a sweep that failed after claiming is finished by the next. What it keeps, a subagent or a
+  conversation, it reads past, so a batch of them never hides those behind it. Answers how many it
+  claimed and deleted, and how many files and module call results went with them
 */
 async function pruneDeletedConversations() {
   const { data: claim } = await claimDeletedConversations(dataConnect)
   let deleted = 0
   let deletedFiles = 0
   let deletedResults = 0
-  // The conversations whose files could not all be deleted, left claimed for the next sweep
+  // The subagents that could not be pruned, and the conversations whose files could not all be
+  // deleted or whose subagents are still there, left claimed for the next sweep
+  const keptSubagents = new Set<string>()
   const kept = new Set<string>()
 
   const deadline = Date.now() + MAX_DURATION_MS
 
   while (Date.now() < deadline) {
-    const { data } = await getClaimedSubagents(dataConnect)
+    const { data } = await getClaimedSubagents(dataConnect, { skippedIds: [...keptSubagents] })
     const byParent = new Map<string, string[]>()
 
     for (const { id, parentId } of data.conversations) {
-      if (!parentId || kept.has(id)) continue
+      if (!parentId) continue
 
       byParent.set(parentId, [...(byParent.get(parentId) ?? []), id])
     }
@@ -86,7 +89,7 @@ async function pruneDeletedConversations() {
           error,
         )
 
-        for (const id of ids) kept.add(id)
+        for (const id of ids) keptSubagents.add(id)
       }
     }
 
@@ -94,7 +97,7 @@ async function pruneDeletedConversations() {
   }
 
   while (Date.now() < deadline) {
-    const { data } = await getClaimedConversations(dataConnect)
+    const { data } = await getClaimedConversations(dataConnect, { skippedIds: [...kept] })
     const ids: string[] = []
     const { data: holding } = await getConversationsWithSubagents(dataConnect, {
       ids: data.conversations.map(({ id }) => id),
@@ -118,21 +121,22 @@ async function pruneDeletedConversations() {
       }
     }
 
-    if (!ids.length) break
+    // A batch it kept whole is read past, as the next batch leaves it out
+    if (ids.length) {
+      const { data: results } = await deleteConversationModuleCallResults(dataConnect, {
+        scopes: ids.map(toConversationModuleScope),
+      })
+      const { data: deletion } = await deleteClaimedConversations(dataConnect, { ids })
 
-    const { data: results } = await deleteConversationModuleCallResults(dataConnect, {
-      scopes: ids.map(toConversationModuleScope),
-    })
-    const { data: deletion } = await deleteClaimedConversations(dataConnect, { ids })
-
-    deletedResults += results.moduleCallResult_deleteMany
-    deleted += deletion.conversation_deleteMany
+      deletedResults += results.moduleCallResult_deleteMany
+      deleted += deletion.conversation_deleteMany
+    }
 
     if (data.conversations.length < BATCH_SIZE) break
   }
 
   logger.info(
-    `Swept deleted conversations: ${claim.conversation_updateMany} claimed, ${deleted} deleted with ${deletedFiles} files and ${deletedResults} module call results, ${kept.size} kept`,
+    `Swept deleted conversations: ${claim.conversation_updateMany} claimed, ${deleted} deleted with ${deletedFiles} files and ${deletedResults} module call results, ${keptSubagents.size + kept.size} kept`,
   )
 
   return { claimed: claim.conversation_updateMany, deleted, deletedFiles, deletedResults }

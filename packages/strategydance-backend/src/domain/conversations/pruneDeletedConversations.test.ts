@@ -65,10 +65,9 @@ async function start(userId: string, deletedHoursAgo: number | null) {
   return conversationId
 }
 
-// A conversation deleted two days ago, written straight into its table
-function insertDeleted() {
-  const conversationId = createId()
-
+// A conversation deleted two days ago, written straight into its table, a subagent of the parent
+// given, and answers its id
+function insertDeleted(parentId: string | null = null, conversationId = createId()) {
   fake.conversations.set(conversationId, {
     id: conversationId,
     userId: AUTHOR,
@@ -85,7 +84,10 @@ function insertDeleted() {
     deletedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
     pruneClaimedAt: null,
     updatedAt: new Date().toISOString(),
+    parentId,
   })
+
+  return conversationId
 }
 
 // Whether anything of a conversation is left, the rows that cascade from it included
@@ -279,6 +281,46 @@ describe('pruneDeletedConversations', () => {
 
     expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 1, deletedFiles: 0, deletedResults: 0 })
     expect(isLeft(old)).toBe(false)
+  })
+
+  test('reads past twenty conversations it keeps, deleting those behind them, and finishes them the next sweep', async () => {
+    for (let count = 0; count < 25; count++) insertDeleted()
+
+    // The first twenty read, whose folders cannot be deleted
+    storage.failures.deleteFolder = Array.from({ length: 20 }, () => new Error('Storage is down'))
+
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 25, deleted: 5, deletedFiles: 0, deletedResults: 0 })
+    expect(fake.conversations.size).toBe(20)
+    expect([...fake.conversations.values()].every(({ pruneClaimedAt }) => pruneClaimedAt !== null)).toBe(true)
+
+    expect(await pruneDeletedConversations()).toEqual({ claimed: 0, deleted: 20, deletedFiles: 0, deletedResults: 0 })
+    expect(fake.conversations.size).toBe(0)
+  })
+
+  test('reads past the hundred subagents of a parent it keeps, pruning those behind them and their parent', async () => {
+    // The kept parent's subagents read first, as their parent sorts first
+    const [keptParent, prunedParent] = [createId(), createId()].sort()
+
+    if (!keptParent || !prunedParent) throw new Error('No parents')
+
+    insertDeleted(null, keptParent)
+    insertDeleted(null, prunedParent)
+
+    for (let count = 0; count < 100; count++) insertDeleted(keptParent)
+
+    const pruned = insertDeleted(prunedParent)
+
+    fake.beforeOperation = async (name, variables) => {
+      if (name === 'PruneClaimedSubagents' && variables.parentId === keptParent) {
+        throw new Error('The subagents changed since the prune read them')
+      }
+    }
+
+    expect(await pruneDeletedConversations()).toMatchObject({ claimed: 103, deleted: 2 })
+    expect(fake.conversations.has(pruned)).toBe(false)
+    expect(fake.conversations.has(prunedParent)).toBe(false)
+    expect(fake.conversations.has(keptParent)).toBe(true)
+    expect([...fake.conversations.values()].filter(({ parentId }) => parentId === keptParent)).toHaveLength(100)
   })
 
   test('deletes twenty at a time', async () => {

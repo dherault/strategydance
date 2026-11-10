@@ -1406,6 +1406,12 @@ async function checkSweeping() {
       && !claimedIds.includes(recent)
       && !claimedIds.includes(restoredFirst),
   )
+  check(
+    'the claimed conversations read leave out those the sweep kept',
+    !(await getClaimedConversations(dataConnect, { skippedIds: [old] })).data.conversations.some(
+      ({ id }) => id === old,
+    ),
+  )
 
   // What the agent's module calls stored under a conversation's scope, which goes before it
   const insertResult = (scope: string) =>

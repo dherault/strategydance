@@ -769,9 +769,14 @@ query GetConversationRunStop($organizationId: UUID!, $userId: String!, $conversa
 # which it deletes next. Only those still deleted over a day ago, as the delete takes them. Twenty
 # at a time, since each holds up to 2000 messages, which go with it. Its author and organization say
 # which of the files uploaded under its id are its own
-query GetClaimedConversations @auth(level: NO_ACCESS) {
+query GetClaimedConversations(
+  # The conversations the sweep kept, which it reads past, so twenty it keeps never hide the rest.
+  # Optional: left out, nothing is skipped
+  $skippedIds: [UUID!]
+) @auth(level: NO_ACCESS) {
   conversations(
     where: {
+      id: { nin: $skippedIds }
       pruneClaimedAt: { isNull: false }
       deletedAt: { lt_time: { now: true, sub: { days: 1 } } }
       parentId: { isNull: true }
@@ -788,9 +793,14 @@ query GetClaimedConversations @auth(level: NO_ACCESS) {
 # any parent, each parent's together, its own `subagentCount` lowered by as many. Only those still
 # deleted over a day ago, as the delete takes them. A hundred at a time, a parent's most, since a
 # subagent's thread is a few hundred messages at most
-query GetClaimedSubagents @auth(level: NO_ACCESS) {
+query GetClaimedSubagents(
+  # The subagents the sweep kept, which it reads past, so a parent's hundred it keeps never hide the
+  # rest. Optional: left out, nothing is skipped
+  $skippedIds: [UUID!]
+) @auth(level: NO_ACCESS) {
   conversations(
     where: {
+      id: { nin: $skippedIds }
       pruneClaimedAt: { isNull: false }
       deletedAt: { lt_time: { now: true, sub: { days: 1 } } }
       parentId: { isNull: false }

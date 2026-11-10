@@ -2045,6 +2045,12 @@ async function checkCascades() {
     claimed.includes(idleSubagent.conversationId) && !claimed.includes(busySubagent.conversationId),
   )
   check(
+    'the claimed subagents read leave out those the sweep kept',
+    !(await getClaimedSubagents(dataConnect, { skippedIds: [idleSubagent.conversationId] })).data.conversations.some(
+      ({ id }) => id === idleSubagent.conversationId,
+    ),
+  )
+  check(
     'the claimed conversations a prune deletes leave the subagents out',
     !(await getClaimedConversations(dataConnect)).data.conversations.some(
       ({ id }) => id === idleSubagent.conversationId,

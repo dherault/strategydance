@@ -1,6 +1,7 @@
 {
   "directory.allDoneText": "申請済みのものを確認し、掲載が開始されているかチェックしましょう。",
   "directory.allDoneTitle": "すべてのディレクトリにステータスが設定されています",
+  "directory.allEmptyTitle": "表示するディレクトリはまだありません",
   "directory.allTab": "すべて",
   "directory.allTypes": "すべての種別",
   "directory.categories": "カテゴリー",

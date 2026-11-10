@@ -1,6 +1,7 @@
 {
   "directory.allDoneText": "查看已提交的平台，了解哪些现已收录。",
   "directory.allDoneTitle": "所有平台均已标记状态",
+  "directory.allEmptyTitle": "暂无目录可显示",
   "directory.allTab": "全部",
   "directory.allTypes": "所有类型",
   "directory.categories": "分类",

@@ -20,7 +20,7 @@ const TITLES = {
   submitted: directoryMessages.submittedEmptyTitle,
   listed: directoryMessages.listedEmptyTitle,
   dismissed: directoryMessages.dismissedEmptyTitle,
-  all: directoryMessages.noMatchTitle,
+  all: directoryMessages.allEmptyTitle,
 } as const
 
 type Props = {

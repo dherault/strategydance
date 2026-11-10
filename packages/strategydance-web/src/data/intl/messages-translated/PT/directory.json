@@ -1,6 +1,7 @@
 {
   "directory.allDoneText": "Verifique os enviados para ver quais já estão listados.",
   "directory.allDoneTitle": "Todos os diretórios têm um status",
+  "directory.allEmptyTitle": "Nenhum diretório para exibir ainda",
   "directory.allTab": "Todos",
   "directory.allTypes": "Todos os tipos",
   "directory.categories": "Categorias",

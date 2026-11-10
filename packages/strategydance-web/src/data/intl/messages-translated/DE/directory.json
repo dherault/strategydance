@@ -1,6 +1,7 @@
 {
   "directory.allDoneText": "Prüfen Sie die eingereichten Verzeichnisse, um zu sehen, welche mittlerweile online sind.",
   "directory.allDoneTitle": "Jedes Verzeichnis hat einen Status",
+  "directory.allEmptyTitle": "Noch keine Verzeichnisse vorhanden",
   "directory.allTab": "Alle",
   "directory.allTypes": "Alle Typen",
   "directory.categories": "Kategorien",

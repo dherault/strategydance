@@ -1,6 +1,7 @@
 {
   "directory.allDoneText": "Consultez les annuaires soumis pour voir lesquels sont désormais référencés.",
   "directory.allDoneTitle": "Chaque annuaire a un statut",
+  "directory.allEmptyTitle": "Aucun répertoire à afficher pour le moment",
   "directory.allTab": "Tous",
   "directory.allTypes": "Tous les types",
   "directory.categories": "Catégories",

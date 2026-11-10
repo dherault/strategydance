@@ -287,6 +287,11 @@ const directoryMessages = defineMessages({
     defaultMessage: 'No dismissed directories yet',
     description: 'Title of the Dismissed tab of the Directories page while the company has dismissed none.',
   },
+  allEmptyTitle: {
+    id: 'directory.allEmptyTitle',
+    defaultMessage: 'No directories to show yet',
+    description: 'Title of the All tab of the Directories page while there is no directory at all to list.',
+  },
   emptyText: {
     id: 'directory.emptyText',
     defaultMessage: 'Open a directory to set its status.',

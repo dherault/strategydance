@@ -1942,10 +1942,10 @@ address from modules-address.md's M2:
     held it, starting as asked on a first consent, and on consenting again as the connection holds
     it, raised to what was asked at a module's own address but only offered at the one address,
     where a module not held starts not allowed and Budget's write unchosen unless asked for and
-    held; for every organization ticked, Allow staying off while no module is allowed. Never the
-    client's logo, which would load an address of its choosing. Allow and Deny call `POST
-    /oauth/requests/:requestId/approve` and `…/deny`, with the member's ID token and App Check, as
-    every route the app calls.
+    held, the option asked for marked wherever a module starts below it; for every organization
+    ticked, Allow staying off while no module is allowed. Never the client's logo, which would load
+    an address of its choosing. Allow and Deny call `POST /oauth/requests/:requestId/approve` and
+    `…/deny`, with the member's ID token and App Check, as every route the app calls.
   - Allow and Deny each decide the request under `@check(this == 1)` on a request still undecided
     and unexpired, so a double submit, or an Allow racing a Deny, decides it once: the loser is
     refused, and a denied request is never approved after. Deny decides it alone; Allow decides it

@@ -86,8 +86,8 @@ below) changed two, as each says:
     consent or through Access. A first consent starts each module as asked.
   - So widening is the member's own choice on the page. A write's challenge, or a client asking
     for a module the connection lacks, finds it offered and unchosen, as Budget's write always has
-    been: an Allow left as the page starts it grants nothing new, and the agent's next call asks
-    again.
+    been, the option the agent asked for marked "Asked for" so the member sees why it sent them. An
+    Allow left as the page starts it grants nothing new, and the agent's next call asks again.
 - **The tools follow the access.**
   - A connection lists the tools of each module it holds the read scope of, and none of a module it
     does not: a member who left Budget out finds no bill tool in their agent.
@@ -265,7 +265,8 @@ same milestone.
     when not. Consenting again chooses each module as the connection it replaces holds it, its write
     kept when held even if not asked for, and a module not held not allowed, what was asked beyond
     it offered (Decisions, since the review of 2026-11-10). Budget's write starts chosen only when
-    the request asks for it and the connection held it. Every module the page grants is shown with
+    the request asks for it and the connection held it. Wherever a module starts below what the
+    agent asked for, that option is marked "Asked for". Every module the page grants is shown with
     its access, held ones included, so nothing is granted out of the member's sight.
   - The organizations are ticked once for every module, as today.
   - Allow stays off while no module is allowed. "Not allowed" is offered only beside another module,
@@ -630,14 +631,19 @@ to its connection at every call, and no operation or column removed, so the rele
 at Data Connect. It changed:
 - the consent's defaults, so consenting again starts as the connection holds and grants nothing
   more unless the member chooses it (Decisions). A first version kept a write held at read at read
-  alone, and its review found a module left out still starting chosen;
-- the instructions, which name the modules a connection is not allowed in (Instructions);
+  alone, and its review found a module left out still starting chosen. A second review found the
+  page never said what the agent had asked for, so an Allow left as it started granted nothing and
+  the agent asked again: the asked option is now marked;
+- the instructions, which name the modules a connection is not allowed in, by the connection's
+  scopes rather than the token's (Instructions);
 - `check:oauth`, which walks an Allow granting nothing asked for, only what was held, its code
   issuing nothing asked for that was not granted;
 - this document, which says what one set of organizations costs, writes M4 and lists what the
   release owes.
 
 It kept, having weighed them again:
+- a connection per client, so a client that registers again, under a new id, makes a connection of
+  its own, its consent a first one: no client identity outlives a registration;
 - what a connection holds as the record of the member's choices, rather than a column of the scopes
   they declined: starting as held protects every narrowing, at the cost of a click on each widening,
   and a record of intent waits until that click proves costly;

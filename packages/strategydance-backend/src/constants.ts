@@ -52,6 +52,10 @@ export const DAILY_SPEND_CEILINGS: Record<UsageCapScope, number> = {
   organization: MAX_DAILY_SPEND_MICRODOLLARS_PER_ORGANIZATION,
 }
 
+// Whose spend the ceilings hold, in the order they are gone through: the member's in the
+// organization, the account's across its organizations, then the organization's
+export const SPEND_CEILING_SCOPES: readonly UsageCapScope[] = ['member', 'account', 'organization']
+
 /*
   Whether a member starts or continues a run only once their ID token says their address is
   confirmed (`verifiedEmailMiddleware`): an account costs nothing to make, and the daily caps'

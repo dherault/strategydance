@@ -1,6 +1,6 @@
 import type { UsageCapScope } from '~types'
 
-const SCOPES: UsageCapScope[] = ['member', 'account', 'organization']
+import { SPEND_CEILING_SCOPES } from '~constants'
 
 /*
   How much more may be spent today before a daily spend ceiling is passed, in microdollars, and
@@ -11,7 +11,7 @@ const SCOPES: UsageCapScope[] = ['member', 'account', 'organization']
 function findSpendRoom(spent: Record<UsageCapScope, number>, ceilings: Record<UsageCapScope, number>) {
   let tightest: { scope: UsageCapScope; room: number } | null = null
 
-  for (const scope of SCOPES) {
+  for (const scope of SPEND_CEILING_SCOPES) {
     const room = ceilings[scope] - spent[scope]
 
     if (!tightest || room < tightest.room) tightest = { scope, room }

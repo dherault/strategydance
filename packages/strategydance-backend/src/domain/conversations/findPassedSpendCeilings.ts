@@ -1,6 +1,6 @@
 import type { UsageCapScope } from '~types'
 
-const SCOPES: UsageCapScope[] = ['member', 'account', 'organization']
+import { SPEND_CEILING_SCOPES } from '~constants'
 
 /*
   A daily spend ceiling something would pass: whose, its value, how much would have to leave the
@@ -21,7 +21,7 @@ function findPassedSpendCeilings(
   cost: number,
   counted: Record<UsageCapScope, number> = spent,
 ): PassedSpendCeiling[] {
-  return SCOPES.flatMap(scope => {
+  return SPEND_CEILING_SCOPES.flatMap(scope => {
     const need = spent[scope] + cost - ceilings[scope]
 
     return need > 0 ? [{ scope, max: ceilings[scope], need, counted: counted[scope] }] : []

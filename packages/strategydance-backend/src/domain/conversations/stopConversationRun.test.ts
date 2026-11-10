@@ -163,6 +163,25 @@ describe('stopConversationRun', () => {
     expect(readReactions(parent)).toHaveLength(1)
   })
 
+  test('fails the stop of a run that died when its subagents could not be asked to stop, its reaction started all the same', async () => {
+    const { parent, others } = await holdReaction()
+    const [dead] = others
+
+    if (!dead) throw new Error('No other run started')
+
+    await claim(dead)
+    expireLease(dead)
+
+    // Nothing asked them before, so the member hears of it
+    fake.beforeOperation = async name => {
+      if (name === 'RequestConversationSubagentsStop') throw new Error('The database is unreachable')
+    }
+
+    await expect(stopConversationRun(dead)).rejects.toThrow('The database is unreachable')
+    expect(readRun(dead)?.status).toBe('INTERRUPTED')
+    expect(readReactions(parent)).toHaveLength(1)
+  })
+
   test('answers a stopped run stopped though its subagents could not be stopped after it, and starts the reaction it held back', async () => {
     const { parent, others } = await holdReaction()
     const [queued] = others

@@ -228,7 +228,7 @@ the endpoints, the metadata, the authorization server, the consent and the sweep
 
 ## Knowledge
 
-- Strategy Dance's agent and its subagents reach the module, all five tools each, since none
+- Strategy Dance's agent and its subagents reach the module, all seven tools each, since none
   deletes what anybody wrote. No external agent does: `/mcp/knowledge` stays reserved, as the
   Subagents module's address is, until a later plan serves it
 - The catalogue is strategydance-knowledge's lists as the release ships them, read when the backend
@@ -240,6 +240,9 @@ the endpoints, the metadata, the authorization server, the consent and the sweep
   or unlinked, and every read leaves the others out, their totals too
 - A write keeps its result before it runs, so its target is read first, and what would change
   nothing writes nothing
+- A directory takes a status, never `set_knowledge_in_use`, its `isInUse` written in step, and its
+  notes are replaced only under the version a read gave, guarded on the note's `updatedAt`, since
+  the directories' page writes both too
 - Tests run on `createKnowledgeDatabaseFake`, and `bun run check:knowledge-module` checks the
   operations
 

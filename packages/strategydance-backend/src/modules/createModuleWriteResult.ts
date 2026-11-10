@@ -12,12 +12,13 @@ type ModuleWriteResult<Result, Refusal> =
   A module's `to<Module>WriteResult`, what its write tools answer: the write's result, the same
   whether it ran now, was answered from its idempotency key or changed nothing, with the web address
   of what it wrote for an external caller where the module has one, read afresh rather than stored,
-  or the refusal worded for the model through the module's own refusal
+  or the refusal worded for the model through the module's own refusal. A module whose results carry
+  no address says so with null, so one that has them cannot leave theirs out unawares
 */
 function createModuleWriteResult<Refusal extends { outcome: string }>(toRefusal: (refusal: Refusal) => CallToolResult) {
   return async <Result extends { id: string }>(
     written: ModuleWriteResult<Result, Refusal>,
-    toAddress: ((id: string) => Promise<string | undefined>) | null = null,
+    toAddress: ((id: string) => Promise<string | undefined>) | null,
   ) => {
     // Only an answer carries a result, which no refusal does
     if (!('result' in written)) return toRefusal(written)

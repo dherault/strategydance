@@ -1,6 +1,6 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
-
 import respondOAuthError from '~utils/respondOAuthError'
+
+import createRateLimit from '~middleware/createRateLimit'
 
 /*
   The token endpoint, metered: 600 requests per address in ten minutes, before the form is read, so
@@ -9,12 +9,10 @@ import respondOAuthError from '~utils/respondOAuthError'
   a few addresses for all of them: revisit it with the launch. Counted in the instance's memory, as
   the backend's other limits are
 */
-const oauthTokenRateLimitMiddleware = rateLimit({
+const oauthTokenRateLimitMiddleware = createRateLimit({
   windowMs: 10 * 60 * 1000,
   limit: 600,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  keyGenerator: request => ipKeyGenerator(request.ip ?? ''),
+  key: 'address',
   handler: (_request, response) => {
     respondOAuthError(response, 429, 'too_many_requests', 'Too many token requests from this address, try again later')
   },

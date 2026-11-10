@@ -1,11 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
+
 import type { ReachedModuleOrganization } from '~types'
 
 // A UUID, with or without its dashes, in either case
 const UUID_PATTERN = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i
-
-function toComparableId(id: string) {
-  return id.replaceAll('-', '').toLowerCase()
-}
 
 /*
   The organization an external agent's call names in `organization`, among those its connection
@@ -14,11 +12,11 @@ function toComparableId(id: string) {
   so a client holding an older list of tools never acts where it did not mean to
 */
 function resolveModuleOrganization(organizations: readonly ReachedModuleOrganization[], named: string) {
-  const id = UUID_PATTERN.test(named) ? toComparableId(named) : null
+  const id = UUID_PATTERN.test(named) ? toCanonicalUuid(named) : null
 
   return (
     organizations.find(
-      ({ segment, organizationId }) => segment === named || (id !== null && toComparableId(organizationId) === id),
+      ({ segment, organizationId }) => segment === named || (id !== null && toCanonicalUuid(organizationId) === id),
     ) ?? null
   )
 }

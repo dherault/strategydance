@@ -9,7 +9,6 @@ import {
   ConversationRunStatus,
   ConversationTranscriptRole,
   getConversationRequestContext,
-  getConversationRunStop,
   recordConversationRunUsage,
 } from 'strategydance-database/backend'
 
@@ -51,6 +50,7 @@ import createConversationRequestSignal from '~domain/conversations/createConvers
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import type { ConversationRunEnding, ConversationSpendCeilingEnding } from '~domain/conversations/endConversationRun'
 import findPassedSpendCeilings from '~domain/conversations/findPassedSpendCeilings'
+import isConversationRunStopRequested from '~domain/conversations/isConversationRunStopRequested'
 import {
   priceConversationUsageBound,
   priceCutRequestBound,
@@ -367,7 +367,7 @@ async function requestConversationTurn({
     const request = createConversationRequestSignal({
       signal,
       deadline: Date.parse(startedAt) + limits.streamDeadlineMs,
-      isStopRequested: () => isStopRequested(fence),
+      isStopRequested: () => isConversationRunStopRequested(fence),
       stopCheckIntervalMs,
     })
 
@@ -613,7 +613,7 @@ async function waitUnlessStopped(
   const waiting = createConversationRequestSignal({
     signal,
     deadline: Date.now() + delayMs,
-    isStopRequested: () => isStopRequested(fence),
+    isStopRequested: () => isConversationRunStopRequested(fence),
     stopCheckIntervalMs,
   })
 
@@ -630,14 +630,7 @@ async function waitUnlessStopped(
   signal.throwIfAborted()
 
   // A stop asked for since the poller last read is read once more
-  return waiting.readReason() === 'stopped' || (await isStopRequested(fence)) ? 'stopped' : 'waited'
-}
-
-// Whether the run's member asked to stop it
-async function isStopRequested(fence: ConversationRunFence) {
-  const { data } = await getConversationRunStop(dataConnect, toReference(fence))
-
-  return Boolean(data.conversationRuns[0]?.stopRequestedAt)
+  return waiting.readReason() === 'stopped' || (await isConversationRunStopRequested(fence)) ? 'stopped' : 'waited'
 }
 
 // Writes the ledger with a failed request settled, best effort: the step fails or waits either way,
@@ -680,11 +673,6 @@ function logRequest(runId: string, index: number, message: BetaMessage) {
 
 function createId() {
   return randomUUID().replaceAll('-', '')
-}
-
-// The run's keys alone, which a read takes
-function toReference({ organizationId, userId, conversationId, runId }: ConversationRunFence) {
-  return { organizationId, userId, conversationId, runId }
 }
 
 export default requestConversationTurn

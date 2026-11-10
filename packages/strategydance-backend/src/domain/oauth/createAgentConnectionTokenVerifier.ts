@@ -6,6 +6,7 @@ import type { ModuleAccess } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import checkModuleScopes from '~domain/oauth/checkModuleScopes'
 import createAgentConnectionUseRecorder from '~domain/oauth/createAgentConnectionUseRecorder'
 import hashOAuthToken from '~domain/oauth/hashOAuthToken'
 import parseModuleResource from '~domain/oauth/parseModuleResource'
@@ -20,8 +21,11 @@ import toModuleAuthInfo from '~modules/toModuleAuthInfo'
   refresh token, with its connection and the member's memberships. A token issued for another
   module's address is refused, so a token for one module never opens another. The connection acts
   in the organizations it reaches (`readAgentConnectionReach`), so one the member left, or left and
-  rejoined, drops out at its next call, and a connection reaching none is refused. A token that
-  passes marks its connection used, at most once a minute.
+  rejoined, drops out at its next call, and a connection reaching none is refused. So is a token
+  that reads no module its connection still holds, as one a refresh narrowed to Tasks is once the
+  member narrows the connection to Documents: refused as invalid, its client refreshes, which
+  issues what the connection holds, rather than ask the member to consent again, as a challenge
+  would have it. A token that passes marks its connection used, at most once a minute.
 
   It answers the SDK's `AuthInfo` carrying the access the module acts with, an external agent in
   each organization reached, with its membership, its slug and its name, the token's scopes and the
@@ -59,15 +63,25 @@ function createAgentConnectionTokenVerifier(resource: URL): OAuthTokenVerifier {
         )
       }
 
+      // What the token holds, which a refresh may have narrowed, within its connection's, which
+      // Access may have narrowed, both of the modules the address serves
+      const scopes = readHeldScopes(
+        modules,
+        stored.scopes.filter(scope => connection.scopes.includes(scope)),
+      )
+
+      if (!checkModuleScopes(modules, scopes)) {
+        throw new OAuthError(
+          OAuthErrorCode.InvalidToken,
+          'The access token reads no module its connection still holds: refresh it',
+        )
+      }
+
       const access: ModuleAccess = {
         kind: 'external',
         userId: connection.userId,
-        // What the token holds, which a refresh may have narrowed, within its connection's, and what
-        // the connection holds, which a challenge names, both of the modules the address serves
-        scopes: readHeldScopes(
-          modules,
-          stored.scopes.filter(scope => connection.scopes.includes(scope)),
-        ),
+        scopes,
+        // What the connection holds, which a challenge names
         connectionScopes: readHeldScopes(modules, connection.scopes),
         idempotencyScope: isOneAddress
           ? toExternalIdempotencyScope(connection.userId, connection.clientId, MODULES_ADDRESS.name)

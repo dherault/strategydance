@@ -7733,9 +7733,10 @@ mutation ExchangeOAuthAuthorizationCode(
 
 # Rotates a refresh token: it is spent, once, recording the secret's version its successors were
 # derived under, and the successors are stored, an access token for an hour and a refresh token for
-# 30 days, as a code's are. The refresh token keeps the spent one's scopes, and the access token holds
-# those the refresh asked for, neither past the spent token's (RFC 6749, 6). A token spent already,
-# or expired, rotates nothing, and the backend reads it again to answer a duplicate or revoke the
+# 30 days, as a code's are. The refresh token keeps the spent one's scopes that its connection still
+# holds, so a narrowing on Connected agents carries into it, and the access token holds those the
+# refresh asked for of them, neither past the spent token's (RFC 6749, 6). A token spent already, or
+# expired, rotates nothing, and the backend reads it again to answer a duplicate or revoke the
 # connection
 mutation RotateAgentConnectionRefreshToken(
   $id: UUID!

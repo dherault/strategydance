@@ -20,6 +20,7 @@ import {
   MAX_DAILY_RECEIPT_READS_PER_MEMBER,
   MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION,
   MAX_MONEY_MINOR,
+  MODULES,
   ORGANIZATION_SLUG_BASE_MAX_LENGTH,
   ORGANIZATION_SLUG_PATTERN,
   ORGANIZATION_SLUG_SUFFIX_LENGTH,
@@ -261,6 +262,23 @@ describe('the agent connections', () => {
     expect(readOperation(webQueries, 'GetAgentConnections')).toContain(
       'operation: "UpdateAgentConnectionOrganizations"',
     )
+  })
+
+  it('UpdateAgentConnectionScopes narrows after the lock, never widens, leaves grantedAt, and refreshes the list', () => {
+    const update = readOperation(webMutations, 'UpdateAgentConnectionScopes')
+
+    // The caller's own row is locked first, and the connection read in a step reading its response
+    expect(update).toContain('user_update(key: { id_expr: "auth.uid" }')
+    expect(update.indexOf('user_update(')).toBeLessThan(update.indexOf('agentConnections('))
+    expect(update).toContain('userId: { eq_expr: "response.user_update.id" }')
+    expect(update).toContain('vars.scopes.all(scope, scope in this[0].scopes)')
+    // Each module's write checked against its read, for every module strategydance-core lists
+    const checked = /\[([^\]]*)\]\.all\(module, !\(\(module \+ ':write'\) in vars\.scopes\)/.exec(update)?.[1]
+
+    expect(checked?.split(', ').map(name => name.slice(1, -1))).toEqual(MODULES.map(({ name }) => name))
+    expect(update).toContain("vars.scopes.exists(scope, scope.endsWith(':read'))")
+    expect(update).not.toContain('grantedAt')
+    expect(readOperation(webQueries, 'GetAgentConnections')).toContain('operation: "UpdateAgentConnectionScopes"')
   })
 
   it('GetAgentConnections reads every connection a member may hold', () => {

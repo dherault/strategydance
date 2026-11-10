@@ -23,7 +23,9 @@ The Data Connect service's conventions, beside the root `CLAUDE.md`: the schema 
 - An external agent's connection belongs to the account and lists the organizations it reaches,
   since a consent writes it in one row: every read of them goes through core's
   `readAgentConnectionReach`, which leaves out a membership gone or newer than `grantedAt`, and
-  every write of the list locks and counts each membership it names (`this == size(vars.…)`)
+  every write of the list locks and counts each membership it names (`this == size(vars.…)`). Only
+  a write of the list moves `grantedAt`: one narrowing the scopes leaves it, or it would bring back
+  an organization the member left and rejoined
 - A variable joins an operation optional, so an older page can leave it out, and its `@check` reads
   `!has(vars.x) || vars.x == null || …`, since `vars.x == null` alone errors on an absent variable
 - `Locale`, `Currency` and `KnowledgeKind` are declared in both `schema.gql` and core, which

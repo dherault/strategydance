@@ -2975,6 +2975,12 @@ query GetAgentConnections
 )
 @refresh(
   onMutationExecuted: {
+    operation: "UpdateAgentConnectionScopes"
+    condition: "mutation.variables.userId == request.auth.uid"
+  }
+)
+@refresh(
+  onMutationExecuted: {
     operation: "RemoveOrganizationMember"
     condition: "mutation.variables.userId == request.auth.uid"
   }

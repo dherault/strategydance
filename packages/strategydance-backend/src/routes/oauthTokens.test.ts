@@ -484,13 +484,18 @@ describe('POST /oauth/token, the refresh token grant', () => {
     expect((await refresh(narrowedTokens.refresh_token)).body.scope).toBe('documents:read documents:write')
   })
 
-  test('refuses a refresh naming a scope its token was not granted, or write without read', async () => {
+  test('issues what its token holds to a refresh naming more, every time, and refuses another address’s scope or write without read', async () => {
     const { tokens } = await connect({ allowed: ['documents:read'] })
+    // As a client repeating the scope it first asked for, after the member allowed read alone
+    const first = (await refresh(tokens.refresh_token, { scope: 'documents:read documents:write' }))
+      .body as unknown as Tokens
+    const second = (await refresh(first.refresh_token, { scope: 'documents:read documents:write' }))
+      .body as unknown as Tokens
 
-    expectError(await refresh(tokens.refresh_token, { scope: 'documents:read documents:write' }), 'invalid_scope')
-    expectError(await refresh(tokens.refresh_token, { scope: 'documents:read tasks:read' }), 'invalid_scope')
-    expectError(await refresh(tokens.refresh_token, { scope: 'documents:write' }), 'invalid_scope')
-    expect((await refresh(tokens.refresh_token, { scope: 'documents:read' })).body.scope).toBe('documents:read')
+    expect([first.scope, second.scope]).toEqual(['documents:read', 'documents:read'])
+    expectError(await refresh(second.refresh_token, { scope: 'documents:read tasks:read' }), 'invalid_scope')
+    expectError(await refresh(second.refresh_token, { scope: 'documents:write' }), 'invalid_scope')
+    expect((await refresh(second.refresh_token, { scope: 'documents:read' })).body.scope).toBe('documents:read')
   })
 
   test('at the one address, narrows to one module, and refuses a refresh naming no read or a write without its read', async () => {
@@ -527,6 +532,100 @@ describe('POST /oauth/token, the refresh token grant', () => {
       await refresh(tokens.refresh_token, { resource: TASKS, scope: 'tasks:read budget:read' }),
       'invalid_scope',
     )
+  })
+
+  describe('after the member narrowed the connection on Connected agents', () => {
+    const scopes = ['documents:read', 'documents:write', 'tasks:read', 'tasks:write']
+    const atOneAddress = { resource: ONE_ADDRESS }
+
+    // What Access writes, the connection's scopes alone, its tokens left as they were
+    function narrow(narrowed: string[]) {
+      for (const connection of fake.connections.values()) connection.scopes = narrowed
+    }
+
+    function scopesOf(token: string) {
+      return [...fake.tokens.values()].find(({ hash: stored }) => stored === hash(token))?.scopes
+    }
+
+    test('issues and names the narrowed scopes alone, both tokens holding them', async () => {
+      const { tokens } = await connect({ resource: ONE_ADDRESS, scopes })
+
+      narrow(['documents:read', 'documents:write', 'tasks:read'])
+
+      const refreshed = (await refresh(tokens.refresh_token, atOneAddress)).body as unknown as Tokens
+
+      expect(refreshed.scope).toBe('documents:read documents:write tasks:read')
+      expect(scopesOf(refreshed.access_token)).toEqual(['documents:read', 'documents:write', 'tasks:read'])
+      expect(scopesOf(refreshed.refresh_token)).toEqual(['documents:read', 'documents:write', 'tasks:read'])
+    })
+
+    test('issues what is left to a refresh still naming a write taken away, every time, as a client repeating its first scope does', async () => {
+      const { tokens } = await connect({ resource: ONE_ADDRESS, scopes })
+
+      narrow(['documents:read', 'tasks:read', 'tasks:write'])
+
+      const refreshed = (await refresh(tokens.refresh_token, { ...atOneAddress, scope: scopes.join(' ') }))
+        .body as unknown as Tokens
+      const again = (await refresh(refreshed.refresh_token, { ...atOneAddress, scope: scopes.join(' ') }))
+        .body as unknown as Tokens
+
+      expect(refreshed.scope).toBe('documents:read tasks:read tasks:write')
+      expect(scopesOf(refreshed.access_token)).toEqual(['documents:read', 'tasks:read', 'tasks:write'])
+      expect(again.scope).toBe('documents:read tasks:read tasks:write')
+    })
+
+    test('issues what was allowed to a refresh repeating a write the member declined on the consent page', async () => {
+      const asked = ['documents:read', 'documents:write', 'budget:read', 'budget:write']
+      const { tokens } = await connect({
+        resource: ONE_ADDRESS,
+        scopes: asked,
+        allowed: ['documents:read', 'documents:write', 'budget:read'],
+      })
+      const refreshed = (await refresh(tokens.refresh_token, { ...atOneAddress, scope: asked.join(' ') }))
+        .body as unknown as Tokens
+
+      expect(refreshed.scope).toBe('documents:read documents:write budget:read')
+    })
+
+    test('refuses a refresh naming only what was taken away, or a write without its read', async () => {
+      const { tokens } = await connect({ resource: ONE_ADDRESS, scopes })
+
+      narrow(['documents:read'])
+
+      expectError(
+        await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'tasks:read tasks:write' }),
+        'invalid_scope',
+      )
+      expectError(
+        await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'documents:read tasks:write' }),
+        'invalid_scope',
+      )
+      expect((await refresh(tokens.refresh_token, atOneAddress)).body.scope).toBe('documents:read')
+    })
+
+    test('answers a duplicate of a rotation from before the narrowing with its pair, naming what is left', async () => {
+      const { tokens } = await connect({ resource: ONE_ADDRESS, scopes })
+      const first = (await refresh(tokens.refresh_token, atOneAddress)).body as unknown as Tokens
+
+      narrow(['documents:read', 'documents:write', 'tasks:read'])
+
+      const duplicate = await refresh(tokens.refresh_token, atOneAddress)
+
+      expect(duplicate.status).toBe(200)
+      expect(duplicate.body.access_token).toBe(first.access_token)
+      expect(duplicate.body.refresh_token).toBe(first.refresh_token)
+      expect(duplicate.body.scope).toBe('documents:read documents:write tasks:read')
+    })
+
+    test('refuses a duplicate whose pair the narrowing left reading no module', async () => {
+      const { tokens } = await connect({ resource: ONE_ADDRESS, scopes })
+
+      await refresh(tokens.refresh_token, { ...atOneAddress, scope: 'tasks:read' })
+      narrow(['documents:read'])
+
+      expectError(await refresh(tokens.refresh_token, atOneAddress), 'invalid_grant')
+      expect(fake.connections.size).toBe(1)
+    })
   })
 
   test('refuses a refresh whose connection goes while it rotates, as revoked rather than a server error', async () => {

@@ -1171,7 +1171,8 @@ type OAuthClient @table @index(fields: ["createdAt"]) {
 
 # An external agent a member allowed to act as them at one address in some of their organizations,
 # for each module there read only, read and write, or not at all, until they disconnect it, consent
-# again, or leave every one of them.
+# again, or leave every one of them. The member narrows its access, or changes its organizations, on
+# the account page's Connected agents tab.
 #
 # It references the account, so deleting the account deletes it with its tokens, and lists the
 # organizations it reaches rather than reference their memberships, since a consent writes it in one
@@ -1193,8 +1194,9 @@ type AgentConnection @table @unique(fields: ["user", "clientId", "module"]) {
   # The organizations it reaches, 1 to 20 (`MAX_AGENT_CONNECTION_ORGANIZATIONS` in
   # strategydance-core), canonical, each one the member was in when the list was written
   organizationIds: [UUID!]!
-  # When the list was last written, by Allow or by an edit on the Connected agents tab: an
-  # organization listed is reached while the member's membership there is no newer
+  # When the list was last written, by Allow or by an edit of the organizations on the Connected
+  # agents tab, never by a narrowing of the access, which grants nothing: an organization listed is
+  # reached while the member's membership there is no newer
   grantedAt: Timestamp!
   # The client's `client_id` as it presented it: a registered client's id, or the address of its
   # client ID metadata document
@@ -1208,7 +1210,8 @@ type AgentConnection @table @unique(fields: ["user", "clientId", "module"]) {
   # `strategydance` for the one address, or a module's own name
   module: String!
   # The scopes granted, in every organization it reaches: for each module of its address, its read
-  # scope, alone or with its write scope, or neither, at least one module read
+  # scope, alone or with its write scope, or neither, at least one module read. Access on the
+  # Connected agents tab narrows them, never widens them: only a consent grants
   scopes: [String!]!
   createdAt: Timestamp! @default(expr: "request.time")
   # When an agent last called a module through it, written at most once a minute
@@ -1233,8 +1236,9 @@ type AgentConnectionToken @table @index(fields: ["expiresAt"]) {
   # so a token for one address never opens another
   resource: String!
   # What the token grants, within its connection's scopes. A refresh token keeps those its connection
-  # was granted, and passes them on as it rotates; an access token holds those its refresh asked for,
-  # which may be fewer (RFC 6749, 6), and the verifier reads them
+  # was granted, and passes on as it rotates those its connection still holds, so a narrowing carries
+  # into the pair it issues; an access token holds those its refresh asked for, which may be fewer
+  # (RFC 6749, 6), and the verifier reads them within its connection's at every call
   scopes: [String!]!
   # What the token was issued from: the authorization request whose code was exchanged, or the
   # refresh token rotated. No reference, since either may be pruned before it

@@ -41,6 +41,9 @@ type Options = {
   - a run a worker holds is asked to stop: the worker reads it before its next request and every two
     seconds while one streams, then ends the run stopped, with its note
 
+  A run that died or was queued frees one of the member's 3 at once, which a subagent reaction they
+  held back takes (`startDueSubagentReactions`), and a run a worker holds frees it as it ends.
+
   The live subagents launched on the run's anchor, the action the member stops, are asked to stop in
   the same write, after the conversation's row, and their runs queued or waiting for a slot ended at
   once (`stopConversationSubagents`), whatever the run's own end, best effort, since the run's own
@@ -71,6 +74,9 @@ async function stopConversationRun(
     // A queued run past its lease that is still coming is stopped as any queued run is
     if (isDeadConversationRun(run) && (await finalizeDeadConversationRun(reference, 'conversation-runs')) !== 'alive') {
       await stopSubagents(reference, anchorPosition)
+
+      // One of the member's 3 is free once it ended, which a reaction held back by them takes
+      await startDueSubagentReactions(reference)
 
       return { outcome: 'stopped' }
     }

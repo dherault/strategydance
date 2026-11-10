@@ -149,6 +149,20 @@ describe('stopConversationRun', () => {
     expect(await stopConversationRun(reference)).toEqual({ outcome: 'missing' })
     expect(readRun(reference)?.status).toBe('QUEUED')
   })
+  test('starts the reaction a run that died held back, once it ends it', async () => {
+    const { parent, others } = await holdReaction()
+    const [dead] = others
+
+    if (!dead) throw new Error('No other run started')
+
+    await claim(dead)
+    expireLease(dead)
+
+    expect(await stopConversationRun(dead)).toEqual({ outcome: 'stopped' })
+    expect(readRun(dead)?.status).toBe('INTERRUPTED')
+    expect(readReactions(parent)).toHaveLength(1)
+  })
+
   test('answers a stopped run stopped though its subagents could not be stopped after it, and starts the reaction it held back', async () => {
     const { parent, others } = await holdReaction()
     const [queued] = others

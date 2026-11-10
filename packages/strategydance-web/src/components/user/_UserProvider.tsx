@@ -73,6 +73,10 @@ function UserProvider({ children }: PropsWithChildren) {
   // read of the row
   const welcomeRequestedForViewerIdRef = useRef<string | null>(null)
 
+  // What the mirror below last sent, for whom, until the row reads back in step: a value that
+  // never comes back as it was sent would otherwise be written and read again without end
+  const lastMirroredRef = useRef<string | null>(null)
+
   const user = viewerId ? (data?.user ?? null) : null
 
   /*
@@ -236,13 +240,15 @@ function UserProvider({ children }: PropsWithChildren) {
       || Boolean(timezone && user.timezone !== timezone)
 
     // A mount is not a write. Without this every reload touches the row, and `updatedAt` stops
-    // meaning anything
-    if (!hasDrifted) return
+    // meaning anything. A row in step forgets what was last sent, so the same values drifting
+    // again later are written again
+    if (!hasDrifted) {
+      lastMirroredRef.current = null
 
-    // The mutation rather than a function of this component's, so nothing it defines ends up in a
-    // dependency array. The compiler would keep such a function stable, but the lint rule
-    // reads the source rather than the compiler's output and cannot know that
-    updateCurrentUser({
+      return
+    }
+
+    const variables = {
       displayName: viewer.displayName,
       imageUrl: viewer.photoURL,
       /*
@@ -253,7 +259,23 @@ function UserProvider({ children }: PropsWithChildren) {
       imageThumbnailUrl: user.imageUrl === viewer.photoURL ? undefined : null,
       timezone: timezone ?? user.timezone,
       authenticationProviders,
-    })
+    }
+
+    /*
+      The same values sent again would read back as they did, as an address the token holds that
+      the row never shows, or a name the mutation refuses, and drift again: they are sent once, and
+      anything that changed is sent. The address goes in too, since the mutation writes the token's
+    */
+    const mirrored = JSON.stringify([viewer.uid, viewer.email, variables])
+
+    if (lastMirroredRef.current === mirrored) return
+
+    lastMirroredRef.current = mirrored
+
+    // The mutation rather than a function of this component's, so nothing it defines ends up in a
+    // dependency array. The compiler would keep such a function stable, but the lint rule
+    // reads the source rather than the compiler's output and cannot know that
+    updateCurrentUser(variables)
       .then(() => refetchUser())
       .catch(error => {
         console.error('Failed to update the user', error)

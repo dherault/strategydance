@@ -2437,3 +2437,107 @@ mutation RestoreBill($organizationId: UUID!, $id: UUID!) @auth(level: USER) @tra
     data: { deletedAt: null }
   ) @check(expr: "this == 1", message: "The bill is gone for good")
 }
+
+# --- Directories ---
+
+# Sets where the organization stands with a directory, from the directories' page, which any member
+# may do, as the agent may for one: submitted, listed, dismissed or, null, back to do, `isInUse`
+# following it, true exactly while it is submitted or listed. The database cannot hold the id to the
+# catalogue, which a release ships in strategydance-knowledge, so it is held to the catalogue's
+# pattern (`KNOWLEDGE_ID_PATTERN`) and the organization's other directories are counted under the lock
+# on its row, at most 2000 (`MAX_KNOWLEDGE_ROWS`), past the 716 the catalogue lists. Keeps the row
+# when it goes back to do, as the module's write does. Records no `ActivityDay`, which counts the Today
+# data and the board alone
+mutation SetDirectoryStatus(
+  $organizationId: UUID!
+  $directoryId: String!
+  $directoryStatus: DirectoryStatus
+  $isInUse: Boolean!
+) @auth(level: USER) @transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep its directories")
+    @check(
+      expr: "size(vars.directoryId) <= 100 && vars.directoryId.matches('^[a-z0-9]+(?:-[a-z0-9]+)*$')"
+      message: "A directory's id is lowercase letters and digits, in words joined by single dashes"
+    )
+    @check(
+      expr: "vars.isInUse == (has(vars.directoryStatus) && vars.directoryStatus != null && (vars.directoryStatus == 'SUBMITTED' || vars.directoryStatus == 'LISTED'))"
+      message: "A directory is in use exactly while it is submitted or listed"
+    )
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep its directories") {
+      role
+    }
+    knowledgeUses(
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        kind: { eq: DIRECTORY }
+        itemId: { ne: $directoryId }
+      }
+      limit: 2000
+    ) @check(expr: "size(this) < 2000", message: "An organization keeps at most 2000 directories' statuses") {
+      itemId
+    }
+  }
+  knowledgeUse_upsert(
+    data: {
+      organizationId: $organizationId
+      kind: DIRECTORY
+      itemId: $directoryId
+      isInUse: $isInUse
+      directoryStatus: $directoryStatus
+      changedAt_expr: "request.time"
+      changedById_expr: "auth.uid"
+    }
+  )
+}
+
+# Saves the organization's notes on a directory, from its dialog as the member types, which any
+# member may do, with their plain text: at most 20000 characters (`MAX_KNOWLEDGE_NOTE_LENGTH`), an
+# empty string once cleared. The id is held as `SetDirectoryStatus` holds it, the notes counted
+# under the same lock. The page's save is the member's word and takes no version: the agent's
+# replacement is the one guarded, on `updatedAt`, so it never writes over a save it did not read
+mutation SetDirectoryNotes($organizationId: UUID!, $directoryId: String!, $content: String!, $contentText: String!)
+@auth(level: USER)
+@transaction {
+  organization_update(id: $organizationId, data: { updatedAt_expr: "request.time" })
+    @redact
+    @check(expr: "this != null", message: "Only a member of an organization can keep its directories")
+    @check(
+      expr: "size(vars.directoryId) <= 100 && vars.directoryId.matches('^[a-z0-9]+(?:-[a-z0-9]+)*$')"
+      message: "A directory's id is lowercase letters and digits, in words joined by single dashes"
+    )
+    @check(
+      expr: "size(vars.content) <= 20000 && size(vars.contentText) <= 20000"
+      message: "A note is at most 20000 characters"
+    )
+  query @redact {
+    userOrganization(key: { userId_expr: "auth.uid", organizationId: $organizationId })
+      @check(expr: "this != null", message: "Only a member of an organization can keep its directories") {
+      role
+    }
+    knowledgeNotes(
+      where: {
+        organizationId: { eq_expr: "response.organization_update.id" }
+        kind: { eq: DIRECTORY }
+        itemId: { ne: $directoryId }
+      }
+      limit: 2000
+    ) @check(expr: "size(this) < 2000", message: "An organization keeps at most 2000 directories' notes") {
+      itemId
+    }
+  }
+  knowledgeNote_upsert(
+    data: {
+      organizationId: $organizationId
+      kind: DIRECTORY
+      itemId: $directoryId
+      content: $content
+      contentText: $contentText
+      updatedAt_expr: "request.time"
+      updatedById_expr: "auth.uid"
+    }
+  )
+}

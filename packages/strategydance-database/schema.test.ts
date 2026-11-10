@@ -20,6 +20,8 @@ import {
   MAX_BILLS,
   MAX_DAILY_RECEIPT_READS_PER_MEMBER,
   MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION,
+  MAX_KNOWLEDGE_NOTE_LENGTH,
+  MAX_KNOWLEDGE_ROWS,
   MAX_MONEY_MINOR,
   MODULES,
   ORGANIZATION_SLUG_BASE_MAX_LENGTH,
@@ -27,6 +29,7 @@ import {
   ORGANIZATION_SLUG_SUFFIX_LENGTH,
   SUPPORTED_LOCALES,
 } from 'strategydance-core'
+import { KNOWLEDGE_ID_PATTERN } from 'strategydance-knowledge'
 
 const schema = await Bun.file(new URL('./schema/schema.gql', import.meta.url)).text()
 const webMutations = await Bun.file(new URL('./strategydance-web-connector/mutations.gql', import.meta.url)).text()
@@ -291,5 +294,64 @@ describe('the agent connections', () => {
     expect(readNumbers(readOperation(webQueries, 'GetAgentConnections'), /limit: (\d+)/g)).toEqual([
       MAX_AGENT_CONNECTIONS,
     ])
+  })
+})
+
+/*
+  A directory's status and notes take core's limits, which the page and the Knowledge module check
+  against, and an id held to the knowledge package's pattern, since the database cannot read the
+  catalogue: this fails when an operation stops agreeing with them, or the page's live reads stop
+  hearing the module's writes
+*/
+describe('the directories', () => {
+  for (const name of ['SetDirectoryStatus', 'SetDirectoryNotes']) {
+    it(`${name} holds a directory's id to the catalogue's pattern and counts the organization's rows to the cap`, () => {
+      const operation = readOperation(webMutations, name)
+      const match = /size\(vars\.directoryId\) <= (\d+) && vars\.directoryId\.matches\('([^']*)'\)/.exec(operation)
+
+      expect(match?.[2]).toBe(KNOWLEDGE_ID_PATTERN.source)
+      expect(Number(match?.[1])).toBe(100)
+      expect(readNumbers(operation, /size\(this\) < (\d+)/g)).toEqual([MAX_KNOWLEDGE_ROWS])
+      expect(readNumbers(operation, /limit: (\d+)/g)).toEqual([MAX_KNOWLEDGE_ROWS])
+      expect(operation).toContain('eq_expr: "response.organization_update.id"')
+    })
+  }
+
+  for (const [name, source] of [
+    ['SetDirectoryNotes', webMutations],
+    ['CreateKnowledgeNoteForAgent', backendMutations],
+    ['UpdateKnowledgeNoteForAgent', backendMutations],
+  ] as const) {
+    it(`${name} holds a note to strategydance-core's length`, () => {
+      const operation = readOperation(source, name)
+
+      expect(readNumbers(operation, /size\(vars\.content\) <= (\d+)/g)).toEqual([MAX_KNOWLEDGE_NOTE_LENGTH])
+      expect(readNumbers(operation, /size\(vars\.contentText\) <= (\d+)/g)).toEqual([MAX_KNOWLEDGE_NOTE_LENGTH])
+    })
+  }
+
+  it('GetDirectoryUses reads as many rows as an organization keeps, and hears every write of them', () => {
+    const query = readOperation(webQueries, 'GetDirectoryUses')
+
+    expect(readNumbers(query, /limit: (\d+)/g)).toEqual([MAX_KNOWLEDGE_ROWS])
+
+    for (const name of [
+      'SetDirectoryStatus',
+      'SetDirectoryNotes',
+      'SetDirectoryStatusForAgent',
+      'SetKnowledgeInUseForAgent',
+      'CreateKnowledgeNoteForAgent',
+      'UpdateKnowledgeNoteForAgent',
+    ]) {
+      expect(query).toContain(`operation: "${name}"`)
+    }
+  })
+
+  it('GetDirectoryNotes hears every write of a note', () => {
+    const query = readOperation(webQueries, 'GetDirectoryNotes')
+
+    for (const name of ['SetDirectoryNotes', 'CreateKnowledgeNoteForAgent', 'UpdateKnowledgeNoteForAgent']) {
+      expect(query).toContain(`operation: "${name}"`)
+    }
   })
 })

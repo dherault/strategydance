@@ -36,8 +36,9 @@ import { dataConnect } from '~firebase'
     bun run check:knowledge-module
 
   It makes two throwaway organizations, one with an administrator and a member and one with a member
-  of its own, calls the backend connector's own operations as the module calls them, and the web
-  connector's `RemoveOrganizationMember` as the administrator, removes everything it made, then exits
+  of its own, calls the backend connector's own operations as the module calls them, the web
+  connector's directory operations as the directories' page calls them for a member and an outsider,
+  and its `RemoveOrganizationMember` as the administrator, removes everything it made, then exits
   non-zero naming each check that failed. The module's tests run against a fake of these operations:
   this is what says the fake's conditions are the SQL's.
 
@@ -416,6 +417,125 @@ async function checkNotes() {
   )
 }
 
+// The web connector's operations as the directories' page calls them, for a member
+function asMember(member: string) {
+  return { impersonate: { authClaims: { sub: member, email: `${member}@example.com` } } }
+}
+
+async function checkPage() {
+  const PAGE_DIRECTORY = 'devhunt'
+  const setStatus = (variables: Variables, member = userId) =>
+    webConnector.executeMutation('SetDirectoryStatus', { organizationId, ...variables }, asMember(member))
+  const setNotes = (variables: Variables, member = userId) =>
+    webConnector.executeMutation('SetDirectoryNotes', { organizationId, ...variables }, asMember(member))
+  const readUses = async (member = userId) =>
+    (
+      await webConnector.executeQuery<
+        {
+          knowledgeUses: { itemId: string; isInUse: boolean; directoryStatus: string | null }[]
+          knowledgeNotes: { itemId: string; contentText: string }[]
+        },
+        Variables
+      >('GetDirectoryUses', { organizationId }, asMember(member))
+    ).data
+
+  check(
+    "an outsider is refused setting a directory's status",
+    await isRefused(
+      setStatus({ directoryId: PAGE_DIRECTORY, directoryStatus: 'SUBMITTED', isInUse: true }, outsiderId),
+      'Only a member',
+    ),
+  )
+  check(
+    "an id off the catalogue's pattern is refused",
+    (await isRefused(setStatus({ directoryId: 'Not An Id', directoryStatus: null, isInUse: false }), 'lowercase'))
+      && (await isRefused(
+        setStatus({ directoryId: 'a'.repeat(101), directoryStatus: null, isInUse: false }),
+        'lowercase',
+      )),
+  )
+  check(
+    'a status out of step with the flag is refused from the page',
+    await isRefused(
+      setStatus({ directoryId: PAGE_DIRECTORY, directoryStatus: 'LISTED', isInUse: false }),
+      'in use exactly while',
+    ),
+  )
+  check(
+    'a member sets a directory listed',
+    await isAccepted(setStatus({ directoryId: PAGE_DIRECTORY, directoryStatus: 'LISTED', isInUse: true })),
+  )
+
+  const notes = JSON.stringify([{ type: 'paragraph', content: [{ type: 'text', text: 'Sent the form' }] }])
+
+  check(
+    'a note past 20000 characters is refused from the page',
+    await isRefused(
+      setNotes({ directoryId: PAGE_DIRECTORY, content: 'x'.repeat(20001), contentText: '' }),
+      'at most 20000',
+    ),
+  )
+  check(
+    "an outsider is refused writing a directory's notes",
+    await isRefused(
+      setNotes({ directoryId: PAGE_DIRECTORY, content: notes, contentText: 'Sent the form' }, outsiderId),
+      'Only a member',
+    ),
+  )
+  check(
+    'a member writes notes, and writes them again over the first',
+    (await isAccepted(setNotes({ directoryId: PAGE_DIRECTORY, content: notes, contentText: 'Sent the form' })))
+      && (await isAccepted(setNotes({ directoryId: PAGE_DIRECTORY, content: notes, contentText: 'Sent the form' }))),
+  )
+
+  const uses = await readUses()
+  const outsider = await readUses(outsiderId)
+
+  check(
+    "the page's read answers the member the status and the notes' text, and an outsider nothing",
+    uses.knowledgeUses.some(use => use.itemId === PAGE_DIRECTORY && use.directoryStatus === 'LISTED' && use.isInUse)
+      && uses.knowledgeNotes.some(note => note.itemId === PAGE_DIRECTORY && note.contentText === 'Sent the form')
+      && outsider.knowledgeUses.length === 0
+      && outsider.knowledgeNotes.length === 0,
+  )
+
+  const { data: one } = await webConnector.executeQuery<{ knowledgeNotes: { content: string }[] }, Variables>(
+    'GetDirectoryNotes',
+    { organizationId, directoryId: PAGE_DIRECTORY },
+    asMember(userId),
+  )
+
+  check("the dialog's read answers the note's blocks", one.knowledgeNotes[0]?.content === notes)
+
+  // The rest of the 2000 rows a kind takes, written straight in, a hundred at a time as an insert
+  // takes them, so the next new directory is refused
+  const fillers = Array.from({ length: 2000 - (await readUses()).knowledgeUses.length }, (_, index) => ({
+    organizationId,
+    kind: 'DIRECTORY',
+    itemId: `filler-${index}`,
+    isInUse: false,
+    changedAt: new Date().toISOString(),
+  }))
+
+  for (let start = 0; start < fillers.length; start += 100) {
+    await write(`mutation Fill($data: [KnowledgeUse_Data!]!) { knowledgeUse_insertMany(data: $data) }`, {
+      data: fillers.slice(start, start + 100),
+    })
+  }
+
+  check(
+    'a new directory past the 2000 is refused',
+    await isRefused(
+      setStatus({ directoryId: 'one-too-many', directoryStatus: 'SUBMITTED', isInUse: true }),
+      'at most 2000',
+    ),
+  )
+  check(
+    'a directory among the 2000 is still set',
+    await isAccepted(setStatus({ directoryId: PAGE_DIRECTORY, directoryStatus: 'DISMISSED', isInUse: false })),
+  )
+}
+
 async function checkDocumentLinks() {
   const readable = await insertDocument()
   const kept = await insertDocument({ isAiReadable: false })
@@ -672,6 +792,7 @@ try {
   await checkUses()
   await checkDirectoryStatuses()
   await checkNotes()
+  await checkPage()
   await checkDocumentLinks()
   await checkTaskLinks()
   await checkMemberLinks()

@@ -3513,3 +3513,140 @@ query GetBillEarlierReceipts($organizationId: UUID!, $billId: UUID!, $limit: Int
     size
   }
 }
+
+# --- Directories ---
+
+# Where the organization stands with each directory it gave a status, and the plain text of its
+# notes on each, for the directories' page and the Marketing aspect's section, which search the notes
+# and mark a directory that has some. Up to 2000 of each (`MAX_KNOWLEDGE_ROWS`). The catalogue is
+# strategydance-knowledge's, which the page loads itself: a row naming an id the release's list no
+# longer holds, an inactive directory's included, is read past there. Outsiders read nothing.
+#
+# A live query: each `@refresh` names a mutation that changes a status or a note, the Knowledge
+# module's included, which the backend runs for an agent. Removing a member empties theirs, and
+# deleting the organization empties everybody's
+query GetDirectoryUses($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDirectoryStatus"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDirectoryNotes"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDirectoryStatusForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetKnowledgeInUseForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateKnowledgeNoteForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateKnowledgeNoteForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  knowledgeUses(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: DIRECTORY }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 2000
+  ) {
+    itemId
+    isInUse
+    directoryStatus
+    changedAt
+  }
+  knowledgeNotes(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: DIRECTORY }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 2000
+  ) {
+    itemId
+    contentText
+    updatedAt
+  }
+}
+
+# The organization's notes on one directory, its blocks, for the directory's dialog to open its
+# editor on. A live query, refreshed by every write of that note, the agent's included, so an open
+# dialog takes what the agent wrote while nobody typed
+query GetDirectoryNotes($organizationId: UUID!, $directoryId: String!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDirectoryNotes"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.directoryId == request.variables.directoryId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateKnowledgeNoteForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.itemId == request.variables.directoryId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateKnowledgeNoteForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.itemId == request.variables.directoryId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  knowledgeNotes(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: DIRECTORY }
+      itemId: { eq: $directoryId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    content
+    updatedAt
+  }
+}

@@ -103,10 +103,10 @@ describe('toModuleInstructions', () => {
     const tasksAlone = toModuleInstructions({ listed: ['tasks'], unheld: ['budget', 'documents'] }, EXTERNAL)
 
     expect(withoutBudget).toEndWith(
-      'ask them rather than choose.\n\nThe member has not allowed this connection in the Budget module, which this server serves too. When they ask for something there, tell them they can allow it by connecting you again.',
+      'ask them rather than choose.\n\nThis connection is not allowed in the Budget module, which this server serves too. When the member asks for something there, tell them so: they choose what this connection may do in each module when they connect you again.',
     )
     expect(withoutBudget).not.toMatch(/bill|read_budget/i)
-    expect(tasksAlone).toContain('not allowed this connection in the Documents and Budget modules, which')
+    expect(tasksAlone).toContain('This connection is not allowed in the Documents and Budget modules, which')
     expect(tasksAlone).not.toContain('read_document')
     expect(toModuleInstructions({ listed: ['documents', 'tasks'], unheld: [] }, EXTERNAL)).toBe(
       toModuleInstructions({ listed: ['documents', 'tasks'] }, EXTERNAL),

@@ -4,6 +4,8 @@ import type { ModuleAccess } from '~types'
 
 import { MODULE_IDEMPOTENCY_KEY_META } from '~constants'
 
+import joinInWords from '~utils/joinInWords'
+
 import listModuleOrganizations from '~modules/listModuleOrganizations'
 import MODULE_INSTRUCTIONS from '~modules/moduleInstructions'
 
@@ -24,9 +26,10 @@ const IDEMPOTENCY = `Every write tool takes an idempotency key in the call's _me
   A server of one module, `{ alone }`, says it of "This server", as a module's server always has. A
   server of several, `{ listed }`, the modules it lists, says what Strategy Dance is once, then each
   module in `MODULES`' order, each naming only modules listed, then the key and the organizations
-  once. Last, an external agent's server of several names the modules it was given but does not list,
-  `unheld`, those the member did not allow this connection: their tools are not listed, so this is
-  how the agent learns the member could allow one, by connecting it again.
+  once. Last, an external agent's server of several names the modules it was given but does not
+  list, `unheld`, which its connection is not allowed in, left out by the member or served since it
+  connected: their tools are not listed, so this is how the agent learns they are there, and can
+  tell the member, who chooses what a connection may do in each module when they connect it again.
 
   The key and the organizations are said where a served module is listed, whose tools take both.
   Knowledge and Subagents serve Strategy Dance's agent alone, which acts in its run's organization
@@ -42,7 +45,7 @@ function toModuleInstructions(
   return [
     ...('alone' in server ? toAlone(server.alone) : toSeveral(server.listed)),
     ...(isServed ? [IDEMPOTENCY, ...toReached(access)] : []),
-    ...('unheld' in server && server.unheld ? toUnheld(server.unheld, access) : []),
+    ...('listed' in server ? toUnheld(server.unheld ?? [], access) : []),
   ].join('\n\n')
 }
 
@@ -57,14 +60,14 @@ function toAlone(name: ModuleName) {
 // tools, whatever the order given
 function toSeveral(given: readonly ModuleName[]) {
   const listed = MODULES.filter(({ name }) => given.includes(name)).map(({ name }) => name)
-  const labels = listed.map(name => MODULE_INSTRUCTIONS[name].label)
-  const last = labels.pop()
+  const labels = joinInWords(listed.map(name => MODULE_INSTRUCTIONS[name].label))
 
-  if (!last) return [`${INTRODUCTION} ${ACTS_AS}`]
+  if (!labels) return [`${INTRODUCTION} ${ACTS_AS}`]
 
-  const opening = labels.length
-    ? `This server holds Strategy Dance's ${labels.join(', ')} and ${last} modules, and you act as one member of the organization in each.`
-    : `This server holds Strategy Dance's ${last} module, and you act as one member of the organization in it.`
+  const opening =
+    listed.length > 1
+      ? `This server holds Strategy Dance's ${labels} modules, and you act as one member of the organization in each.`
+      : `This server holds Strategy Dance's ${labels} module, and you act as one member of the organization in it.`
 
   return [
     `${INTRODUCTION} ${opening}`,
@@ -93,21 +96,19 @@ function toReached(access: ModuleAccess) {
   ]
 }
 
-// The modules an external agent's connection was not allowed in, which the server serves beside
-// those it lists, in `MODULES`' order: named, never their tools, so the agent can tell the member
-// what they could allow. Strategy Dance's agent holds every module
+// The modules an external agent's connection is not allowed in, which the server serves beside
+// those it lists, in `MODULES`' order: named, never their tools, without saying why, since the
+// member may have left one out or the server may have served it since. Strategy Dance's agent
+// holds every module
 function toUnheld(given: readonly ModuleName[], access: ModuleAccess) {
-  if (access.kind === 'agent') return []
+  const unheld = MODULES.filter(({ name }) => given.includes(name))
 
-  const labels = MODULES.filter(({ name }) => given.includes(name)).map(({ name }) => MODULE_INSTRUCTIONS[name].label)
-  const last = labels.pop()
+  if (access.kind === 'agent' || !unheld.length) return []
 
-  if (!last) return []
-
-  const modules = labels.length ? `the ${labels.join(', ')} and ${last} modules` : `the ${last} module`
+  const labels = joinInWords(unheld.map(({ name }) => MODULE_INSTRUCTIONS[name].label))
 
   return [
-    `The member has not allowed this connection in ${modules}, which this server serves too. When they ask for something there, tell them they can allow it by connecting you again.`,
+    `This connection is not allowed in the ${labels} module${unheld.length > 1 ? 's' : ''}, which this server serves too. When the member asks for something there, tell them so: they choose what this connection may do in each module when they connect you again.`,
   ]
 }
 

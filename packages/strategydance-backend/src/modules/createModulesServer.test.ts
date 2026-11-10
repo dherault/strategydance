@@ -107,7 +107,7 @@ describe('createModulesServer', () => {
     expect(kit.client.getInstructions()).toBe(
       toModuleInstructions({ listed: ['documents', 'tasks'], unheld: ['budget'] }, access),
     )
-    expect(kit.client.getInstructions()).toContain('not allowed this connection in the Budget module')
+    expect(kit.client.getInstructions()).toContain('This connection is not allowed in the Budget module')
     expect(kit.client.getInstructions()).not.toMatch(/bill|read_budget/i)
   })
 

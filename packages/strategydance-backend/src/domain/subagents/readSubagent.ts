@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { getSubagentForAgent, getSubagentWritesForAgent } from 'strategydance-database/backend'
 import { z } from 'zod'
 
@@ -7,7 +8,6 @@ import { dataConnect } from '~firebase'
 
 import decodeCursor from '~utils/decodeCursor'
 import encodeCursor from '~utils/encodeCursor'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import toConversationModuleScope from '~domain/agent/toConversationModuleScope'
 import readSubagentIntegrationCalls from '~domain/subagents/readSubagentIntegrationCalls'

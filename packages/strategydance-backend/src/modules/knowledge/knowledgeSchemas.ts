@@ -133,7 +133,7 @@ export const documentReferenceShape = { id: z.string(), title: z.string() }
 
 export const taskReferenceShape = { id: z.string(), name: z.string(), status: z.enum(TaskStatus) }
 
-export const memberReferenceShape = { member: z.string(), name: z.string().nullable() }
+const memberReferenceShape = { member: z.string(), name: z.string().nullable() }
 
 // A link's target as a link or an unlink answers it, one of the three
 export const linkReferenceShape = {

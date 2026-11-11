@@ -1,6 +1,4 @@
-import { MAX_INTEGRATIONS } from 'strategydance-core'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { MAX_INTEGRATIONS, toCanonicalUuid } from 'strategydance-core'
 
 /*
   The backend connector's integration operations over tables in memory, each mirroring its

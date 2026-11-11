@@ -1,6 +1,4 @@
-import { CONVERSATION_SEARCH_WINDOW_MINUTES, MAX_CONVERSATION_SEARCHES } from 'strategydance-core'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { CONVERSATION_SEARCH_WINDOW_MINUTES, MAX_CONVERSATION_SEARCHES, toCanonicalUuid } from 'strategydance-core'
 
 /*
   What every module's database fake shares: the memberships and organizations a caller is checked

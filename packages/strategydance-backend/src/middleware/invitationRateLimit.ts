@@ -1,7 +1,4 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
-import { ERROR_CODE_TOO_MANY_REQUESTS } from 'strategydance-core'
-
-import respondError from '~utils/respondError'
+import createRateLimit from '~middleware/createRateLimit'
 
 /*
   The invite route's requests, metered: 20 per caller in 10 minutes, which a person inviting their
@@ -16,15 +13,11 @@ import respondError from '~utils/respondError'
   that many allowances. That bounds requests rather than mail, which the database count holds to
   across instances, so a shared store here waits until request volume itself matters
 */
-const invitationRateLimitMiddleware = rateLimit({
+const invitationRateLimitMiddleware = createRateLimit({
   windowMs: 10 * 60 * 1000,
   limit: 20,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  keyGenerator: request => request.viewer?.id ?? ipKeyGenerator(request.ip ?? ''),
-  handler: (_request, response) => {
-    respondError(response, 429, ERROR_CODE_TOO_MANY_REQUESTS, 'Too many invitations sent, try again later')
-  },
+  key: 'viewer',
+  message: 'Too many invitations sent, try again later',
 })
 
 export default invitationRateLimitMiddleware

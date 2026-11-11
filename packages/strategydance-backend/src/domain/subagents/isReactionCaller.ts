@@ -1,10 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { ConversationRunTrigger, getSubagentLauncherForAgent } from 'strategydance-database/backend'
 
 import type { ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 /*
   Whether a module's caller is a parent's run reacting to its subagents' reports, the run a worker

@@ -1,3 +1,5 @@
+import { toCanonicalUuid } from 'strategydance-core'
+
 import type { Bill } from '~types'
 
 import useBills from '~hooks/budget/useBills'
@@ -14,7 +16,7 @@ function useConversationBills(needs: boolean): ReadonlyMap<string, Bill> | null 
 
   if (!needs || initialLoading || hasFailed) return null
 
-  return new Map(data.map(bill => [bill.id.replaceAll('-', '').toLowerCase(), bill]))
+  return new Map(data.map(bill => [toCanonicalUuid(bill.id), bill]))
 }
 
 export default useConversationBills

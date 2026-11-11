@@ -5,6 +5,7 @@ import RichTextMentionsContext from 'strategydance-design-system/contexts/RichTe
 import { RICH_TEXT_ENGLISH_LABELS, type RichTextLabels } from 'strategydance-design-system/lib/getRichTextDictionary'
 import { parseRichText } from 'strategydance-design-system/lib/parseRichText'
 import { parseVideoEmbedUrl } from 'strategydance-design-system/lib/parseVideoEmbedUrl'
+import { readLinkPreviewHost } from 'strategydance-design-system/lib/readLinkPreviewHost'
 import {
   RICH_TEXT_CLASS_NAME,
   RICH_TEXT_CLASSES,
@@ -355,8 +356,12 @@ function renderVideoEmbed({ props }: RichTextVideoEmbedBlock) {
 function renderLinkPreview({ props }: RichTextLinkPreviewBlock) {
   if (!props?.url) return null
 
+  const host = readLinkPreviewHost(props.url)
+
+  // Never so for a block read through `parseRichText`, which keeps a web address alone
+  if (!host) return null
+
   const classes = RICH_TEXT_CLASSES.linkPreview
-  const host = new URL(props.url).hostname.replace(/^www\./, '')
 
   return (
     <a

@@ -4,6 +4,7 @@ import logger from '~utils/logger'
 import parseClientErrorStatus from '~utils/parseClientErrorStatus'
 import respondOAuthError from '~utils/respondOAuthError'
 
+import noStoreMiddleware from '~middleware/noStore'
 import oauthAuthorizationRateLimitMiddleware from '~middleware/oauthAuthorizationRateLimit'
 import oauthRegistrationRateLimitMiddleware from '~middleware/oauthRegistrationRateLimit'
 import oauthRevocationRateLimitMiddleware from '~middleware/oauthRevocationRateLimit'
@@ -25,14 +26,6 @@ const REVOCATION_PARAMETERS = ['token', 'client_id'] as const
 
 // A token request's and a revocation's form, read as text, so a parameter sent twice is seen as such
 const formParser = express.text({ type: 'application/x-www-form-urlencoded', limit: '16kb' })
-
-// No browser or proxy keeps what the token and revocation endpoints answer, a refusal included
-// (RFC 6749, 5.1)
-function noStoreMiddleware(_request: Request, response: Response, next: NextFunction) {
-  response.setHeader('Cache-Control', 'no-store')
-  response.setHeader('Pragma', 'no-cache')
-  next()
-}
 
 // The form a token request or a revocation sent, or null when it sent none
 function readForm(request: Request) {

@@ -1,4 +1,5 @@
 import { useIntl } from 'react-intl'
+import { countCalendarDays } from 'strategydance-core'
 import { TaskStatus } from 'strategydance-database/web'
 
 import type { CardField, Task } from '~types'
@@ -11,7 +12,6 @@ import useTaskDescriptions from '~hooks/task/useTaskDescriptions'
 import useTasks from '~hooks/task/useTasks'
 import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 
-import getDaysBetween from '~utils/date/getDaysBetween'
 import getTaskColumn from '~utils/task/getTaskColumn'
 import toTaskAssigneeValue from '~utils/task/toTaskAssigneeValue'
 import getMemberName from '~utils/team/getMemberName'
@@ -125,7 +125,7 @@ function BuildInPublicTasks({ settings }: Props) {
     'task-countdown',
     datedTasks,
     datedTasks
-      .filter(task => getDaysBetween(today, task.dueDate!) >= 1)
+      .filter(task => countCalendarDays(today, task.dueDate!) >= 1)
       .sort((a, b) => a.dueDate!.localeCompare(b.dueDate!))[0],
   )
   const agentTask = readTask(

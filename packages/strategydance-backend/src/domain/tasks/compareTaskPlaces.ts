@@ -1,8 +1,8 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import type { TaskStatus } from 'strategydance-database/backend'
 
 import { TASK_STATUSES } from '~constants'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 import toSortableInstant from '~utils/toSortableInstant'
 
 // Where a task sits on the board: its column, its position in it, and, for a tie, when it was added

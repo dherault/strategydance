@@ -17,7 +17,9 @@ export function isEmailAddress(value: string) {
 
 /*
   The form an address is stored and compared in. Firebase Auth lowercases the address it puts on
-  a token, so an invitation written any other way would never match the person it names
+  a token, so an invitation written any other way would never match the person it names, and
+  Postgres compares the column exactly, so a trailing space off a password manager would otherwise
+  look like a different person
 */
 export function normalizeEmailAddress(value: string) {
   return value.trim().toLowerCase()

@@ -5,6 +5,7 @@ import type { ConversationRunReference, UsageCapScope } from '~types'
 import { dataConnect } from '~firebase'
 
 import findSpendRoom from '~domain/conversations/findSpendRoom'
+import toSpendSums from '~domain/conversations/toSpendSums'
 
 /*
   How much more a run may spend today before a daily spend ceiling is passed, in microdollars, and
@@ -19,8 +20,7 @@ async function readRunSpendRoom(
 ) {
   const { data } = await getRunDailySpend(dataConnect, { organizationId, userId, runId })
   const own = Number(data.own[0]?.costBound ?? 0)
-  const read = (sum: { costBound_sum?: string | null }[]) => Number(sum[0]?.costBound_sum ?? 0)
-  const sums = { member: read(data.member), account: read(data.account), organization: read(data.organization) }
+  const sums = toSpendSums(data)
   const others = { member: sums.member - own, account: sums.account - own, organization: sums.organization - own }
 
   return { ...findSpendRoom(others, ceilings), others, sums }

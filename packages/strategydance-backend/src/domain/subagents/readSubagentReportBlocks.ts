@@ -1,10 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { type ConversationRunStatus, getSubagentWritesForAgent } from 'strategydance-database/backend'
 
 import type { ConversationTextBlock } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import toConversationModuleScope from '~domain/agent/toConversationModuleScope'
 import buildSubagentReportBlock from '~domain/subagents/buildSubagentReportBlock'
@@ -42,23 +41,24 @@ async function readSubagentReportBlocks(
   { organizationId, userId, membershipCreatedAt }: Member,
   subagents: readonly ReportedSubagent[],
 ): Promise<ConversationTextBlock[]> {
-  const blocks: ConversationTextBlock[] = []
+  // Each report's reads only read, and are its own, so they all go at once
+  return Promise.all(
+    subagents.map(async subagent => {
+      const id = toCanonicalUuid(subagent.id)
+      const [{ data }, called] = await Promise.all([
+        getSubagentWritesForAgent(dataConnect, {
+          organizationId,
+          userId,
+          membershipCreatedAt,
+          scope: toConversationModuleScope(id),
+          afterCreatedAt: FIRST_WRITE_AFTER,
+          afterKey: '',
+        }),
+        readSubagentIntegrationCalls({ organizationId, userId, membershipCreatedAt }, id),
+      ])
+      const [run] = subagent.latestRuns
 
-  for (const subagent of subagents) {
-    const id = toCanonicalUuid(subagent.id)
-    const { data } = await getSubagentWritesForAgent(dataConnect, {
-      organizationId,
-      userId,
-      membershipCreatedAt,
-      scope: toConversationModuleScope(id),
-      afterCreatedAt: FIRST_WRITE_AFTER,
-      afterKey: '',
-    })
-    const called = await readSubagentIntegrationCalls({ organizationId, userId, membershipCreatedAt }, id)
-    const [run] = subagent.latestRuns
-
-    blocks.push(
-      buildSubagentReportBlock({
+      return buildSubagentReportBlock({
         id,
         title: subagent.title,
         ending: run ? toSubagentStatus(run.status) : 'INTERRUPTED',
@@ -67,11 +67,9 @@ async function readSubagentReportBlocks(
         total: data.total[0]?._count ?? 0,
         integrationCalls: called?.calls.slice(0, MAX_REPORT_INTEGRATION_CALLS) ?? [],
         integrationCallTotal: called?.total ?? 0,
-      }),
-    )
-  }
-
-  return blocks
+      })
+    }),
+  )
 }
 
 export default readSubagentReportBlocks

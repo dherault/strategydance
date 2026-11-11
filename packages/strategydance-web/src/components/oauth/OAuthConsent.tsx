@@ -7,6 +7,7 @@ import {
   MAX_AGENT_CONNECTIONS,
   type ModuleName,
   readModuleAddress,
+  toCanonicalUuid,
 } from 'strategydance-core'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button, buttonVariants } from 'strategydance-design-system/components/ui/Button'
@@ -43,7 +44,7 @@ type Outcome = 'redirecting' | 'denied' | 'expired' | 'refused'
 
 // Whether two ids name one organization, whichever form each came in
 function isSameId(a: string, b: string) {
-  return a.replaceAll('-', '').toLowerCase() === b.replaceAll('-', '').toLowerCase()
+  return toCanonicalUuid(a) === toCanonicalUuid(b)
 }
 
 /*

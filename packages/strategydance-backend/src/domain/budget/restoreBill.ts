@@ -1,11 +1,11 @@
-import { type Currency, listExchangeRateYears, MAX_BILLS } from 'strategydance-core'
+import { type Currency, listExchangeRateYears, MAX_BILLS, toCanonicalUuid } from 'strategydance-core'
 import { getBillForAgent, restoreBillForAgent } from 'strategydance-database/backend'
 
 import type { BudgetWriteResult, ModuleBill, ModuleCall, ModuleCaller } from '~types'
 
-import { dataConnect } from '~firebase'
+import { RESTORE_WINDOW_MS } from '~constants'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { dataConnect } from '~firebase'
 
 import { FULL_REFUSAL, GONE_REFUSAL } from '~domain/budget/budgetRefusalMessages'
 import readBudgetRates from '~domain/budget/readBudgetRates'
@@ -17,9 +17,6 @@ import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
 import isOperationRefusal from '~domain/modules/isOperationRefusal'
 import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
-
-// How long after its delete a bill can be restored, as `RestoreBillForAgent` holds it
-const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
 
 // What restoring answers: the bill as it is back
 export type RestoredBill = ModuleBill & { budgetCurrency: Currency }

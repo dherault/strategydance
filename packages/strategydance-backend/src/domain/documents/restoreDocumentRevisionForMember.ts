@@ -6,7 +6,7 @@ import { DOCUMENT_FOLD_ATTEMPTS } from '~constants'
 
 import { dataConnect } from '~firebase'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import createId from '~utils/createId'
 
 import compressDocumentRevisionState from '~domain/documents/compressDocumentRevisionState'
 import { EDITED_REFUSAL, EMPTY_REFUSAL, RESTORE_FOLDED_REFUSAL } from '~domain/documents/documentsRefusalMessages'
@@ -100,7 +100,7 @@ async function restoreDocumentRevisionForMember({
     if (measured.outcome !== 'measured' || !afterFingerprint) return { outcome: 'unrestorable' }
     if (afterFingerprint === current.fingerprint) return { outcome: 'unchanged' }
 
-    const restoreId = toCanonicalUuid(crypto.randomUUID())
+    const restoreId = createId()
     const variables = {
       organizationId,
       userId,

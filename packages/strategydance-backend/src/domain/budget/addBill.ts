@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { type BillRecurrence, type Currency, MAX_BILLS } from 'strategydance-core'
 import {
   BillRecurrence as DatabaseBillRecurrence,
@@ -11,7 +9,7 @@ import type { AgentBill, AgentBillReceipt, BudgetWriteResult, ModuleCall, Module
 
 import { dataConnect } from '~firebase'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import createId from '~utils/createId'
 
 import {
   FULL_REFUSAL,
@@ -101,7 +99,7 @@ async function addBill(
   }
 
   const bill: AgentBill = {
-    id: toCanonicalUuid(randomUUID()),
+    id: createId(),
     name: input.name,
     description: input.description ?? '',
     company: input.company,

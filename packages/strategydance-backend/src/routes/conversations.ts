@@ -24,8 +24,8 @@ import {
   MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
   MAX_CONVERSATIONS,
   MAX_PENDING_CONVERSATION_ATTACHMENTS,
-  MAX_QUESTION_OPTIONS,
   MAX_QUESTION_OPTION_LENGTH,
+  MAX_QUESTION_OPTIONS,
   MAX_SEARCH_QUERY_LENGTH,
   MAX_SEARCH_TERMS,
   type ResumeConversationRunData,
@@ -33,6 +33,7 @@ import {
   type SearchConversationsData,
   type SendConversationMessageData,
   splitSearchTerms,
+  toCanonicalUuid,
 } from 'strategydance-core'
 import { z } from 'zod'
 
@@ -43,7 +44,6 @@ import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
 import respondStoredFile from '~utils/respondStoredFile'
 import respondUsageCapped from '~utils/respondUsageCapped'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'

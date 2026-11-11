@@ -1,12 +1,16 @@
 import express, { type Request, type Response, Router } from 'express'
-import { type ApiResponse, ERROR_CODE_INTERNAL_ERROR, ERROR_CODE_SERVICE_UNAVAILABLE } from 'strategydance-core'
+import {
+  type ApiResponse,
+  ERROR_CODE_INTERNAL_ERROR,
+  ERROR_CODE_SERVICE_UNAVAILABLE,
+  toCanonicalUuid,
+} from 'strategydance-core'
 import { z } from 'zod'
 
 import { UUID_PATTERN } from '~constants'
 
 import respondError from '~utils/respondError'
 import runSweepSteps from '~utils/runSweepSteps'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import validateMiddleware from '~middleware/validate'
 

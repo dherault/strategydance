@@ -5,11 +5,12 @@ import { IntegrationAuthentication, IntegrationError } from 'strategydance-datab
 import { INTEGRATION_OPERATION_TIMEOUT_MS } from '~constants'
 
 import classifyIntegrationFailure from '~domain/integrations/classifyIntegrationFailure'
+import type { IntegrationCredential } from '~domain/integrations/connectIntegrationClient'
 import createIntegrationFetch, { type IntegrationNetwork } from '~domain/integrations/createIntegrationFetch'
 import discoverIntegrationAuthorizationServer from '~domain/integrations/discoverIntegrationAuthorizationServer'
 import hashIntegrationToolDefinition from '~domain/integrations/hashIntegrationToolDefinition'
 import IntegrationFailure from '~domain/integrations/IntegrationFailure'
-import listIntegrationTools, { type IntegrationCredential } from '~domain/integrations/listIntegrationTools'
+import listIntegrationTools from '~domain/integrations/listIntegrationTools'
 
 type IntegrationConfiguration = {
   url: string

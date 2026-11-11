@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import {
   ConversationRunStatus,
   ConversationRunTrigger,
@@ -7,8 +8,6 @@ import {
 import type { ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 export type SubagentLauncherRead =
   // The run calling is still running and not asked to stop: a launch from it is made on its anchor,

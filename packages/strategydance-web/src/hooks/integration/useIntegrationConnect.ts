@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useIntl } from 'react-intl'
-import { INTEGRATION_CONNECTION_CHANNEL, type IntegrationConnectionMessage } from 'strategydance-core'
+import { INTEGRATION_CONNECTION_CHANNEL, type IntegrationConnectionMessage, toCanonicalUuid } from 'strategydance-core'
 import { type GetIntegrationConnectionsData, IntegrationConnectionStatus } from 'strategydance-database/web'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 
@@ -113,7 +113,7 @@ function useIntegrationConnect(connections: IntegrationConnection[]) {
       const isForThis =
         authorizationId !== null
         && data.authorizationId !== null
-        && toCanonicalId(data.authorizationId) === toCanonicalId(authorizationId)
+        && toCanonicalUuid(data.authorizationId) === toCanonicalUuid(authorizationId)
 
       if (!isForThis) return
 
@@ -236,11 +236,6 @@ function isHttpsAddress(address: string) {
   } catch {
     return false
   }
-}
-
-// An id as the database keeps it, whichever spelling it came in
-function toCanonicalId(id: string) {
-  return id.replaceAll('-', '').toLowerCase()
 }
 
 export { type ConnectAttempt }

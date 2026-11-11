@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 
-import type { ModuleCall, ModuleCaller, SubagentsWriteResult } from '~types'
+import { toCanonicalUuid } from 'strategydance-core'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import type { ModuleCall, ModuleCaller, SubagentsWriteResult } from '~types'
 
 import launchSubagent, { type LaunchedSubagent } from '~domain/subagents/launchSubagent'
 

@@ -1,10 +1,10 @@
-import { randomUUID } from 'node:crypto'
-
 import { type CompanyAspect, createDocumentForAgent } from 'strategydance-database/backend'
 
 import type { DocumentsWriteResult, ModuleCall, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
+
+import createId from '~utils/createId'
 
 import createDocumentText from '~domain/documents/createDocumentText'
 import { FULL_REFUSAL } from '~domain/documents/documentsRefusalMessages'
@@ -48,7 +48,7 @@ async function createDocument(
 
   if (read.outcome !== 'read') return { outcome: 'invalidEdit' }
 
-  const id = randomUUID().replaceAll('-', '')
+  const id = createId()
   const result = { id, title, aspects, version: hashDocumentText(read.blocks) }
 
   try {

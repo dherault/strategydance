@@ -4,6 +4,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'fire
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { FormattedMessage, useIntl } from 'react-intl'
+import { normalizeEmailAddress } from 'strategydance-core'
 import { AuthenticationProvider, getAuthenticationProvidersByEmail } from 'strategydance-database/web'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
@@ -17,8 +18,6 @@ import {
 } from '~constants'
 
 import useAuthenticationMessage from '~hooks/authentication/useAuthenticationMessage'
-
-import formatEmail from '~utils/user/formatEmail'
 
 import GoogleButton from '~components/authentication/GoogleButton'
 import PasswordInput from '~components/common/PasswordInput'
@@ -101,7 +100,7 @@ function Authentication() {
     defaultValues: { password: '', passwordConfirmation: '' },
   })
 
-  const email = formatEmail(emailForm.getValues('email'))
+  const email = normalizeEmailAddress(emailForm.getValues('email'))
   const hasGoogle = providers.includes(AuthenticationProvider.GOOGLE)
   const hasPassword = providers.includes(AuthenticationProvider.PASSWORD)
 
@@ -121,7 +120,9 @@ function Authentication() {
     setProviders([])
 
     try {
-      const { data } = await getAuthenticationProvidersByEmail(dataConnect, { email: formatEmail(values.email) })
+      const { data } = await getAuthenticationProvidersByEmail(dataConnect, {
+        email: normalizeEmailAddress(values.email),
+      })
       const found = data.users[0]
 
       if (!found) {

@@ -1,5 +1,5 @@
 import type { BetaMessage, MessageCountTokensParams } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import { getConversationRunStop, recordConversationRunUsage } from 'strategydance-database/backend'
+import { recordConversationRunUsage } from 'strategydance-database/backend'
 
 import type { ClaudeClient, ConversationContentBlock, ConversationRunFence, UsageCapScope } from '~types'
 
@@ -22,6 +22,7 @@ import {
 } from '~domain/conversations/conversationRunUsage'
 import createConversationRequestSignal from '~domain/conversations/createConversationRequestSignal'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
+import isConversationRunStopRequested from '~domain/conversations/isConversationRunStopRequested'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'
 import {
   priceConversationUsageBound,
@@ -127,16 +128,7 @@ async function requestConversationTagging({
   const request = createConversationRequestSignal({
     signal,
     deadline: Math.min(streamDeadline, Date.now() + CONVERSATION_TAGGING_TIMEOUT_MS),
-    isStopRequested: async () => {
-      const { data } = await getConversationRunStop(dataConnect, {
-        organizationId,
-        userId,
-        conversationId,
-        runId: fence.runId,
-      })
-
-      return Boolean(data.conversationRuns[0]?.stopRequestedAt)
-    },
+    isStopRequested: () => isConversationRunStopRequested(fence),
     stopCheckIntervalMs,
   })
 

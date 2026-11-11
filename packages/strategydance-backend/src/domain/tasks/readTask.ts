@@ -1,4 +1,4 @@
-import { isTaskBlocked } from 'strategydance-core'
+import { isTaskBlocked, toCanonicalUuid } from 'strategydance-core'
 import { type CompanyAspect, getTaskForAgent, TaskStatus } from 'strategydance-database/backend'
 
 import type { ModuleCaller, TaskAssignee, TaskReference, TasksRefusal } from '~types'
@@ -8,7 +8,6 @@ import { TASK_READ_LENGTH, TASK_READ_LINKS } from '~constants'
 import { dataConnect } from '~firebase'
 
 import cutToFit from '~utils/cutToFit'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import hashTaskDescription from '~domain/tasks/hashTaskDescription'
 import readTaskBoard from '~domain/tasks/readTaskBoard'

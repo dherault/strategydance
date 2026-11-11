@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { listSubagentsForAgent } from 'strategydance-database/backend'
 import { z } from 'zod'
 
@@ -7,7 +8,6 @@ import { dataConnect } from '~firebase'
 
 import decodeCursor from '~utils/decodeCursor'
 import encodeCursor from '~utils/encodeCursor'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 import toSortableInstant from '~utils/toSortableInstant'
 
 import readSubagentLauncher from '~domain/subagents/readSubagentLauncher'

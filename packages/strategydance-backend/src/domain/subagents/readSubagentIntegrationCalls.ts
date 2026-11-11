@@ -1,8 +1,7 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { getSubagentIntegrationCallsForAgent } from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import toSubagentIntegrationCall, { type SubagentIntegrationCall } from '~domain/subagents/toSubagentIntegrationCall'
 

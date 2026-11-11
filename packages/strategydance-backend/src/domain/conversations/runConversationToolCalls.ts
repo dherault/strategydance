@@ -7,7 +7,6 @@ import {
   finishConversationIntegrationCall,
   finishConversationToolCall,
   getConversationCalls,
-  getConversationRunStop,
   startConversationIntegrationCall,
   startConversationToolCall,
 } from 'strategydance-database/backend'
@@ -31,6 +30,7 @@ import {
   toToolOutput,
 } from '~domain/conversations/conversationToolResults'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
+import isConversationRunStopRequested from '~domain/conversations/isConversationRunStopRequested'
 import IntegrationCallChanged from '~domain/integrations/IntegrationCallChanged'
 import IntegrationCallUnanswered from '~domain/integrations/IntegrationCallUnanswered'
 
@@ -93,7 +93,7 @@ async function runConversationToolCalls({
   deadline,
   timeoutMs,
 }: RunConversationToolCallsInput): Promise<ConversationToolCallsOutcome> {
-  const { organizationId, userId, conversationId, runId } = fence
+  const { organizationId, userId, conversationId } = fence
   const { data } = await getConversationCalls(dataConnect, {
     organizationId,
     userId,
@@ -129,9 +129,7 @@ async function runConversationToolCalls({
   })
 
   for (const group of groupCalls(calls)) {
-    const { data: stop } = await getConversationRunStop(dataConnect, { organizationId, userId, conversationId, runId })
-
-    if (stop.conversationRuns[0]?.stopRequestedAt) return outcome('stopped')
+    if (await isConversationRunStopRequested(fence)) return outcome('stopped')
     if (Date.now() >= deadline) return outcome('expired')
 
     const settled = await Promise.allSettled(

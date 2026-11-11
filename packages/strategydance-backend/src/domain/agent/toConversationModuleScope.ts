@@ -1,4 +1,4 @@
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { toCanonicalUuid } from 'strategydance-core'
 
 /*
   The idempotency scope a conversation's module calls are kept under, which the module never reads

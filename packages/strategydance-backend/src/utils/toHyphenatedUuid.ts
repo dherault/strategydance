@@ -1,4 +1,4 @@
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { toCanonicalUuid } from 'strategydance-core'
 
 /*
   A UUID in its hyphenated form, 8-4-4-4-12, whichever form it came in. An address the web app reads

@@ -1,10 +1,11 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { deleteDocumentForAgent } from 'strategydance-database/backend'
 
 import type { DocumentsWriteResult, ModuleCall, ModuleCaller } from '~types'
 
-import { dataConnect } from '~firebase'
+import { RESTORE_WINDOW_MS } from '~constants'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { dataConnect } from '~firebase'
 
 import explainDocumentRefusal from '~domain/documents/explainDocumentRefusal'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
@@ -12,9 +13,6 @@ import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
 import isOperationRefusal from '~domain/modules/isOperationRefusal'
 import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
-
-// How long a deleted document can be restored, as its page's Undo and the sweep hold it
-const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
 
 // What deleting answers: the document, and until when `restore_document` brings it back
 export type DeletedDocument = {

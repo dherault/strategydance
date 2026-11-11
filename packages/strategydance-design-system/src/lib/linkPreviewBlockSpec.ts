@@ -1,6 +1,7 @@
 import { createBlockSpec } from '@blocknote/core'
 import { createRichTextAddButton } from 'strategydance-design-system/lib/createRichTextAddButton'
 import type { RichTextDictionary } from 'strategydance-design-system/lib/getRichTextDictionary'
+import { readLinkPreviewHost } from 'strategydance-design-system/lib/readLinkPreviewHost'
 
 // Lucide's link, as the slash menu's item draws it
 const LINK_ICON =
@@ -37,7 +38,7 @@ const createLinkPreviewBlockSpec = createBlockSpec(
     meta: { fileBlockAccept: [] },
     render: (block, editor) => {
       const { url, title, description, siteName, imageUrl } = block.props
-      const host = readHost(url)
+      const host = readLinkPreviewHost(url)
 
       if (!host) {
         return createRichTextAddButton(block.id, editor, {
@@ -92,7 +93,7 @@ const createLinkPreviewBlockSpec = createBlockSpec(
     },
     // A link to the page, titled as the card is
     toExternalHTML: block => {
-      const host = readHost(block.props.url)
+      const host = readLinkPreviewHost(block.props.url)
 
       if (!host) return { dom: document.createElement('p') }
 
@@ -105,17 +106,6 @@ const createLinkPreviewBlockSpec = createBlockSpec(
     },
   },
 )
-
-// The host of a web address, without its `www.`, or null for anything that is not one
-function readHost(url: string) {
-  try {
-    const parsed = new URL(url)
-
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.hostname.replace(/^www\./, '') : null
-  } catch {
-    return null
-  }
-}
 
 function createText(className: string, text: string) {
   const element = document.createElement('p')

@@ -1,16 +1,10 @@
 import { claimConversationAttachment, getConversationAttachment } from 'strategydance-database/backend'
 
+import type { ConversationAttachmentLocation } from '~types'
+
 import { dataConnect } from '~firebase'
 
 import deletePrunedConversationAttachments from '~domain/conversations/deletePrunedConversationAttachments'
-
-type ConversationAttachmentLocation = {
-  // Canonical, as `toCanonicalUuid` writes them, and the caller's uid as the backend verified it
-  organizationId: string
-  userId: string
-  conversationId: string
-  attachmentId: string
-}
 
 type RemoveConversationAttachmentResult = { outcome: 'removed' } | { outcome: 'sent' }
 

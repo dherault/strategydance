@@ -15,6 +15,7 @@ import {
   isCalendarDay,
   MAX_BILL_RECEIPT_NAME_LENGTH,
   MAX_BILL_RECEIPT_SIZE,
+  toCanonicalUuid,
 } from 'strategydance-core'
 import { z } from 'zod'
 
@@ -25,7 +26,6 @@ import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
 import respondStoredFile from '~utils/respondStoredFile'
 import respondUsageCapped from '~utils/respondUsageCapped'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'

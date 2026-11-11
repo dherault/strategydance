@@ -1,4 +1,4 @@
-import { type DirectoryStatus, type KnowledgeKind, readDirectoryStatus } from 'strategydance-core'
+import { type DirectoryStatus, type KnowledgeKind, readDirectoryStatus, toCanonicalUuid } from 'strategydance-core'
 import {
   KnowledgeKind as DatabaseKnowledgeKind,
   getKnowledgeItemsForAgent,
@@ -10,8 +10,6 @@ import type { ModuleCaller } from '~types'
 import { MAX_KNOWLEDGE_READ_LINKS } from '~constants'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 /*
   Whether the organization uses an item and since when, a directory's with where the organization

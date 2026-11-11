@@ -1,5 +1,7 @@
 import type { BetaContentBlock, BetaMessage, BetaStopReason } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 
+import createId from '~utils/createId'
+
 import { CONVERSATION_MODEL } from '~domain/agent/conversationRequestSettings'
 
 type ClaudeMessageInput = {
@@ -27,7 +29,7 @@ function createClaudeMessage({
   usage = {},
 }: ClaudeMessageInput): BetaMessage {
   return {
-    id: `msg_${crypto.randomUUID().replaceAll('-', '')}`,
+    id: `msg_${createId()}`,
     container: null,
     content,
     context_management: null,

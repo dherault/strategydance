@@ -1,6 +1,4 @@
-import { randomUUID } from 'node:crypto'
-
-import { MAX_ACTIVE_RUNS_PER_MEMBER } from 'strategydance-core'
+import { MAX_ACTIVE_RUNS_PER_MEMBER, toCanonicalUuid } from 'strategydance-core'
 import {
   ConversationRunStatus,
   ConversationRunTrigger,
@@ -15,7 +13,7 @@ import { IS_USAGE_CAPPED } from '~constants'
 
 import { dataConnect } from '~firebase'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import createId from '~utils/createId'
 
 import { STOPPED_CALL_RESULT, toFailedOutput } from '~domain/conversations/conversationToolResults'
 import enqueueRun from '~domain/conversations/enqueueRun'
@@ -136,7 +134,7 @@ async function continueConversationRun(reference: ConversationRunReference): Pro
 
     if (!answering || !lastEntry) throw new Error(`Conversation ${conversationId} waits on a turn that called nothing`)
 
-    const continuingRunId = randomUUID().replaceAll('-', '')
+    const continuingRunId = createId()
     const started = {
       organizationId,
       userId,

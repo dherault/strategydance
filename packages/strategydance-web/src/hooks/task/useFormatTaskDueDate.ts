@@ -1,8 +1,8 @@
 import { useIntl } from 'react-intl'
+import { countCalendarDays } from 'strategydance-core'
 
 import useLocalDate from '~hooks/common/useLocalDate'
 
-import getDaysBetween from '~utils/date/getDaysBetween'
 import toCalendarDate from '~utils/date/toCalendarDate'
 
 import taskMessages from '~data/intl/messages/task'
@@ -17,7 +17,7 @@ function useFormatTaskDueDate() {
   const today = useLocalDate()
 
   return function formatTaskDueDate(dueDate: string, length: 'short' | 'long') {
-    const days = getDaysBetween(today, dueDate)
+    const days = countCalendarDays(today, dueDate)
 
     if (days === 0) return formatMessage(taskMessages.dueToday)
     if (days === 1) return formatMessage(taskMessages.dueTomorrow)

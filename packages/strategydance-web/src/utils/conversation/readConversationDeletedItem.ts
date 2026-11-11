@@ -1,3 +1,5 @@
+import { toCanonicalUuid } from 'strategydance-core'
+
 // A document or a task the agent deleted, as its call answered: its id, and until when it can be restored
 export type ConversationDeletedItem = {
   id: string
@@ -16,7 +18,7 @@ function readConversationDeletedItem(toolOutput: string | null | undefined): Con
 
     if (typeof id !== 'string' || Number.isNaN(until)) return null
 
-    return { id: id.replaceAll('-', '').toLowerCase(), restorableUntil: until }
+    return { id: toCanonicalUuid(id), restorableUntil: until }
   } catch {
     return null
   }

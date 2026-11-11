@@ -1,6 +1,6 @@
 import { IntegrationApiKeyScheme, IntegrationAuthentication } from 'strategydance-database/backend'
 
-import type { IntegrationCredential } from '~domain/integrations/listIntegrationTools'
+import type { IntegrationCredential } from '~domain/integrations/connectIntegrationClient'
 
 /*
   A server as an administrator's form describes it, once the route checked each field: its name,
@@ -45,4 +45,4 @@ function toStoredKeyFields(settings: IntegrationSettings, key: string | null) {
   }
 }
 
-export { type IntegrationSettings, toApiKeyLastFour, toIntegrationCredential, toStoredKeyFields }
+export { type IntegrationSettings, toIntegrationCredential, toStoredKeyFields }

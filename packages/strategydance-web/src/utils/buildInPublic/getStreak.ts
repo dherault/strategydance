@@ -1,5 +1,4 @@
-import addDays from '~utils/date/addDays'
-import getDaysBetween from '~utils/date/getDaysBetween'
+import { addCalendarDays, countCalendarDays } from 'strategydance-core'
 
 /*
   A streak, from the days somebody was active, `YYYY-MM-DD` in any order: how many days in a row
@@ -18,7 +17,11 @@ function getStreak(dates: string[], today: string, chargedDates: string[] = []) 
 
   let current = 0
 
-  for (let date = isLitToday ? today : addDays(today, -1); keptDates.has(date); date = addDays(date, -1)) {
+  for (
+    let date = isLitToday ? today : addCalendarDays(today, -1);
+    keptDates.has(date);
+    date = addCalendarDays(date, -1)
+  ) {
     current += 1
   }
 
@@ -27,7 +30,7 @@ function getStreak(dates: string[], today: string, chargedDates: string[] = []) 
   let previous: string | null = null
 
   for (const date of [...keptDates].sort()) {
-    const isContinued = previous !== null && getDaysBetween(previous, date) === 1
+    const isContinued = previous !== null && countCalendarDays(previous, date) === 1
 
     run = (isContinued ? run : 0) + 1
     best = Math.max(best, run)

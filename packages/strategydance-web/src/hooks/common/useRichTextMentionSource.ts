@@ -1,5 +1,6 @@
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
+import { toCanonicalUuid } from 'strategydance-core'
 import { TaskStatus } from 'strategydance-database/web'
 import type {
   RichTextMentionKind,
@@ -86,29 +87,24 @@ function useRichTextMentionSource({ self, openTask, canLeave = true }: Options =
 
   return {
     documents: isDocumentsRead
-      ? new Map(documents.data.map(document => [toCanonicalId(document.id), document.title]))
+      ? new Map(documents.data.map(document => [toCanonicalUuid(document.id), document.title]))
       : null,
     tasks: isTasksRead
       ? new Map(
           [
             ...tasks.data.filter(task => task.status !== TaskStatus.DONE),
             ...tasks.data.filter(task => task.status === TaskStatus.DONE),
-          ].map(task => [toCanonicalId(task.id), task.name]),
+          ].map(task => [toCanonicalUuid(task.id), task.name]),
         )
       : null,
     conversations: isConversationsRead
-      ? new Map(conversations.data.map(conversation => [toCanonicalId(conversation.id), conversation.title]))
+      ? new Map(conversations.data.map(conversation => [toCanonicalUuid(conversation.id), conversation.title]))
       : null,
     request: kind => setRequested(current => (current.has(kind) ? current : new Set(current).add(kind))),
     getHref,
     open: canLeave ? open : undefined,
     self,
   }
-}
-
-// An id as Data Connect writes one, which a mention holds
-function toCanonicalId(id: string) {
-  return id.replaceAll('-', '').toLowerCase()
 }
 
 export default useRichTextMentionSource

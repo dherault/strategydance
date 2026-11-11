@@ -1,8 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
+
 import type { ConversationAttachmentReference } from '~types'
 
 import buildConversationStoragePrefix from '~utils/buildConversationStoragePrefix'
 import buildPendingAttachmentObjectName from '~utils/buildPendingAttachmentObjectName'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import conversationClaudeFiles from '~domain/agent/conversationClaudeFiles'
 import conversationAttachmentStorage from '~domain/conversations/conversationAttachmentStorage'

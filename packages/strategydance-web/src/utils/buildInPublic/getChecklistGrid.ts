@@ -1,5 +1,6 @@
+import { addCalendarDays } from 'strategydance-core'
+
 import getStreak from '~utils/buildInPublic/getStreak'
-import addDays from '~utils/date/addDays'
 
 type Item = {
   id: string
@@ -17,7 +18,7 @@ type Item = {
 */
 function getChecklistGrid<T extends Item>(items: T[], ticks: Map<string, Set<string>>, today: string, days: number) {
   const rows = Array.from({ length: days }, (_, index) => {
-    const date = addDays(today, index - days + 1)
+    const date = addCalendarDays(today, index - days + 1)
 
     return {
       date,

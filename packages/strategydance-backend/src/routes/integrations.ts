@@ -20,6 +20,7 @@ import {
   isValidIntegrationName,
   parseIntegrationUrl,
   type StartIntegrationConnectionData,
+  toCanonicalUuid,
 } from 'strategydance-core'
 import {
   IntegrationApiKeyScheme,
@@ -32,7 +33,6 @@ import { UUID_PATTERN } from '~constants'
 
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'

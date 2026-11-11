@@ -52,6 +52,10 @@ export const DAILY_SPEND_CEILINGS: Record<UsageCapScope, number> = {
   organization: MAX_DAILY_SPEND_MICRODOLLARS_PER_ORGANIZATION,
 }
 
+// Whose spend the ceilings hold, in the order they are gone through: the member's in the
+// organization, the account's across its organizations, then the organization's
+export const SPEND_CEILING_SCOPES: readonly UsageCapScope[] = ['member', 'account', 'organization']
+
 /*
   Whether a member starts or continues a run only once their ID token says their address is
   confirmed (`verifiedEmailMiddleware`): an account costs nothing to make, and the daily caps'
@@ -290,6 +294,12 @@ export const MODULE_PROTOCOL_VERSION = '2026-07-28'
 */
 export const MODULE_IDEMPOTENCY_KEY_META = 'com.strategydance/idempotencyKey'
 export const MAX_MODULE_IDEMPOTENCY_KEY_LENGTH = 200
+
+/*
+  How long a task, a document or a bill deleted through a module can be restored, as the pages'
+  Undo, the sweep and each `Restore…ForAgent` mutation hold it
+*/
+export const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
 
 // Where the public backend serves the modules, at strategydance-core's `MODULE_ADDRESSES`: the one
 // address's path, under which each module's own address is

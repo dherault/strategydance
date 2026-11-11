@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import {
   disconnectIntegration as deleteIntegrationConnection,
   getIntegrationConnectionForMember,
@@ -6,7 +7,6 @@ import {
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import decryptIntegrationSecret from '~domain/integrations/decryptIntegrationSecret'
 import isIntegrationClientAuthenticationMethod from '~domain/integrations/isIntegrationClientAuthenticationMethod'

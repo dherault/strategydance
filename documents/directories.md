@@ -166,9 +166,11 @@ into `dev`, titled "Check directories". Only the GitHub App writes that branch.
   anybody committed meanwhile. A run whose pull request was closed while it ran gives the branch back
   `dev`'s lists, in a commit made against its own, so a newer run's commit on top refuses it rather
   than being dropped, and the next run, finding lists no different from `dev`'s, resets it.
-- The run reads both files at the branch's head and commits them in one commit through GraphQL
-  `createCommitOnBranch` with `expectedHeadOid`, so a push in between refuses the commit instead of
-  being written over. The checks, already paid for, are then applied again to the lists read
+- The run reads both files at the head it left the branch on, the merge it made or the commit it
+  pointed the branch at, never the branch read back: GitHub answers a ref it just created or moved
+  as it was for a moment, a branch just created with a 404, which failed the run of 2026-11-11. It
+  commits them in one commit through GraphQL `createCommitOnBranch` with `expectedHeadOid`, so a
+  push in between refuses the commit instead of being written over. The checks, already paid for, are then applied again to the lists read
   afresh, once. Each check carries the entry as it was checked, and leaves one that changed
   meanwhile, by a person's push or an overlapping run, rather than write an old site's review over
   it.

@@ -63,10 +63,11 @@ const COMMIT_MUTATION = `mutation CommitDirectoryCheck($input: CreateCommitOnBra
   the pull request. With none, the branch starts again from `dev`: a pull request closed without a
   merge was a rejection, and a merged one's branch is gone.
 
-  The lists are read at the branch's head and committed against it, so a push in between refuses
-  the commit rather than being written over; the checks, already paid for, are then applied again
-  to the lists read afresh, once. The pull request is read again once the commit lands, so a run
-  never reports to one a person closed meanwhile, and each day's report is a comment of its own
+  The lists are read at the head the run left the branch on and committed against it, so a push in
+  between refuses the commit rather than being written over; the checks, already paid for, are then
+  applied again to the lists read afresh, once. The pull request is read again once the commit
+  lands, so a run never reports to one a person closed meanwhile, and each day's report is a comment
+  of its own
 */
 async function publishDirectoryCheck({
   github,

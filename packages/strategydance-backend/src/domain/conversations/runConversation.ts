@@ -1,13 +1,13 @@
-import { randomUUID } from 'node:crypto'
 import { setTimeout as wait } from 'node:timers/promises'
 
 import type { BetaMessageParam } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import {
+  buildConversationPreview,
   MAX_CONVERSATION_MESSAGES,
   MAX_CONVERSATION_RUN_ENTRIES,
   MAX_SUBAGENT_RUNS,
   MAX_TOOL_CALLS_PER_RUN,
-  buildConversationPreview,
+  toCanonicalUuid,
 } from 'strategydance-core'
 import {
   ConversationMessageKind,
@@ -51,8 +51,8 @@ import {
 
 import { dataConnect } from '~firebase'
 
+import createId from '~utils/createId'
 import logger from '~utils/logger'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import type { ConversationRequestConfig } from '~domain/agent/buildConversationRequest'
 import buildConversationTools from '~domain/agent/buildConversationTools'
@@ -73,6 +73,7 @@ import buildConversationToolResults from '~domain/conversations/buildConversatio
 import {
   type ConversationRunUsage,
   chargeUnsettledRequests,
+  countSentRequests,
   parseConversationRunUsage,
 } from '~domain/conversations/conversationRunUsage'
 import {
@@ -184,11 +185,11 @@ type ConversationRunContext = GetConversationRunContextData
   cost allow it, and nothing the reply to it calls runs.
 
   What a request came to, the turn to store or the run's end, is kept until it is written, so a
-  write refused once is tried again, never paid for again. Every write is fenced on the run's
-  attempt and its author's membership, and the step after a refused one reads which it was: a run
-  claimed again or ended by somebody else is left alone, a removed author's is interrupted, a
-  deleted conversation's stops, and anything else, a counter an aspects note moved say, is tried
-  again
+  write refused once, or a read failing before it, is tried again, never paid for again. Every
+  write is fenced on the run's attempt and its author's membership, and the step after a refused
+  one reads which it was: a run claimed again or ended by somebody else is left alone, a removed
+  author's is interrupted, a deleted conversation's stops, and anything else, a counter an aspects
+  note moved say, is tried again
 */
 async function runConversation(
   reference: ConversationRunReference,
@@ -353,14 +354,15 @@ async function takeSteps({
   let outcome: ConversationTurnOutcome | null = null
 
   for (let step = 0; step < MAX_RUN_STEPS; step++) {
-    const context = await readContext(reference)
-    const [run] = context.conversationRuns
-
-    // Chained by this worker's own write, whose answer was lost
-    if (run?.status === ConversationRunStatus.CHAINED && run.attempts === fence.attempts) return 'chained'
-    if (run?.status !== ConversationRunStatus.RUNNING || run.attempts !== fence.attempts) return 'finished'
-
+    // A read that fails is a step that failed, which keeps what a request came to for the next
     try {
+      const context = await readContext(reference)
+      const [run] = context.conversationRuns
+
+      // Chained by this worker's own write, whose answer was lost
+      if (run?.status === ConversationRunStatus.CHAINED && run.attempts === fence.attempts) return 'chained'
+      if (run?.status !== ConversationRunStatus.RUNNING || run.attempts !== fence.attempts) return 'finished'
+
       const result = await takeStep({
         context,
         fence,
@@ -661,7 +663,7 @@ async function takeStep({
       await lease.write(() =>
         storeConversationToolResults(dataConnect, {
           ...fence,
-          entryId: randomUUID().replaceAll('-', ''),
+          entryId: createId(),
           position: entry.position + 1,
           content: serializeTranscriptContent(content),
           ...(isReanchored && { anchorPosition: entry.position + 1 }),
@@ -855,7 +857,7 @@ function shouldTag({
     && !conversation.aspectsSetBy
     && conversation.messageCount < MAX_CONVERSATION_MESSAGES
     && !usage.requests.some(({ purpose }) => purpose === 'tagging')
-    && usage.requests.length < limits.maxRequests
+    && countSentRequests(usage) < limits.maxRequests
     && Date.now() - Date.parse(startedAt) < limits.maxDurationMs
   )
 }

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useIntl } from 'react-intl'
+import { countCalendarDays } from 'strategydance-core'
 import { cn } from 'strategydance-design-system/lib/utils'
 
 import type { CardField, LogEntry, OrganizationMember } from '~types'
@@ -15,7 +16,6 @@ import useOrganizationTeam from '~hooks/team/useOrganizationTeam'
 import getOrganizationDayCount from '~utils/buildInPublic/getOrganizationDayCount'
 import getRichTextSummary from '~utils/buildInPublic/getRichTextSummary'
 import pickLogAuthor from '~utils/buildInPublic/pickLogAuthor'
-import getDaysBetween from '~utils/date/getDaysBetween'
 import toCalendarDate from '~utils/date/toCalendarDate'
 import getMemberName from '~utils/team/getMemberName'
 
@@ -76,7 +76,7 @@ function BuildInPublicLog({ settings }: Props) {
   const dayCount = organization ? getOrganizationDayCount(organization.createdAt, today) : 1
 
   function formatDay(date: string) {
-    const daysAgo = getDaysBetween(date, today)
+    const daysAgo = countCalendarDays(date, today)
 
     if (daysAgo === 0) return formatMessage(buildInPublicMessages.today)
     if (daysAgo === 1) return formatMessage(buildInPublicMessages.yesterday)

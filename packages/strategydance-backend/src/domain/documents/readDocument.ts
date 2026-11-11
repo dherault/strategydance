@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import type { CompanyAspect } from 'strategydance-database/backend'
 import { z } from 'zod'
 
@@ -54,7 +55,8 @@ async function readDocument(
 
   if (from !== undefined && !cursor) return { outcome: 'invalidCursor' }
 
-  const loaded = await loadDocument(caller, id)
+  const documentId = toCanonicalUuid(id)
+  const loaded = await loadDocument(caller, documentId)
 
   if (loaded.outcome !== 'loaded') return loaded
 
@@ -70,7 +72,7 @@ async function readDocument(
   return {
     outcome: 'read',
     reading: {
-      id,
+      id: documentId,
       title,
       aspects,
       isAiWritable,

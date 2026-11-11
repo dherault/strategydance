@@ -1,3 +1,5 @@
+import { MAX_KNOWLEDGE_NOTE_LENGTH } from 'strategydance-core'
+
 import type { KnowledgeLinkTarget, KnowledgeRefusal } from '~types'
 
 import { MAX_KNOWLEDGE_LINKS } from '~constants'
@@ -27,6 +29,12 @@ function toSentence(refusal: KnowledgeRefusal) {
       return 'That idempotency key was sent before with another call. Send a new key with each new call.'
     case 'unknownItem':
       return `Strategy Dance's knowledge holds no ${refusal.kind} with the id "${refusal.id}". List the kind to find the item's id.`
+    case 'directoryTakesStatus':
+      return 'A directory takes a status rather than in use: set it with set_directory_status, SUBMITTED once the member sent their product.'
+    case 'notesTooLong':
+      return `A directory's notes hold at most ${MAX_KNOWLEDGE_NOTE_LENGTH} characters once stored. Write them shorter.`
+    case 'notesChanged':
+      return "Someone changed this directory's notes since you read them. Read the directory again with read_knowledge, then replace its notes from what they hold now, with the version it gives."
     case 'noTarget':
       return 'Name exactly one of `documentId`, `taskId` and `member`: a call links or unlinks one target.'
     case 'documentNotFound':

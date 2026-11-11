@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto'
 
-import { UUID_PATTERN } from '~constants'
+import { toCanonicalUuid } from 'strategydance-core'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { UUID_PATTERN } from '~constants'
 
 /*
   An id derived from what it stands for, so making the same thing twice, as a worker taking over

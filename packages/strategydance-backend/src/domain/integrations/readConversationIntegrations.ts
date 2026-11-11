@@ -1,4 +1,4 @@
-import type { IntegrationTool } from 'strategydance-core'
+import { type IntegrationTool, toCanonicalUuid } from 'strategydance-core'
 import {
   getConversationIntegrations,
   type GetConversationIntegrationsData,
@@ -6,8 +6,6 @@ import {
 } from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import parseStoredIntegrationTools from '~domain/integrations/parseStoredIntegrationTools'
 

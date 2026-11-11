@@ -1,4 +1,4 @@
-import getDaysBetween from '~utils/date/getDaysBetween'
+import { countCalendarDays } from 'strategydance-core'
 
 type TaskCountdown = {
   kind: 'shippingIn' | 'shippingToday' | 'pastDue' | 'shippedAhead' | 'shippedOnTime' | 'shipped'
@@ -14,7 +14,7 @@ type TaskCountdown = {
 */
 function getTaskCountdown(dueDate: string, doneDate: string | null, today: string): TaskCountdown {
   if (doneDate === null) {
-    const days = getDaysBetween(today, dueDate)
+    const days = countCalendarDays(today, dueDate)
 
     if (days > 0) return { kind: 'shippingIn', days }
     if (days === 0) return { kind: 'shippingToday', days: null }
@@ -22,8 +22,8 @@ function getTaskCountdown(dueDate: string, doneDate: string | null, today: strin
     return { kind: 'pastDue', days: -days }
   }
 
-  const ahead = getDaysBetween(doneDate, dueDate)
-  const since = getDaysBetween(doneDate, today)
+  const ahead = countCalendarDays(doneDate, dueDate)
+  const since = countCalendarDays(doneDate, today)
 
   if (ahead > 0) return { kind: 'shippedAhead', days: ahead }
 

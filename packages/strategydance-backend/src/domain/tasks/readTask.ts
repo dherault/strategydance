@@ -1,4 +1,4 @@
-import { isTaskBlocked } from 'strategydance-core'
+import { isTaskBlocked, toCanonicalUuid } from 'strategydance-core'
 import { type CompanyAspect, getTaskForAgent, TaskStatus } from 'strategydance-database/backend'
 
 import type { ModuleCaller, TaskAssignee, TaskReference, TasksRefusal } from '~types'
@@ -7,7 +7,7 @@ import { TASK_READ_LENGTH, TASK_READ_LINKS } from '~constants'
 
 import { dataConnect } from '~firebase'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import cutToFit from '~utils/cutToFit'
 
 import hashTaskDescription from '~domain/tasks/hashTaskDescription'
 import readTaskBoard from '~domain/tasks/readTaskBoard'
@@ -116,23 +116,6 @@ async function readTask(
   cut.description = cutToFit(readTaskDescriptionText(row.description), TASK_READ_LENGTH - JSON.stringify(cut).length)
 
   return { outcome: 'read', task: cut }
-}
-
-// The longest beginning of a text that JSON writes in at most `budget` characters more than an empty
-// string, cut between two characters, never inside one
-function cutToFit(text: string, budget: number) {
-  const characters = Array.from(text)
-  let low = 0
-  let high = characters.length
-
-  while (low < high) {
-    const middle = Math.ceil((low + high) / 2)
-
-    if (JSON.stringify(characters.slice(0, middle).join('')).length - 2 <= budget) low = middle
-    else high = middle - 1
-  }
-
-  return characters.slice(0, low).join('')
 }
 
 export default readTask

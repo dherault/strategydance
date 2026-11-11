@@ -1,11 +1,6 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
-import {
-  CONVERSATION_SEARCH_WINDOW_MINUTES,
-  ERROR_CODE_TOO_MANY_REQUESTS,
-  MAX_CONVERSATION_SEARCHES,
-} from 'strategydance-core'
+import { CONVERSATION_SEARCH_WINDOW_MINUTES, MAX_CONVERSATION_SEARCHES } from 'strategydance-core'
 
-import respondError from '~utils/respondError'
+import createRateLimit from '~middleware/createRateLimit'
 
 /*
   The search route's requests, metered: 120 per caller in ten minutes, which somebody typing in the
@@ -21,15 +16,11 @@ import respondError from '~utils/respondError'
   router makes its own, once, and a test makes a second router to stand for another instance
 */
 function createConversationSearchRateLimitMiddleware() {
-  return rateLimit({
+  return createRateLimit({
     windowMs: CONVERSATION_SEARCH_WINDOW_MINUTES * 60 * 1000,
     limit: MAX_CONVERSATION_SEARCHES,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-    keyGenerator: request => request.viewer?.id ?? ipKeyGenerator(request.ip ?? ''),
-    handler: (_request, response) => {
-      respondError(response, 429, ERROR_CODE_TOO_MANY_REQUESTS, 'Too many searches, try again in a few minutes')
-    },
+    key: 'viewer',
+    message: 'Too many searches, try again in a few minutes',
   })
 }
 

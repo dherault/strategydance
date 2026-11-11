@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { type CompanyAspect, setDocumentAspectsForAgent } from 'strategydance-database/backend'
 
 import type { DocumentsWriteResult, ModuleCall, ModuleCaller } from '~types'
@@ -29,14 +30,15 @@ async function setDocumentAspects(
 
   if (answered) return answered
 
-  const result = { id, aspects }
+  const documentId = toCanonicalUuid(id)
+  const result = { id: documentId, aspects }
 
   try {
     await setDocumentAspectsForAgent(dataConnect, {
       organizationId: caller.organizationId,
       userId: caller.userId,
       membershipCreatedAt: caller.membershipCreatedAt,
-      id,
+      id: documentId,
       aspects,
       ...toModuleCallVariables(caller, call, result),
     })
@@ -48,7 +50,7 @@ async function setDocumentAspects(
     if (answeredMeanwhile) return answeredMeanwhile
     if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
 
-    const refusal = await explainDocumentRefusal(caller, id, { isWrite: true })
+    const refusal = await explainDocumentRefusal(caller, documentId, { isWrite: true })
 
     if (refusal) return refusal
 

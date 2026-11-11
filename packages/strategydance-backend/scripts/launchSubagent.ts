@@ -2,11 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { setTimeout as wait } from 'node:timers/promises'
 import { parseArgs } from 'node:util'
 
-import { MAX_SUBAGENTS_PER_ACTION, buildConversationTitle } from 'strategydance-core'
+import { buildConversationTitle, MAX_SUBAGENTS_PER_ACTION, toCanonicalUuid } from 'strategydance-core'
 
 import { authentication, dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import launchSubagent from '~domain/subagents/launchSubagent'
 import reconcileSubagentRuns from '~domain/subagents/reconcileSubagentRuns'

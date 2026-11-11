@@ -1,9 +1,7 @@
-import type { ModuleAddress, ModuleDefinition } from 'strategydance-core'
+import { type ModuleAddress, type ModuleDefinition, toCanonicalUuid } from 'strategydance-core'
 import { getPendingOAuthAuthorizationRequest } from 'strategydance-database/backend'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import matchesRedirectUri from '~domain/oauth/matchesRedirectUri'
 import parseModuleResource from '~domain/oauth/parseModuleResource'

@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import {
   ConversationRunStatus,
   getSubagentsToStop,
@@ -9,7 +10,6 @@ import type { ConversationRunReference } from '~types'
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import isOperationRefusal from '~domain/modules/isOperationRefusal'
 import endPendingSubagentRun from '~domain/subagents/endPendingSubagentRun'

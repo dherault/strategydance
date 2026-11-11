@@ -1,10 +1,11 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { deleteBillForAgent } from 'strategydance-database/backend'
 
 import type { BudgetWriteResult, ModuleCall, ModuleCaller } from '~types'
 
-import { dataConnect } from '~firebase'
+import { RESTORE_WINDOW_MS } from '~constants'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { dataConnect } from '~firebase'
 
 import { NOT_FOUND_REFUSAL } from '~domain/budget/budgetRefusalMessages'
 import answerFromModuleCall from '~domain/modules/answerFromModuleCall'
@@ -12,9 +13,6 @@ import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
 import isOperationRefusal from '~domain/modules/isOperationRefusal'
 import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
-
-// How long a deleted bill can be restored, as the page's Undo and the sweep hold it
-const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
 
 // What deleting answers: the bill, and until when `restore_bill` brings it back
 export type DeletedBill = {

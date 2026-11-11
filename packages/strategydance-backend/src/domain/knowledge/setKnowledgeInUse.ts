@@ -22,7 +22,9 @@ export type SetKnowledgeUse = {
 
 /*
   Marks an item in use, or no longer, for the member the agent acts as. The id is held to the
-  release's catalogue first, inactive directories included, since the operation cannot read it. The
+  release's catalogue first, inactive directories included, since the operation cannot read it. A
+  directory takes a status instead, which sets its use, once a call sent before under the same key
+  is answered as it was. The
   flag the item holds already, or false for one never marked, writes nothing, so `changedAt` keeps
   the day the flag last changed and an item never tried is not told as one dropped. A change answers
   the time the module wrote it, the row taking the database's own a moment later
@@ -37,6 +39,7 @@ async function setKnowledgeInUse(
   const answered = await answerFromModuleCall(caller, call)
 
   if (answered) return answered
+  if (kind === 'DIRECTORY') return { outcome: 'directoryTakesStatus' }
 
   const read = await readKnowledgeState(caller, kind, [id])
 

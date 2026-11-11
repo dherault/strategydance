@@ -446,6 +446,25 @@ describe('retryConversationRun', () => {
     expect(readConversation(reference)?.historyRevision).toBe(1)
   })
 
+  test('queues the run it started and answers with it though its subagents could not be stopped after it', async () => {
+    const reference = await start()
+
+    await fail(reference)
+
+    // The read of the subagents to stop, once the retry is written
+    fake.beforeOperation = async name => {
+      if (name === 'GetSubagentsToStop') throw new Error('The database is unreachable')
+    }
+
+    const result = await retryConversationRun(reference)
+
+    if (result.outcome !== 'retried') throw new Error(`The retry answered ${result.outcome}`)
+
+    expect(result.removedRunIds).toEqual([reference.runId])
+    expect(enqueueRun.mock.calls.at(-1)?.[0]).toEqual({ ...reference, runId: result.runId })
+    expect(readRun({ ...reference, runId: result.runId })?.status).toBe('QUEUED')
+  })
+
   test('cuts a turn whose fallback was stored stripped back as well, the transcript still passing the rules', async () => {
     const reference = await start()
     const fallback = {

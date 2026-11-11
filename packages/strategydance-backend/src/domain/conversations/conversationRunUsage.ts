@@ -203,6 +203,16 @@ export function skipConversationRequest(
   )
 }
 
+/*
+  How many of the run's requests count toward its limit, those that reached Claude, as David chose
+  on 2026-11-10: an attempt the API refused before its stream started, one that failed before it was
+  sent and one the run skipped are settled by no model, and count for nothing. A request reserved
+  and not settled yet may be on its way, and counts, as one a worker taking over charges does
+*/
+export function countSentRequests(usage: ConversationRunUsage) {
+  return usage.requests.filter(({ model, isSettled }) => model !== null || !isSettled).length
+}
+
 // Records where a request's part was stored, which the measurement starts from
 export function placeConversationRequest(usage: ConversationRunUsage, index: number, turnPosition: number) {
   return withTotals(

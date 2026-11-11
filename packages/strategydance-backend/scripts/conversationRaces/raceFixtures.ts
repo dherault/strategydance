@@ -9,9 +9,10 @@ import {
   claimQueuedConversationRun,
   connectorConfig,
   finishConversationRun,
-  getConversationSendContext,
   startConversation,
 } from 'strategydance-database/backend'
+
+import type { ModuleCaller } from '~types'
 
 import { FIREBASE_PROJECT_ID } from '~constants'
 
@@ -46,41 +47,92 @@ export async function read<Data>(query: string, variables: Variables = {}) {
 
 export type Member = { organizationId: string; userId: string; membershipCreatedAt: string }
 
-/*
-  A member of an organization of their own, made for one round of one scenario, so nothing another
-  round left counts against their runs, their slots or their caps
-*/
-export async function createMember(scenario: string, round: number): Promise<Member> {
-  const userId = `race-${checkId}-${scenario}-${round}`
-  const organizationId = createId()
+export type Role = 'ADMINISTRATOR' | 'MEMBER'
 
-  userIds.push(userId)
+/*
+  An organization of its own made for one round of one scenario, so nothing another round left
+  counts against its members' runs, their slots or their caps, with a member of each role named, in
+  that order
+*/
+export async function createTeam(scenario: string, round: number, roles: Role[]) {
+  const organizationId = createId()
+  const teamUserIds = roles.map((_, index) => `race-${checkId}-${scenario}-${round}-${index + 1}`)
+
+  userIds.push(...teamUserIds)
   organizationIds.push(organizationId)
 
   // Signed up as the app has them, since a user's row takes its id and address off the token
-  await webConnector.executeMutation(
-    'CreateCurrentUser',
-    { locale: 'EN', authenticationProviders: [] },
-    { impersonate: { authClaims: { sub: userId, email: `${userId}@example.com` } } },
-  )
+  for (const userId of teamUserIds) {
+    await webConnector.executeMutation(
+      'CreateCurrentUser',
+      { locale: 'EN', authenticationProviders: [] },
+      { impersonate: { authClaims: { sub: userId, email: `${userId}@example.com` } } },
+    )
+  }
+
   await write(
-    `mutation SetUp($organizationId: UUID!, $userId: String!) {
+    `mutation SetUp($organizationId: UUID!) {
       organization_insert(data: { id: $organizationId, name: "Raced organization" })
-      userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: MEMBER })
     }`,
-    { organizationId, userId },
+    { organizationId },
   )
 
-  const { data } = await getConversationSendContext(dataConnect, {
-    organizationId,
-    userId,
-    conversationId: createId(),
-    messageId: createId(),
-  })
+  const members: Member[] = []
 
-  if (!data.userOrganization) throw new Error(`${userId} is not a member`)
+  for (const [index, userId] of teamUserIds.entries()) {
+    await write(
+      `mutation Join($organizationId: UUID!, $userId: String!, $role: OrganizationRole!) {
+        userOrganization_insert(data: { userId: $userId, organizationId: $organizationId, role: $role })
+      }`,
+      { organizationId, userId, role: roles[index] },
+    )
 
-  return { organizationId, userId, membershipCreatedAt: data.userOrganization.createdAt }
+    const data = await read<{ userOrganization: { createdAt: string } | null }>(
+      `query ReadMembership($organizationId: UUID!, $userId: String!) {
+        userOrganization(key: { userId: $userId, organizationId: $organizationId }) { createdAt }
+      }`,
+      { organizationId, userId },
+    )
+
+    if (!data.userOrganization) throw new Error(`${userId} is not a member`)
+
+    members.push({ organizationId, userId, membershipCreatedAt: data.userOrganization.createdAt })
+  }
+
+  return { organizationId, members }
+}
+
+// The one member of an organization of their own, as `createTeam` makes it
+export async function createMember(scenario: string, round: number): Promise<Member> {
+  const {
+    members: [member],
+  } = await createTeam(scenario, round, ['MEMBER'])
+
+  return member!
+}
+
+// The member as Strategy Dance's agent acts for them through a module, with no launcher, which no
+// write a race makes reads
+export function asAgent(member: Member): ModuleCaller {
+  return {
+    kind: 'agent',
+    userId: member.userId,
+    organizationId: member.organizationId,
+    membershipCreatedAt: member.membershipCreatedAt,
+    scopes: [],
+    idempotencyScope: `race-${checkId}`,
+  }
+}
+
+// Rows written as they are, a hundred to a mutation, the most a list takes
+export async function insertRows(table: string, rows: Variables[]) {
+  const field = `${table.charAt(0).toLowerCase()}${table.slice(1)}_insertMany`
+
+  for (let start = 0; start < rows.length; start += 100) {
+    await write(`mutation Insert($rows: [${table}_Data!]!) { ${field}(data: $rows) }`, {
+      rows: rows.slice(start, start + 100),
+    })
+  }
 }
 
 export async function tearDown() {

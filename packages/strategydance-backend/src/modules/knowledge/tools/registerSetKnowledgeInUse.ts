@@ -26,7 +26,7 @@ function registerSetKnowledgeInUse(server: McpServer, context: KnowledgeToolCont
     {
       title: 'Mark what the company uses',
       description:
-        "Marks an item of the knowledge as one the company uses, or with `inUse` false as one it no longer does: a framework while the company works with it, a tactic while it runs it, a directory once the company submitted to it, whether or not the listing is live yet. Mark it when the member takes the item up, and clear it when they drop it, so the next conversation starts from what the company does: an item cleared is kept as one the company stopped using, apart from those it never tried. Marking what the item holds already changes nothing. Answers the item's `use`, whether the company uses it and since when (`changedAt`), or null for one never marked.",
+        "Marks a framework or a tactic of the knowledge as one the company uses, or with `inUse` false as one it no longer does: a framework while the company works with it, a tactic while it runs it. A directory takes a status instead, with set_directory_status. Mark it when the member takes the item up, and clear it when they drop it, so the next conversation starts from what the company does: an item cleared is kept as one the company stopped using, apart from those it never tried. Marking what the item holds already changes nothing. Answers the item's `use`, whether the company uses it and since when (`changedAt`), or null for one never marked.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },

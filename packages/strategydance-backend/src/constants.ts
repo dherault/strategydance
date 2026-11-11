@@ -52,6 +52,10 @@ export const DAILY_SPEND_CEILINGS: Record<UsageCapScope, number> = {
   organization: MAX_DAILY_SPEND_MICRODOLLARS_PER_ORGANIZATION,
 }
 
+// Whose spend the ceilings hold, in the order they are gone through: the member's in the
+// organization, the account's across its organizations, then the organization's
+export const SPEND_CEILING_SCOPES: readonly UsageCapScope[] = ['member', 'account', 'organization']
+
 /*
   Whether a member starts or continues a run only once their ID token says their address is
   confirmed (`verifiedEmailMiddleware`): an account costs nothing to make, and the daily caps'
@@ -291,6 +295,12 @@ export const MODULE_PROTOCOL_VERSION = '2026-07-28'
 export const MODULE_IDEMPOTENCY_KEY_META = 'com.strategydance/idempotencyKey'
 export const MAX_MODULE_IDEMPOTENCY_KEY_LENGTH = 200
 
+/*
+  How long a task, a document or a bill deleted through a module can be restored, as the pages'
+  Undo, the sweep and each `Restore…ForAgent` mutation hold it
+*/
+export const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
+
 // Where the public backend serves the modules, at strategydance-core's `MODULE_ADDRESSES`: the one
 // address's path, under which each module's own address is
 export const MODULES_PATH = MODULES_ADDRESS.path
@@ -392,12 +402,16 @@ export const BILL_UPDATE_ATTEMPTS = 3
   well within the cut, but 20 of each at their longest titles and names take some 11000 characters
   an item, so a read of ten such items is cut, as any tool result is. An item links at most 100 of
   each, which its link operations hold under the organization's lock, while a document, a task or a
-  member is linked to any number of items: nothing grows with it but the catalogue, which is bounded
+  member is linked to any number of items: nothing grows with it but the catalogue, which is bounded.
+  The directories' notes take what the items and their links leave of 45000 characters of JSON, as
+  a task's read does, short of the cut, so a directory read alone has some 43000 for its notes,
+  room for most notes at their 20000 characters of blocks
 */
 export const KNOWLEDGE_LIST_PAGE_LENGTH = 40000
 export const MAX_KNOWLEDGE_READ_IDS = 10
 export const MAX_KNOWLEDGE_READ_LINKS = 20
 export const MAX_KNOWLEDGE_LINKS = 100
+export const KNOWLEDGE_READ_LENGTH = 45000
 
 /* ---
   OAUTH

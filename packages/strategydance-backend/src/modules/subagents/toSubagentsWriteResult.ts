@@ -1,17 +1,17 @@
 import type { SubagentsWriteResult } from '~types'
 
+import createModuleWriteResult from '~modules/createModuleWriteResult'
 import toSubagentsRefusal from '~modules/subagents/toSubagentsRefusal'
-import toToolResult from '~modules/toToolResult'
+
+const toWriteResult = createModuleWriteResult(toSubagentsRefusal)
 
 /*
   What a write tool of the Subagents module answers: its result, the same whether the write ran now,
-  was answered from its idempotency key, or changed nothing, or the refusal worded for the model
+  was answered from its idempotency key, or changed nothing, or the refusal worded for the model. No
+  web address, since a subagent is reached from its parent's thread
 */
 function toSubagentsWriteResult<Result extends { id: string }>(written: SubagentsWriteResult<Result>) {
-  // Only an answer carries a result, which no refusal does
-  if (!('result' in written)) return toSubagentsRefusal(written)
-
-  return toToolResult(written.result as Result)
+  return toWriteResult(written, null)
 }
 
 export default toSubagentsWriteResult

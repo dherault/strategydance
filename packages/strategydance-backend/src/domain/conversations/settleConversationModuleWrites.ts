@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import {
   ConversationMessageKind,
   ConversationToolStatus,
@@ -8,8 +9,6 @@ import {
 import type { ConversationRunReference } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import toConversationModuleScope from '~domain/agent/toConversationModuleScope'
 import {

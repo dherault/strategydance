@@ -1,4 +1,4 @@
-import getDaysBetween from '~utils/date/getDaysBetween'
+import { countCalendarDays } from 'strategydance-core'
 
 /*
   The Task focus card's number, from the day a task was added: for a done task, the days it took
@@ -6,7 +6,7 @@ import getDaysBetween from '~utils/date/getDaysBetween'
   task added and done the same day took a day
 */
 function getTaskDays(createdDate: string, doneDate: string | null, today: string) {
-  return Math.max(1, getDaysBetween(createdDate, doneDate ?? today))
+  return Math.max(1, countCalendarDays(createdDate, doneDate ?? today))
 }
 
 export default getTaskDays

@@ -2599,19 +2599,33 @@ query GetConversationRun($organizationId: UUID!, $conversationId: UUID!)
 # The outputs of some of a conversation's tool calls that succeeded, by id, which never change once
 # written: what the thread reads of the rows that offer something, a deleted document's Restore, in
 # one read for all of them rather than one each. Up to 50 at a time. Only that conversation's calls
-# come back, in an organization the caller belongs to, so an id from anywhere else reads nothing
+# come back, in an organization the caller belongs to, so an id from anywhere else reads nothing.
+#
+# A call made with the author's own account at an OAuth server comes back to its author alone, as
+# `GetConversationToolCall` explains
 query GetConversationToolOutputs($organizationId: UUID!, $id: UUID!, $messageIds: [UUID!]!) @auth(level: USER) {
   conversationMessages(
     where: {
-      id: { in: $messageIds }
-      conversationId: { eq: $id }
-      kind: { eq: TOOL_CALL }
-      toolStatus: { eq: SUCCEEDED }
-      conversation: {
-        organizationId: { eq: $organizationId }
-        deletedAt: { isNull: true }
-        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
-      }
+      _and: [
+        {
+          id: { in: $messageIds }
+          conversationId: { eq: $id }
+          kind: { eq: TOOL_CALL }
+          toolStatus: { eq: SUCCEEDED }
+          conversation: {
+            organizationId: { eq: $organizationId }
+            deletedAt: { isNull: true }
+            organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+          }
+        }
+        {
+          _or: [
+            { conversation: { userId: { eq_expr: "auth.uid" } } }
+            { integrationName: { isNull: true } }
+            { integration: { authentication: { ne: OAUTH } } }
+          ]
+        }
+      ]
     }
     limit: 50
   ) {
@@ -2623,17 +2637,34 @@ query GetConversationToolOutputs($organizationId: UUID!, $id: UUID!, $messageIds
 # One tool call's input and output, as its dialog shows them, read each time the dialog opens since
 # a call's output arrives after its message. Both are JSON text, exactly as the call took and gave
 # them. A call waiting for the member's approval is read too, since Allow shows its whole input
-# before it approves
+# before it approves.
+#
+# Every member reads a call, but one made with the author's own account at an OAuth server, whose
+# input and output stay the author's (conversations.md § Decisions, since 2026-11-10): another
+# member reads a call to no integration, or to a server whose authentication is not `OAUTH`. A call
+# whose server was pruned since, which nulls `integration` but keeps `integrationName`, counts as
+# made with the author's own account, since nothing says it was not
 query GetConversationToolCall($organizationId: UUID!, $messageId: UUID!) @auth(level: USER) {
   conversationMessages(
     where: {
-      id: { eq: $messageId }
-      kind: { in: [TOOL_CALL, APPROVAL] }
-      conversation: {
-        organizationId: { eq: $organizationId }
-        deletedAt: { isNull: true }
-        organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
-      }
+      _and: [
+        {
+          id: { eq: $messageId }
+          kind: { in: [TOOL_CALL, APPROVAL] }
+          conversation: {
+            organizationId: { eq: $organizationId }
+            deletedAt: { isNull: true }
+            organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+          }
+        }
+        {
+          _or: [
+            { conversation: { userId: { eq_expr: "auth.uid" } } }
+            { integrationName: { isNull: true } }
+            { integration: { authentication: { ne: OAUTH } } }
+          ]
+        }
+      ]
     }
     limit: 1
   ) {
@@ -3511,5 +3542,142 @@ query GetBillEarlierReceipts($organizationId: UUID!, $billId: UUID!, $limit: Int
     name
     contentType
     size
+  }
+}
+
+# --- Directories ---
+
+# Where the organization stands with each directory it gave a status, and the plain text of its
+# notes on each, for the directories' page and the Marketing aspect's section, which search the notes
+# and mark a directory that has some. Up to 2000 of each (`MAX_KNOWLEDGE_ROWS`). The catalogue is
+# strategydance-knowledge's, which the page loads itself: a row naming an id the release's list no
+# longer holds, an inactive directory's included, is read past there. Outsiders read nothing.
+#
+# A live query: each `@refresh` names a mutation that changes a status or a note, the Knowledge
+# module's included, which the backend runs for an agent. Removing a member empties theirs, and
+# deleting the organization empties everybody's
+query GetDirectoryUses($organizationId: UUID!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDirectoryStatus"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDirectoryNotes"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDirectoryStatusForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetKnowledgeInUseForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateKnowledgeNoteForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateKnowledgeNoteForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  knowledgeUses(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: DIRECTORY }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 2000
+  ) {
+    itemId
+    isInUse
+    directoryStatus
+    changedAt
+  }
+  knowledgeNotes(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: DIRECTORY }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 2000
+  ) {
+    itemId
+    contentText
+    updatedAt
+  }
+}
+
+# The organization's notes on one directory, its blocks, for the directory's dialog to open its
+# editor on. A live query, refreshed by every write of that note, the agent's included, so an open
+# dialog takes what the agent wrote while nobody typed
+query GetDirectoryNotes($organizationId: UUID!, $directoryId: String!)
+@auth(level: USER)
+@refresh(
+  onMutationExecuted: {
+    operation: "SetDirectoryNotes"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.directoryId == request.variables.directoryId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateKnowledgeNoteForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.itemId == request.variables.directoryId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateKnowledgeNoteForAgent"
+    condition: "mutation.variables.organizationId == request.variables.organizationId && mutation.variables.itemId == request.variables.directoryId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "RemoveOrganizationMember"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "DeleteOrganization"
+    condition: "mutation.variables.organizationId == request.variables.organizationId"
+  }
+) {
+  knowledgeNotes(
+    where: {
+      organizationId: { eq: $organizationId }
+      kind: { eq: DIRECTORY }
+      itemId: { eq: $directoryId }
+      organization: { userOrganizations_on_organization: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    }
+    limit: 1
+  ) {
+    content
+    updatedAt
   }
 }

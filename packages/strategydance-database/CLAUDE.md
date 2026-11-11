@@ -28,9 +28,9 @@ The Data Connect service's conventions, beside the root `CLAUDE.md`: the schema 
   an organization the member left and rejoined
 - A variable joins an operation optional, so an older page can leave it out, and its `@check` reads
   `!has(vars.x) || vars.x == null || …`, since `vars.x == null` alone errors on an absent variable
-- `Locale`, `Currency` and `KnowledgeKind` are declared in both `schema.gql` and core, which
-  `schema.test.ts` holds together, as it holds the Budget's limits to their checks. Every other enum
-  lives here alone. An enum's order is Postgres': append a value, never reorder one
+- `Locale`, `Currency`, `KnowledgeKind` and `DirectoryStatus` are declared in both `schema.gql` and
+  core, which `schema.test.ts` holds together, as it holds the Budget's limits to their checks. Every
+  other enum lives here alone. An enum's order is Postgres': append a value, never reorder one
 - A schema change reaches production with its release, Data Connect first, and a migration that
   drops anything stops the release for a human
 
@@ -60,15 +60,16 @@ refreshes no other tab.
   also misses its own earlier writes: count around them by their ids
 - A mutation writes each row once: a later write to a row in one statement is skipped silently. When
   the row a mutation locks is the row it writes, the write is the lock, and the checks follow it
-- A mutation takes one `query` step: a check that has to follow a write goes there, and its refusal
-  rolls back the writes before it
+- A mutation takes one `query` step, and aliased ones beside it (`locked: query`): a check that has
+  to follow a write goes there, and its refusal rolls back the writes before it
 - A `@check` under a list that comes back empty is never invoked, yet Data Connect refuses with its
   message rather than the list's: a variable's check nested under a write's membership takes
   `optional: true`, so a removed member gets the membership's message
 - `@include(if: $flag)` skips a step, but its variables stay required and a key it names is refused
   null: a step whose key may be missing is an operation of its own
-- A foreign key violated by a later step is reported before an earlier step's `@check`, so the
-  backend reads both messages as one refusal (`isMembershipRefusal`)
+- In one statement, a foreign key violated by a later step is reported before an earlier step's
+  `@check`, so the backend reads both messages as one refusal (`isMembershipRefusal`). Once the
+  steps run apart, the check comes first
 - A filter on an optional list left out is dropped and matches every row: count the rows against
   the list (`this == size(vars.ids)`). A nullable variable left out of a write leaves its column
   alone: only null clears it

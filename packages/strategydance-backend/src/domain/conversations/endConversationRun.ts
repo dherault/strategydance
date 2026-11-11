@@ -9,7 +9,6 @@ import {
   finishConversationRunWithNote,
   finishSubagentRun,
   finishSubagentRunWithNote,
-  getConversationRunStop,
   interruptConversationRun,
   interruptSubagentRun,
   SpendCeilingScope,
@@ -24,6 +23,7 @@ import logger from '~utils/logger'
 import type { ConversationRunUsage } from '~domain/conversations/conversationRunUsage'
 import type { ConversationRunLease } from '~domain/conversations/createConversationRunLease'
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
+import isConversationRunStopRequested from '~domain/conversations/isConversationRunStopRequested'
 import readConversationTranscript from '~domain/conversations/readConversationTranscript'
 import readReachedUsageCap from '~domain/conversations/readReachedUsageCap'
 import toConversationUsageVariables from '~domain/conversations/toConversationUsageVariables'
@@ -253,8 +253,8 @@ async function endSubagentRun(input: EndSubagentRunInput): Promise<'ended' | 'ch
 
   // A daily spend ceiling stops the subagent whole, as nothing it chains to could send a request
   if (chain && fence && ending.kind === 'noted' && ending.isAtLimit && !ending.ceiling) {
-    const [{ data }, ceiling] = await Promise.all([
-      getConversationRunStop(dataConnect, toReference(fence)),
+    const [isStopRequested, ceiling] = await Promise.all([
+      isConversationRunStopRequested(fence),
       readReachedUsageCap(fence, ['spend'], { isSubagent: true }),
     ])
 
@@ -266,7 +266,7 @@ async function endSubagentRun(input: EndSubagentRunInput): Promise<'ended' | 'ch
           ceiling: { scope: ceiling.scope, freesAt: new Date(Date.now() + ceiling.retryAfterMs).toISOString() },
         },
       })
-    } else if (!data.conversationRuns[0]?.stopRequestedAt) {
+    } else if (!isStopRequested) {
       await write(() =>
         chainSubagentRun(dataConnect, {
           ...fence,
@@ -365,11 +365,6 @@ async function writeSubagentEnding({ ending, fence, position, write }: EndSubage
 // What a note stores of the daily spend ceiling its run failed at, and its preview names
 function toNoteCeiling(ceiling: ConversationSpendCeilingEnding | undefined) {
   return ceiling ? { ceilingScope: CEILING_SCOPES[ceiling.scope], ceilingFreesAt: ceiling.freesAt } : {}
-}
-
-// The run's keys alone, which a read takes
-function toReference({ organizationId, userId, conversationId, runId }: ConversationRunReference) {
-  return { organizationId, userId, conversationId, runId }
 }
 
 // Promotes into the slot a subagent's run held until it ended. A promotion that fails leaves the

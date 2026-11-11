@@ -1,4 +1,10 @@
-import { KnowledgeKind, MAX_SEARCH_QUERY_LENGTH, MAX_SEARCH_TERMS, splitSearchTerms } from 'strategydance-core'
+import {
+  DirectoryStatus,
+  KnowledgeKind,
+  MAX_SEARCH_QUERY_LENGTH,
+  MAX_SEARCH_TERMS,
+  splitSearchTerms,
+} from 'strategydance-core'
 import { TaskStatus } from 'strategydance-database/backend'
 import {
   DirectoryBusinessModel,
@@ -95,6 +101,7 @@ export const knowledgeRowSchema = z.union([
   }),
   z.object({
     ...rowShape,
+    status: z.enum(DirectoryStatus).nullable(),
     type: z.enum(DirectoryType),
     categories: z.array(z.enum(DirectoryCategory)),
     businessModel: z.enum(DirectoryBusinessModel),
@@ -108,8 +115,14 @@ function toMeaningSchema<const Values extends Record<string, string>>(values: Va
   return z.object({ value: z.enum(values), meaning: z.string() })
 }
 
-// Whether the organization uses an item and since when, null when the agent never marked it
-export const useSchema = z.object({ inUse: z.boolean(), changedAt: z.string() }).nullable()
+/*
+  Whether the organization uses an item and since when, a directory's with where the organization
+  stands with it, null for one to do, or null when the item was never marked. The status is
+  optional, since a result kept under an idempotency key before statuses has none
+*/
+export const useSchema = z
+  .object({ inUse: z.boolean(), changedAt: z.string(), status: z.enum(DirectoryStatus).nullable().optional() })
+  .nullable()
 
 // An item's newest links to one kind of target, and how many it has in all
 function toLinksSchema<const Shape extends z.ZodRawShape>(shape: Shape) {
@@ -120,7 +133,7 @@ export const documentReferenceShape = { id: z.string(), title: z.string() }
 
 export const taskReferenceShape = { id: z.string(), name: z.string(), status: z.enum(TaskStatus) }
 
-export const memberReferenceShape = { member: z.string(), name: z.string().nullable() }
+const memberReferenceShape = { member: z.string(), name: z.string().nullable() }
 
 // A link's target as a link or an unlink answers it, one of the three
 export const linkReferenceShape = {
@@ -169,5 +182,8 @@ export const knowledgeItemSchema = z.union([
     unreachableSince: z.string().nullable(),
     inactiveReason: toMeaningSchema(DirectoryInactiveReason).optional(),
     ...stateShape,
+    notes: z.string(),
+    isNotesComplete: z.boolean(),
+    notesVersion: z.string().optional(),
   }),
 ])

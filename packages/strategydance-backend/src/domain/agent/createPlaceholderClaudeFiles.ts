@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto'
-
 import type { ClaudeFiles } from '~types'
+
+import createId from '~utils/createId'
 
 /*
   The Files API's stand-in in development, beside the placeholder client
@@ -11,7 +11,7 @@ import type { ClaudeFiles } from '~types'
 function createPlaceholderClaudeFiles(): ClaudeFiles {
   return {
     async upload() {
-      return `placeholder-${randomUUID().replaceAll('-', '')}`
+      return `placeholder-${createId()}`
     },
 
     async delete() {},

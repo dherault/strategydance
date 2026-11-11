@@ -345,6 +345,14 @@ export const WELCOME_EMAIL_WINDOW_DAYS = 7
 export const MAX_USER_NAME_LENGTH = 80
 
 /*
+  How long a name mirrored from the account may be, past the page's, since one from Google can be
+  longer: the page cuts a longer one to it rather than lose the whole row. Written out again in
+  `CreateCurrentUser`'s and `UpdateCurrentUser`'s checks, which cannot import it, and held to them
+  by `schema.test.ts`
+*/
+export const MAX_MIRRORED_USER_NAME_LENGTH = 256
+
+/*
   How long somebody's bio may be, which their team and agents read. Written out again in
   `UpdateCurrentUserProfile`'s check, which cannot import it: change the two together
 */
@@ -406,6 +414,20 @@ export const MAX_TASKS = 1000
 export const MAX_TASK_NAME_LENGTH = 120
 export const MAX_TASK_DESCRIPTION_LENGTH = 20000
 export const MAX_TASK_DEPENDENCIES = 50
+
+/* ---
+  KNOWLEDGE
+--- */
+
+/*
+  How long a note on an item of the knowledge may run, its serialized blocks, as long as a task's
+  description, and how many items of a kind an organization keeps a status or a note of, past the
+  716 directories, the longest list, active and inactive: the page's writes count them, since the
+  database cannot hold an id to the catalogue. Written out again in the notes' and the statuses'
+  mutations' checks, which cannot import them: change them together
+*/
+export const MAX_KNOWLEDGE_NOTE_LENGTH = 20000
+export const MAX_KNOWLEDGE_ROWS = 2000
 
 /* ---
   DOCUMENTS

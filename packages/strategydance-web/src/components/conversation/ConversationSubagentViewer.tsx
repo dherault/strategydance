@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent } from 'react'
+import { toCanonicalUuid } from 'strategydance-core'
 
 import useConversationSubagents from '~hooks/conversation/useConversationSubagents'
 import useIsConversationSubagent from '~hooks/conversation/useIsConversationSubagent'
@@ -25,7 +26,7 @@ type Props = {
 */
 function ConversationSubagentViewer({ conversationId, subagentId, canStop, onClose }: Props) {
   const subagents = useConversationSubagents(conversationId, { isEnabled: subagentId !== null })
-  const canonicalId = subagentId?.replaceAll('-', '').toLowerCase() ?? null
+  const canonicalId = subagentId === null ? null : toCanonicalUuid(subagentId)
   const subagent = canonicalId ? subagents.data.find(({ id }) => id === canonicalId) : undefined
   const isUnlisted = canonicalId !== null && !subagent && !subagents.initialLoading && !subagents.hasFailed
   // The list held can be older than the subagent, so only the server's word that it is not there closes

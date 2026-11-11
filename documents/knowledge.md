@@ -4,9 +4,10 @@ What Strategy Dance knows of companies in general, and what a company does with 
 - **the catalogue**, as data in the knowledge package: proven strategic frameworks, marketing
   tactics and the directories a startup can be submitted to;
 - **what the company uses**, an "in use" flag on each item, with the documents, tasks and members it
-  involves;
+  involves, and for a directory, its status and the team's notes on it;
 - **the Knowledge module**, through which Strategy Dance's own agent reads the catalogue and keeps
-  that state.
+  that state;
+- **the directories' page**, where members keep a directory's status and notes.
 
 It is not the Knowledge module that existed before 2026-10-29, which held the team's documents and is
 called Documents now ([conversations.md](conversations.md)). This one is new, and takes the name the
@@ -30,7 +31,8 @@ Taken with David on 2026-10-31:
   subagents from M3, and the orchestrator's runs once they exist.
   - It is in `MODULES` but not in `SERVED_MODULE_NAMES`, as Subagents is, so `/mcp/knowledge` is
     reserved and answers nothing.
-  - There is no page. Nothing in the app shows what the company uses: the agent says it in a
+  - The directories alone have a page, from a Claude Design design (decided 2026-11-10, § The
+    directories' page), which shows those taking a submission today alone. Nothing else in the app shows what the company uses: the agent says it in a
     conversation.
 - **The catalogue stays in the package**, shipped with each release, and the module never writes it.
   The database holds only the company's state, keyed by an item's kind and id, which never changes,
@@ -39,8 +41,13 @@ Taken with David on 2026-10-31:
   clears when it drops it:
   - a framework is in use while the company works with it;
   - a tactic, while the company runs it;
-  - a directory, once the company has submitted to it, whether or not the listing is live yet. The
-    task that tracks the submission is linked to it.
+  - a directory takes a status instead (2026-11-10): `SUBMITTED` once the company has sent its
+    product, whether or not the listing is live yet, `LISTED` once it is, `DISMISSED` once it
+    decided against it, or none, to do. It is in use exactly while submitted or listed. The task
+    that tracks the submission is linked to it.
+- **Notes on a directory** (David, 2026-11-10): what the team sent, the logins it chose, the replies
+  and what to follow up, as rich text, which members write on the directories' page and the agent
+  reads and writes as Markdown.
 - **Links to documents, tasks and members**, several of each per item. The SWOT analysis links to
   the document it lives in, a tactic to the tasks that carry it out and the member who runs it.
 - **Read, not dumped.** The brief has the module dump the catalogue into the conversation at once,
@@ -55,8 +62,7 @@ Taken with David on 2026-10-31:
 
 Left for later:
 - **Suggestions and their review.**
-- **A page**, from a Claude Design design, where members browse the catalogue and see what the
-  company uses.
+- **A page for the frameworks and the tactics**, as the directories have theirs.
 - **External agents**, at `/mcp/knowledge`. Old `AgentConnection` rows from the Knowledge module that
   is Documents now still carry `module: 'knowledge'` until the daily `PruneUnservedAgentConnections`
   sweeps them, and tokens were bound to that address: before serving it, make sure nothing issued for
@@ -101,16 +107,28 @@ by M1, names:
 
 ### What the company uses (M2)
 
-Four tables, which only the backend's connector writes, through the module. The browser reads and
-writes none of them, so no live query watches them until a page does.
+Five tables, which the backend's connector writes through the module. The directories' page reads a
+directory's status and notes too, live, and writes them through the web connector, so the module's
+writes of those two join its refreshes.
 
 - **`KnowledgeUse`**, keyed `(organization, kind, itemId)`, one row per item the agent ever marked:
   - `isInUse`;
-  - `changedAt`, when the flag last changed;
-  - `changedBy`, the member the agent acted for, set null when the account goes.
+  - `directoryStatus`, `DirectoryStatus` (`SUBMITTED`, `LISTED`, `DISMISSED`), a directory's alone,
+    null for one to do, declared in core as well. `isInUse` follows it, true exactly while it is
+    submitted or listed, which every write of it checks. A directory's row from before statuses, in
+    use with none, reads as `SUBMITTED` (core's `readDirectoryStatus`), so no backfill was needed;
+  - `changedAt`, when the flag or the status last changed;
+  - `changedBy`, the member who changed it or the agent acted for, set null when the account goes.
 
   The row stays when the flag goes back to false, so "stopped using it on 2026-11-02" is told apart
   from "never tried".
+- **`KnowledgeNote`**, keyed the same way, a directory's notes, needing no `KnowledgeUse` row:
+  - `content`, its blocks serialized (`RICH_TEXT_NOTE_BLOCKS`: a post's, with code and tables), at
+    most `MAX_KNOWLEDGE_NOTE_LENGTH`, 20,000 characters, as a task's description;
+  - `contentText`, its plain text, which the page searches;
+  - `updatedAt` and `updatedBy`.
+- **At most 2,000 rows of a kind** in each (`MAX_KNOWLEDGE_ROWS`), past the 716 directories: the
+  page's writes count them, since the database cannot hold an id to the catalogue.
 - **`KnowledgeDocumentLink`, `KnowledgeTaskLink` and `KnowledgeMemberLink`**, each keyed on the same
   three columns and its target:
   - a `Document`;
@@ -151,7 +169,9 @@ Its tools, in their frozen order:
 | --- | --- | --- | --- |
 | `list_knowledge` | `{ kind, query?, inUse?, categories?, businessModels?, cursor? }` | the kind's items as compact rows, by name, paged within `KNOWLEDGE_LIST_PAGE_LENGTH` (40,000 characters), with their `total`, and `cursor` while more remain | read |
 | `read_knowledge` | `{ kind, ids }`, 10 ids at most (`MAX_KNOWLEDGE_READ_IDS`) | each item whole, its enums' meanings, an inactive directory's reason, the company's `use`, and its links; `missing` names the ids absent from the kind's catalogue | read |
-| `set_knowledge_in_use` | `{ kind, id, inUse }` | `{ kind, id, use }`: the item's `use` | write |
+| `set_knowledge_in_use` | `{ kind, id, inUse }`, a framework or a tactic | `{ kind, id, use }`: the item's `use` | write |
+| `set_directory_status` | `{ id, status }`, `TO_DO` or one of `DirectoryStatus` | `{ id, use }`: the directory's `use` | write |
+| `set_directory_notes` | `{ id, notes, version }`, Markdown, `""` clearing them | `{ id, notesVersion }` | write |
 | `link_knowledge` | `{ kind, id, documentId?, taskId?, member? }`, exactly one target | `{ kind, id, isNew }` with one of `document`, `task` and `member`: the link, with its target's title or name, and whether it is new | write |
 | `unlink_knowledge` | the same | `{ kind, id, isRemoved }` with its target: whether a link was removed | write |
 
@@ -160,8 +180,8 @@ Its tools, in their frozen order:
 - **A row**, by kind:
   - a framework: `id`, `name`, `description` and `inUse`;
   - a tactic: those, with `channel`, `effort`, `paid`, `timeToResults` and `technical`;
-  - a directory: those, with `type`, `categories` and `businessModel`, and an inactive one its
-    `inactiveReason`.
+  - a directory: those, with `status`, `type`, `categories` and `businessModel`, and an inactive one
+    its `inactiveReason`.
 
   The 30 frameworks and 49 tactics fit one page each. The 532 directories take a few, fewer once
   filtered.
@@ -183,10 +203,20 @@ Its tools, in their frozen order:
 - **An item read whole** has every field of its kind, in the package's order, each value the package
   gives a meaning given as `{ value, meaning }`. A directory's `type`, a website or a Reddit
   community, has none, and stays as it is. It also has:
-  - `use`: `{ inUse, changedAt }`, or null when the agent never marked it;
+  - `use`: `{ inUse, changedAt }`, a directory's with its `status`, or null when it was never
+    marked;
   - `documents`, `tasks` and `members`, each `{ items, total }`, the 20 newest links
     (`MAX_KNOWLEDGE_READ_LINKS`) and the total. A document is `{ id, title }`, a task `{ id, name,
     status }`, a member `{ member: "member:<id>", name }`.
+
+  A directory also has `notes`, Markdown, an empty string when there are none, with `notesVersion`,
+  a hash of what is stored, which replacing them names. Notes take what the items and their links
+  leave of 45,000 characters (`KNOWLEDGE_READ_LENGTH`, as a task's read), the shortest first, each
+  taking what it needs of an even share of what is left, so a directory read alone has some 43,000
+  for its notes. Past what the read leaves them, notes come as their plain text cut to fit,
+  `isNotesComplete` false and no version: the agent reads them but cannot replace them, as a task's
+  description too long to answer whole. Markdown escapes, so notes full of `*`, `_` or `\` can
+  pass that room even alone, and only the page edits them.
 
   `GetKnowledgeItemsForAgent` reads every link of the ids read at once, newest first, at most 1000 of
   each kind of target, 10 ids of 100 links, and the module keeps each item's 20 newest, since a
@@ -204,8 +234,14 @@ Its tools, in their frozen order:
   it.
 - **Setting the flag it already holds writes nothing**, so `changedAt` keeps the day it last changed,
   and neither does `false` on an item never marked, which answers `use: null`, so an item never
-  tried is not told as one dropped. A change answers the time the module wrote it, and the row takes
-  the database's own a moment later, as `delete_task` answers when a task can be restored until.
+  tried is not told as one dropped. A directory's status does the same, `TO_DO` on one never marked
+  included, and so do notes it holds already. `set_knowledge_in_use` refuses a directory, naming
+  `set_directory_status`. A change answers the time the module wrote it, and the row takes the
+  database's own a moment later, as `delete_task` answers when a task can be restored until.
+- **Notes are replaced only as the agent read them**, as a task's description is: the version must
+  be the stored note's, and the write is guarded again on its `updatedAt`
+  (`UpdateKnowledgeNoteForAgent`), or, for a first note, on its key (`CreateKnowledgeNoteForAgent`),
+  so a member's words saved meanwhile are refused rather than written over.
 - **A write reads what it answers first.** A write keeps its result under its idempotency key within
   the write itself, so it reads first: the item's state for a flag, and for a link or an unlink the
   target and the item's links in its table (`GetKnowledgeDocumentLinkForAgent`,
@@ -217,8 +253,9 @@ Its tools, in their frozen order:
 - **What every module's tool keeps:**
   - an idempotency key per write, under `com.strategydance/idempotencyKey`;
   - `…ForAgent` operations matching the membership on `membershipCreatedAt`, from M2;
-  - annotations: `readOnlyHint` on the two reads, `idempotentHint` on all five, no `destructiveHint`,
-    since unlinking deletes nothing anybody wrote, and `openWorldHint: false` on all;
+  - annotations: `readOnlyHint` on the two reads, `idempotentHint` on all seven, no
+    `destructiveHint`, since unlinking deletes nothing anybody wrote, and `openWorldHint: false` on
+    all;
   - refusals as sentences;
   - results cut within `MAX_TOOL_RESULT_LENGTH`.
 - **What a served module keeps, it does not.** No write takes `requireModuleWriteScope`, a list counts
@@ -230,42 +267,86 @@ Strategy Dance's agent and its subagents reach the module from M3, in process, a
 other modules.
 
 - **`CONVERSATION_MODULES` is `['documents', 'tasks', 'budget', 'subagents', 'knowledge']`**, in
-  `MODULES`' order, so the five tools come last in the list, after the Subagents module's.
+  `MODULES`' order, so the knowledge tools come last in the list, after the Subagents module's.
 - **What they weigh.** Converted as the worker sends them, the five are 8,719 characters,
   `list_knowledge` the heaviest at 3,129. At the 2.2 to 3.0 characters a token the earlier modules
   counted, that is some 2,900 to 4,000 tokens, taking the list from 32 tools and 39,995 characters to
   37 and 48,714, and a subagent's from 24 tools and 33,346 characters to 29 and 42,065. They join the list as the other modules' did, since Claude's tool search would cost
-  conversations their earlier reasoning once all the same (conversations.md § Modules).
-- **Subagents get all five.** None deletes what anybody wrote, so none joins
+  conversations their earlier reasoning once all the same (conversations.md § Modules). The
+  directories' two tools (2026-11-10) brought them to seven and 11,509 characters, the list to 39
+  tools and 51,870, and a subagent's to 31 and 45,221.
+- **Subagents get all seven.** None deletes what anybody wrote, so none joins
   `SUBAGENT_WITHHELD_TOOLS`. A subagent's report names a knowledge write by its tool alone, as it
   names a bill's: `toSubagentWrite` finds no document or task in its result.
 - **The agent's system prompt gains a paragraph** after the budget's:
 
   > You can read Strategy Dance's knowledge with the knowledge tools: proven strategic frameworks,
-  > marketing tactics and directories a startup can be submitted to, and keep track of which ones the
-  > company uses. When the member faces a strategic choice, look for a framework that fits and work
-  > through its questions with them, one or two at a time, rather than answer from memory. When they
-  > look for ways to reach customers, suggest the two or three tactics that best fit their time, money
-  > and skills rather than a long list, and for a software product, the directories whose categories
-  > match it. List what the company uses before you suggest anything, so you build on what it does
-  > rather than suggest it again. When the member takes something up, mark it in use and link it to
-  > the documents, tasks and members it involves, and when they drop it, mark that too.
+  > marketing tactics and directories a startup can be submitted to, and keep track of which ones
+  > the company uses. When the member faces a strategic choice, look for a framework that fits and
+  > work through its questions with them, one or two at a time, rather than answer from memory. When
+  > they look for ways to reach customers, suggest the two or three tactics that best fit their
+  > time, money and skills rather than a long list, and for a software product, the directories
+  > whose categories match it. List what the company uses before you suggest anything, so you build
+  > on what it does rather than suggest it again. When the member takes something up, mark it in use
+  > and link it to the documents, tasks and members it involves, and when they drop it, mark that
+  > too. A directory takes a status instead: submitted once they send their product, listed once the
+  > listing is live, and dismissed when they decide against it, which you never suggest again. Keep
+  > what they sent and what came back in its notes.
 
 - **The subagent's gains a line** after the budget's:
 
   > You can read Strategy Dance's knowledge, its strategic frameworks, marketing tactics and
-  > directories, with the knowledge tools, and mark what the company uses or link it to documents,
-  > tasks and members when the brief says so.
+  > directories, with the knowledge tools, and mark what the company uses, set a directory's status
+  > or notes, or link an item to documents, tasks and members when the brief says so.
 
-- **Both prompts name the directories' descriptions among what others wrote**, as "a directory's
-  description claims". The catalogue is Strategy Dance's, but a directory's description is read from
-  its site by the daily check.
+- **Both prompts name the directories' descriptions and notes among what others wrote**, as "a
+  directory's description claims and its notes hold". The catalogue is Strategy Dance's, but a
+  directory's description is read from its site by the daily check.
 - **Labels.** The `conversation` catalogue words each tool, running and done: "Browsing the
   knowledge" and "Browsed the knowledge", "Reading the knowledge" and "Read the knowledge", "Marking
-  what the company uses" and "Marked what the company uses", "Linking knowledge" and "Linked
-  knowledge", "Unlinking knowledge" and "Unlinked knowledge". Retry's dialog still names documents,
-  tasks and bills alone: what a discarded subagent marked or linked stays too, but nothing in the app
-  shows it.
+  what the company uses" and "Marked what the company uses", "Updating a directory’s status" and
+  "Updated a directory’s status", "Writing a directory’s notes" and "Wrote a directory’s notes",
+  "Linking knowledge" and "Linked knowledge", "Unlinking knowledge" and "Unlinked knowledge".
+  Retry's dialog still names documents, tasks and bills alone: what a discarded subagent marked or
+  linked stays too, which nothing in the app shows but a directory's status and notes, on the
+  directories' page.
+
+### The directories' page
+
+Ported from the Claude Design prototype's `Directories.jsx` and `Aspect.jsx` (2026-11-10). It
+shows the directories taking a submission today alone: the inactive list never loads in the app, so
+a status kept for an inactive directory counts nowhere, and its address is a page that does not
+exist. The agent still reads and sets those, since the company may have submitted to one before.
+
+- **The catalogue in the browser.** The web loads `strategydance-knowledge/src/directories/
+  directories.json` lazily (`loadDirectories`), so its 200 KB stay out of every other page's
+  bundle, and imports the package's enums, types and id pattern by their own paths, never its
+  root, which bundles every list. A directory's description stays in English, as the daily check
+  writes it; the statuses, business models, categories and types are messages.
+- **`/<organization>/directories`**, under the Marketing aspect, whose sidebar row stays active
+  there (`NavigationLink`'s `activePaths`):
+  - tabs To do, Submitted, Listed, Dismissed and All, with their counts, the tab in the address
+    (`?view=`), To do when it names none;
+  - a search over names, descriptions, addresses and the notes' text, and filters by pricing,
+    category, a directory taking any startup kept under every category but `REGIONAL`, as
+    `list_knowledge` keeps it, and type;
+  - a table, a row opening the directory.
+- **`/<organization>/directories/<id>`**, a dialog over the page: the description, links to the
+  submission page and the site, the notes, the status with since when, and what the directory
+  charges, lists and is. Closing steps back when the page opened it (`isFromDirectoriesPage`).
+- **The Marketing aspect's section**: how many directories are listed, submitted and to do, the
+  next six to do as cards, ranked as the prototype does (`rankNextDirectories`), each opening its
+  dialog over the Marketing page, and the way to the page.
+- **Its reads**: `GetDirectoryUses`, every status and notes' text of the organization, and
+  `GetDirectoryNotes`, one directory's notes, both live, refreshed by the module's writes too, so
+  a status or notes the agent sets show on every open page.
+- **Its writes**, any member's, as with the board: `SetDirectoryStatus`, with a toast, and
+  `SetDirectoryNotes`, sent a second after the reader pauses and at once as the dialog closes
+  (`createDirectoryNotesSaver`). The database cannot hold an id to the catalogue, so both hold it to
+  `KNOWLEDGE_ID_PATTERN` and count the organization's rows under the lock on its row, at most
+  2,000; a junk id is read past. The page's notes save is the member's word and takes no version:
+  notes saved elsewhere replace what the editor shows while nothing typed waits to be sent, and
+  are written over once something does. Neither records a day of activity.
 
 ### For the orchestrator
 

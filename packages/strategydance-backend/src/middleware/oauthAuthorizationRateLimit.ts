@@ -1,4 +1,4 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
+import createRateLimit from '~middleware/createRateLimit'
 
 import renderAuthorizationErrorPage from '~domain/oauth/renderAuthorizationErrorPage'
 
@@ -8,12 +8,10 @@ import renderAuthorizationErrorPage from '~domain/oauth/renderAuthorizationError
   not known good yet. Counted in the instance's memory; the database holds every request to a
   ceiling in all, across instances
 */
-const oauthAuthorizationRateLimitMiddleware = rateLimit({
+const oauthAuthorizationRateLimitMiddleware = createRateLimit({
   windowMs: 10 * 60 * 1000,
   limit: 60,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  keyGenerator: request => ipKeyGenerator(request.ip ?? ''),
+  key: 'address',
   handler: (_request, response) => {
     response
       .status(429)

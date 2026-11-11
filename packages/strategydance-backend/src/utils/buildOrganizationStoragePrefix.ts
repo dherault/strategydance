@@ -1,6 +1,4 @@
-import type { OrganizationImageKind } from 'strategydance-core'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import { type OrganizationImageKind, toCanonicalUuid } from 'strategydance-core'
 
 // The folders of an organization's part of the bucket: one per picture it carries, one for the
 // pictures its documents show, and one for its bills' receipts

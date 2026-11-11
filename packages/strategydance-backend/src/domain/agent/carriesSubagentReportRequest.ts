@@ -1,6 +1,5 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { ConversationTranscriptRole } from 'strategydance-database/backend'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import SUBAGENT_REPORT_REQUEST from '~domain/agent/subagentReportRequest'
 import parseTranscriptContent from '~domain/conversations/parseTranscriptContent'

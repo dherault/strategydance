@@ -1,7 +1,4 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
-import { ERROR_CODE_TOO_MANY_REQUESTS } from 'strategydance-core'
-
-import respondError from '~utils/respondError'
+import createRateLimit from '~middleware/createRateLimit'
 
 /*
   The uploads of files to conversations, metered: 120 per caller in 10 minutes, which a member
@@ -12,15 +9,11 @@ import respondError from '~utils/respondError'
   Keyed by the verified caller, as `richTextImageRateLimitMiddleware` is and for the same reasons,
   and counted in the instance's memory the same way
 */
-const conversationAttachmentUploadRateLimitMiddleware = rateLimit({
+const conversationAttachmentUploadRateLimitMiddleware = createRateLimit({
   windowMs: 10 * 60 * 1000,
   limit: 120,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  keyGenerator: request => request.viewer?.id ?? ipKeyGenerator(request.ip ?? ''),
-  handler: (_request, response) => {
-    respondError(response, 429, ERROR_CODE_TOO_MANY_REQUESTS, 'Too many files uploaded, try again later')
-  },
+  key: 'viewer',
+  message: 'Too many files uploaded, try again later',
 })
 
 export default conversationAttachmentUploadRateLimitMiddleware

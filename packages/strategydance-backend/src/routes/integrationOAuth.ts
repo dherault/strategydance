@@ -1,4 +1,4 @@
-import { type NextFunction, type Request, type Response, Router } from 'express'
+import { type Request, type Response, Router } from 'express'
 import type { IntegrationConnectedSearch } from 'strategydance-core'
 
 import { INTEGRATION_CONNECTED_URL, INTEGRATION_OAUTH_CLIENT_ID } from '~constants'
@@ -6,17 +6,13 @@ import { INTEGRATION_CONNECTED_URL, INTEGRATION_OAUTH_CLIENT_ID } from '~constan
 import logger from '~utils/logger'
 
 import integrationCallbackRateLimitMiddleware from '~middleware/integrationCallbackRateLimit'
+import noStoreMiddleware from '~middleware/noStore'
 
 import buildIntegrationClientMetadata from '~domain/integrations/buildIntegrationClientMetadata'
 import receiveIntegrationAuthorizationCode from '~domain/integrations/receiveIntegrationAuthorizationCode'
 
 // How long an authorization server may keep Strategy Dance's client ID metadata document
 const CLIENT_METADATA_DOCUMENT_MAX_AGE_SECONDS = 60 * 60
-
-function noStoreMiddleware(_request: Request, response: Response, next: NextFunction) {
-  response.setHeader('Cache-Control', 'no-store')
-  next()
-}
 
 /*
   Strategy Dance as an OAuth client of organizations' MCP servers, mounted at `/integrations/oauth` on

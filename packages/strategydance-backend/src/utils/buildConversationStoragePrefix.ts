@@ -1,5 +1,6 @@
+import { toCanonicalUuid } from 'strategydance-core'
+
 import buildOrganizationStoragePrefix from '~utils/buildOrganizationStoragePrefix'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 type ConversationFolder = {
   organizationId: string

@@ -1,10 +1,7 @@
 import { MAX_INTEGRATION_TOOLS } from 'strategydance-core'
 import { IntegrationError } from 'strategydance-database/backend'
 
-import connectIntegrationClient, {
-  type IntegrationClientOptions,
-  type IntegrationCredential,
-} from '~domain/integrations/connectIntegrationClient'
+import connectIntegrationClient, { type IntegrationClientOptions } from '~domain/integrations/connectIntegrationClient'
 import IntegrationFailure from '~domain/integrations/IntegrationFailure'
 
 /*
@@ -33,7 +30,5 @@ async function listIntegrationTools(options: IntegrationClientOptions) {
 
   return tools
 }
-
-export { type IntegrationCredential }
 
 export default listIntegrationTools

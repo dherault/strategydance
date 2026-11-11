@@ -27,7 +27,7 @@ export const SUBAGENT_STATUSES = [
 
 export const statusSchema = z.enum(SUBAGENT_STATUSES)
 
-export const SUBAGENT_INTEGRATION_CALL_ENDINGS = [
+const SUBAGENT_INTEGRATION_CALL_ENDINGS = [
   'SUCCEEDED',
   'FAILED',
   'UNANSWERED',

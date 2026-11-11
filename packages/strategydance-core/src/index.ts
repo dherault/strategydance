@@ -33,3 +33,7 @@ export * from './helpers/budget'
 export * from './helpers/agentConnection'
 
 export * from './helpers/moduleAddress'
+
+export * from './helpers/knowledge'
+
+export * from './helpers/uuid'

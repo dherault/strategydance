@@ -673,9 +673,13 @@ enum ConversationAttachmentStatus {
   PRUNING
 }
 
-# A member's chat with Strategy Dance in an organization. Private: only its author reads it,
-# administrators included, and only through operations keyed by the uid off the token and by their
-# current membership.
+# A member's chat with Strategy Dance in an organization. Every member of the organization reads it,
+# administrators or not, through operations keyed by the uid off the token and by their current
+# membership: its list, page, files, subagents and search are the team's. Only its author writes in
+# it and acts on it: the composer, the answers, Stop, Resume, Retry, Restore, Undo, the aspects,
+# Delete, the dock, the unread count and the badge stay theirs (conversations.md § Decisions, since
+# 2026-11-02), and so do the input and output of a call the agent made with their own account at an
+# OAuth server, which only they read (since 2026-11-10).
 #
 # Only the backend creates one, with its first message, its first run and its first transcript
 # entry in one mutation, so a conversation exists only once something was sent. The browser
@@ -1766,23 +1770,63 @@ enum KnowledgeKind {
   DIRECTORY
 }
 
+# Where an organization stands with a directory of the knowledge catalogue: submitted to it, listed
+# there, its listing live, or dismissed, decided against. A directory without one is to do. Declared
+# in strategydance-core as well, as `KnowledgeKind` is, and `schema.test.ts` fails when the two
+# disagree. Append a status, never reorder
+enum DirectoryStatus {
+  SUBMITTED
+  LISTED
+  DISMISSED
+}
+
 # Whether an organization uses an item of the knowledge catalogue: a framework it works with, a
-# tactic it runs, a directory it submitted to. One row per item the agent ever marked, which only
-# the backend's Knowledge module writes, kept when the flag goes back to false, so an item the
-# company stopped using is told apart from one it never tried. Keyed by the item's kind and id,
-# which never change, so the row outlives a rename. A row whose id the release's catalogue no longer
-# holds stays, and the module reads past it
+# tactic it runs, a directory it submitted to. One row per item ever marked, kept when the flag goes
+# back to false, so an item the company stopped using is told apart from one it never tried. The
+# backend's Knowledge module writes it, and the directories' page a directory's status. Keyed by the
+# item's kind and id, which never change, so the row outlives a rename. A row whose id the release's
+# catalogue no longer holds stays, and every read passes it by. An organization keeps at most 2000
+# rows of a kind (`MAX_KNOWLEDGE_ROWS`), past the longest list, which the page's writes count, since
+# the database cannot hold an id to the catalogue
 type KnowledgeUse @table(key: ["organization", "kind", "itemId"]) {
   # Implies an `organizationId: UUID!` column, cascade deleting
   organization: Organization!
   kind: KnowledgeKind!
-  # The item's `id` in its kind's list, held to the catalogue by the backend before any write
+  # The item's `id` in its kind's list, held to the catalogue by the backend before any write, and to
+  # its pattern by the page's
   itemId: String!
+  # Whether the company uses the item. A directory's follows its status: true exactly while it is
+  # `SUBMITTED` or `LISTED`
   isInUse: Boolean!
-  # When the flag last changed: setting the flag it holds writes nothing
+  # A directory's status, null for one to do and for every other kind. A directory's row written
+  # before statuses, in use with none, is `SUBMITTED` (core's `readDirectoryStatus`)
+  directoryStatus: DirectoryStatus
+  # When the flag or the status last changed: setting what the row holds writes nothing
   changedAt: Timestamp!
-  # The member the agent acted for. Optional, set to null when the account goes
+  # The member who changed it, or the one the agent acted for. Optional, set to null when the
+  # account goes
   changedBy: User
+}
+
+# What an organization notes of an item of the knowledge catalogue, as a directory's page keeps its
+# logins, what was sent and what came back. One row per item ever noted, keyed as `KnowledgeUse` is,
+# needing none, at most 2000 of a kind (`MAX_KNOWLEDGE_ROWS`). The directories' page writes it, and
+# the backend's Knowledge module, which replaces a note only as it last read it, its version being a
+# hash of `content`, guarded on `updatedAt`
+type KnowledgeNote @table(key: ["organization", "kind", "itemId"]) {
+  # Implies an `organizationId: UUID!` column, cascade deleting
+  organization: Organization!
+  kind: KnowledgeKind!
+  # As `KnowledgeUse.itemId`
+  itemId: String!
+  # The note's blocks, serialized, at most 20000 characters (`MAX_KNOWLEDGE_NOTE_LENGTH`), an empty
+  # string once cleared
+  content: String!
+  # Its plain text, for the page's search, written with every `content`
+  contentText: String
+  updatedAt: Timestamp!
+  # Who wrote it last, or the member the agent acted for. Optional, set to null when the account goes
+  updatedBy: User
 }
 
 # A document an item of the knowledge catalogue involves, as the SWOT analysis links to the

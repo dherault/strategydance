@@ -1,6 +1,7 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useIntl } from 'react-intl'
+import { toCanonicalUuid } from 'strategydance-core'
 import { OrganizationRole } from 'strategydance-database/web'
 import { toast } from 'strategydance-design-system/components/ui/Toaster'
 import { EXTERNAL_MCP_SERVERS, type ExternalMcpServer } from 'strategydance-external-mcp-servers'
@@ -85,7 +86,7 @@ function Integrations() {
     if (!open && !connectId && !enable && !add) return
 
     const findIntegration = (id: string | undefined) =>
-      id ? integrations.find(integration => integration.id === id.replaceAll('-', '').toLowerCase()) : undefined
+      id ? integrations.find(integration => integration.id === toCanonicalUuid(id)) : undefined
     const opened = findIntegration(open ?? connectId)
     const enabled = isAdministrator ? findIntegration(enable) : undefined
 

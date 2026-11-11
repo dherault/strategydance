@@ -1,6 +1,6 @@
-import type { ModuleCaller } from '~types'
+import { toCanonicalUuid } from 'strategydance-core'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import type { ModuleCaller } from '~types'
 
 // What a link or an unlink names: a document or a task by its id, or a member by their user id
 export type KnowledgeLinkTargetInput =

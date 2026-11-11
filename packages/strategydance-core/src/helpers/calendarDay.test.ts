@@ -54,6 +54,11 @@ describe('countCalendarDays', () => {
     expect(countCalendarDays('2026-10-19', '2026-04-02')).toBe(-200)
     expect(countCalendarDays('1999-01-04', '1999-01-04')).toBe(0)
   })
+
+  it('counts whole days across a clock change', () => {
+    expect(countCalendarDays('2026-03-28', '2026-03-30')).toBe(2)
+    expect(countCalendarDays('2026-10-24', '2026-10-26')).toBe(2)
+  })
 })
 
 describe('countCalendarMonths', () => {
@@ -118,6 +123,17 @@ describe('getCalendarDayInTimeZone', () => {
     expect(getCalendarDayInTimeZone(instant, 'UTC')).toBe('2026-10-31')
     expect(getCalendarDayInTimeZone(instant, 'Pacific/Auckland')).toBe('2026-11-01')
     expect(getCalendarDayInTimeZone(new Date('2027-01-01T03:00:00Z'), 'America/Los_Angeles')).toBe('2026-12-31')
+  })
+
+  it('takes an instant as milliseconds, and pads its month and day', () => {
+    expect(getCalendarDayInTimeZone(Date.UTC(2026, 0, 5, 12), 'UTC')).toBe('2026-01-05')
+  })
+
+  it("reads the runtime's own zone when given none", () => {
+    const instant = new Date('2026-10-31T23:30:00Z')
+    const { timeZone } = Intl.DateTimeFormat().resolvedOptions()
+
+    expect(getCalendarDayInTimeZone(instant, undefined)).toBe(getCalendarDayInTimeZone(instant, timeZone))
   })
 
   it('follows a clock change, as an offset would not', () => {

@@ -1,6 +1,7 @@
+import { addCalendarDays } from 'strategydance-core'
+
 import type { StreakDay } from '~types'
 
-import addDays from '~utils/date/addDays'
 import toCalendarDate from '~utils/date/toCalendarDate'
 
 /*
@@ -13,10 +14,10 @@ function getStreakDays(dates: string[], today: string, weeks: number, chargedDat
   const keptDates = new Set(chargedDates)
   // Sunday is 0, and the week starts on Monday
   const sinceMonday = (toCalendarDate(today).getUTCDay() + 6) % 7
-  const first = addDays(today, -sinceMonday - (weeks - 1) * 7)
+  const first = addCalendarDays(today, -sinceMonday - (weeks - 1) * 7)
 
   return Array.from({ length: weeks * 7 }, (_, index) => {
-    const date = addDays(first, index)
+    const date = addCalendarDays(first, index)
     const isOn = date <= today && activeDates.has(date)
 
     return {

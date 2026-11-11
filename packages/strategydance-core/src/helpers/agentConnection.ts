@@ -1,3 +1,5 @@
+import { toCanonicalUuid } from './uuid'
+
 // A date and a time of day, then up to nine digits of a second, then the zone, as RFC 3339 writes a
 // timestamp and Data Connect answers one
 const TIMESTAMP_PATTERN = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/i
@@ -25,11 +27,6 @@ export function isTimestampAtOrBefore(value: string, reference: string) {
   return toTimestampMicroseconds(value) <= toTimestampMicroseconds(reference)
 }
 
-// An id as the reach compares it, whichever form it came in: without dashes, in lowercase
-function toComparableId(id: string) {
-  return id.replaceAll('-', '').toLowerCase()
-}
-
 /*
   The organizations an external agent's connection reaches, among the member's memberships, in
   their order: those its list names whose membership was there when the list was last written,
@@ -43,10 +40,10 @@ export function readAgentConnectionReach<Membership extends { organizationId: st
   connection: { organizationIds: readonly string[]; grantedAt: string },
   memberships: readonly Membership[],
 ) {
-  const listed = new Set(connection.organizationIds.map(toComparableId))
+  const listed = new Set(connection.organizationIds.map(toCanonicalUuid))
 
   return memberships.filter(
     ({ organizationId, createdAt }) =>
-      listed.has(toComparableId(organizationId)) && isTimestampAtOrBefore(createdAt, connection.grantedAt),
+      listed.has(toCanonicalUuid(organizationId)) && isTimestampAtOrBefore(createdAt, connection.grantedAt),
   )
 }

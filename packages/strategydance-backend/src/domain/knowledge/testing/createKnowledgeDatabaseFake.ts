@@ -1,4 +1,4 @@
-import { KnowledgeKind } from 'strategydance-core'
+import { DirectoryStatus, KnowledgeKind } from 'strategydance-core'
 
 import type { FakeDocument } from '~domain/documents/testing/createDocumentsDatabaseFake'
 import type { AnyVariables, ModuleDatabaseFakeBase } from '~domain/modules/testing/createModuleDatabaseFakeBase'
@@ -21,8 +21,19 @@ export type FakeKnowledgeUse = {
   kind: string
   itemId: string
   isInUse: boolean
+  directoryStatus: string | null
   changedAt: string
   changedById: string | null
+}
+
+export type FakeKnowledgeNote = {
+  organizationId: string
+  kind: string
+  itemId: string
+  content: string
+  contentText: string | null
+  updatedAt: string
+  updatedById: string | null
 }
 
 export type FakeKnowledgeLink = {
@@ -41,6 +52,7 @@ type Base = ModuleDatabaseFakeBase & { documents: Map<string, FakeDocument>; tas
 function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
   const { stamp, id, isMember, membersOf, membershipOf, insertResult, storeResult, checkKey } = base
   const uses: FakeKnowledgeUse[] = []
+  const notes: FakeKnowledgeNote[] = []
   const links: FakeKnowledgeLink[] = []
 
   // Declared here rather than read off the base, so a call narrows what follows it
@@ -50,12 +62,30 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
 
   // A use written straight into its table, whatever its id, as an earlier release may have written one
   function insertUse(fields: Partial<FakeKnowledgeUse> & { organizationId: string; kind: string; itemId: string }) {
-    const use: FakeKnowledgeUse = { isInUse: true, changedAt: stamp(), changedById: null, ...fields }
+    const use: FakeKnowledgeUse = {
+      isInUse: true,
+      directoryStatus: null,
+      changedAt: stamp(),
+      changedById: null,
+      ...fields,
+    }
 
     use.organizationId = id(use.organizationId)
     uses.push(use)
 
     return use
+  }
+
+  // A note written straight into its table, as the page writes one
+  function insertNote(
+    fields: Partial<FakeKnowledgeNote> & { organizationId: string; kind: string; itemId: string; content: string },
+  ) {
+    const note: FakeKnowledgeNote = { contentText: null, updatedAt: stamp(), updatedById: null, ...fields }
+
+    note.organizationId = id(note.organizationId)
+    notes.push(note)
+
+    return note
   }
 
   // A link written straight into its table, created now unless `createdAt` says when
@@ -73,6 +103,13 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
     return uses.find(
       use =>
         use.organizationId === id(variables.organizationId) && use.kind === variables.kind && use.itemId === itemId,
+    )
+  }
+
+  function findNote(variables: AnyVariables, itemId: unknown) {
+    return notes.find(
+      note =>
+        note.organizationId === id(variables.organizationId) && note.kind === variables.kind && note.itemId === itemId,
     )
   }
 
@@ -224,6 +261,7 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
   }
 
   base.sdk.KnowledgeKind = KnowledgeKind
+  base.sdk.DirectoryStatus = DirectoryStatus
 
   base.addOperations({
     GetKnowledgeUsesForAgent: variables => ({
@@ -236,6 +274,17 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
             .slice(0, 5000)
             .map(({ kind, itemId }) => ({ kind, itemId }))
         : [],
+      directoryStatuses: isMember(variables)
+        ? uses
+            .filter(
+              use =>
+                use.organizationId === id(variables.organizationId)
+                && use.kind === variables.kind
+                && use.directoryStatus !== null,
+            )
+            .slice(0, 5000)
+            .map(({ itemId, directoryStatus }) => ({ itemId, directoryStatus }))
+        : [],
     }),
 
     GetKnowledgeItemsForAgent: variables => {
@@ -243,6 +292,7 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
         return {
           membership: [],
           knowledgeUses: [],
+          knowledgeNotes: [],
           knowledgeDocumentLinks: [],
           knowledgeTaskLinks: [],
           knowledgeMemberLinks: [],
@@ -255,7 +305,12 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
           .map(itemId => findUse(variables, itemId))
           .filter(use => use !== undefined)
           .slice(0, 10)
-          .map(({ itemId, isInUse, changedAt }) => ({ itemId, isInUse, changedAt })),
+          .map(({ itemId, isInUse, directoryStatus, changedAt }) => ({ itemId, isInUse, directoryStatus, changedAt })),
+        knowledgeNotes: (variables.itemIds as string[])
+          .map(itemId => findNote(variables, itemId))
+          .filter(note => note !== undefined)
+          .slice(0, 10)
+          .map(({ itemId, content, updatedAt }) => ({ itemId, content, updatedAt })),
         knowledgeDocumentLinks: readLinks(variables, 'document').map(({ itemId, targetId }) => ({
           itemId,
           document: { id: targetId, title: base.documents.get(targetId)!.title },
@@ -375,6 +430,108 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
     },
   })
 
+  base.addOperations({
+    SetDirectoryStatusForAgent: variables => {
+      if (!isMember(variables)) refuse('The caller is no longer a member of the organization')
+
+      checkKey(variables)
+
+      const status = variables.directoryStatus ?? null
+
+      if (Boolean(variables.isInUse) !== (status === 'SUBMITTED' || status === 'LISTED')) {
+        refuse('A directory is in use exactly while it is submitted or listed')
+      }
+
+      insertResult(variables)
+      storeResult(variables)
+
+      const key = { organizationId: variables.organizationId, kind: 'DIRECTORY', itemId: variables.itemId }
+      const use = findUse(key, variables.itemId)
+      const fields = {
+        isInUse: Boolean(variables.isInUse),
+        directoryStatus: status,
+        changedAt: stamp(),
+        changedById: String(variables.userId),
+      }
+
+      if (use) Object.assign(use, fields)
+      else {
+        insertUse({
+          organizationId: String(variables.organizationId),
+          kind: 'DIRECTORY',
+          itemId: String(variables.itemId),
+          ...fields,
+        })
+      }
+
+      return {
+        knowledgeUse_upsert: {
+          organizationId: id(variables.organizationId),
+          kind: 'DIRECTORY',
+          itemId: variables.itemId,
+        },
+      }
+    },
+  })
+
+  // What both of the agent's note writes check before they write: the membership, the key and the
+  // note's length, then the key's result taken
+  function checkNoteWrite(variables: AnyVariables) {
+    if (!isMember(variables)) refuse('The caller is no longer a member of the organization')
+
+    checkKey(variables)
+
+    if (String(variables.content).length > 20000 || String(variables.contentText).length > 20000) {
+      refuse('A note is at most 20000 characters')
+    }
+
+    insertResult(variables)
+  }
+
+  base.addOperations({
+    CreateKnowledgeNoteForAgent: variables => {
+      checkNoteWrite(variables)
+
+      if (findNote(variables, variables.itemId)) refuse('violates SQL unique constraint: knowledge_note_pkey (aborted)')
+
+      storeResult(variables)
+      insertNote({
+        organizationId: String(variables.organizationId),
+        kind: String(variables.kind),
+        itemId: String(variables.itemId),
+        content: String(variables.content),
+        contentText: String(variables.contentText),
+        updatedById: String(variables.userId),
+      })
+
+      return {
+        knowledgeNote_insert: {
+          organizationId: id(variables.organizationId),
+          kind: variables.kind,
+          itemId: variables.itemId,
+        },
+      }
+    },
+
+    UpdateKnowledgeNoteForAgent: variables => {
+      checkNoteWrite(variables)
+
+      const note = findNote(variables, variables.itemId)
+
+      if (!note || note.updatedAt !== variables.updatedAt) refuse('The note changed since it was read')
+
+      storeResult(variables)
+      Object.assign(note, {
+        content: String(variables.content),
+        contentText: String(variables.contentText),
+        updatedAt: stamp(),
+        updatedById: String(variables.userId),
+      })
+
+      return { knowledgeNote_updateMany: 1 }
+    },
+  })
+
   base.onRemoveMember((userId, organizationId) => {
     links.splice(
       0,
@@ -387,10 +544,19 @@ function createKnowledgeDatabaseFake<Holder extends Base>(base: Holder) {
 
   base.onReset(() => {
     uses.length = 0
+    notes.length = 0
     links.length = 0
   })
 
-  return Object.assign(base, { knowledgeUses: uses, knowledgeLinks: links, insertUse, insertLink, linksOf })
+  return Object.assign(base, {
+    knowledgeUses: uses,
+    knowledgeNotes: notes,
+    knowledgeLinks: links,
+    insertUse,
+    insertNote,
+    insertLink,
+    linksOf,
+  })
 }
 
 export type KnowledgeDatabaseFake = ReturnType<typeof createKnowledgeDatabaseFake<Base>>

@@ -31,6 +31,9 @@ type Props = {
   // A launch's: the subagent it launched, in the conversation that launched it, which the title
   // names and whose report stands for the call's output
   subagent?: { conversationId: string; id: string; title: string }
+  // The conversation's author, when the reader is another member, who reads nothing of a call made
+  // with the author's own account at an OAuth server
+  authorName?: string
   onClose: () => void
 }
 
@@ -39,9 +42,19 @@ type Props = {
   every control character escaped, so what reads is what ran. The line under the title says which
   tool, when it ran and for how long. Read each time it opens, since a call's output arrives after
   its row. A launch is titled after the subagent it launched, and shows what that subagent reported
-  in place of the launch's own output, which only said it was queued
+  in place of the launch's own output, which only said it was queued. A call to an integration's
+  that another member's read finds nothing of was made with the author's own account, which says
+  so in place of its input and output
 */
-function ConversationToolCallDialog({ messageId, toolName, status, integration, subagent, onClose }: Props) {
+function ConversationToolCallDialog({
+  messageId,
+  toolName,
+  status,
+  integration,
+  subagent,
+  authorName,
+  onClose,
+}: Props) {
   const intl = useIntl()
   const { formatMessage, formatDate, formatNumber } = intl
   const { data: toolCall, initialLoading, loading, hasFailed, refetch } = useConversationToolCall(messageId)
@@ -74,6 +87,10 @@ function ConversationToolCallDialog({ messageId, toolName, status, integration, 
           <Spinner />
         </div>
       )
+    }
+
+    if (!hasFailed && !toolCall && integration && authorName) {
+      return <Alert>{formatMessage(conversationMessages.toolCallPersonal, { name: authorName })}</Alert>
     }
 
     if (hasFailed || !toolCall) {

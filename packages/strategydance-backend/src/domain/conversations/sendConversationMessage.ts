@@ -1,12 +1,11 @@
-import { randomUUID } from 'node:crypto'
-
 import {
-  MAX_ACTIVE_RUNS_PER_MEMBER,
-  MAX_CONVERSATIONS,
-  MAX_CONVERSATION_MESSAGES,
-  MAX_CONVERSATION_SEND_INPUT_TOKENS,
   buildConversationPreview,
   buildConversationTitle,
+  MAX_ACTIVE_RUNS_PER_MEMBER,
+  MAX_CONVERSATION_MESSAGES,
+  MAX_CONVERSATION_SEND_INPUT_TOKENS,
+  MAX_CONVERSATIONS,
+  toCanonicalUuid,
 } from 'strategydance-core'
 import {
   type CompanyAspect,
@@ -25,7 +24,7 @@ import { IS_USAGE_CAPPED } from '~constants'
 
 import { dataConnect } from '~firebase'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
+import createId from '~utils/createId'
 
 import buildConversationAttachmentBlock from '~domain/agent/buildConversationAttachmentBlock'
 import buildConversationFileNames from '~domain/agent/buildConversationFileNames'
@@ -244,7 +243,7 @@ async function sendConversationMessage(input: SendConversationMessageInput): Pro
       ),
       ...(input.text ? [{ type: 'text', text: input.text }] : []),
     ]
-    const runId = randomUUID().replaceAll('-', '')
+    const runId = createId()
     const message = {
       organizationId,
       userId,

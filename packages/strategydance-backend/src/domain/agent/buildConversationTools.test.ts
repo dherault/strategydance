@@ -130,11 +130,13 @@ describe('buildConversationTools', () => {
       'list_knowledge',
       'read_knowledge',
       'set_knowledge_in_use',
+      'set_directory_status',
+      'set_directory_notes',
       'link_knowledge',
       'unlink_knowledge',
     ])
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '44c40a5f74e828ddeeae0979a647b0c6935642fa1a97b0e61b4c0351539459ad',
+      '9ef1b05ba83f8b40464082d63448305cb7275b9edd0407c915320b3457c808e9',
     )
   })
 

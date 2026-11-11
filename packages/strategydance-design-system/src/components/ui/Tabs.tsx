@@ -71,6 +71,10 @@ function Tabs({
   className,
   ...props
 }: Props) {
+  // A tab list alone, its views drawn by the page around it, names no panel its tabs control, which
+  // Radix would point them at all the same
+  const hasPanels = items.some(item => item.content !== undefined)
+
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
@@ -93,6 +97,7 @@ function Tabs({
             value={item.value}
             disabled={item.disabled}
             className={tabVariants({ size, fullWidth })}
+            {...(!hasPanels && { 'aria-controls': undefined })}
           >
             {item.icon}
             <span>{item.label}</span>

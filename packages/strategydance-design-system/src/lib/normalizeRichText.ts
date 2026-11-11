@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { getRichTextInlineText } from 'strategydance-design-system/lib/getRichTextText'
 import { parseVideoEmbedUrl } from 'strategydance-design-system/lib/parseVideoEmbedUrl'
 import {
@@ -417,7 +418,7 @@ function normalizeMention(item: UnknownRecord, kind: RichTextMentionKind, rules:
 function normalizeRichTextMentionId(value: unknown) {
   if (typeof value !== 'string' || value.length > 36) return null
 
-  const id = value.replaceAll('-', '').toLowerCase()
+  const id = toCanonicalUuid(value)
 
   return ID_PATTERN.test(id) ? id : null
 }

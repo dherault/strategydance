@@ -13,6 +13,8 @@ import type { ConversationRunReference } from '~types'
 
 import { dataConnect } from '~firebase'
 
+import logger from '~utils/logger'
+
 import deriveConversationMessageId from '~domain/conversations/deriveConversationMessageId'
 import finalizeDeadConversationRun from '~domain/conversations/finalizeDeadConversationRun'
 import isDeadConversationRun from '~domain/conversations/isDeadConversationRun'
@@ -39,10 +41,15 @@ type Options = {
   - a run a worker holds is asked to stop: the worker reads it before its next request and every two
     seconds while one streams, then ends the run stopped, with its note
 
+  A run that died or was queued frees one of the member's 3 at once, which a subagent reaction they
+  held back takes (`startDueSubagentReactions`), and a run a worker holds frees it as it ends.
+
   The live subagents launched on the run's anchor, the action the member stops, are asked to stop in
   the same write, after the conversation's row, and their runs queued or waiting for a slot ended at
   once (`stopConversationSubagents`), whatever the run's own end: a fan-out an earlier message
-  started goes on, which Stop all reaches.
+  started goes on, which Stop all reaches. A run that died is finalized without them, so they are
+  asked after, and failing to fails the stop. A live run's stop asked them in its write, and stands
+  whatever comes of ending their runs, which is logged.
 
   A queued run a worker claimed between the read and the stop, or a note at a counter something
   moved, is read again
@@ -67,7 +74,13 @@ async function stopConversationRun(
 
     // A queued run past its lease that is still coming is stopped as any queued run is
     if (isDeadConversationRun(run) && (await finalizeDeadConversationRun(reference, 'conversation-runs')) !== 'alive') {
-      await stopConversationSubagents(reference, { anchorPosition })
+      // Nothing asked its subagents to stop yet, so failing to fails the stop, once a reaction the
+      // member's 3 held back took the one it freed
+      try {
+        await stopConversationSubagents(reference, { anchorPosition })
+      } finally {
+        await startDueSubagentReactions(reference)
+      }
 
       return { outcome: 'stopped' }
     }
@@ -93,7 +106,13 @@ async function stopConversationRun(
       continue
     }
 
-    await stopConversationSubagents(reference, { anchorPosition }, { isAsked: true })
+    // Asked to stop in the stop's write already, so a run of theirs this leaves ends once a worker
+    // takes it, and one waiting for a slot at the next reconcile: the stop stands
+    try {
+      await stopConversationSubagents(reference, { anchorPosition }, { isAsked: true })
+    } catch (error) {
+      logger.warn(`Conversation run ${reference.runId}: the subagents its stop reaches could not be stopped`, error)
+    }
 
     // One of the member's 3 is free when a queued run ended, which a reaction held back by them takes
     if (run.status === ConversationRunStatus.QUEUED) await startDueSubagentReactions(reference)

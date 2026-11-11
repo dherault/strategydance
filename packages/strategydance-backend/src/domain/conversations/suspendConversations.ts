@@ -1,3 +1,4 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import {
   getOrganizationById,
   getOrganizationBySlug,
@@ -11,8 +12,6 @@ import {
 import { UUID_PATTERN } from '~constants'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 // Whose conversations a suspension reaches, as staff named it
 type SuspensionTarget =

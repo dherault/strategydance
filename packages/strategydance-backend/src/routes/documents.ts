@@ -5,6 +5,7 @@ import {
   ERROR_CODE_DOCUMENT_REVISION_UNRESTORABLE,
   ERROR_CODE_NOT_FOUND,
   type RestoreDocumentRevisionData,
+  toCanonicalUuid,
   type UndoableDocumentRevisionsData,
 } from 'strategydance-core'
 import { z } from 'zod'
@@ -13,7 +14,6 @@ import { UUID_PATTERN } from '~constants'
 
 import readViewer from '~utils/readViewer'
 import respondError from '~utils/respondError'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import appCheckMiddleware from '~middleware/appCheck'
 import authenticationMiddleware from '~middleware/authentication'

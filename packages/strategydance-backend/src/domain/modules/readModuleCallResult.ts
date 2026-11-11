@@ -1,10 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { getModuleCallResult } from 'strategydance-database/backend'
 
 import type { ModuleCall, ModuleCaller } from '~types'
 
 import { dataConnect } from '~firebase'
-
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 type ReadModuleCallResultResult =
   | { outcome: 'none' }

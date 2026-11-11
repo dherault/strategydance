@@ -1,6 +1,15 @@
 import { describe, expect, mock, test } from 'bun:test'
 
-mock.module('~utils/logger', () => ({ default: { info: () => {}, warn: () => {}, error: () => {} } }))
+// Every message logged, whatever its level
+const logged: string[] = []
+
+mock.module('~utils/logger', () => ({
+  default: {
+    info: (message: string) => logged.push(message),
+    warn: (message: string) => logged.push(message),
+    error: (message: string) => logged.push(message),
+  },
+}))
 
 const { default: readLinkPreview } = await import('./readLinkPreview')
 const { OutboundRefusal } = await import('~utils/fetchOutbound')
@@ -59,5 +68,42 @@ describe('readLinkPreview', () => {
     ]) {
       expect(await readLinkPreview('https://example.com/file', fetch)).toEqual({ url: 'https://example.com/file' })
     }
+  })
+
+  test('logs the origin alone, never the path, the query nor what the server answered', async () => {
+    const url = 'https://example.com/reset/a1b2c3?token=secret'
+    const refused: Fetch = mock(async () => {
+      throw new OutboundRefusal('Not a public address: https://example.com', 'privateAddress')
+    })
+
+    logged.length = 0
+
+    for (const fetch of [answer(200, 'application/pdf', '%PDF'), answer(404, 'text/html', ''), refused]) {
+      await readLinkPreview(url, fetch)
+    }
+
+    expect(logged).toHaveLength(3)
+
+    for (const message of logged) {
+      expect(message).toContain('https://example.com')
+      expect(message).not.toMatch(/reset|token|secret|pdf/)
+    }
+  })
+
+  test('names an address that is no web one as such, never by its text nor as null', async () => {
+    const refused: Fetch = mock(async () => {
+      throw new OutboundRefusal('Not a web address', 'address')
+    })
+
+    logged.length = 0
+
+    for (const url of ['data:text/html,<p>secret</p>', 'not an address']) {
+      expect(await readLinkPreview(url, refused)).toEqual({ url })
+    }
+
+    expect(logged).toEqual([
+      'Link previews: could not read an address that is not a web one',
+      'Link previews: could not read an address that is not a web one',
+    ])
   })
 })

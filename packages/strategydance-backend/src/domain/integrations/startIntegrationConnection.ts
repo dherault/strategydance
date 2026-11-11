@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { startAuthorization } from '@modelcontextprotocol/client'
+import { toCanonicalUuid } from 'strategydance-core'
 import {
   IntegrationAuthentication,
   IntegrationError,
@@ -12,7 +13,6 @@ import { INTEGRATION_OAUTH_CALLBACK_URL } from '~constants'
 import { dataConnect } from '~firebase'
 
 import logger from '~utils/logger'
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 
 import classifyIntegrationFailure from '~domain/integrations/classifyIntegrationFailure'
 import createIntegrationFetch from '~domain/integrations/createIntegrationFetch'

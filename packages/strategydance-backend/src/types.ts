@@ -118,6 +118,16 @@ export type ConversationAttachmentReference = {
   claudeFileId?: string | null
 }
 
+// Where a route finds a file of a conversation for its caller: its id, conversation and organization,
+// and the caller
+export type ConversationAttachmentLocation = {
+  // Canonical, as `toCanonicalUuid` writes them, and the caller's uid as the backend verified it
+  organizationId: string
+  userId: string
+  conversationId: string
+  attachmentId: string
+}
+
 // What every write of the worker that claimed a run is fenced on: the attempt it claimed, and the
 // membership the run was started under
 export type ConversationRunFence = ConversationRunReference & {
@@ -793,6 +803,12 @@ export type KnowledgeRefusal =
   | { outcome: 'otherKindFilter'; filter: 'categories' | 'businessModels' }
   /** An id the release's catalogue does not hold for the kind */
   | { outcome: 'unknownItem'; kind: KnowledgeKind; id: string }
+  /** A directory marked in use, which takes a status instead */
+  | { outcome: 'directoryTakesStatus' }
+  /** Notes past `MAX_KNOWLEDGE_NOTE_LENGTH` once stored */
+  | { outcome: 'notesTooLong' }
+  /** Notes replaced under a version they no longer have, written since they were read */
+  | { outcome: 'notesChanged' }
   /** A link or an unlink naming no target, or more than one */
   | { outcome: 'noTarget' }
   /** A document the organization does not hold, or deleted */

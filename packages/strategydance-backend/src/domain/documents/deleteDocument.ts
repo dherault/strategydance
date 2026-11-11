@@ -1,6 +1,9 @@
+import { toCanonicalUuid } from 'strategydance-core'
 import { deleteDocumentForAgent } from 'strategydance-database/backend'
 
 import type { DocumentsWriteResult, ModuleCall, ModuleCaller } from '~types'
+
+import { RESTORE_WINDOW_MS } from '~constants'
 
 import { dataConnect } from '~firebase'
 
@@ -10,9 +13,6 @@ import isModuleCallKeyTaken from '~domain/modules/isModuleCallKeyTaken'
 import isOperationRefusal from '~domain/modules/isOperationRefusal'
 import { NOT_MEMBER_REFUSAL } from '~domain/modules/moduleRefusalMessages'
 import toModuleCallVariables from '~domain/modules/toModuleCallVariables'
-
-// How long a deleted document can be restored, as its page's Undo and the sweep hold it
-const RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
 
 // What deleting answers: the document, and until when `restore_document` brings it back
 export type DeletedDocument = {
@@ -34,14 +34,15 @@ async function deleteDocument(
 
   if (answered) return answered
 
-  const result = { id, restorableUntil: new Date(Date.now() + RESTORE_WINDOW_MS).toISOString() }
+  const documentId = toCanonicalUuid(id)
+  const result = { id: documentId, restorableUntil: new Date(Date.now() + RESTORE_WINDOW_MS).toISOString() }
 
   try {
     await deleteDocumentForAgent(dataConnect, {
       organizationId: caller.organizationId,
       userId: caller.userId,
       membershipCreatedAt: caller.membershipCreatedAt,
-      id,
+      id: documentId,
       ...toModuleCallVariables(caller, call, result),
     })
 
@@ -52,7 +53,7 @@ async function deleteDocument(
     if (answeredMeanwhile) return answeredMeanwhile
     if (isOperationRefusal(error, NOT_MEMBER_REFUSAL)) return { outcome: 'notMember' }
 
-    const refusal = await explainDocumentRefusal(caller, id, { isWrite: true })
+    const refusal = await explainDocumentRefusal(caller, documentId, { isWrite: true })
 
     if (refusal) return refusal
 

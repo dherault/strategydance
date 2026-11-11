@@ -1,5 +1,8 @@
 import { dataConnect } from '~firebase'
 
+import boardScenarios from './boardScenarios'
+import checklistScenarios from './checklistScenarios'
+import organizationScenarios from './organizationScenarios'
 import { tearDown, webConnector } from './raceFixtures'
 import {
   JITTERS,
@@ -15,7 +18,14 @@ import sendScenarios from './sendScenarios'
 import subagentScenarios from './subagentScenarios'
 import suspensionScenarios from './suspensionScenarios'
 
-const SCENARIOS: RaceScenario[] = [...sendScenarios, ...subagentScenarios, ...suspensionScenarios]
+const SCENARIOS: RaceScenario[] = [
+  ...sendScenarios,
+  ...subagentScenarios,
+  ...suspensionScenarios,
+  ...organizationScenarios,
+  ...boardScenarios,
+  ...checklistScenarios,
+]
 
 export const SCENARIO_NAMES = SCENARIOS.map(({ name }) => name)
 

@@ -1,3 +1,5 @@
+import { toCanonicalUuid } from 'strategydance-core'
+
 import type { Task } from '~types'
 
 import useTasks from '~hooks/task/useTasks'
@@ -14,7 +16,7 @@ function useConversationTasks(needs: boolean): ReadonlyMap<string, Task> | null 
 
   if (!needs || initialLoading || hasFailed) return null
 
-  return new Map(data.map(task => [task.id.replaceAll('-', '').toLowerCase(), task]))
+  return new Map(data.map(task => [toCanonicalUuid(task.id), task]))
 }
 
 export default useConversationTasks

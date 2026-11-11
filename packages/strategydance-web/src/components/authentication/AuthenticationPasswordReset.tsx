@@ -4,6 +4,7 @@ import { sendPasswordResetEmail } from 'firebase/auth'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { FormattedMessage, useIntl } from 'react-intl'
+import { normalizeEmailAddress } from 'strategydance-core'
 import { Alert } from 'strategydance-design-system/components/ui/Alert'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 import * as z from 'zod'
@@ -11,8 +12,6 @@ import * as z from 'zod'
 import { AUTHENTICATION_ERRORS, DEFAULT_AUTHENTICATION_ERROR } from '~constants'
 
 import useAuthenticationMessage from '~hooks/authentication/useAuthenticationMessage'
-
-import formatEmail from '~utils/user/formatEmail'
 
 import Spinner from '~components/common/Spinner'
 import { FormInputField } from '~components/ui/FormField'
@@ -49,7 +48,7 @@ function AuthenticationPasswordReset() {
     setLoading(true)
 
     try {
-      await sendPasswordResetEmail(authentication, formatEmail(values.email))
+      await sendPasswordResetEmail(authentication, normalizeEmailAddress(values.email))
     } catch (error: any) {
       /*
         An unknown address takes the success path. Firebase only raises this when email

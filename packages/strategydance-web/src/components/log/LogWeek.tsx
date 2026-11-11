@@ -1,12 +1,12 @@
 import { Fragment } from 'react'
 import { useIntl } from 'react-intl'
+import { addCalendarDays } from 'strategydance-core'
 import { Button } from 'strategydance-design-system/components/ui/Button'
 
 import type { LogEntry, OrganizationMember } from '~types'
 
 import useOrganizationLogWeek from '~hooks/log/useOrganizationLogWeek'
 
-import addDays from '~utils/date/addDays'
 import toCalendarDate from '~utils/date/toCalendarDate'
 
 import Spinner from '~components/common/Spinner'
@@ -50,7 +50,7 @@ function LogWeek({ organizationId, from, to, isLive, today, viewerId, membersByI
 
   function formatDay(date: string) {
     if (date === today) return formatMessage(logMessages.today)
-    if (date === addDays(today, -1)) return formatMessage(logMessages.yesterday)
+    if (date === addCalendarDays(today, -1)) return formatMessage(logMessages.yesterday)
 
     return formatDate(toCalendarDate(date), {
       weekday: 'long',

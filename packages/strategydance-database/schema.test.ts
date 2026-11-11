@@ -7,6 +7,7 @@ import {
   BILL_RECURRENCES,
   BUDGET_PERIOD_MONTHS,
   Currency,
+  DirectoryStatus,
   KnowledgeKind,
   MAX_BILL_COMPANY_LENGTH,
   MAX_BILL_DESCRIPTION_LENGTH,
@@ -19,6 +20,9 @@ import {
   MAX_BILLS,
   MAX_DAILY_RECEIPT_READS_PER_MEMBER,
   MAX_DAILY_RECEIPT_READS_PER_ORGANIZATION,
+  MAX_KNOWLEDGE_NOTE_LENGTH,
+  MAX_KNOWLEDGE_ROWS,
+  MAX_MIRRORED_USER_NAME_LENGTH,
   MAX_MONEY_MINOR,
   MODULES,
   ORGANIZATION_SLUG_BASE_MAX_LENGTH,
@@ -26,6 +30,7 @@ import {
   ORGANIZATION_SLUG_SUFFIX_LENGTH,
   SUPPORTED_LOCALES,
 } from 'strategydance-core'
+import { KNOWLEDGE_ID_PATTERN } from 'strategydance-knowledge'
 
 const schema = await Bun.file(new URL('./schema/schema.gql', import.meta.url)).text()
 const webMutations = await Bun.file(new URL('./strategydance-web-connector/mutations.gql', import.meta.url)).text()
@@ -36,10 +41,10 @@ const backendMutations = await Bun.file(
 const backendQueries = await Bun.file(new URL('./strategydance-backend-connector/queries.gql', import.meta.url)).text()
 
 /*
-  `Locale`, `Currency` and `KnowledgeKind` are declared twice, once here and once in
-  strategydance-core, because neither side can read the other: Data Connect's schema is GraphQL SDL
-  that a Go binary parses, and core is the TypeScript the catalogues, the language picker, the
-  Budget's computations and the knowledge's kinds are built from.
+  `Locale`, `Currency`, `KnowledgeKind` and `DirectoryStatus` are declared twice, once here and once
+  in strategydance-core, because neither side can read the other: Data Connect's schema is GraphQL
+  SDL that a Go binary parses, and core is the TypeScript the catalogues, the language picker, the
+  Budget's computations and the knowledge's kinds and statuses are built from.
 
   Two declarations of one set is a drift waiting to happen, so this is the thing that fails when
   a value is added to one and not the other. It reads the SDL as text rather than parsing it,
@@ -69,6 +74,11 @@ describe('schema.gql', () => {
   // In order, as the currencies are
   it("declares the knowledge's kinds strategydance-core lists, in the same order", () => {
     expect(readEnumValues('KnowledgeKind')).toEqual(Object.values(KnowledgeKind))
+  })
+
+  // In order, as the kinds are
+  it("declares the directories' statuses strategydance-core lists, in the same order", () => {
+    expect(readEnumValues('DirectoryStatus')).toEqual(Object.values(DirectoryStatus))
   })
 
   it("declares the budget's periods strategydance-core counts the months of", () => {
@@ -286,4 +296,77 @@ describe('the agent connections', () => {
       MAX_AGENT_CONNECTIONS,
     ])
   })
+})
+
+/*
+  A directory's status and notes take core's limits, which the page and the Knowledge module check
+  against, and an id held to the knowledge package's pattern, since the database cannot read the
+  catalogue: this fails when an operation stops agreeing with them, or the page's live reads stop
+  hearing the module's writes
+*/
+describe('the directories', () => {
+  for (const name of ['SetDirectoryStatus', 'SetDirectoryNotes']) {
+    it(`${name} holds a directory's id to the catalogue's pattern and counts the organization's rows to the cap`, () => {
+      const operation = readOperation(webMutations, name)
+      const match = /size\(vars\.directoryId\) <= (\d+) && vars\.directoryId\.matches\('([^']*)'\)/.exec(operation)
+
+      expect(match?.[2]).toBe(KNOWLEDGE_ID_PATTERN.source)
+      expect(Number(match?.[1])).toBe(100)
+      expect(readNumbers(operation, /size\(this\) < (\d+)/g)).toEqual([MAX_KNOWLEDGE_ROWS])
+      expect(readNumbers(operation, /limit: (\d+)/g)).toEqual([MAX_KNOWLEDGE_ROWS])
+      expect(operation).toContain('eq_expr: "response.organization_update.id"')
+    })
+  }
+
+  for (const [name, source] of [
+    ['SetDirectoryNotes', webMutations],
+    ['CreateKnowledgeNoteForAgent', backendMutations],
+    ['UpdateKnowledgeNoteForAgent', backendMutations],
+  ] as const) {
+    it(`${name} holds a note to strategydance-core's length`, () => {
+      const operation = readOperation(source, name)
+
+      expect(readNumbers(operation, /size\(vars\.content\) <= (\d+)/g)).toEqual([MAX_KNOWLEDGE_NOTE_LENGTH])
+      expect(readNumbers(operation, /size\(vars\.contentText\) <= (\d+)/g)).toEqual([MAX_KNOWLEDGE_NOTE_LENGTH])
+    })
+  }
+
+  it('GetDirectoryUses reads as many rows as an organization keeps, and hears every write of them', () => {
+    const query = readOperation(webQueries, 'GetDirectoryUses')
+
+    expect(readNumbers(query, /limit: (\d+)/g)).toEqual([MAX_KNOWLEDGE_ROWS])
+
+    for (const name of [
+      'SetDirectoryStatus',
+      'SetDirectoryNotes',
+      'SetDirectoryStatusForAgent',
+      'SetKnowledgeInUseForAgent',
+      'CreateKnowledgeNoteForAgent',
+      'UpdateKnowledgeNoteForAgent',
+    ]) {
+      expect(query).toContain(`operation: "${name}"`)
+    }
+  })
+
+  it('GetDirectoryNotes hears every write of a note', () => {
+    const query = readOperation(webQueries, 'GetDirectoryNotes')
+
+    for (const name of ['SetDirectoryNotes', 'CreateKnowledgeNoteForAgent', 'UpdateKnowledgeNoteForAgent']) {
+      expect(query).toContain(`operation: "${name}"`)
+    }
+  })
+})
+
+/*
+  A name the user mirror writes is cut by the page to core's length, which the mutations write out
+  again: this fails when the two stop agreeing, which would refuse a long name's whole row
+*/
+describe('the user mirror', () => {
+  for (const name of ['CreateCurrentUser', 'UpdateCurrentUser']) {
+    it(`${name} holds a name to the length the page cuts it to`, () => {
+      expect(readNumbers(readOperation(webMutations, name), /size\(vars\.displayName\) <= (\d+)/g)).toEqual([
+        MAX_MIRRORED_USER_NAME_LENGTH,
+      ])
+    })
+  }
 })

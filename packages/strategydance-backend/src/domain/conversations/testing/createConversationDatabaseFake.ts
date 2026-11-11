@@ -2,6 +2,8 @@ import {
   BILL_RECEIPT_CONTENT_TYPES,
   CONVERSATION_ATTACHMENT_CONTENT_TYPES,
   CONVERSATION_SEARCH_WINDOW_MINUTES,
+  DAILY_CAP_OVERRUN_FACTOR,
+  DAILY_CAP_WINDOW_HOURS,
   MAX_ACTIVE_RUNS_PER_MEMBER,
   MAX_ACTIVE_SUBAGENT_RUNS_PER_MEMBER,
   MAX_BILL_RECEIPT_NAME_LENGTH,
@@ -11,8 +13,8 @@ import {
   MAX_CONVERSATION_ATTACHMENTS_PER_MESSAGE,
   MAX_CONVERSATION_MESSAGES,
   MAX_CONVERSATION_SEARCHES,
-  MAX_CONVERSATIONS,
   MAX_CONVERSATION_SUBAGENTS,
+  MAX_CONVERSATIONS,
   MAX_DAILY_CONVERSATIONS_PER_ACCOUNT,
   MAX_DAILY_CONVERSATIONS_PER_MEMBER,
   MAX_DAILY_CONVERSATIONS_PER_ORGANIZATION,
@@ -23,13 +25,11 @@ import {
   MAX_DAILY_SUBAGENTS_PER_MEMBER,
   MAX_PENDING_CONVERSATION_ATTACHMENTS,
   MAX_SUBAGENTS_PER_ACTION,
-  DAILY_CAP_OVERRUN_FACTOR,
-  DAILY_CAP_WINDOW_HOURS,
+  toCanonicalUuid,
 } from 'strategydance-core'
 
 import { CONVERSATION_RUN_QUEUED_LEASE_MS } from '~constants'
 
-import toCanonicalUuid from '~utils/toCanonicalUuid'
 import toSortableInstant from '~utils/toSortableInstant'
 
 import { BillReceiptStatus } from '~domain/budget/testing/createBudgetDatabaseFake'
@@ -711,8 +711,8 @@ function createConversationDatabaseFake() {
   }
 
   // Whether a read's optional `$skippedIds` leaves a run out, none when it is left out
-  function isSkipped(variables: AnyVariables, run: FakeRun) {
-    return ((variables.skippedIds as string[] | undefined) ?? []).map(id).includes(run.id)
+  function isSkipped(variables: AnyVariables, row: { id: string }) {
+    return ((variables.skippedIds as string[] | undefined) ?? []).map(id).includes(row.id)
   }
 
   // The subagent runs no page may reconcile, past their lease or waiting for a slot, with their
@@ -3916,21 +3916,27 @@ function createConversationDatabaseFake() {
       return { conversation_updateMany: claimed }
     },
 
-    GetClaimedConversations: () => ({
+    GetClaimedConversations: variables => ({
       conversations: [...conversations.values()]
         .filter(
           conversation =>
-            conversation.pruneClaimedAt !== null && isPastUndo(conversation) && conversation.parentId == null,
+            !isSkipped(variables, conversation)
+            && conversation.pruneClaimedAt !== null
+            && isPastUndo(conversation)
+            && conversation.parentId == null,
         )
         .slice(0, 20)
         .map(({ id: conversationId, userId, organizationId }) => ({ id: conversationId, userId, organizationId })),
     }),
 
-    GetClaimedSubagents: () => ({
+    GetClaimedSubagents: variables => ({
       conversations: [...conversations.values()]
         .filter(
           conversation =>
-            conversation.pruneClaimedAt !== null && isPastUndo(conversation) && conversation.parentId != null,
+            !isSkipped(variables, conversation)
+            && conversation.pruneClaimedAt !== null
+            && isPastUndo(conversation)
+            && conversation.parentId != null,
         )
         .sort((a, b) => (a.parentId ?? '').localeCompare(b.parentId ?? '') || a.id.localeCompare(b.id))
         .slice(0, 100)

@@ -1,7 +1,4 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
-import { ERROR_CODE_TOO_MANY_REQUESTS } from 'strategydance-core'
-
-import respondError from '~utils/respondError'
+import createRateLimit from '~middleware/createRateLimit'
 
 /*
   Adding, changing and retrying an organization's MCP servers, metered: 30 per caller in 10 minutes,
@@ -11,15 +8,11 @@ import respondError from '~utils/respondError'
   Keyed by the verified caller, as `linkPreviewRateLimitMiddleware` is, and counted in the instance's
   memory the same way
 */
-const integrationRateLimitMiddleware = rateLimit({
+const integrationRateLimitMiddleware = createRateLimit({
   windowMs: 10 * 60 * 1000,
   limit: 30,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  keyGenerator: request => request.viewer?.id ?? ipKeyGenerator(request.ip ?? ''),
-  handler: (_request, response) => {
-    respondError(response, 429, ERROR_CODE_TOO_MANY_REQUESTS, 'Too many servers reached, try again later')
-  },
+  key: 'viewer',
+  message: 'Too many servers reached, try again later',
 })
 
 export default integrationRateLimitMiddleware

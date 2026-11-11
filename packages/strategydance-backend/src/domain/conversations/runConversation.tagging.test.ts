@@ -258,6 +258,27 @@ describe('runConversation, tagging', () => {
     expect(readNotes(reference)).toEqual([])
   })
 
+  test('tags the first exchange at the run’s last request, though attempts Claude’s API refused came before', async () => {
+    const reference = await startUntagged()
+    const scripted = createClient([
+      new Anthropic.InternalServerError(529, { type: 'overloaded_error' }, 'Overloaded', new Headers()),
+      answer(),
+      tagging(['FINANCES']),
+    ])
+
+    await runConversation(reference, {
+      client: scripted.client,
+      retryDelayMs: 1,
+      apiRetryDelayMs: 1,
+      connectModules: connectTestModules([]),
+      limits: { maxRequests: 2 },
+    })
+
+    expect(scripted.requests).toHaveLength(3)
+    expect(readRun(reference)).toMatchObject({ status: 'COMPLETED' })
+    expect(readNotes(reference)).toMatchObject([{ aspects: ['FINANCES'], aspectsSetBy: 'AGENT' }])
+  })
+
   test('tags the first exchange in the run a retry starts once the first failed', async () => {
     const reference = await startUntagged()
 

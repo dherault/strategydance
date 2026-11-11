@@ -25,9 +25,11 @@ type Options = {
   branches, its commits' files, its pull requests and their comments, behind the REST calls and the
   one GraphQL mutation the publisher makes, each refusing as GitHub does. A merge is three-way, a
   file at a time, from the commit the branch last took from the other: a file only one side changed
-  takes that side's, and one both changed conflicts. `beforeCommit` runs before a commit lands and
-  `afterCommit` after, and `beforePullRequest` before one is opened, so a test can push, close or
-  open one in between
+  takes that side's, and one both changed conflicts. A ref the REST API creates or moves, a merge
+  included, reads as on GitHub, as it was for a moment after: its next read, unless it is written
+  again first, answers what it was before, a 404 for one just created. `beforeCommit` runs before a
+  commit lands and `afterCommit` after, and `beforePullRequest` before one is opened, so a test can
+  push, close or open one in between
 */
 function createGitHubFake({ files }: Options) {
   let shas = 0
@@ -39,6 +41,8 @@ function createGitHubFake({ files }: Options) {
   const merges: string[] = []
   // The commit of the other branch each branch last took, which a merge compares both sides to
   const mergeBases = new Map<string, string>()
+  // What a ref the REST API just wrote answers its next read, unless it is written again first
+  const laggingRefs = new Map<string, string | undefined>()
   const state = {
     beforeCommit: (() => {}) as () => void,
     afterCommit: (() => {}) as () => void,
@@ -135,8 +139,18 @@ function createGitHubFake({ files }: Options) {
       }
 
       if (method === 'POST' && route === '/merges') {
-        const base = commits.get(branches.get(input.base)!)!
-        const head = commits.get(branches.get(input.head)!)!
+        const baseSha = branches.get(input.base)!
+        const headSha = branches.get(input.head)!
+
+        // As GitHub, a base that holds the head already answers 204, moving nothing
+        if (readAncestry(baseSha).has(headSha)) {
+          merges.push(input.base)
+
+          return answer(204)
+        }
+
+        const base = commits.get(baseSha)!
+        const head = commits.get(headSha)!
         const start = commits.get(mergeBases.get(input.base)!)!
         const merged: Files = { ...base }
 
@@ -147,15 +161,21 @@ function createGitHubFake({ files }: Options) {
           merged[path] = head[path]
         }
 
-        merges.push(input.base)
-        mergeBases.set(input.base, branches.get(input.head)!)
-        branches.set(input.base, createCommit(merged, [branches.get(input.base)!, branches.get(input.head)!]))
+        const sha = createCommit(merged, [baseSha, headSha])
 
-        return answer(201)
+        merges.push(input.base)
+        mergeBases.set(input.base, headSha)
+        laggingRefs.set(input.base, baseSha)
+        branches.set(input.base, sha)
+
+        return answer(201, { sha })
       }
 
       if (method === 'GET' && (match = route.match(/^\/git\/ref\/heads\/(.+)$/))) {
-        const sha = branches.get(match[1])
+        const isLagging = laggingRefs.has(match[1])
+        const sha = isLagging ? laggingRefs.get(match[1]) : branches.get(match[1])
+
+        laggingRefs.delete(match[1])
 
         return sha ? answer(200, { object: { sha } }) : answer(404)
       }
@@ -163,6 +183,7 @@ function createGitHubFake({ files }: Options) {
       if (method === 'POST' && route === '/git/refs') {
         const branch = input.ref.replace('refs/heads/', '')
 
+        laggingRefs.set(branch, branches.get(branch))
         branches.set(branch, input.sha)
         mergeBases.set(branch, input.sha)
 
@@ -174,6 +195,7 @@ function createGitHubFake({ files }: Options) {
         // As GitHub, an update without force has to be a fast-forward
         if (!input.force && !readAncestry(input.sha).has(branches.get(match[1])!)) return answer(422)
 
+        laggingRefs.set(match[1], branches.get(match[1]))
         branches.set(match[1], input.sha)
         mergeBases.set(match[1], input.sha)
 
@@ -231,6 +253,7 @@ function createGitHubFake({ files }: Options) {
 
       const oid = createCommit({ ...commits.get(head)!, ...added }, [head])
 
+      laggingRefs.delete(input.branch.branchName)
       branches.set(input.branch.branchName, oid)
       state.afterCommit()
 
@@ -248,11 +271,13 @@ function createGitHubFake({ files }: Options) {
     // The files at a branch's head
     readFiles: (branch: string) => commits.get(branches.get(branch)!)!,
     // A commit pushed onto a branch, as somebody else would
-    push: (branch: string, changed: Files) =>
+    push: (branch: string, changed: Files) => {
+      laggingRefs.delete(branch)
       branches.set(
         branch,
         createCommit({ ...commits.get(branches.get(branch)!)!, ...changed }, [branches.get(branch)!]),
-      ),
+      )
+    },
     // A pull request closed without a merge, as a person would
     close: (number: number) => {
       const pull = pullRequests.find(pullRequest => pullRequest.number === number)!

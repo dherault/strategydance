@@ -90,6 +90,28 @@ describe('publishDirectoryCheck', () => {
     expect(github.pullRequests.map(({ state }) => state)).toEqual(['closed', 'open'])
   })
 
+  // GitHub answers a ref it just created or moved as it was for a moment, as the fake does: a run
+  // reading the branch back would 404 on a new one, and commit against an old head, refused
+  test('commits on the head it moved the branch to, though GitHub still answers the old one', async () => {
+    const github = createGitHubFake({ files: FILES })
+    let commits = 0
+
+    github.state.beforeCommit = () => {
+      commits++
+    }
+
+    // Created
+    expect((await publish(github)).outcome).toBe('committed')
+    // Merged into, after dev moved on
+    github.push('dev', { 'other.txt': 'landed since' })
+    expect((await publish(github)).outcome).toBe('committed')
+    // Reset, after a person closed its pull request
+    github.close(1)
+    expect((await publish(github)).outcome).toBe('committed')
+
+    expect(commits).toBe(3)
+  })
+
   test('carries into the branch what landed on dev meanwhile', async () => {
     const github = createGitHubFake({ files: FILES })
 

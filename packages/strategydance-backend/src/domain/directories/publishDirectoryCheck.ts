@@ -63,10 +63,11 @@ const COMMIT_MUTATION = `mutation CommitDirectoryCheck($input: CreateCommitOnBra
   the pull request. With none, the branch starts again from `dev`: a pull request closed without a
   merge was a rejection, and a merged one's branch is gone.
 
-  The lists are read at the branch's head and committed against it, so a push in between refuses
-  the commit rather than being written over; the checks, already paid for, are then applied again
-  to the lists read afresh, once. The pull request is read again once the commit lands, so a run
-  never reports to one a person closed meanwhile, and each day's report is a comment of its own
+  The lists are read at the head the run left the branch on and committed against it, so a push in
+  between refuses the commit rather than being written over; the checks, already paid for, are then
+  applied again to the lists read afresh, once. The pull request is read again once the commit
+  lands, so a run never reports to one a person closed meanwhile, and each day's report is a comment
+  of its own
 */
 async function publishDirectoryCheck({
   github,
@@ -78,9 +79,12 @@ async function publishDirectoryCheck({
   random,
 }: Options) {
   const pullRequest = await findOpenPullRequest(github)
+  // What the run itself pointed the branch at, never read back, since GitHub answers a ref it just
+  // created or moved as it was for a moment, one just created with a 404
+  let head: string
 
   if (pullRequest) {
-    const { status } = await github.request('POST', `/repos/${GITHUB_REPOSITORY}/merges`, {
+    const { status, data } = await github.request('POST', `/repos/${GITHUB_REPOSITORY}/merges`, {
       body: {
         base: DIRECTORY_CHECK_BRANCH,
         head: DIRECTORY_CHECK_BASE_BRANCH,
@@ -94,15 +98,23 @@ async function publishDirectoryCheck({
 
       return { outcome: 'conflict' as const, url: pullRequest.html_url }
     }
-  } else if (!(await resetBranch(github))) {
-    logger.warn(
-      `Directories: ${DIRECTORY_CHECK_BRANCH} holds commits no pull request carries, another run's, so this one waits`,
-    )
 
-    return { outcome: 'busy' as const, url: null }
+    // A merge answers its commit, and a branch that held all of `dev` already a 204, moving nothing
+    head = status === 201 ? (data as { sha: string }).sha : await readBranchHead(github)
+  } else {
+    const reset = await resetBranch(github)
+
+    if (!reset) {
+      logger.warn(
+        `Directories: ${DIRECTORY_CHECK_BRANCH} holds commits no pull request carries, another run's, so this one waits`,
+      )
+
+      return { outcome: 'busy' as const, url: null }
+    }
+
+    head = reset
   }
 
-  let head = await readBranchHead(github)
   let lists = await readLists(github, head)
   const result = await checkDirectories(lists, { claude, count, inactiveCount, today, fetch, random })
   let { report } = result
@@ -226,12 +238,12 @@ async function readBranchHead(github: GitHubClient, branch = DIRECTORY_CHECK_BRA
 
 /*
   Points the branch at `dev`'s head, creating it when GitHub deleted it with its merged pull
-  request, and says whether it did. A branch holding nothing `dev` lacks moves on to it as a
-  fast-forward, which GitHub refuses once anybody committed meanwhile. One holding what a closed pull
-  request carried, a rejection, or lists no different from `dev`'s, which a run whose pull request
-  closed while it ran leaves, is reset. Anything else is another run's, which committed and has not
-  opened its pull request yet, or opened it since this run looked: resetting it would drop that paid
-  work, so the branch is left, and the run waits for the next day
+  request, and answers that head, or null when it left the branch. A branch holding nothing `dev`
+  lacks moves on to it as a fast-forward, which GitHub refuses once anybody committed meanwhile. One
+  holding what a closed pull request carried, a rejection, or lists no different from `dev`'s, which
+  a run whose pull request closed while it ran leaves, is reset. Anything else is another run's,
+  which committed and has not opened its pull request yet, or opened it since this run looked:
+  resetting it would drop that paid work, so the branch is left, and the run waits for the next day
 */
 async function resetBranch(github: GitHubClient) {
   const sha = await readBranchHead(github, DIRECTORY_CHECK_BASE_BRANCH)
@@ -246,7 +258,7 @@ async function resetBranch(github: GitHubClient) {
       body: { ref: `refs/heads/${DIRECTORY_CHECK_BRANCH}`, sha },
     })
 
-    return true
+    return sha
   }
 
   const head = (data as { object: { sha: string } }).object.sha
@@ -262,16 +274,16 @@ async function resetBranch(github: GitHubClient) {
       { body: { sha, force: false }, allowedStatuses: [422] },
     )
 
-    return moved !== 422
+    return moved === 422 ? null : sha
   }
 
-  if (!(await isDiscardable(github, head, sha))) return false
+  if (!(await isDiscardable(github, head, sha))) return null
 
   await github.request('PATCH', `/repos/${GITHUB_REPOSITORY}/git/refs/heads/${DIRECTORY_CHECK_BRANCH}`, {
     body: { sha, force: true },
   })
 
-  return true
+  return sha
 }
 
 // Whether a branch head `dev` lacks can be dropped: a closed pull request carried it, or its lists

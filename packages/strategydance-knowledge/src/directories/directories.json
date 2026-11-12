@@ -882,10 +882,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://ainave.com/",
     "submissionUrl": "https://ainave.com/submit/products",
-    "description": "",
-    "categories": [],
+    "description": "Weekly launch board and directory of AI products ranked by upvotes, where makers submit their own AI tools, alongside AI news and events.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "FREE_WITH_PAID_PROMOTION",
-    "lastChecked": null,
+    "lastChecked": "2026-11-12",
     "unreachableSince": null
   },
   {
@@ -1428,10 +1430,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://beingguru.com/",
     "submissionUrl": "https://beingguru.com/submit-startup/",
-    "description": "",
-    "categories": [],
+    "description": "Tech and business news publication covering startups, AI and freelancing, where founders can submit their startup to be considered for editorial coverage.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-12",
     "unreachableSince": null
   },
   {
@@ -2428,10 +2432,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://findyoursaas.com/",
     "submissionUrl": "https://findyoursaas.com/pricing",
-    "description": "",
-    "categories": [],
+    "description": "Directory of SaaS tools and software products, sorted by category, use case, pricing and audience, where makers can list their own tools.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "FREE_WITH_ENGAGEMENT",
-    "lastChecked": null,
+    "lastChecked": "2026-11-12",
     "unreachableSince": null
   },
   {
@@ -3214,10 +3220,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.joinly.xyz/",
     "submissionUrl": "https://www.joinly.xyz/submit-startup",
-    "description": "",
-    "categories": [],
+    "description": "Directory of new tech startups, products, mobile apps and websites, where makers submit their own products through a form.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-12",
     "unreachableSince": null
   },
   {
@@ -3607,10 +3615,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://lobste.rs/",
     "submissionUrl": "https://lobste.rs/",
-    "description": "",
-    "categories": [],
+    "description": "Invite-only community for computing links and discussion, where members submit tagged stories, including their own projects within the self-promotion rules.",
+    "categories": [
+      "DEVELOPER_TOOLS",
+      "OPEN_SOURCE"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-12",
     "unreachableSince": null
   },
   {
@@ -3735,10 +3746,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.marketinginternetdirectory.com/",
     "submissionUrl": "https://www.marketinginternetdirectory.com/submit.php",
-    "description": "",
-    "categories": [],
+    "description": "General web directory of websites sorted into topic categories, where webmasters and site owners submit their sites and articles.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-12",
     "unreachableSince": null
   },
   {
@@ -4308,10 +4321,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://phototoolfinder.com/",
     "submissionUrl": "https://phototoolfinder.com/submit",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "description": "Directory of online photo editing tools with a web version, sorted into categories such as upscalers, background removers and restoration, where anyone can suggest a tool.",
+    "categories": [
+      "AI_TOOLS",
+      "DESIGN"
+    ],
+    "businessModel": "PAID",
+    "lastChecked": "2026-11-12",
     "unreachableSince": null
   },
   {
@@ -5198,10 +5214,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.siteswebdirectory.com/",
     "submissionUrl": "https://www.siteswebdirectory.com/submit.php",
-    "description": "",
-    "categories": [],
+    "description": "General web directory that sorts websites into more than 3,000 topic categories, where site owners submit their own links and articles.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_LONG_QUEUE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-12",
     "unreachableSince": null
   },
   {
@@ -5298,10 +5316,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.softwareworld.co/",
     "submissionUrl": "https://www.softwareworld.co/",
-    "description": "",
-    "categories": [],
+    "description": "B2B marketplace of software products and service providers, sorted by category, with user reviews, where vendors can get their products listed.",
+    "categories": [
+      "SAAS"
+    ],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-11-12",
     "unreachableSince": null
   },
   {
@@ -6737,11 +6757,13 @@
     "name": "WebCatalog",
     "type": "WEBSITE",
     "rootUrl": "https://webcatalog.io/",
-    "submissionUrl": "https://webcatalog.io/en/apps/submit",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://webcatalog.io/en/developers/app-listing",
+    "description": "Catalog of web apps that people can install as desktop apps on Mac, Windows and Linux, where developers submit their own web apps for review.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-12",
     "unreachableSince": null
   },
   {

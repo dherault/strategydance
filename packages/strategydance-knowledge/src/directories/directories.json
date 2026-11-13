@@ -994,10 +994,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://aitoolshunt.com/",
     "submissionUrl": "https://aitoolshunt.com/submit-ai-tool/",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_PAID_SKIP",
-    "lastChecked": null,
+    "description": "Directory of AI tools sorted into more than 140 categories, with editorial ratings and comparisons; makers ask for a listing by email.",
+    "categories": [
+      "AI_TOOLS"
+    ],
+    "businessModel": "PAID",
+    "lastChecked": "2026-11-13",
     "unreachableSince": null
   },
   {
@@ -1858,10 +1860,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://support.crunchbase.com/",
     "submissionUrl": "https://support.crunchbase.com/hc/en-us/articles/115011823988-How-do-I-create-a-Crunchbase-profile",
-    "description": "",
-    "categories": [],
+    "description": "Database of company and founder profiles, covering funding and other business data, where any registered user can add a company profile.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-13",
     "unreachableSince": null
   },
   {
@@ -3508,10 +3512,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://linezine.com/",
     "submissionUrl": "https://linezine.com/list-your-tool",
-    "description": "",
-    "categories": [],
+    "description": "Directory of AI tools for business, sorted by category such as marketing, sales, HR and productivity, where makers list their tools through paid tiers.",
+    "categories": [
+      "AI_TOOLS"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-13",
     "unreachableSince": null
   },
   {
@@ -4041,10 +4047,13 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.nocodefounders.com/",
     "submissionUrl": "https://www.nocodefounders.com/list-your-tool",
-    "description": "",
-    "categories": [],
+    "description": "Directory of no-code, low-code and AI tools with exclusive deals for founders, sorted by category, where tool makers can list their products.",
+    "categories": [
+      "AI_TOOLS",
+      "NO_CODE"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-13",
     "unreachableSince": null
   },
   {
@@ -4056,7 +4065,7 @@
     "description": "",
     "categories": [],
     "businessModel": "UNKNOWN",
-    "lastChecked": null,
+    "lastChecked": "2026-11-13",
     "unreachableSince": null
   },
   {
@@ -5536,10 +5545,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.startupfa.st/",
     "submissionUrl": "https://www.startupfa.st/submit",
-    "description": "",
-    "categories": [],
+    "description": "Startup launch directory where founders submit products of any kind for daily launches, community voting and dofollow backlinks.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-13",
     "unreachableSince": null
   },
   {
@@ -6654,11 +6665,15 @@
     "name": "VibeHacker",
     "type": "WEBSITE",
     "rootUrl": "https://vibehacker.com/",
-    "submissionUrl": "https://vibehacker.com/",
-    "description": "",
-    "categories": [],
+    "submissionUrl": "https://vibehacker.com/products/submit",
+    "description": "Discovery platform and community where AI builders and vibe coders find, review, upvote and launch AI products, agent tools and agent skills.",
+    "categories": [
+      "AI_TOOLS",
+      "AI_AGENTS",
+      "DEVELOPER_TOOLS"
+    ],
     "businessModel": "FREE_WITH_GATE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-13",
     "unreachableSince": null
   },
   {
@@ -6746,10 +6761,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://www.webdesignernews.com/",
     "submissionUrl": "https://www.webdesignernews.com/advertise",
-    "description": "",
-    "categories": [],
+    "description": "Web design news feed with a directory of designer tools, where makers can submit tools and the community shares design posts.",
+    "categories": [
+      "DESIGN"
+    ],
     "businessModel": "PAID",
-    "lastChecked": null,
+    "lastChecked": "2026-11-13",
     "unreachableSince": null
   },
   {
@@ -6840,10 +6857,14 @@
     "type": "WEBSITE",
     "rootUrl": "https://pulse.welodge.co.zw/",
     "submissionUrl": "https://pulse.welodge.co.zw/app/startups/new",
-    "description": "",
-    "categories": [],
-    "businessModel": "FREE_WITH_CURATION",
-    "lastChecked": null,
+    "description": "Daily log of newly launched SaaS, AI and developer tools, submitted by their makers and browsable by topic.",
+    "categories": [
+      "AI_TOOLS",
+      "SAAS",
+      "DEVELOPER_TOOLS"
+    ],
+    "businessModel": "FREE_WITH_PAID_SKIP",
+    "lastChecked": "2026-11-13",
     "unreachableSince": null
   },
   {
@@ -6928,10 +6949,12 @@
     "type": "WEBSITE",
     "rootUrl": "https://xinquji.com/",
     "submissionUrl": "https://xinquji.com/submit",
-    "description": "",
-    "categories": [],
+    "description": "Chinese-language product discovery community listing new websites, mobile apps and tech products, where makers launch their own products.",
+    "categories": [
+      "ANY_STARTUP"
+    ],
     "businessModel": "FREE_WITH_BADGE",
-    "lastChecked": null,
+    "lastChecked": "2026-11-13",
     "unreachableSince": null
   },
   {

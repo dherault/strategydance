@@ -60,7 +60,7 @@ milestones keep the names they were built under.
 ## Conventions for every milestone
 
 - Follow `CLAUDE.md`: a branch from `origin/dev`, granular commits each green on lint, typecheck,
-  test and build, a pull request into `dev`, its code review, then a human merges.
+  test and build, their code review, a pull request into `dev`, then a human merges.
 - Read the Architecture of [conversations.md](conversations.md) first. Load the `claude-api` skill
   before writing any Claude SDK code, and never guess an SDK name.
 - Strings go in the `conversation` catalogue (`integration` for the MCP pages, `module` for the

@@ -275,7 +275,8 @@ Once every finding is answered, in the same turn:
 ```sh
 git push -u origin HEAD
 gh pr create --base dev --title '<what the change does>' --body-file - << 'EOF'
-<what changed and why, how it was verified, and each review finding with what became of it, or that there was none>
+<what changed and why, how it was verified, and each review finding with what became of it,
+or that there was none>
 EOF
 ```
 

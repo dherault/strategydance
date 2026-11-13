@@ -234,7 +234,8 @@ answered the same way, rather than by moving to a worktree.
 ### Commit as you go
 
 `dev` is the integration branch, which every pull request starts from and goes back into. Never
-commit to `dev` or `main`, and never end a turn on a branch with commits but no pull request.
+commit to `dev` or `main`, and never end a turn on a branch with commits but no pull request: a turn
+blocked before the push opens it anyway, naming in its description what it waits for.
 
 - One logical change per commit, each passing CI's four commands on its own, since the `pre-commit`
   hook only lints: a dependency bump, a refactor and a feature are three commits. Commit each piece
@@ -262,9 +263,10 @@ before anything is pushed, so the pull request opens on reviewed code.
 2. Answer every finding: a fix, committed granularly, or a reason it does not apply. A finding is a
    claim to check against the code, not an order. Keep each answer for the pull request's
    description
-3. A second review is the session's call, when the fixes, or a fix CI forces later, changed enough
-   to need one: run it the same way and answer it the same way, where a finding the first already
-   answered points to that answer. Never a third: the human's review comes next
+3. A second review is the session's call when the fixes changed enough to need one, and due when a
+   fix CI forces later changes more than formatting or what a generator wrote: run it the same way
+   and answer it the same way, where a finding the first already answered points to that answer.
+   Never a third: the human's review comes next
 
 ### Open the pull request
 
@@ -280,13 +282,14 @@ EOF
 `--base dev` is required, since the default branch is `main`, and a pull request is never a draft,
 which cannot be merged. The person may merge at any moment, so every push and description edit goes
 behind `bun run pr open <number> &&`, which fails unless the pull request is open. On `MERGED`, open
-a new pull request for what `git log origin/dev..HEAD` lists, its description carrying the review
-answers about those commits; on `CLOSED`, stop and ask.
+a new pull request for what `git log origin/dev..HEAD` lists, its description carrying what the
+merged one said about those commits; on `CLOSED`, stop and ask.
 
 Then wait for CI (`gh pr checks <number> --watch`), and fix what fails, committed granularly and
 pushed behind the open check, until the head is green. A fix that changes more than formatting or
-what a generator wrote goes through the second review when it is still unused, its answers added to
-the description behind the open check, and is otherwise named in the description as unreviewed.
+what a generator wrote goes through the second review, its answers added to the description behind
+the open check. Once the second review is spent, the description names that fix as unreviewed
+instead.
 
 ### Hand the pull request to a human
 

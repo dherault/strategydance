@@ -5,8 +5,9 @@ A package with conventions of its own keeps them in its own `CLAUDE.md`, which C
 when it works there: the backend, the database, the web, the design system and the emails.
 
 **Every change to a tracked file ships without asking**: on its own branch, committed granularly,
-pushed, opened as a pull request into `dev`, reviewed with the code-review skill and its findings
-acted on, until all that is left for a human is the merge. [Workflow](#workflow) says how.
+reviewed with the code-review skill and its findings acted on, then pushed and opened as a pull
+request into `dev` whose CI passes, until all that is left for a human is the merge.
+[Workflow](#workflow) says how.
 
 ## Vision
 
@@ -132,10 +133,10 @@ what it asks under the [Workflow](#workflow).
 ## Workflow
 
 **This is the person's standing request in every session.** A task that changes a tracked file,
-however small, goes branch → granular commits → push → pull request into `dev` → code review →
-handed to a human, in one go. Never ask whether to commit, push, open the pull request or
-address the review: the answer is yes, and a turn that ends on such a question has failed. Work is
-done when its pull request is green, reviewed and waiting for a human.
+however small, goes branch → granular commits → code review → push → pull request into `dev` → CI →
+handed to a human, in one go. Never ask whether to commit, address the review, push or open the pull
+request: the answer is yes, and a turn that ends on such a question has failed. Work is done when
+its pull request is green, reviewed and waiting for a human.
 
 It does not apply to a task that changes nothing tracked, such as a question or a review, and gives
 way when the person says otherwise for the task at hand ("don't commit", "just try it"). Three
@@ -233,7 +234,8 @@ answered the same way, rather than by moving to a worktree.
 ### Commit as you go
 
 `dev` is the integration branch, which every pull request starts from and goes back into. Never
-commit to `dev` or `main`, and never leave a branch with commits but no pull request.
+commit to `dev` or `main`, and never end a turn on a branch with commits but no pull request: a turn
+blocked before the push opens it anyway, naming in its description what it waits for.
 
 - One logical change per commit, each passing CI's four commands on its own, since the `pre-commit`
   hook only lints: a dependency bump, a refactor and a feature are three commits. Commit each piece
@@ -246,42 +248,49 @@ commit to `dev` or `main`, and never leave a branch with commits but no pull req
   written by hand, wrong or not. A commit across packages is `[root]`, a reason to keep one within a
   package where it is natural
 
+### Code review
+
+No bot reviews a pull request: Copilot and CodeRabbit are out of the loop, so never request either.
+The session reviews its own work with Claude Code's code-review skill once the work is committed,
+before anything is pushed, so the pull request opens on reviewed code.
+
+1. After `git fetch origin dev`, from inside the checkout that holds the branch, since the skill
+   reads the session's directory, run `Skill` with `code-review` and the args
+   `high origin/dev...HEAD`: the branch's commits since `dev`, where a bare `origin/dev` would name
+   `dev` as the target. `high` is the level, never `max` nor `ultra`, which only the person asks
+   for. Pass neither `--comment` nor `--fix`: the findings come back to the session, which weighs
+   each one
+2. Answer every finding: a fix, committed granularly, or a reason it does not apply. A finding is a
+   claim to check against the code, not an order. Keep each answer for the pull request's
+   description
+3. A second review is the session's call when the fixes changed enough to need one, and due when a
+   fix CI forces later changes more than formatting or what a generator wrote: run it the same way
+   and answer it the same way, where a finding the first already answered points to that answer.
+   Never a third: the human's review comes next
+
 ### Open the pull request
 
-Once the code is committed, in the same turn:
+Once every finding is answered, in the same turn:
 
 ```sh
 git push -u origin HEAD
 gh pr create --base dev --title '<what the change does>' --body-file - << 'EOF'
-<what changed and why, and how it was verified>
+<what changed and why, how it was verified, and each review finding with what became of it,
+or that there was none>
 EOF
 ```
 
 `--base dev` is required, since the default branch is `main`, and a pull request is never a draft,
-which cannot be merged. The person may merge at any moment, so every push and description edit
-goes behind `bun run pr open <number> &&`, which fails unless the pull request is open. On
-`MERGED`, open a new pull request for what `git log origin/dev..HEAD` lists; on `CLOSED`, stop and
-ask.
+which cannot be merged. The person may merge at any moment, so every push and description edit goes
+behind `bun run pr open <number> &&`, which fails unless the pull request is open. On `MERGED`, open
+a new pull request for what `git log origin/dev..HEAD` lists, its description carrying what the
+merged one said about those commits; on `CLOSED`, stop and ask.
 
-### Code review
-
-No bot reviews a pull request: Copilot and CodeRabbit are out of the loop, so never request either.
-The session reviews its own work with Claude Code's code-review skill, once the work is done.
-
-1. Once the pull request is open, in the same turn, run the skill on it: `Skill` with `code-review`
-   and the args `high <number>`. The number has it read the diff against `dev`, and `high` is the
-   level, never `max` nor `ultra`, which only the person asks for. Pass neither `--comment` nor
-   `--fix`: the findings come back to the session, which weighs each one
-2. Wait for CI (`gh pr checks <number> --watch`) and fix what fails
-3. Once the findings are ready, answer every one: a fix, committed granularly, or a reason it does
-   not apply. A finding is a claim to check against the code, not an order
-4. Push the fixes as one batch behind the open check, and wait for CI again on that head. Behind
-   the check too, post one `gh pr comment` naming each finding and what became of it, or that
-   there was none, so whoever merges sees the review
-5. A second review is the session's call, when the fixes, CI's included, changed enough to need
-   one: run it the same way once they are pushed, and answer it the same way, in a comment of its
-   own, where a finding the first already answered points to that answer. Never a third: the
-   human's review comes next
+Then wait for CI (`gh pr checks <number> --watch`), and fix what fails, committed granularly and
+pushed behind the open check, until the head is green. A fix that changes more than formatting or
+what a generator wrote goes through the second review, its answers added to the description behind
+the open check. Once the second review is spent, the description names that fix as unreviewed
+instead.
 
 ### Hand the pull request to a human
 

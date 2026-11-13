@@ -20,7 +20,7 @@ Documents since 2026-10-29.
 - **Follow `CLAUDE.md`:**
   - a branch from `origin/dev`;
   - granular commits, each green on lint, typecheck, test and build;
-  - a pull request into `dev` and its code review;
+  - their code review, then a pull request into `dev`;
   - then a human merges.
 - **Read knowledge.md's How it works first**, and conversations.md § Modules for what every module
   keeps. The Subagents module, `src/modules/subagents/`, is the template for a module served to no

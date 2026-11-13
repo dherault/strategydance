@@ -484,7 +484,7 @@ M1 to M3 merged into `dev` on 2026-11-10. What the release owes by hand is in Af
 - **Follow `CLAUDE.md`:**
   - a branch from `origin/dev`;
   - granular commits, each green on lint, typecheck, test and build;
-  - a pull request into `dev` and the review loop;
+  - their code review, then a pull request into `dev`;
   - then a human merges.
 - **Read this document first**, and conversations.md § Modules for what every module keeps.
 - **The tools Strategy Dance's agent sends never change.** `buildConversationTools.test.ts` stays as
